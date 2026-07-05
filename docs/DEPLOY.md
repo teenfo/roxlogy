@@ -39,11 +39,29 @@ Supabase 대시보드 > **Authentication > URL Configuration**:
 
 ## 3. 커스텀 도메인 연결 (`roxlogy.com` — 구입 확정 2026-07-05)
 
-1. Vercel 프로젝트 > Settings > **Domains** > `roxlogy.com` 추가 → 안내되는 DNS 레코드를 등록기관에 입력
-2. `www.roxlogy.com` → `roxlogy.com` 리다이렉트는 Vercel Domains 옵션으로 설정
+1. Vercel 프로젝트 > Settings > **Domains** > `roxlogy.com` 추가 (`www.roxlogy.com`도 함께 추가하고
+   "Redirect to roxlogy.com" 선택)
+2. 등록기관 DNS에 Vercel이 안내하는 레코드 입력 — Cloudflare 기준 상세는 §3.1
 3. 연결 후 §2의 Auth URL을 `https://roxlogy.com` 기준으로 갱신
 4. `web/app/sitemap.ts` / `robots.ts`의 BASE는 `https://roxlogy.com`으로 반영 완료 — 도메인이
    바뀌면 두 파일의 상수만 수정
+
+### 3.1 Cloudflare DNS 세팅 (도메인을 Cloudflare에서 관리하는 경우)
+
+Cloudflare 대시보드 > roxlogy.com > **DNS > Records**:
+
+| Type | Name | Content | Proxy 상태 |
+|---|---|---|---|
+| A | `@` (roxlogy.com) | `76.76.21.21` | **DNS only (회색 구름)** |
+| CNAME | `www` | `cname.vercel-dns.com` | **DNS only (회색 구름)** |
+
+> ⚠️ **Proxy 상태를 반드시 "DNS only"로.** 주황 구름(Proxied)으로 두면 Cloudflare가 앞단에
+> 끼면서 Vercel의 SSL 발급·도메인 검증이 실패하거나 리다이렉트 루프가 생긴다.
+> SSL은 Vercel이 자동 발급하므로 Cloudflare 프록시 기능(캐시/방화벽)은 쓰지 않는 구성이 표준.
+> 굳이 Proxied를 쓰려면 Cloudflare SSL/TLS 모드를 "Full (strict)"로 바꿔야 하지만 권장하지 않음.
+
+- 기존에 등록기관 기본 A/CNAME(파킹 페이지 등)이 있으면 삭제
+- 전파 후 Vercel Domains 화면에 "Valid Configuration" 표시되면 완료 (보통 수 분)
 
 ## 4. 배포 후 확인 체크리스트
 
