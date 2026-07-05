@@ -1,0 +1,13 @@
+;; roxlogy.com — Vercel 연결용 BIND zone 파일
+;; Cloudflare 대시보드 > roxlogy.com > DNS > Records > Import and export > Import
+;;
+;; ⚠️ 가져오기 화면의 "Proxy imported DNS records" 토글은 반드시 OFF —
+;;    레코드가 DNS only(회색 구름)여야 Vercel SSL 발급이 정상 동작한다.
+;;    Proxied(주황)로 들어갔다면 각 레코드의 구름을 클릭해 회색으로 변경할 것.
+
+$ORIGIN roxlogy.com.
+$TTL 300
+
+;; 웹 (Vercel)
+@       IN  A       76.76.21.21
+www     IN  CNAME   cname.vercel-dns.com.

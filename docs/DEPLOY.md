@@ -63,6 +63,11 @@ Cloudflare 대시보드 > roxlogy.com > **DNS > Records**:
 - 기존에 등록기관 기본 A/CNAME(파킹 페이지 등)이 있으면 삭제
 - 전파 후 Vercel Domains 화면에 "Valid Configuration" 표시되면 완료 (보통 수 분)
 
+**BIND zone 파일로 일괄 등록**: 위 표를 손으로 입력하는 대신
+[`docs/dns/roxlogy.com.zone`](dns/roxlogy.com.zone)을 Cloudflare **DNS > Records >
+Import and export > Import**로 업로드해도 된다. 가져오기 시 **"Proxy imported DNS
+records" 토글은 OFF** (DNS only 유지).
+
 ## 4. 배포 후 확인 체크리스트
 
 - [ ] `/` 랜딩, `/predict` 계산기, `/events`에 대회 목록(시드 18건) 표시
