@@ -37,6 +37,20 @@ Supabase 대시보드 > **Authentication > URL Configuration**:
 - **Redirect URLs**에 추가: `https://<도메인>/auth/callback`
 - 커스텀 도메인 연결 시 그 도메인도 같은 방식으로 추가
 
+## 2.1 Google 로그인 활성화 (OAuth)
+
+웹의 "Continue with Google" 버튼이 동작하려면 1회 설정 필요:
+
+1. [Google Cloud Console](https://console.cloud.google.com) > 프로젝트 생성(또는 기존) >
+   **APIs & Services > Credentials > Create Credentials > OAuth client ID**
+   - Application type: **Web application**
+   - Authorized redirect URIs에 추가:
+     `https://vuloxbpfhyqkvgmpmkst.supabase.co/auth/v1/callback`
+   - (OAuth consent screen을 처음 만들면 앱 이름 "Roxlogy", 지원 이메일만 채우면 됨)
+2. 발급된 **Client ID / Client Secret**을 복사
+3. Supabase 대시보드 > **Authentication > Sign In / Up > Google** 활성화 후 붙여넣기
+4. 완료 — 코드 변경 불필요. 설정 전에는 버튼 클릭 시 "provider is not enabled" 에러가 뜬다.
+
 ## 3. 커스텀 도메인 연결 (`roxlogy.com` — 구입 확정 2026-07-05)
 
 1. Vercel 프로젝트 > Settings > **Domains** > `roxlogy.com` 추가 (`www.roxlogy.com`도 함께 추가하고

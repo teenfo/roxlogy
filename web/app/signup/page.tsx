@@ -1,7 +1,10 @@
-import type { Metadata } from "next";
+import { getT } from "@/lib/i18n";
 import { AuthForm } from "@/components/auth-form";
 
-export const metadata: Metadata = { title: "가입 — Roxlogy" };
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t("meta.signup") };
+}
 
 export default function SignupPage() {
   return <AuthForm mode="signup" />;

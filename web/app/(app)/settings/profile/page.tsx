@@ -1,8 +1,11 @@
-import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n";
 import { ProfileForm } from "@/components/profile-form";
 
-export const metadata: Metadata = { title: "프로필 설정 — Roxlogy" };
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t("meta.profile") };
+}
 
 export default async function ProfileSettingsPage() {
   const supabase = await createClient();

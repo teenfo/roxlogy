@@ -1,20 +1,27 @@
 import type { Metadata } from "next";
+import { getDict, getT } from "@/lib/i18n";
+import { I18nProvider } from "@/components/i18n-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Roxlogy",
-  description: "하이브리드 레이스를 데이터로 연구하다",
+  description: "The science of hybrid racing",
   icons: { icon: "/roxlogy-appicon.svg" },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale } = await getT();
   return (
-    <html lang="ko" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang={locale} className="h-full antialiased">
+      <body className="min-h-full flex flex-col">
+        <I18nProvider locale={locale} dict={getDict(locale)}>
+          {children}
+        </I18nProvider>
+      </body>
     </html>
   );
 }

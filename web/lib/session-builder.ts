@@ -9,7 +9,10 @@ import { RUN_EXERCISE_ID, STATIONS } from "./hyrox";
 
 export type SegmentForm = {
   kind: "run" | "station" | "roxzone";
-  label: string;
+  /** 스테이션이면 hyrox.ts key (표시 문자열은 화면에서 로케일에 맞게 결정) */
+  stationKey: string | null;
+  /** run/roxzone 라벨 번호 (1~8) */
+  n: number;
   exerciseId: string | null;
   machineType: "ski" | "row" | null;
   splitMs: number | null; // 폼 입력값 (null = 미입력)
@@ -20,21 +23,24 @@ export function raceSimTemplate(): SegmentForm[] {
   return STATIONS.flatMap((station, i) => [
     {
       kind: "run" as const,
-      label: `런 ${i + 1} (1km)`,
+      stationKey: null,
+      n: i + 1,
       exerciseId: RUN_EXERCISE_ID,
       machineType: null,
       splitMs: null,
     },
     {
       kind: "roxzone" as const,
-      label: `록스존 ${i + 1}`,
+      stationKey: null,
+      n: i + 1,
       exerciseId: null,
       machineType: null,
       splitMs: null,
     },
     {
       kind: "station" as const,
-      label: station.nameKo,
+      stationKey: station.key,
+      n: i + 1,
       exerciseId: station.exerciseId,
       machineType: station.machineType,
       splitMs: null,
@@ -70,7 +76,7 @@ export function buildSessionRows(
   segments: SegmentForm[],
 ): SessionRows | { error: string } {
   const filled = segments.filter((s) => s.splitMs != null && s.splitMs > 0);
-  if (!filled.length) return { error: "기록을 1개 이상 입력해 주세요." };
+  if (!filled.length) return { error: "empty" as const };
 
   const sessionId = crypto.randomUUID();
   const totalMs = filled.reduce((acc, s) => acc + (s.splitMs ?? 0), 0);

@@ -13,7 +13,8 @@ import {
   YAxis,
 } from "recharts";
 import { CHART_COLORS } from "@/lib/hyrox";
-import { formatMs, KIND_LABEL } from "@/lib/format";
+import { formatMs } from "@/lib/format";
+import { useI18n } from "@/components/i18n-provider";
 
 const SURFACE = "#1E1E1E";
 const GRID = "#2C2C2A";
@@ -44,6 +45,7 @@ function DarkTooltip({
 }
 
 function LegendChips({ kinds }: { kinds: ("run" | "station" | "roxzone")[] }) {
+  const { t } = useI18n();
   return (
     <div className="mt-2 flex gap-4 text-xs text-muted">
       {kinds.map((k) => (
@@ -52,7 +54,7 @@ function LegendChips({ kinds }: { kinds: ("run" | "station" | "roxzone")[] }) {
             className="inline-block h-2.5 w-2.5 rounded-sm"
             style={{ background: CHART_COLORS[k] }}
           />
-          {KIND_LABEL[k]}
+          {t(`kind.${k}`)}
         </span>
       ))}
     </div>
@@ -145,6 +147,7 @@ export function BreakdownStackBar({
   stationMs: number;
   roxzoneMs: number;
 }) {
+  const { t } = useI18n();
   const total = runMs + stationMs + roxzoneMs;
   if (!total) return null;
   const parts = [
@@ -159,7 +162,7 @@ export function BreakdownStackBar({
         {parts.map((p) => (
           <div
             key={p.kind}
-            title={`${KIND_LABEL[p.kind]} ${formatMs(p.ms)}`}
+            title={`${t(`kind.${p.kind}`)} ${formatMs(p.ms)}`}
             style={{
               width: `${(p.ms / total) * 100}%`,
               background: CHART_COLORS[p.kind],
@@ -174,7 +177,7 @@ export function BreakdownStackBar({
               className="inline-block h-2.5 w-2.5 rounded-sm"
               style={{ background: CHART_COLORS[p.kind] }}
             />
-            {KIND_LABEL[p.kind]} {Math.round((p.ms / total) * 100)}% ·{" "}
+            {t(`kind.${p.kind}`)} {Math.round((p.ms / total) * 100)}% ·{" "}
             <span className="font-mono">{formatMs(p.ms)}</span>
           </span>
         ))}

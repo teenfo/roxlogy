@@ -1,9 +1,12 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate, formatMs, SOURCE_DEVICE_LABEL } from "@/lib/format";
+import { getT } from "@/lib/i18n";
+import { formatDate, formatMs } from "@/lib/format";
 
-export const metadata: Metadata = { title: "세션 히스토리 — Roxlogy" };
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t("meta.sessions") };
+}
 
 const PAGE_SIZE = 20;
 
@@ -17,6 +20,7 @@ export default async function SessionsPage({
   const from = (page - 1) * PAGE_SIZE;
 
   const supabase = await createClient();
+  const { t, tag } = await getT();
   const { data: sessions, count } = await supabase
     .from("sessions")
     .select("id, started_at, total_time_ms, source_device, analysis_status", {
@@ -32,19 +36,19 @@ export default async function SessionsPage({
   return (
     <main>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">세션 히스토리</h1>
+        <h1 className="text-2xl font-bold">{t("sessions.title")}</h1>
         <Link
           href="/sessions/new"
           className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
         >
-          세션 기록
+          {t("sessions.record")}
         </Link>
       </div>
-      <p className="mt-1 text-sm text-muted">총 {total}개</p>
+      <p className="mt-1 text-sm text-muted">{t("sessions.total", { n: total })}</p>
 
       {!sessions?.length ? (
         <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          기록된 세션이 없습니다.
+          {t("sessions.empty")}
         </p>
       ) : (
         <ul className="mt-6 flex flex-col gap-2">
@@ -55,10 +59,11 @@ export default async function SessionsPage({
                 className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
               >
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-sm">{formatDate(s.started_at)}</span>
+                  <span className="text-sm">{formatDate(s.started_at, tag)}</span>
                   <span className="text-xs text-muted">
-                    {SOURCE_DEVICE_LABEL[s.source_device] ?? s.source_device}
-                    {s.analysis_status !== "done" && " · 분석 대기중"}
+                    {t(`source.${s.source_device}` as Parameters<typeof t>[0])}
+                    {s.analysis_status !== "done" &&
+                      ` · ${t("common.analysisPending")}`}
                   </span>
                 </div>
                 <span className="font-mono text-lg font-semibold">
@@ -74,7 +79,7 @@ export default async function SessionsPage({
         <nav className="mt-6 flex justify-center gap-4 text-sm">
           {page > 1 && (
             <Link href={`/sessions?page=${page - 1}`} className="text-accent">
-              ← 이전
+              {t("sessions.pagePrev")}
             </Link>
           )}
           <span className="text-muted">
@@ -82,7 +87,7 @@ export default async function SessionsPage({
           </span>
           {page < lastPage && (
             <Link href={`/sessions?page=${page + 1}`} className="text-accent">
-              다음 →
+              {t("sessions.pageNext")}
             </Link>
           )}
         </nav>

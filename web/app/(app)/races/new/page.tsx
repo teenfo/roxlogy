@@ -1,8 +1,11 @@
-import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n";
 import { RaceNewForm } from "@/components/race-new-form";
 
-export const metadata: Metadata = { title: "레이스 결과 등록 — Roxlogy" };
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t("meta.raceNew") };
+}
 
 export default async function RaceNewPage() {
   const supabase = await createClient();

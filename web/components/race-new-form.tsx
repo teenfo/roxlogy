@@ -12,17 +12,13 @@ import {
   type ParsedRace,
 } from "@/lib/race-import";
 import { TimeInput } from "@/components/time-input";
+import { useI18n } from "@/components/i18n-provider";
 
-const DIVISIONS = [
-  ["open", "오픈"],
-  ["pro", "프로"],
-  ["doubles", "더블"],
-  ["pro_doubles", "프로 더블"],
-  ["relay", "릴레이"],
-] as const;
+const DIVISIONS = ["open", "pro", "doubles", "pro_doubles", "relay"] as const;
 
 export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [event, setEvent] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [division, setDivision] = useState<string>("open");
@@ -51,7 +47,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     if (Object.keys(st).length)
       setStationTexts((prev) => ({ ...prev, ...st }));
     setImportNotice(
-      `${parsedFieldCount(parsed)}개 항목을 인식해 채웠습니다. 값을 확인한 뒤 저장하세요.`,
+      t("raceNew.import.parsed", { n: parsedFieldCount(parsed) }),
     );
   }
 
@@ -68,13 +64,13 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       });
       const body = await res.json();
       if (!res.ok) {
-        setImportNotice(body.error ?? "가져오기에 실패했습니다.");
+        setImportNotice(body.error ?? t("raceNew.import.failFetch"));
         if (res.status === 400 || res.status === 422) setShowPaste(true);
       } else {
         applyParsed(body.parsed as ParsedRace);
       }
     } catch {
-      setImportNotice("가져오기에 실패했습니다. 텍스트 붙여넣기를 이용해 보세요.");
+      setImportNotice(t("raceNew.import.failFetch"));
       setShowPaste(true);
     }
     setImporting(false);
@@ -84,9 +80,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     setImportNotice(null);
     const parsed = parseRaceText(importText);
     if (parsedFieldCount(parsed) === 0) {
-      setImportNotice(
-        "붙여넣은 텍스트에서 기록을 인식하지 못했습니다. 스테이션 이름과 시간이 포함된 결과 화면 전체를 복사해 주세요.",
-      );
+      setImportNotice(t("raceNew.import.failParse"));
       return;
     }
     applyParsed(parsed);
@@ -94,8 +88,8 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
   async function handleSave() {
     setError(null);
-    if (!event.trim()) return setError("대회명을 입력해 주세요.");
-    if (totalMs == null) return setError("총 기록을 mm:ss 또는 h:mm:ss로 입력해 주세요.");
+    if (!event.trim()) return setError(t("raceNew.errEvent"));
+    if (totalMs == null) return setError(t("raceNew.errTotal"));
     setPending(true);
 
     const supabase = createClient();
@@ -104,7 +98,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     } = await supabase.auth.getUser();
     if (!user) {
       setPending(false);
-      return setError("로그인이 필요합니다.");
+      return setError(t("common.needLogin"));
     }
 
     const stations: Record<string, number> = {};
@@ -131,7 +125,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       .single();
 
     setPending(false);
-    if (err) return setError(`저장 실패: ${err.message}`);
+    if (err) return setError(t("raceNew.errSave", { msg: err.message }));
     router.push(`/races/${data.id}`);
     router.refresh();
   }
@@ -139,19 +133,14 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   return (
     <main>
       <Link href="/races" className="text-sm text-muted hover:text-foreground">
-        ← 레이스
+        {t("races.back")}
       </Link>
-      <h1 className="mt-4 text-2xl font-bold">공식 레이스 결과 등록</h1>
-      <p className="mt-1 text-sm text-muted">
-        공식 결과 페이지에서 본인 기록을 확인한 뒤 그대로 옮겨 적으세요.
-      </p>
+      <h1 className="mt-4 text-2xl font-bold">{t("raceNew.title")}</h1>
+      <p className="mt-1 text-sm text-muted">{t("raceNew.desc")}</p>
 
       <section className="mt-6 max-w-lg rounded-md border border-track/30 bg-surface px-4 py-4">
-        <p className="text-sm font-semibold">내 결과 자동 가져오기</p>
-        <p className="mt-1 text-xs text-muted">
-          공식 결과 사이트(results.hyrox.com 등)의 <b>본인 결과 페이지 주소</b>를
-          붙여넣으면 기록을 자동으로 채웁니다.
-        </p>
+        <p className="text-sm font-semibold">{t("raceNew.import.title")}</p>
+        <p className="mt-1 text-xs text-muted">{t("raceNew.import.desc")}</p>
         <div className="mt-3 flex gap-2">
           <input
             type="url"
@@ -166,7 +155,9 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             disabled={importing || !importUrl.trim()}
             className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
           >
-            {importing ? "가져오는 중…" : "가져오기"}
+            {importing
+              ? t("raceNew.import.importing")
+              : t("raceNew.import.button")}
           </button>
         </div>
 
@@ -175,7 +166,9 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           onClick={() => setShowPaste((v) => !v)}
           className="mt-3 text-xs text-track hover:underline"
         >
-          {showPaste ? "텍스트 붙여넣기 닫기" : "주소가 안 되나요? 결과 텍스트 붙여넣기"}
+          {showPaste
+            ? t("raceNew.import.pasteClose")
+            : t("raceNew.import.pasteOpen")}
         </button>
         {showPaste && (
           <div className="mt-2">
@@ -183,7 +176,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
               rows={5}
-              placeholder="결과 페이지에서 기록 부분을 전체 선택·복사해 여기에 붙여넣으세요 (스테이션 이름 + 시간이 포함되면 인식됩니다)"
+              placeholder={t("raceNew.import.pastePh")}
               className="w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-xs outline-none focus:border-accent"
             />
             <button
@@ -192,7 +185,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               disabled={!importText.trim()}
               className="mt-2 rounded-md border border-muted/40 px-4 py-1.5 text-sm font-semibold hover:border-foreground disabled:opacity-40"
             >
-              텍스트에서 인식
+              {t("raceNew.import.parseBtn")}
             </button>
           </div>
         )}
@@ -203,12 +196,12 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
       <div className="mt-6 grid max-w-lg gap-4">
         <label className="flex flex-col gap-1.5 text-sm text-muted">
-          대회
+          {t("raceNew.event")}
           <input
             list="event-names"
             value={event}
             onChange={(e) => setEvent(e.target.value)}
-            placeholder="예: HYROX Seoul"
+            placeholder={t("raceNew.eventPh")}
             className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
           />
           <datalist id="event-names">
@@ -220,7 +213,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
         <div className="flex gap-4">
           <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
-            대회 날짜
+            {t("raceNew.date")}
             <input
               type="date"
               value={eventDate}
@@ -229,15 +222,15 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             />
           </label>
           <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
-            디비전
+            {t("raceNew.division")}
             <select
               value={division}
               onChange={(e) => setDivision(e.target.value)}
               className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
             >
-              {DIVISIONS.map(([v, l]) => (
+              {DIVISIONS.map((v) => (
                 <option key={v} value={v}>
-                  {l}
+                  {t(`division.${v}`)}
                 </option>
               ))}
             </select>
@@ -246,7 +239,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
         <div className="flex gap-4">
           <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
-            총 기록 (h:mm:ss)
+            {t("raceNew.total")}
             <input
               value={totalText}
               onChange={(e) => setTotalText(e.target.value)}
@@ -256,7 +249,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             />
           </label>
           <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
-            런 합계 (선택)
+            {t("raceNew.runTotal")}
             <input
               value={runTotalText}
               onChange={(e) => setRunTotalText(e.target.value)}
@@ -268,14 +261,18 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         </div>
 
         <fieldset className="mt-2">
-          <legend className="text-sm text-muted">스테이션 스플릿 (선택)</legend>
+          <legend className="text-sm text-muted">
+            {t("raceNew.stationSplits")}
+          </legend>
           <div className="mt-2 flex flex-col gap-1.5">
             {STATIONS.map((s) => (
               <div
                 key={s.key}
                 className="flex items-center justify-between rounded-md bg-surface px-4 py-2"
               >
-                <span className="text-sm">{s.nameKo}</span>
+                <span className="text-sm">
+                  {t(`station.${s.key}` as Parameters<typeof t>[0])}
+                </span>
                 <TimeInput
                   value={stationTexts[s.key] ?? ""}
                   onChange={(text) =>
@@ -293,7 +290,9 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           disabled={pending}
           className="rounded-md bg-accent px-6 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
         >
-          {pending ? "저장 중…" : `저장${totalMs != null ? ` (${formatMs(totalMs)})` : ""}`}
+          {pending
+            ? t("common.saving")
+            : `${t("common.save")}${totalMs != null ? ` (${formatMs(totalMs)})` : ""}`}
         </button>
       </div>
     </main>

@@ -10,9 +10,13 @@ export function formatMs(ms: number | null | undefined): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
-export function formatDate(iso: string | null | undefined): string {
+/** locale tag 예: "en-US" | "ko-KR" | "es-ES" (lib/i18n/config.ts LOCALE_TAG) */
+export function formatDate(
+  iso: string | null | undefined,
+  tag: string = "en-US",
+): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("ko-KR", {
+  return new Date(iso).toLocaleString(tag, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -21,19 +25,18 @@ export function formatDate(iso: string | null | undefined): string {
   });
 }
 
-export const SOURCE_DEVICE_LABEL: Record<string, string> = {
-  watch: "워치",
-  phone: "폰",
-  web: "웹",
-};
+export function formatDateShort(
+  iso: string | null | undefined,
+  tag: string = "en-US",
+): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString(tag, {
+    month: "short",
+    day: "numeric",
+  });
+}
 
-export const KIND_LABEL: Record<string, string> = {
-  run: "런",
-  station: "스테이션",
-  roxzone: "록스존",
-};
-
-/** "mm:ss" / "h:mm:ss" / "90" (초) → ms. 잘못된 입력이면 null */
+/** "mm:ss" / "h:mm:ss" → ms. 잘못된 입력이면 null */
 export function parseTimeToMs(input: string): number | null {
   const t = input.trim();
   if (!t) return null;
@@ -43,12 +46,4 @@ export function parseTimeToMs(input: string): number | null {
   if (parts.length > 1 && parts.slice(1).some((p) => p > 59)) return null;
   const sec = parts.reduce((acc, p) => acc * 60 + p, 0);
   return sec * 1000;
-}
-
-export function formatDateShort(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("ko-KR", {
-    month: "short",
-    day: "numeric",
-  });
 }

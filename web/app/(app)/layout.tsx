@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n";
 
 export default async function AppLayout({
   children,
@@ -11,6 +12,7 @@ export default async function AppLayout({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const { t } = await getT();
 
   return (
     <>
@@ -24,39 +26,39 @@ export default async function AppLayout({
             href="/sessions"
             className="text-sm text-muted hover:text-foreground"
           >
-            세션
+            {t("nav.sessions")}
           </Link>
           <Link
             href="/races"
             className="text-sm text-muted hover:text-foreground"
           >
-            레이스
+            {t("nav.races")}
           </Link>
           <Link
             href="/events"
             className="hidden text-sm text-muted hover:text-foreground sm:block"
           >
-            일정
+            {t("nav.events")}
           </Link>
           <Link
             href="/exercises"
             className="hidden text-sm text-muted hover:text-foreground sm:block"
           >
-            운동
+            {t("nav.exercises")}
           </Link>
           <div className="ml-auto flex items-center gap-4">
             <Link
               href="/settings/profile"
               className="text-sm text-muted hover:text-foreground"
             >
-              프로필
+              {t("nav.profile")}
             </Link>
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
                 className="text-sm text-muted hover:text-foreground"
               >
-                로그아웃
+                {t("common.logout")}
               </button>
             </form>
           </div>

@@ -1,7 +1,10 @@
-import type { Metadata } from "next";
+import { getT } from "@/lib/i18n";
 import { SessionNewForm } from "@/components/session-new-form";
 
-export const metadata: Metadata = { title: "세션 기록 — Roxlogy" };
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t("meta.sessionNew") };
+}
 
 export default function SessionNewPage() {
   return <SessionNewForm />;

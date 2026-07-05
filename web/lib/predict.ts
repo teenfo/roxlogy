@@ -7,13 +7,8 @@ import { STATIONS } from "./hyrox";
  * 런 52% / 스테이션 48%로 나누고 스테이션은 난이도 가중치로 배분.
  */
 
-export type Level = "beginner" | "intermediate" | "advanced";
-
-export const LEVEL_LABEL: Record<Level, string> = {
-  beginner: "입문 (첫 레이스)",
-  intermediate: "중급",
-  advanced: "상급",
-};
+export const LEVELS = ["beginner", "intermediate", "advanced"] as const;
+export type Level = (typeof LEVELS)[number];
 
 const ROXZONE_BUDGET_MS: Record<Level, number> = {
   beginner: 7 * 60_000,

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
@@ -30,6 +31,7 @@ export default async function RaceDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const { t, tag } = await getT();
 
   const { data: race } = await supabase
     .from("race_results")
@@ -76,7 +78,7 @@ export default async function RaceDetailPage({
     <main>
       <div className="flex items-center justify-between">
         <Link href="/races" className="text-sm text-muted hover:text-foreground">
-          ← 레이스
+          {t("races.back")}
         </Link>
         <DeleteButton kind="race" id={race.id} redirectTo="/races" />
       </div>
@@ -88,48 +90,57 @@ export default async function RaceDetailPage({
         </span>
       </div>
       <p className="mt-1 text-sm text-muted">
-        {race.event_date ?? "날짜 미입력"} · {race.division ?? "—"}
+        {race.event_date ?? t("races.noDate")} ·{" "}
+        {race.division
+          ? t(`division.${race.division}` as Parameters<typeof t>[0])
+          : "—"}
       </p>
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">
-          훈련 대비 비교
+          {t("races.compareTitle")}
           {sim && (
             <span className="ml-2 text-sm font-normal text-muted">
-              vs {formatDate(sim.started_at)} 레이스 시뮬
+              {t("races.compareVs", { date: formatDate(sim.started_at, tag) })}
             </span>
           )}
         </h2>
 
         {!sim ? (
           <p className="mt-4 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
-            비교할 레이스 시뮬 세션이 없습니다.{" "}
+            {t("races.noSim")}{" "}
             <Link href="/sessions/new" className="text-accent hover:underline">
-              세션을 기록
+              {t("races.noSimLink")}
             </Link>
-            하면 레이스와 나란히 비교해 드립니다.
           </p>
         ) : !hasStationSplits ? (
           <p className="mt-4 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
-            이 레이스에 스테이션 스플릿이 입력되지 않아 총 기록만 비교합니다:
-            레이스 {formatMs(race.total_time_ms)} vs 시뮬{" "}
-            {formatMs(sim.total_time_ms)}
+            {t("races.totalOnlyCompare", {
+              race: formatMs(race.total_time_ms),
+              sim: formatMs(sim.total_time_ms),
+            })}
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface text-left text-xs text-muted">
-                  <th className="py-2 pr-4 font-normal">구간</th>
-                  <th className="py-2 pr-4 text-right font-normal">레이스</th>
-                  <th className="py-2 pr-4 text-right font-normal">훈련 시뮬</th>
-                  <th className="py-2 text-right font-normal">차이</th>
+                  <th className="py-2 pr-4 font-normal">{t("races.colSegment")}</th>
+                  <th className="py-2 pr-4 text-right font-normal">
+                    {t("races.colRace")}
+                  </th>
+                  <th className="py-2 pr-4 text-right font-normal">
+                    {t("races.colSim")}
+                  </th>
+                  <th className="py-2 text-right font-normal">
+                    {t("races.colDiff")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {splits.run_total_ms != null && (
                   <tr className="border-b border-surface/60">
-                    <td className="py-2.5 pr-4">런 합계 (8km)</td>
+                    <td className="py-2.5 pr-4">{t("races.runTotal")}</td>
                     <td className="py-2.5 pr-4 text-right font-mono">
                       {formatMs(splits.run_total_ms)}
                     </td>
@@ -150,7 +161,9 @@ export default async function RaceDetailPage({
                   if (raceMs == null && trainMs == null) return null;
                   return (
                     <tr key={s.key} className="border-b border-surface/60">
-                      <td className="py-2.5 pr-4">{s.nameKo}</td>
+                      <td className="py-2.5 pr-4">
+                        {t(`station.${s.key}` as Parameters<typeof t>[0])}
+                      </td>
                       <td className="py-2.5 pr-4 text-right font-mono">
                         {raceMs != null ? formatMs(raceMs) : "—"}
                       </td>
@@ -165,9 +178,7 @@ export default async function RaceDetailPage({
                 })}
               </tbody>
             </table>
-            <p className="mt-2 text-xs text-muted">
-              차이는 레이스 − 훈련. 파란색이면 레이스에서 더 빨랐다는 뜻입니다.
-            </p>
+            <p className="mt-2 text-xs text-muted">{t("races.diffNote")}</p>
           </div>
         )}
       </section>

@@ -1,17 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {
-  formatDate,
-  formatMs,
-  KIND_LABEL,
-  SOURCE_DEVICE_LABEL,
-} from "@/lib/format";
+import { getT } from "@/lib/i18n";
+import { formatDate, formatMs } from "@/lib/format";
 import {
   breakdown,
   longestRoxzone,
   pacingGrade,
-  PACING_GRADE_LABEL,
   runLapDeviationMs,
 } from "@/lib/analysis";
 import {
@@ -49,6 +44,7 @@ export async function generateMetadata({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const { t, tag } = await getT();
   const { data } = await supabase
     .from("sessions")
     .select("started_at")
@@ -56,8 +52,8 @@ export async function generateMetadata({
     .maybeSingle();
   return {
     title: data
-      ? `${formatDate(data.started_at)} 세션 — Roxlogy`
-      : "세션 — Roxlogy",
+      ? t("meta.sessionDetail", { date: formatDate(data.started_at, tag) })
+      : "Roxlogy",
   };
 }
 
@@ -68,6 +64,7 @@ export default async function SessionDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const { t, tag, locale } = await getT();
 
   const { data: session } = await supabase
     .from("sessions")
@@ -87,6 +84,9 @@ export default async function SessionDetailPage({
 
   if (!session) notFound();
 
+  const exName = (ex: Segment["exercises"]) =>
+    ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : null;
+
   const segments = ((session.session_segments ?? []) as unknown as Segment[])
     .slice()
     .sort((a, b) => a.seq - b.seq);
@@ -94,13 +94,16 @@ export default async function SessionDetailPage({
     ? session.session_metrics[0]
     : session.session_metrics;
 
-  // 워커(session_metrics) 값 우선, 없으면 웹 즉석 계산 — 수식은 lib/analysis.ts
   const share = breakdown(segments);
   const deviation =
     workerMetrics?.run_lap_deviation_ms ?? runLapDeviationMs(segments);
   const grade =
-    (workerMetrics?.pacing_grade as keyof typeof PACING_GRADE_LABEL | null) ??
-    (deviation != null ? pacingGrade(deviation) : null);
+    (workerMetrics?.pacing_grade as
+      | "very_consistent"
+      | "consistent"
+      | "variable"
+      | "erratic"
+      | null) ?? (deviation != null ? pacingGrade(deviation) : null);
   const roxzoneMs = workerMetrics?.roxzone_total_ms ?? share.roxzoneMs;
   const slowestZone = longestRoxzone(segments);
 
@@ -110,7 +113,8 @@ export default async function SessionDetailPage({
   const chartData = segments
     .filter((s) => s.split_time_ms != null)
     .map((s) => ({
-      name: `${s.seq}`,
+      name:
+        exName(s.exercises) ?? `${t(`kind.${s.kind}`)} ${s.seq}`,
       ms: s.split_time_ms!,
       kind: s.kind,
     }));
@@ -119,53 +123,57 @@ export default async function SessionDetailPage({
     <main>
       <div className="flex items-center justify-between">
         <Link href="/sessions" className="text-sm text-muted hover:text-foreground">
-          ← 세션 히스토리
+          {t("sessions.back")}
         </Link>
         <DeleteButton kind="session" id={session.id} redirectTo="/sessions" />
       </div>
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold">{formatDate(session.started_at)}</h1>
+        <h1 className="text-2xl font-bold">
+          {formatDate(session.started_at, tag)}
+        </h1>
         <span className="font-mono text-3xl font-bold text-accent">
           {formatMs(session.total_time_ms)}
         </span>
       </div>
       <p className="mt-1 text-sm text-muted">
-        {SOURCE_DEVICE_LABEL[session.source_device] ?? session.source_device} 기록
+        {t("sessions.recordedVia", {
+          device: t(`source.${session.source_device}` as Parameters<typeof t>[0]),
+        })}
       </p>
 
-      {/* 지표 타일 */}
       <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">페이싱</p>
+          <p className="text-xs text-muted">{t("sessions.pacing")}</p>
           <p className="mt-1 text-lg font-semibold">
-            {grade ? PACING_GRADE_LABEL[grade] : "—"}
+            {grade ? t(`pacing.${grade}`) : "—"}
           </p>
         </div>
         <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">런 랩 편차</p>
+          <p className="text-xs text-muted">{t("sessions.runLapDeviation")}</p>
           <p className="mt-1 font-mono text-lg font-semibold">
-            {deviation != null ? `±${Math.round(deviation / 1000)}초` : "—"}
+            {deviation != null
+              ? t("sessions.deviationSec", { n: Math.round(deviation / 1000) })
+              : "—"}
           </p>
         </div>
         <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">록스존 합계</p>
+          <p className="text-xs text-muted">{t("sessions.roxzoneTotal")}</p>
           <p className="mt-1 font-mono text-lg font-semibold">
             {roxzoneMs ? formatMs(roxzoneMs) : "—"}
           </p>
         </div>
         <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">최장 트랜지션</p>
+          <p className="text-xs text-muted">{t("sessions.longestTransition")}</p>
           <p className="mt-1 font-mono text-lg font-semibold">
             {slowestZone ? formatMs(slowestZone.ms) : "—"}
           </p>
         </div>
       </section>
 
-      {/* 시간 구성 */}
       {share.totalMs > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">시간 구성</h2>
+          <h2 className="text-lg font-semibold">{t("sessions.timeComposition")}</h2>
           <div className="mt-3">
             <BreakdownStackBar
               runMs={share.runMs}
@@ -176,31 +184,22 @@ export default async function SessionDetailPage({
         </section>
       )}
 
-      {/* 세그먼트 스플릿 차트 */}
       {chartData.length > 1 && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">세그먼트 스플릿</h2>
+          <h2 className="text-lg font-semibold">{t("sessions.segmentSplits")}</h2>
           <div className="mt-3 rounded-md bg-surface p-4">
-            <SegmentSplitBars
-              data={chartData.map((d) => ({
-                ...d,
-                name:
-                  segments.find((s) => `${s.seq}` === d.name)?.exercises
-                    ?.name_ko ?? `${KIND_LABEL[d.kind]} ${d.name}`,
-              }))}
-            />
+            <SegmentSplitBars data={chartData} />
           </div>
         </section>
       )}
 
-      {/* 런 페이스 추이 */}
       {runLaps.length >= 2 && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">런 랩 추이 (1km)</h2>
+          <h2 className="text-lg font-semibold">{t("sessions.runLapTrend")}</h2>
           <div className="mt-3 rounded-md bg-surface p-4">
             <RunLapLine
               data={runLaps.map((s, i) => ({
-                name: `랩 ${i + 1}`,
+                name: t("sessions.lapN", { n: i + 1 }),
                 ms: s.split_time_ms!,
               }))}
             />
@@ -208,12 +207,11 @@ export default async function SessionDetailPage({
         </section>
       )}
 
-      {/* 세그먼트 테이블 */}
       <section className="mt-8">
-        <h2 className="text-lg font-semibold">세그먼트</h2>
+        <h2 className="text-lg font-semibold">{t("sessions.segments")}</h2>
         {!segments.length ? (
           <p className="mt-4 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
-            세그먼트 기록이 없습니다.
+            {t("sessions.noSegments")}
           </p>
         ) : (
           <ol className="mt-4 flex flex-col gap-1.5">
@@ -228,21 +226,23 @@ export default async function SessionDetailPage({
                 <span
                   className={`rounded border px-1.5 py-0.5 text-xs ${KIND_BADGE[seg.kind] ?? ""}`}
                 >
-                  {KIND_LABEL[seg.kind] ?? seg.kind}
+                  {t(`kind.${seg.kind}`)}
                 </span>
                 <span className="flex-1 text-sm">
-                  {seg.exercises?.name_ko ??
+                  {exName(seg.exercises) ??
                     (seg.kind === "run"
-                      ? "1km 러닝"
+                      ? t("sessions.run1km")
                       : seg.kind === "roxzone"
-                        ? "트랜지션"
+                        ? t("sessions.transition")
                         : "—")}
                   {seg.machine_type && (
                     <span className="ml-2 text-xs text-muted">
-                      {seg.machine_type === "ski" ? "스키에르그" : "로잉"}
+                      {seg.machine_type === "ski"
+                        ? t("sessions.machineSki")
+                        : t("sessions.machineRow")}
                       {seg.erg_samples?.length
-                        ? ` · raw ${seg.erg_samples[0].sample_count}샘플`
-                        : " · raw 없음"}
+                        ? ` · ${t("sessions.rawSamples", { n: seg.erg_samples[0].sample_count })}`
+                        : ` · ${t("sessions.rawNone")}`}
                     </span>
                   )}
                 </span>

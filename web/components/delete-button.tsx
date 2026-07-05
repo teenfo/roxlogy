@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/components/i18n-provider";
 
 /** 세션 soft delete 또는 레이스 결과 삭제 — 확인 단계 포함 */
 export function DeleteButton({
@@ -15,6 +16,7 @@ export function DeleteButton({
   redirectTo: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -43,22 +45,22 @@ export function DeleteButton({
         onClick={() => setConfirming(true)}
         className="text-sm text-muted hover:text-red-400"
       >
-        삭제
+        {t("common.delete")}
       </button>
     );
   }
   return (
     <span className="flex items-center gap-3 text-sm">
-      <span className="text-muted">정말 삭제할까요?</span>
+      <span className="text-muted">{t("common.confirmDelete")}</span>
       <button
         onClick={handleDelete}
         disabled={pending}
         className="font-semibold text-red-400 disabled:opacity-50"
       >
-        {pending ? "삭제 중…" : "삭제"}
+        {pending ? t("common.deleting") : t("common.delete")}
       </button>
       <button onClick={() => setConfirming(false)} className="text-muted">
-        취소
+        {t("common.cancel")}
       </button>
     </span>
   );
