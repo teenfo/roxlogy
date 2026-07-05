@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Roxlogy 브랜드 팔레트 (docs/PLANNING.md §10.4) — 다크 단일 테마 */
+:root {
+  --background: #141414; /* Black */
+  --surface: #1e1e1e;    /* Coal */
+  --foreground: #f4f4f2; /* Chalk */
+  --muted: #9a9a96;      /* Grey */
+  --accent: #ffd500;     /* Race Yellow — CTA·강조 한정 */
+  --track: #2d7dff;      /* Track Blue — 런/페이스 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-track: var(--track);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
+}
