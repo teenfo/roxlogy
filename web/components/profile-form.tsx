@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { LinkedAccounts } from "@/components/linked-accounts";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 
 const DIVISIONS = ["open", "pro", "doubles", "pro_doubles", "relay"] as const;
@@ -82,6 +83,8 @@ export function ProfileForm({
           <LocaleSwitcher />
         </label>
       </div>
+
+      <LinkedAccounts />
 
       <form onSubmit={handleSave} className="mt-6 grid max-w-md gap-4">
         <label className="flex flex-col gap-1.5 text-sm text-muted">

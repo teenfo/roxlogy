@@ -50,6 +50,9 @@ Supabase 대시보드 > **Authentication > URL Configuration**:
 2. 발급된 **Client ID / Client Secret**을 복사
 3. Supabase 대시보드 > **Authentication > Sign In / Up > Google** 활성화 후 붙여넣기
 4. 완료 — 코드 변경 불필요. 설정 전에는 버튼 클릭 시 "provider is not enabled" 에러가 뜬다.
+5. **프로필 설정의 "구글 계정 연결"(기존 이메일 계정에 추가 연동)까지 쓰려면**:
+   Supabase 대시보드 > Authentication > 설정에서 **"Allow manual linking"** 토글을 켠다.
+   꺼져 있으면 연결 버튼이 "Manual linking is disabled" 에러를 반환한다.
 
 ## 3. 커스텀 도메인 연결 (`roxlogy.com` — 구입 확정 2026-07-05)
 

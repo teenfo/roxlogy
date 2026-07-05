@@ -226,6 +226,15 @@ const en = {
   "profile.errSave": "Save failed: {msg}",
   "profile.language": "Language",
   "profile.languageDesc": "Applies to this browser immediately.",
+  "profile.linkedTitle": "Linked accounts",
+  "profile.provider.email": "Email",
+  "profile.provider.google": "Google",
+  "profile.linkGoogle": "Link Google account",
+  "profile.linking": "Redirecting to Google…",
+  "profile.unlink": "Unlink",
+  "profile.unlinking": "Unlinking…",
+  "profile.lastIdentity": "You can't unlink your only sign-in method.",
+  "profile.linkErr": "Linking failed: {msg}",
 
   // 404
   "notFound.title": "Page not found",
