@@ -32,3 +32,23 @@ export const KIND_LABEL: Record<string, string> = {
   station: "스테이션",
   roxzone: "록스존",
 };
+
+/** "mm:ss" / "h:mm:ss" / "90" (초) → ms. 잘못된 입력이면 null */
+export function parseTimeToMs(input: string): number | null {
+  const t = input.trim();
+  if (!t) return null;
+  if (!/^\d{1,2}(:\d{1,2}){0,2}$/.test(t)) return null;
+  const parts = t.split(":").map(Number);
+  if (parts.some((p) => Number.isNaN(p))) return null;
+  if (parts.length > 1 && parts.slice(1).some((p) => p > 59)) return null;
+  const sec = parts.reduce((acc, p) => acc * 60 + p, 0);
+  return sec * 1000;
+}
+
+export function formatDateShort(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("ko-KR", {
+    month: "short",
+    day: "numeric",
+  });
+}
