@@ -6,6 +6,11 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMs, parseTimeToMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
+import {
+  parsedFieldCount,
+  parseRaceText,
+  type ParsedRace,
+} from "@/lib/race-import";
 import { TimeInput } from "@/components/time-input";
 
 const DIVISIONS = [
@@ -26,8 +31,66 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const [stationTexts, setStationTexts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importText, setImportText] = useState("");
+  const [showPaste, setShowPaste] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
+
+  function applyParsed(parsed: ParsedRace) {
+    if (parsed.event) setEvent(parsed.event);
+    if (parsed.eventDate) setEventDate(parsed.eventDate);
+    if (parsed.division) setDivision(parsed.division);
+    if (parsed.totalMs != null) setTotalText(formatMs(parsed.totalMs));
+    if (parsed.runTotalMs != null) setRunTotalText(formatMs(parsed.runTotalMs));
+    const st: Record<string, string> = {};
+    for (const [key, ms] of Object.entries(parsed.stations))
+      st[key] = formatMs(ms);
+    if (Object.keys(st).length)
+      setStationTexts((prev) => ({ ...prev, ...st }));
+    setImportNotice(
+      `${parsedFieldCount(parsed)}개 항목을 인식해 채웠습니다. 값을 확인한 뒤 저장하세요.`,
+    );
+  }
+
+  async function handleUrlImport() {
+    setImportNotice(null);
+    setError(null);
+    if (!importUrl.trim()) return;
+    setImporting(true);
+    try {
+      const res = await fetch("/api/races/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: importUrl.trim() }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setImportNotice(body.error ?? "가져오기에 실패했습니다.");
+        if (res.status === 400 || res.status === 422) setShowPaste(true);
+      } else {
+        applyParsed(body.parsed as ParsedRace);
+      }
+    } catch {
+      setImportNotice("가져오기에 실패했습니다. 텍스트 붙여넣기를 이용해 보세요.");
+      setShowPaste(true);
+    }
+    setImporting(false);
+  }
+
+  function handleTextImport() {
+    setImportNotice(null);
+    const parsed = parseRaceText(importText);
+    if (parsedFieldCount(parsed) === 0) {
+      setImportNotice(
+        "붙여넣은 텍스트에서 기록을 인식하지 못했습니다. 스테이션 이름과 시간이 포함된 결과 화면 전체를 복사해 주세요.",
+      );
+      return;
+    }
+    applyParsed(parsed);
+  }
 
   async function handleSave() {
     setError(null);
@@ -82,6 +145,61 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       <p className="mt-1 text-sm text-muted">
         공식 결과 페이지에서 본인 기록을 확인한 뒤 그대로 옮겨 적으세요.
       </p>
+
+      <section className="mt-6 max-w-lg rounded-md border border-track/30 bg-surface px-4 py-4">
+        <p className="text-sm font-semibold">내 결과 자동 가져오기</p>
+        <p className="mt-1 text-xs text-muted">
+          공식 결과 사이트(results.hyrox.com 등)의 <b>본인 결과 페이지 주소</b>를
+          붙여넣으면 기록을 자동으로 채웁니다.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <input
+            type="url"
+            value={importUrl}
+            onChange={(e) => setImportUrl(e.target.value)}
+            placeholder="https://results.hyrox.com/…"
+            className="min-w-0 flex-1 rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+          <button
+            type="button"
+            onClick={handleUrlImport}
+            disabled={importing || !importUrl.trim()}
+            className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+          >
+            {importing ? "가져오는 중…" : "가져오기"}
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowPaste((v) => !v)}
+          className="mt-3 text-xs text-track hover:underline"
+        >
+          {showPaste ? "텍스트 붙여넣기 닫기" : "주소가 안 되나요? 결과 텍스트 붙여넣기"}
+        </button>
+        {showPaste && (
+          <div className="mt-2">
+            <textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              rows={5}
+              placeholder="결과 페이지에서 기록 부분을 전체 선택·복사해 여기에 붙여넣으세요 (스테이션 이름 + 시간이 포함되면 인식됩니다)"
+              className="w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-xs outline-none focus:border-accent"
+            />
+            <button
+              type="button"
+              onClick={handleTextImport}
+              disabled={!importText.trim()}
+              className="mt-2 rounded-md border border-muted/40 px-4 py-1.5 text-sm font-semibold hover:border-foreground disabled:opacity-40"
+            >
+              텍스트에서 인식
+            </button>
+          </div>
+        )}
+        {importNotice && (
+          <p className="mt-2 text-xs text-track">{importNotice}</p>
+        )}
+      </section>
 
       <div className="mt-6 grid max-w-lg gap-4">
         <label className="flex flex-col gap-1.5 text-sm text-muted">
