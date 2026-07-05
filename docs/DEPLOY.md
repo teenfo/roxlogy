@@ -19,7 +19,7 @@ GitHub(teenfo/roxlogy, main) ──자동──▶ Vercel (Root: web/) ──▶
 3. 설정:
    | 항목 | 값 |
    |---|---|
-   | Framework Preset | Next.js (자동 감지) |
+   | Framework Preset | **Next.js** — Root Directory를 `web`으로 지정하면 자동 감지. "Other"로 나오면 드롭다운에서 Next.js 직접 선택 |
    | **Root Directory** | **`web`** ← 모노레포라 반드시 지정 |
    | Build Command / Output | 기본값 그대로 |
 4. **Environment Variables** (Production + Preview 둘 다):
