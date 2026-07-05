@@ -1,0 +1,33 @@
+# 환경변수/비밀
+.env
+.env.local
+.env.*.local
+*.key
+service-role*.txt
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
+*.log
+npm-debug.log*
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# OS / 에디터
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Android (추후 :app, :wear 추가 시)
+*.apk
+*.aab
+*.keystore
+local.properties
+.gradle/

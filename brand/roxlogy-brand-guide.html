@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roxlogy — Brand v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Archivo+Black&family=IBM+Plex+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#141414; --coal:#1E1E1E; --line:#2E2E2E;
+    --grey:#9A9A96; --chalk:#F4F4F2; --yellow:#FFD500;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--black);color:var(--chalk);
+    font-family:'Archivo','IBM Plex Sans KR',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:56px 24px 96px}
+  .wrap{max-width:980px;margin:0 auto}
+  .eyebrow{color:var(--yellow);font-size:12px;letter-spacing:.28em;text-transform:uppercase;font-weight:700;margin-bottom:12px}
+  h1{font-family:'Archivo Black','Archivo',sans-serif;font-size:clamp(40px,7vw,72px);
+     letter-spacing:-.02em;text-transform:uppercase;line-height:.95}
+  .sub{color:var(--grey);font-family:'IBM Plex Sans KR',sans-serif;font-size:15px;line-height:1.8;max-width:600px;margin-top:16px}
+  .sub b{color:var(--chalk)}
+  section{margin-top:72px}
+  h2{font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--grey);
+     border-bottom:2px solid var(--yellow);display:inline-block;padding-bottom:8px;margin-bottom:28px;font-weight:700}
+
+  .hero{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:720px){.hero{grid-template-columns:1fr}}
+  .tile{border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;
+        aspect-ratio:1/1;position:relative;overflow:hidden}
+  .tile.dark{background:var(--black)}
+  .tile.yellow{background:var(--yellow)}
+  .tile svg{width:66%;height:66%}
+  .tag{position:absolute;bottom:14px;left:16px;font-size:11px;letter-spacing:.18em;font-weight:700;color:var(--grey);text-transform:uppercase}
+  .tile.yellow .tag{color:#6b5e00}
+
+  .wordrow{border:1px solid var(--line);border-radius:8px;padding:60px 32px;text-align:center;overflow:hidden}
+  .wordmark{font-family:'Archivo Black',sans-serif;font-size:clamp(38px,8.5vw,86px);
+            text-transform:uppercase;letter-spacing:-.01em;display:flex;align-items:center;justify-content:center;gap:.06em;flex-wrap:wrap}
+  .wordmark .ring{display:inline-block;width:.86em;height:.86em;vertical-align:-.06em}
+  .lockup{margin-top:48px;display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap}
+  .lockup svg{width:72px;height:72px}
+  .lockup .wm{font-family:'Archivo Black',sans-serif;font-size:36px;text-transform:uppercase;letter-spacing:-.01em}
+
+  .pal{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+  .chip{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .chip .c{height:88px}
+  .chip .m{padding:12px 14px;font-size:12px;color:var(--grey);line-height:1.6}
+  .chip .m b{display:block;color:var(--chalk);font-size:13px;letter-spacing:.04em}
+
+  .usage{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px}
+  .ucard{border:1px solid var(--line);border-radius:8px;padding:28px;display:flex;flex-direction:column;align-items:center;gap:18px}
+  .ucard .cap{font-size:11px;color:var(--grey);letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+  .appicon{width:112px;height:112px;border-radius:24px;overflow:hidden;box-shadow:0 12px 32px rgba(0,0,0,.6)}
+  .watch{width:136px;height:136px}
+  .splitcard{width:100%;background:var(--coal);border:1px solid var(--line);border-radius:8px;padding:16px;font-variant-numeric:tabular-nums}
+  .splitcard .lbl{font-size:10px;letter-spacing:.2em;color:var(--grey);text-transform:uppercase;font-weight:700}
+  .splitcard .val{font-family:'Archivo Black',sans-serif;font-size:32px;margin-top:4px}
+  .splitcard .val em{font-style:normal;color:var(--yellow);font-size:13px;font-weight:700;margin-left:8px}
+  .seg{display:flex;gap:4px;margin-top:12px}
+  .seg i{height:6px;flex:1;background:var(--yellow);border-radius:2px}
+  .seg i.off{background:var(--line)}
+
+  .rule{font-family:'IBM Plex Sans KR',sans-serif;color:var(--grey);font-size:13.5px;line-height:1.95}
+  .rule li{margin-left:18px;margin-top:6px}
+  .rule b{color:var(--chalk);font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Brand Identity · v4</div>
+  <h1>Roxlogy</h1>
+  <p class="sub">심볼은 레이스의 도면이다. 최외곽의 <b>8세그먼트 옐로 링</b>이 스테이션의 프레임을 세우고, 안쪽의 <b>끊김 없는 블루 트랙</b> 위를 선수 — 인더스트리얼 <b>R</b> — 가 달린다. 컬러: <b>옐로 × 블랙 × 트랙 블루</b>.</p>
+
+  <section>
+    <h2>Mark</h2>
+    <div class="hero">
+      <div class="tile dark">
+        <svg viewBox="0 0 512 512" fill="none">
+          <circle cx="256" cy="256" r="210" stroke="#FFD500" stroke-width="44" stroke-dasharray="144 20.94" transform="rotate(-90 256 256)"/>
+          <circle cx="256" cy="256" r="152" stroke="#2D7DFF" stroke-width="13"/>
+          <g transform="translate(256 256) scale(0.76) translate(-256 -256)">
+            <path d="M196 172 V340" stroke="#F4F4F2" stroke-width="58"/>
+            <path d="M196 172 H268 a56 56 0 0 1 0 112 H196" stroke="#F4F4F2" stroke-width="58"/>
+            <path d="M240 282 L312 356" stroke="#F4F4F2" stroke-width="58"/>
+          </g>
+        </svg>
+        <span class="tag">Primary · on Black</span>
+      </div>
+      <div class="tile yellow">
+        <svg viewBox="0 0 512 512" fill="none">
+          <circle cx="256" cy="256" r="210" stroke="#141414" stroke-width="44" stroke-dasharray="144 20.94" transform="rotate(-90 256 256)"/>
+          <circle cx="256" cy="256" r="152" stroke="#2D7DFF" stroke-width="13"/>
+          <g transform="translate(256 256) scale(0.76) translate(-256 -256)">
+            <path d="M196 172 V340" stroke="#141414" stroke-width="58"/>
+            <path d="M196 172 H268 a56 56 0 0 1 0 112 H196" stroke="#141414" stroke-width="58"/>
+            <path d="M240 282 L312 356" stroke="#141414" stroke-width="58"/>
+          </g>
+        </svg>
+        <span class="tag">Inverse · on Yellow</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Wordmark & Lockup</h2>
+    <div class="wordrow">
+      <div class="wordmark">
+        <span>R</span>
+        <svg class="ring" viewBox="0 0 512 512" fill="none">
+          <circle cx="256" cy="256" r="212" stroke="#FFD500" stroke-width="64" stroke-dasharray="145.5 21" transform="rotate(-90 256 256)"/>
+          <circle cx="256" cy="256" r="128" stroke="#2D7DFF" stroke-width="20"/>
+        </svg>
+        <span>XLOGY</span>
+      </div>
+      <div class="lockup">
+        <svg viewBox="0 0 512 512" fill="none">
+          <circle cx="256" cy="256" r="210" stroke="#FFD500" stroke-width="44" stroke-dasharray="144 20.94" transform="rotate(-90 256 256)"/>
+          <circle cx="256" cy="256" r="152" stroke="#2D7DFF" stroke-width="13"/>
+          <g transform="translate(256 256) scale(0.76) translate(-256 -256)">
+            <path d="M196 172 V340" stroke="#F4F4F2" stroke-width="58"/>
+            <path d="M196 172 H268 a56 56 0 0 1 0 112 H196" stroke="#F4F4F2" stroke-width="58"/>
+            <path d="M240 282 L312 356" stroke="#F4F4F2" stroke-width="58"/>
+          </g>
+        </svg>
+        <span class="wm">ROXLOGY</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Palette</h2>
+    <div class="pal">
+      <div class="chip"><div class="c" style="background:#FFD500"></div><div class="m"><b>Race Yellow</b>#FFD500 · 아이덴티티/액션</div></div>
+      <div class="chip"><div class="c" style="background:#141414"></div><div class="m"><b>Black</b>#141414 · 베이스</div></div>
+      <div class="chip"><div class="c" style="background:#F4F4F2"></div><div class="m"><b>Chalk</b>#F4F4F2 · 텍스트</div></div>
+      <div class="chip"><div class="c" style="background:#2D7DFF"></div><div class="m"><b>Track Blue</b>#2D7DFF · 러닝/트랙</div></div>
+      <div class="chip"><div class="c" style="background:#9A9A96"></div><div class="m"><b>Grey</b>#9A9A96 · 보조</div></div>
+      <div class="chip"><div class="c" style="background:#1E1E1E"></div><div class="m"><b>Coal</b>#1E1E1E · 카드/표면</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>In Use</h2>
+    <div class="usage">
+      <div class="ucard">
+        <div class="appicon">
+          <svg viewBox="0 0 512 512" fill="none" width="100%" height="100%">
+            <rect width="512" height="512" fill="#141414"/>
+            <g transform="translate(256 256) scale(0.9) translate(-256 -256)">
+              <circle cx="256" cy="256" r="210" stroke="#FFD500" stroke-width="46" stroke-dasharray="144 20.94" transform="rotate(-90 256 256)"/>
+              <circle cx="256" cy="256" r="152" stroke="#2D7DFF" stroke-width="14"/>
+              <g transform="translate(256 256) scale(0.76) translate(-256 -256)">
+                <path d="M196 172 V340" stroke="#F4F4F2" stroke-width="60"/>
+                <path d="M196 172 H268 a56 56 0 0 1 0 112 H196" stroke="#F4F4F2" stroke-width="60"/>
+                <path d="M240 282 L312 356" stroke="#F4F4F2" stroke-width="60"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div class="cap">App Icon</div>
+      </div>
+      <div class="ucard">
+        <svg class="watch" viewBox="0 0 512 512" fill="none">
+          <circle cx="256" cy="256" r="256" fill="#141414"/>
+          <circle cx="256" cy="256" r="226" stroke="#FFD500" stroke-width="34" stroke-dasharray="155.5 22" transform="rotate(-90 256 256)"/>
+          <circle cx="256" cy="256" r="164" stroke="#2D7DFF" stroke-width="12"/>
+          <g transform="translate(256 256) scale(0.62) translate(-256 -256)">
+            <path d="M196 172 V340" stroke="#F4F4F2" stroke-width="58"/>
+            <path d="M196 172 H268 a56 56 0 0 1 0 112 H196" stroke="#F4F4F2" stroke-width="58"/>
+            <path d="M240 282 L312 356" stroke="#F4F4F2" stroke-width="58"/>
+          </g>
+        </svg>
+        <div class="cap">Wear OS — 옐로 세그먼트가 베젤, 블루는 안쪽 궤도</div>
+      </div>
+      <div class="ucard" style="justify-content:center">
+        <div class="splitcard">
+          <div class="lbl">Station 3 · SkiErg</div>
+          <div class="val">4:12.8<em>PR −3.2s</em></div>
+          <div class="seg"><i></i><i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i></div>
+          <div class="seg" style="margin-top:6px"><i style="background:#2D7DFF;flex:4"></i><i class="off" style="flex:4"></i></div>
+        </div>
+        <div class="cap">데이터 UI — 옐로=스테이션 · 블루=런</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Placement — 블루 트랙 위치 비교</h2>
+    <div class="hero">
+      <div class="tile dark">
+        <svg viewBox="0 0 512 512" fill="none">
+          <circle cx="256" cy="256" r="210" stroke="#FFD500" stroke-width="44" stroke-dasharray="144 20.94" transform="rotate(-90 256 256)"/>
+          <circle cx="256" cy="256" r="152" stroke="#2D7DFF" stroke-width="13"/>
+          <g transform="translate(256 256) scale(0.76) translate(-256 -256)">
+            <path d="M196 172 V340" stroke="#F4F4F2" stroke-width="58"/>
+            <path d="M196 172 H268 a56 56 0 0 1 0 112 H196" stroke="#F4F4F2" stroke-width="58"/>
+            <path d="M240 282 L312 356" stroke="#F4F4F2" stroke-width="58"/>
+          </g>
+        </svg>
+        <span class="tag">v4 · Track Inside — 선수가 트랙 위를 달린다</span>
+      </div>
+      <div class="tile dark">
+        <svg viewBox="0 0 512 512" fill="none">
+          <circle cx="256" cy="256" r="238" stroke="#2D7DFF" stroke-width="13"/>
+          <circle cx="256" cy="256" r="196" stroke="#FFD500" stroke-width="44" stroke-dasharray="134 19.94" transform="rotate(-90 256 256)"/>
+          <path d="M196 172 V340" stroke="#F4F4F2" stroke-width="58"/>
+          <path d="M196 172 H268 a56 56 0 0 1 0 112 H196" stroke="#F4F4F2" stroke-width="58"/>
+          <path d="M240 282 L312 356" stroke="#F4F4F2" stroke-width="58"/>
+        </svg>
+        <span class="tag">v3 · Track Outside — 경기장 도면 그대로</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Rules</h2>
+    <ul class="rule">
+      <li><b>링은 항상 8조각.</b> 세그먼트 수를 바꾸지 않는다 — 8은 레이스의 구조다. UI에서는 진행도(스테이션 완료 수)로 살아 움직인다.</li>
+      <li><b>블루 링은 절대 끊지 않는다.</b> 러닝은 연속이다. 블루는 항상 옐로 안쪽 — 선수(R)가 달리는 궤도다. UI에서는 런 진행도·페이스 라인에 Track Blue를 쓴다.</li>
+      <li>옐로는 <b>아이덴티티와 액션</b>(진행·기록·CTA)에만. 대면적 배경은 블랙, 옐로 배경은 아이콘·배지 등 소면적에 한정.</li>
+      <li>워드마크는 대문자 <b>ROXLOGY</b>, Archivo Black 계열의 헤비 산세리프. O를 링으로 치환한 버전은 히어로/스플래시 전용.</li>
+      <li>HYROX 공식 로고의 서체·X 형태를 모방하지 않는다. 공유하는 것은 세계관의 색뿐이다.</li>
+      <li>최소 크기 20px 이하에서는 링 없이 R 단독 사용.</li>
+    </ul>
+  </section>
+
+</div>
+</body>
+</html>
