@@ -49,6 +49,7 @@ web/                     # Next.js 웹앱
 ```
 
 ## 코딩 컨벤션
+- **Git 워크플로: 모노레포, `main` 직접 커밋.** PR을 만들지 않는다. 기능 브랜치 없이 main에 커밋·푸시 (2026-07-05 확정)
 - 커밋: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:` ...)
 - SQL: 마이그레이션은 타임스탬프 프리픽스, 되돌릴 수 있게 작성
 - 비밀값: `.env`는 커밋 금지 (`.env.example`만 커밋)
