@@ -397,7 +397,7 @@ GET    /api/users/{id}/training-race-corr     # 훈련→레이스 상관 (S16)
 | 용도 | 값 |
 |---|---|
 | 서비스명 | Roxlogy |
-| 도메인 (1순위) | `roxlogy.app` (웹), `roxlogy.com` 확보 시도 |
+| 도메인 | **`roxlogy.com` (구입 확정, 2026-07-05)** — `roxlogy.app`은 추후 방어적 확보 검토 |
 | Android 패키지 | `app.roxlogy.android` (폰) / `app.roxlogy.wear` (워치) |
 | iOS 번들 (Phase 2+) | `app.roxlogy.ios` / `app.roxlogy.watch` |
 | GitHub 저장소 | `roxlogy` (모노레포) |

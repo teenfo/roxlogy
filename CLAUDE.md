@@ -7,7 +7,7 @@
 **Roxlogy(록솔로지)** — 일반 HYROX 유저 대상 **공개 앱**. Wear OS 네이티브 + Concept2 PM5(스키/로잉) 실시간 raw 연동 + 훈련×레이스 상관 분석 + 한국어 우선이 차별점. **독립 프로젝트**(다른 프로젝트와 자산·인프라 공유 없음).
 
 ## 브랜드/네이밍 규칙
-- 서비스명 **Roxlogy**, 패키지 `app.roxlogy.android` / `app.roxlogy.wear`, 도메인 1순위 `roxlogy.app`
+- 서비스명 **Roxlogy**, 패키지 `app.roxlogy.android` / `app.roxlogy.wear`, 도메인 **`roxlogy.com` (구입 확정, 2026-07-05)** — `roxlogy.app`은 추후 방어적 확보 검토
 - 톤: 정밀·테크 + 담백·미니멀. 데이터가 말하게 하고, 과장·허세·마초 클리셰 금지
 - 로고(확정): 옐로 8세그먼트 링(최외곽, 스테이션) + 블루 연속 트랙 링(안쪽, 러닝) + 인더스트리얼 R(중앙). 팔레트: Race Yellow #FFD500 / Black #141414 / Track Blue #2D7DFF / Chalk #F4F4F2. 규칙: 옐로 링은 항상 8조각, 블루 링은 절대 끊지 않음
 - **"HYROX" 상표를 앱 이름·서브타이틀·패키지명에 쓰지 말 것** (설명문 내 호환성 언급만 허용)

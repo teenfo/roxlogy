@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 
-// 배포 도메인 확정 전 placeholder — Vercel 배포 시 실제 도메인으로 검증
-const BASE = "https://roxlogy.app";
+const BASE = "https://roxlogy.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

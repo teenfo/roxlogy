@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE = "https://roxlogy.app";
+const BASE = "https://roxlogy.com";
 
 export default function robots(): MetadataRoute.Robots {
   return {

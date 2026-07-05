@@ -6,7 +6,7 @@
 ## 구조
 
 ```
-GitHub(teenfo/roxlogy, main) ──자동──▶ Vercel (Root: web/) ──▶ *.vercel.app / roxlogy.app
+GitHub(teenfo/roxlogy, main) ──자동──▶ Vercel (Root: web/) ──▶ *.vercel.app / roxlogy.com
                                           │ env: SUPABASE URL + anon key
                                           ▼
                                    Supabase Cloud (vuloxbpfhyqkvgmpmkst)
@@ -37,13 +37,13 @@ Supabase 대시보드 > **Authentication > URL Configuration**:
 - **Redirect URLs**에 추가: `https://<도메인>/auth/callback`
 - 커스텀 도메인 연결 시 그 도메인도 같은 방식으로 추가
 
-## 3. 커스텀 도메인 (선택 — 기획상 조기 선점 권장)
+## 3. 커스텀 도메인 연결 (`roxlogy.com` — 구입 확정 2026-07-05)
 
-1. `roxlogy.app` 구매 (아무 등록기관)
-2. Vercel 프로젝트 > Settings > **Domains** > 도메인 추가 → 안내되는 DNS 레코드 등록
-3. 연결 후 §2의 Auth URL을 커스텀 도메인 기준으로 갱신
-4. `web/app/sitemap.ts` / `robots.ts`의 BASE는 이미 `https://roxlogy.app` — 다른
-   도메인을 쓰게 되면 두 파일의 상수만 수정
+1. Vercel 프로젝트 > Settings > **Domains** > `roxlogy.com` 추가 → 안내되는 DNS 레코드를 등록기관에 입력
+2. `www.roxlogy.com` → `roxlogy.com` 리다이렉트는 Vercel Domains 옵션으로 설정
+3. 연결 후 §2의 Auth URL을 `https://roxlogy.com` 기준으로 갱신
+4. `web/app/sitemap.ts` / `robots.ts`의 BASE는 `https://roxlogy.com`으로 반영 완료 — 도메인이
+   바뀌면 두 파일의 상수만 수정
 
 ## 4. 배포 후 확인 체크리스트
 
