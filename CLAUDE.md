@@ -27,10 +27,11 @@
 - **분석 워커**: hosub 서버(i7, Ubuntu, Docker). Phase 1은 CPU. GPU/AI 코칭은 Phase 2.
 
 ## 데이터 모델 핵심 규칙
-- 세션 `id`는 **클라이언트(워치)가 생성한 UUID**. 서버는 `ON CONFLICT (id) DO UPDATE`로 **멱등 업서트**.
+- 세션·세그먼트 `id`는 **클라이언트(워치)가 생성한 UUID**. 충돌 키: `sessions(id)` / `session_segments(session_id, seq)` / `erg_samples(segment_id)` — **멱등 업서트** (재전송 안전).
 - **Source of Truth = 서버(Supabase).** 세션 흐름: 워치 생성 → 폰 경유 → 서버 최종 저장.
-- 충돌 정책 = **Last-Write-Wins** (`updated_at` 기준).
-- erg raw: `erg_samples.samples`(JSONB)에 **원본 보존**. 파생 지표는 `segment_metrics`에 워커가 계산해 채움.
+- 충돌 정책 = **Last-Write-Wins** (**`client_updated_at`** 기준 — 서버 `updated_at`은 수신 시각이라 판정에 쓰지 않음. 업서트에 `where excluded.client_updated_at > ...` 가드 필수).
+- 세션 삭제는 **soft delete**(`deleted_at`) — 조회 시 `deleted_at is null` 필터. 오프라인 재동기화로 삭제 세션이 부활하면 안 됨.
+- erg raw: `erg_samples.samples`(JSONB)에 **원본 보존**. 파생 지표는 `segment_metrics`(세그먼트)·`session_metrics`(세션)에 워커가 계산해 채움.
 - 모든 사용자 데이터 테이블은 **RLS 필수**. 세그먼트·raw는 session을 경유한 조인 정책으로 소유권 판정.
 
 ## 보안 규칙 (엄수)
@@ -60,7 +61,9 @@ web/                     # Next.js 웹앱
 - "HYROX" 상표를 앱/패키지명에 직접 쓰지 말 것 (스토어 리젝 위험 — 네이밍 미확정)
 
 ## 미해결 결정 (착수 전 확인 필요)
-- [ ] RLS 조인 정책 상세 (세그먼트·raw) — **스키마 올리는 시점 즉시 필요**
-- [ ] raw 다운샘플링 기준 (곡선 차트용)
+- [x] RLS 조인 정책 상세 (세그먼트·raw) — 마이그레이션 002에서 구현·격리 검증 완료
+- [x] 멱등 업서트 키·LWW 기준 — 마이그레이션 003 (`client_updated_at`, soft delete 포함)
+- [ ] raw 다운샘플링 기준 (곡선 차트용) + 업로드 페이로드 상한
+- [ ] S2 API 계약 문서 (요청/응답 스키마, 에러 코드) — **S2 착수 전 필요**
 - [x] 앱/패키지명 — Roxlogy 확정 (상표 출원 전 정밀검색만 남음)
 - [ ] 오프라인 세션 보관 한도 (워치 로컬)

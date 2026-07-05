@@ -91,7 +91,7 @@ HYROX 훈련·기록 앱은 이미 여럿 존재하지만(TrainRox, ROXFIT, Edge
 1. **Source of Truth = 서버.** 세션은 워치에서 생성 → 폰 경유 → 서버 최종 저장.
 2. **멱등성 보장.** 모든 세션은 클라이언트 생성 `UUID` + 생성 타임스탬프 + 소스 디바이스 태그를 가진다. 오프라인 세션이 나중에 올라와도 중복/충돌 없이 병합.
 3. **워치는 폰만 본다 (MVP).** 폰→서버 동기화가 기본. 워치→서버 직접 동기화는 2단계 확장 옵션.
-4. **충돌 정책 = Last-Write-Wins.** 세션은 보통 한 기기에서만 생성되므로 단순 LWW로 충분. (updated_at 기준)
+4. **충돌 정책 = Last-Write-Wins.** 세션은 보통 한 기기에서만 생성되므로 단순 LWW로 충분. 비교 기준은 **`client_updated_at`(기기 이벤트 시각)** — 서버 `updated_at`은 수신 시각이라 판정에 쓰지 않는다.
 
 ### 2.4 호스팅 / 인프라 (확정)
 
@@ -194,186 +194,15 @@ recovery_time, peak_drive_force, avg_drive_force
 
 ---
 
-## 4. Supabase 스키마 (SQL DDL)
+## 4. Supabase 스키마
 
-```sql
--- ============================================================
--- HYROX Training App — Supabase Schema
--- Postgres + Supabase Auth (auth.users 연동)
--- ============================================================
+> **Source of truth = `supabase/migrations/`.** 이 문서에 있던 DDL 초안은 마이그레이션으로 이관·개선되어 삭제했다. 스키마 변경은 반드시 새 마이그레이션 파일로 한다.
 
--- 확장
-create extension if not exists "uuid-ossp";
-
--- ------------------------------------------------------------
--- 1. 사용자 프로필 (auth.users 확장)
--- ------------------------------------------------------------
-create table public.profiles (
-  id            uuid primary key references auth.users(id) on delete cascade,
-  display_name  text,
-  division      text check (division in ('open','pro','doubles','pro_doubles','relay')),
-  gender        text,
-  height_cm     numeric,
-  weight_kg     numeric,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
-);
-
--- ------------------------------------------------------------
--- 2. 운동 마스터 DB (360+, 한/영)
--- ------------------------------------------------------------
-create table public.exercises (
-  id            uuid primary key default uuid_generate_v4(),
-  name_ko       text not null,
-  name_en       text not null,
-  category      text,                         -- strength / running / conditioning / mobility
-  equipment     text[],                       -- ['sled','kettlebell',...]
-  station_type  text,                         -- hyrox 스테이션 매핑 (nullable)
-  media_url     text,
-  description_ko text,
-  created_at    timestamptz not null default now()
-);
-
--- ------------------------------------------------------------
--- 3. 프로그램 / 일자 / 세션 템플릿
--- ------------------------------------------------------------
-create table public.programs (
-  id          uuid primary key default uuid_generate_v4(),
-  owner_id    uuid references public.profiles(id) on delete cascade, -- null이면 공용 프로그램
-  title       text not null,
-  description text,
-  weeks       int,
-  level       text check (level in ('beginner','intermediate','advanced','elite')),
-  is_public   boolean not null default false,
-  created_at  timestamptz not null default now()
-);
-
-create table public.program_days (
-  id          uuid primary key default uuid_generate_v4(),
-  program_id  uuid not null references public.programs(id) on delete cascade,
-  day_index   int not null,                   -- 프로그램 내 순서
-  focus       text,                           -- 'engine' / 'strength' / 'race_sim' ...
-  notes       text
-);
-
-create table public.workout_templates (
-  id             uuid primary key default uuid_generate_v4(),
-  program_day_id uuid references public.program_days(id) on delete cascade,
-  title          text not null,
-  type           text not null check (type in ('race_sim','wod','run','strength')),
-  structure      jsonb not null,              -- 세그먼트 구성(런/스테이션 순서, 목표 등)
-  created_at     timestamptz not null default now()
-);
-
-create table public.workout_template_items (
-  id           uuid primary key default uuid_generate_v4(),
-  template_id  uuid not null references public.workout_templates(id) on delete cascade,
-  seq          int not null,
-  exercise_id  uuid references public.exercises(id),
-  target       jsonb                          -- reps/distance/time 목표
-);
-
--- ------------------------------------------------------------
--- 4. 세션 (실제 수행 기록) — UUID는 클라이언트 생성
--- ------------------------------------------------------------
-create table public.sessions (
-  id             uuid primary key,            -- 클라이언트(워치)가 생성한 UUID
-  user_id        uuid not null references public.profiles(id) on delete cascade,
-  template_id    uuid references public.workout_templates(id),
-  source_device  text not null check (source_device in ('watch','phone','web')),
-  sync_status    text not null default 'synced' check (sync_status in ('local','pending','synced')),
-  started_at     timestamptz not null,
-  ended_at       timestamptz,
-  total_time_ms  bigint,
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now()
-);
-
--- ------------------------------------------------------------
--- 5. 세션 세그먼트 (런 / 스테이션 / ROXZONE)
--- ------------------------------------------------------------
-create table public.session_segments (
-  id            uuid primary key default uuid_generate_v4(),
-  session_id    uuid not null references public.sessions(id) on delete cascade,
-  seq           int not null,                 -- 세션 내 순서 (1~..)
-  kind          text not null check (kind in ('run','station','roxzone')),
-  exercise_id   uuid references public.exercises(id),
-  machine_type  text check (machine_type in ('ski','row')), -- 에르그 종목일 때만
-  split_time_ms bigint,
-  started_at    timestamptz,
-  ended_at      timestamptz
-);
-
--- ------------------------------------------------------------
--- 6. erg raw 시계열 (원본 보존, JSONB 배열)
--- ------------------------------------------------------------
-create table public.erg_samples (
-  id            uuid primary key default uuid_generate_v4(),
-  segment_id    uuid not null references public.session_segments(id) on delete cascade,
-  machine_type  text not null check (machine_type in ('ski','row')),
-  samples       jsonb not null,               -- [{t, dist, pace, spm, watts, cal, drive_len, ...}, ...]
-  sample_count  int not null default 0,
-  created_at    timestamptz not null default now()
-);
-
--- ------------------------------------------------------------
--- 7. 파생 지표 (배치 계산 결과)
--- ------------------------------------------------------------
-create table public.segment_metrics (
-  segment_id    uuid primary key references public.session_segments(id) on delete cascade,
-  avg_power     numeric,
-  max_power     numeric,
-  avg_spm       numeric,
-  avg_pace_500  numeric,
-  pace_curve    jsonb,                         -- 다운샘플된 페이스 곡선
-  power_curve   jsonb,                         -- 다운샘플된 파워 곡선
-  computed_at   timestamptz not null default now()
-);
-
--- ------------------------------------------------------------
--- 8. 실측 레이스 기록
--- ------------------------------------------------------------
-create table public.race_results (
-  id           uuid primary key default uuid_generate_v4(),
-  user_id      uuid not null references public.profiles(id) on delete cascade,
-  event        text,
-  event_date   date,
-  division     text,
-  total_time_ms bigint,
-  splits       jsonb,                          -- 스테이션별 스플릿
-  created_at   timestamptz not null default now()
-);
-
--- ------------------------------------------------------------
--- 인덱스
--- ------------------------------------------------------------
-create index idx_sessions_user       on public.sessions(user_id, started_at desc);
-create index idx_segments_session    on public.session_segments(session_id, seq);
-create index idx_ergsamples_segment  on public.erg_samples(segment_id);
-create index idx_raceresults_user    on public.race_results(user_id, event_date desc);
-
--- ------------------------------------------------------------
--- RLS (Row Level Security) — 본인 데이터만 접근
--- ------------------------------------------------------------
-alter table public.profiles         enable row level security;
-alter table public.sessions         enable row level security;
-alter table public.session_segments enable row level security;
-alter table public.erg_samples      enable row level security;
-alter table public.race_results     enable row level security;
-
--- 예시 정책: 본인 세션만 read/write
-create policy "own sessions" on public.sessions
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-create policy "own profile" on public.profiles
-  for all using (auth.uid() = id) with check (auth.uid() = id);
-
--- exercises / 공용 programs는 전체 읽기 허용 (별도 정책)
-alter table public.exercises enable row level security;
-create policy "read exercises" on public.exercises for select using (true);
-```
-
-> **주의**: 위 DDL은 초안이다. RLS 정책은 세그먼트·erg_samples가 session을 경유해 소유권을 판정하도록 조인 기반 정책을 추가로 작성해야 한다(예: `exists (select 1 from sessions s where s.id = session_id and s.user_id = auth.uid())`).
+| 마이그레이션 | 내용 |
+|---|---|
+| `20260703000001_init_schema.sql` | 테이블 11종 + 인덱스 + `updated_at` 트리거. 초안 대비 개선: `sessions.analysis_status`(+pending partial index), 가입 시 profiles 자동 생성 트리거 |
+| `20260703000002_rls_policies.sql` | RLS 전 테이블 활성화. 세그먼트·raw·지표는 **session 경유 조인 정책**으로 소유권 판정 (2사용자 격리 검증 완료, `supabase/README.md` 참조) |
+| `20260705000003_idempotency_lww.sql` | 멱등 업서트 키(`session_segments(session_id,seq)`, `erg_samples(segment_id)` unique), `client_updated_at` 기반 LWW, 세션 soft delete(`deleted_at`), `session_metrics` 테이블 신설 |
 
 ---
 
@@ -430,7 +259,7 @@ GET    /api/users/{id}/percentile?division=   # 내 백분위 (S13)
 GET    /api/users/{id}/training-race-corr     # 훈련→레이스 상관 (S16)
 ```
 
-**멱등 업서트 핵심**: 세션 `id`(클라이언트 UUID)를 PK로 `ON CONFLICT (id) DO UPDATE`. 오프라인 워치 세션이 지연 도착해도 안전하게 병합.
+**멱등 업서트 핵심**: 세션 `id`(클라이언트 UUID)를 PK로 `ON CONFLICT (id) DO UPDATE ... WHERE excluded.client_updated_at > sessions.client_updated_at`(LWW 가드). 세그먼트는 `(session_id, seq)`, raw는 `(segment_id)`가 충돌 키. 오프라인 워치 세션이 지연 도착해도 중복·역전 덮어쓰기 없이 병합.
 
 ---
 
@@ -451,13 +280,14 @@ GET    /api/users/{id}/training-race-corr     # 훈련→레이스 상관 (S16)
 
 ## 7. 미해결 결정 사항 (다음 논의)
 
-1. **RLS 조인 정책 상세** — 세그먼트·raw의 소유권 판정 정책 작성 *(→ 저장소 마이그레이션에서 구현·검증 완료, 문서 반영만 남음)*
-2. **raw 다운샘플링 기준** — 곡선 차트용 다운샘플 해상도(예: 초당 1포인트로 축소)
-3. **오프라인 세션 보관 한도** — 워치 로컬 저장 용량/기간 정책
-4. **S12 공식 결과 수집의 법적 검토** — 스크래핑 정책, 저작권, 선수 개인정보 처리. 초기엔 본인 등록(S7) + 익명 집계 분포로 시작 권장
-5. **상표 출원 전 정밀 검색** — Roxlogy에 대해 KIPRIS + 주요 시장 상표 DB 전문 검토 (§10.1)
+1. **raw 다운샘플링 기준** — 곡선 차트용 다운샘플 해상도(예: 초당 1포인트로 축소)
+2. **오프라인 세션 보관 한도** — 워치 로컬 저장 용량/기간 정책
+3. **S12 공식 결과 수집의 법적 검토** — 스크래핑 정책, 저작권, 선수 개인정보 처리. 초기엔 본인 등록(S7) + 익명 집계 분포로 시작 권장
+4. **상표 출원 전 정밀 검색** — Roxlogy에 대해 KIPRIS + 주요 시장 상표 DB 전문 검토 (§10.1)
 
 ### 7.1 해결된 결정 (이력)
+- ✅ **RLS 조인 정책** — 세그먼트·raw·지표는 session 경유 조인 정책으로 구현, 2사용자 격리 검증 완료(2026-07-03). 마이그레이션 002 참조.
+- ✅ **멱등성·LWW 보강** — 세그먼트/raw 유니크 충돌 키, `client_updated_at` 기반 LWW, soft delete, `session_metrics` 신설(2026-07-05). 마이그레이션 003 참조.
 - ✅ **워치/폰 기술 스택** — 워치·폰 모두 네이티브 Kotlin, 공유 모듈은 평범한 Kotlin(iOS 확장 시 KMP 승격). 상세는 2.2 참조.
 - ✅ **erg 데이터 저장 방식** — raw는 JSONB 원본 보존 + 파생 지표 배치 계산(하이브리드). 상세는 3.3 참조.
 - ✅ **MVP 시작 계층** — 온라인 사이트 우선(계정/서버/데이터 모델 토대).
@@ -609,7 +439,7 @@ GET    /api/users/{id}/training-race-corr     # 훈련→레이스 상관 (S16)
 - HYROX 공식 로고의 서체·X 형태를 모방하지 않는다. 공유하는 것은 세계관의 색뿐.
 - 최소 크기 20px 이하에서는 링 없이 R 단독.
 
-**확정 자산** (`roxlogy-brand/` 내 v4 세트): `v4-mark-dark.svg`(프라이머리), `v4-mark-onyellow.svg`(인버스), `v4-appicon.svg`(플레이스토어), `v4-watchface.svg`(Wear OS 타일), `roxlogy-brand-v4.html`(브랜드 가이드 프리뷰)
+**확정 자산** (저장소 `brand/`): `roxlogy-mark.svg`(프라이머리), `roxlogy-mark-inverse.svg`(인버스), `roxlogy-appicon.svg`(플레이스토어), `roxlogy-watchface.svg`(Wear OS 타일), `roxlogy-brand-guide.html`(브랜드 가이드 프리뷰)
 
 > R 레터폼의 커스텀 변형(러너 융합 등)은 다수 탐색 후 **전면 취소** — 심플 인더스트리얼 R 유지가 최종 결정 (2026-07-05).
 
