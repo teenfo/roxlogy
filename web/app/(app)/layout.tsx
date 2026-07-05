@@ -26,14 +26,40 @@ export default async function AppLayout({
           >
             세션
           </Link>
-          <form action="/auth/signout" method="post" className="ml-auto">
-            <button
-              type="submit"
+          <Link
+            href="/races"
+            className="text-sm text-muted hover:text-foreground"
+          >
+            레이스
+          </Link>
+          <Link
+            href="/events"
+            className="hidden text-sm text-muted hover:text-foreground sm:block"
+          >
+            일정
+          </Link>
+          <Link
+            href="/exercises"
+            className="hidden text-sm text-muted hover:text-foreground sm:block"
+          >
+            운동
+          </Link>
+          <div className="ml-auto flex items-center gap-4">
+            <Link
+              href="/settings/profile"
               className="text-sm text-muted hover:text-foreground"
             >
-              로그아웃
-            </button>
-          </form>
+              프로필
+            </Link>
+            <form action="/auth/signout" method="post">
+              <button
+                type="submit"
+                className="text-sm text-muted hover:text-foreground"
+              >
+                로그아웃
+              </button>
+            </form>
+          </div>
         </nav>
       </header>
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">

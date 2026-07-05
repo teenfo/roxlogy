@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatMs, SOURCE_DEVICE_LABEL } from "@/lib/format";
+
+export const metadata: Metadata = { title: "세션 히스토리 — Roxlogy" };
 
 const PAGE_SIZE = 20;
 
@@ -28,7 +31,15 @@ export default async function SessionsPage({
 
   return (
     <main>
-      <h1 className="text-2xl font-bold">세션 히스토리</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">세션 히스토리</h1>
+        <Link
+          href="/sessions/new"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+        >
+          세션 기록
+        </Link>
+      </div>
       <p className="mt-1 text-sm text-muted">총 {total}개</p>
 
       {!sessions?.length ? (
