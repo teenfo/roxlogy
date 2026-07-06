@@ -130,6 +130,13 @@ const en = {
   "races.colDiff": "Diff",
   "races.runTotal": "Run total (8km)",
   "races.diffNote": "Diff = race − training. Blue means you were faster on race day.",
+  "races.replayTitle": "Race replay — leg breakdown",
+  "races.colRun": "Run",
+  "races.colRoxzone": "Roxzone",
+  "races.colStation": "Station",
+  "races.colStationTime": "Time",
+  "races.replayNote":
+    "From the official race replay (In/Out checkpoints). Roxzone = transition time in and out of the station.",
 
   // 레이스 등록
   "raceNew.title": "Register official race result",
@@ -187,6 +194,15 @@ const en = {
   "raceNew.import.failFetch": "Import failed. Try the text-paste option.",
   "raceNew.import.failParse":
     "Couldn't recognize any records in the pasted text. Copy the whole results view including station names and times.",
+  "raceNew.replay.title": "Race replay details",
+  "raceNew.replay.desc":
+    "Recognized {n} segments (runs · roxzones · stations) from the official race replay. They'll be saved with this result.",
+  "raceNew.replay.roxzoneTotal": "Roxzone total",
+  "raceNew.replay.addSession": "Also add this race as a session",
+  "raceNew.replay.addSessionHint":
+    "Creates a session with all segments so it shows up in pacing charts and analysis.",
+  "raceNew.replay.errSession":
+    "The race was saved, but adding the session failed: {msg} — press Save again to retry just the session.",
 
   // 계산기
   "predict.title": "Target split calculator",

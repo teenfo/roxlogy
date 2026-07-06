@@ -123,6 +123,13 @@ const ko: Record<DictKey, string> = {
   "races.colDiff": "차이",
   "races.runTotal": "런 합계 (8km)",
   "races.diffNote": "차이는 레이스 − 훈련. 파란색이면 레이스에서 더 빨랐다는 뜻입니다.",
+  "races.replayTitle": "레이스 리플레이 — 구간별 상세",
+  "races.colRun": "런",
+  "races.colRoxzone": "록스존",
+  "races.colStation": "스테이션",
+  "races.colStationTime": "기록",
+  "races.replayNote":
+    "공식 레이스 리플레이(In/Out 체크포인트) 기반. 록스존 = 스테이션 진입·이탈 전환 시간.",
 
   "raceNew.title": "공식 레이스 결과 등록",
   "raceNew.desc": "공식 결과 페이지에서 본인 기록을 확인한 뒤 그대로 옮겨 적으세요.",
@@ -179,6 +186,15 @@ const ko: Record<DictKey, string> = {
   "raceNew.import.failFetch": "가져오기에 실패했습니다. 텍스트 붙여넣기를 이용해 보세요.",
   "raceNew.import.failParse":
     "붙여넣은 텍스트에서 기록을 인식하지 못했습니다. 스테이션 이름과 시간이 포함된 결과 화면 전체를 복사해 주세요.",
+  "raceNew.replay.title": "레이스 리플레이 상세",
+  "raceNew.replay.desc":
+    "공식 레이스 리플레이에서 {n}개 구간(런·록스존·스테이션)을 인식했습니다. 이 결과와 함께 저장됩니다.",
+  "raceNew.replay.roxzoneTotal": "록스존 합계",
+  "raceNew.replay.addSession": "이 레이스를 세션으로도 추가",
+  "raceNew.replay.addSessionHint":
+    "전 구간이 담긴 세션이 생성되어 페이싱 차트·분석에 나타납니다.",
+  "raceNew.replay.errSession":
+    "레이스는 저장됐지만 세션 추가에 실패했습니다: {msg} — 저장을 다시 누르면 세션만 재시도합니다.",
 
   "predict.title": "목표 스플릿 계산기",
   "predict.desc":

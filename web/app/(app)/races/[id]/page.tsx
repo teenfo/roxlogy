@@ -9,6 +9,10 @@ import { DeleteButton } from "@/components/delete-button";
 type RaceSplits = {
   stations?: Record<string, number>;
   run_total_ms?: number;
+  /** Race Replay에서 가져온 런 랩 1~8 (ms) */
+  runs?: number[];
+  /** Race Replay In/Out에서 산출한 록스존 1~8 (ms) */
+  roxzones?: number[];
 };
 
 function Delta({ raceMs, trainMs }: { raceMs?: number; trainMs?: number }) {
@@ -182,6 +186,61 @@ export default async function RaceDetailPage({
           </div>
         )}
       </section>
+
+      {/* Race Replay 구간별 상세 — 런/록스존/스테이션 8개 조 */}
+      {(splits.runs?.length ?? 0) > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">{t("races.replayTitle")}</h2>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-surface text-left text-xs text-muted">
+                  <th className="py-2 pr-4 font-normal">#</th>
+                  <th className="py-2 pr-4 text-right font-normal">
+                    {t("races.colRun")}
+                  </th>
+                  <th className="py-2 pr-4 text-right font-normal">
+                    {t("races.colRoxzone")}
+                  </th>
+                  <th className="py-2 pr-4 font-normal">
+                    {t("races.colStation")}
+                  </th>
+                  <th className="py-2 text-right font-normal">
+                    {t("races.colStationTime")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {STATIONS.map((s, i) => {
+                  const runMs = splits.runs?.[i];
+                  const roxMs = splits.roxzones?.[i];
+                  const stMs = splits.stations?.[s.key];
+                  return (
+                    <tr key={s.key} className="border-b border-surface/60">
+                      <td className="py-2.5 pr-4 font-mono text-xs text-muted">
+                        {i + 1}
+                      </td>
+                      <td className="py-2.5 pr-4 text-right font-mono">
+                        {runMs != null ? formatMs(runMs) : "—"}
+                      </td>
+                      <td className="py-2.5 pr-4 text-right font-mono text-muted">
+                        {roxMs != null ? formatMs(roxMs) : "—"}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        {t(`station.${s.key}` as Parameters<typeof t>[0])}
+                      </td>
+                      <td className="py-2.5 text-right font-mono">
+                        {stMs != null ? formatMs(stMs) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <p className="mt-2 text-xs text-muted">{t("races.replayNote")}</p>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

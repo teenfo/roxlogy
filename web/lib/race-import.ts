@@ -13,7 +13,25 @@ export type ParsedRace = {
   division?: string;
   totalMs?: number;
   runTotalMs?: number;
+  roxzoneTotalMs?: number;
   stations: Record<string, number>; // STATIONS key → ms
+  /** 런 랩 1~8 (ms) — 리플레이 또는 스플릿 표에서 */
+  runs?: number[];
+  /** 록스존 1~8 (ms) — 리플레이 In/Out에서 산출 */
+  roxzones?: number[];
+  /** 리플레이 기반 24구간 (런→록스존→스테이션 × 8, 세션 변환용) */
+  segments?: RaceSegment[];
+  /** 레이스 출발 시각 "HH:MM:SS" (대회 현지 시계) */
+  startClock?: string;
+};
+
+export type RaceSegment = {
+  kind: "run" | "roxzone" | "station";
+  /** 스테이션이면 hyrox.ts STATIONS key */
+  stationKey: string | null;
+  /** 그룹 번호 1~8 */
+  n: number;
+  splitMs: number;
 };
 
 /** URL 가져오기를 허용하는 결과 사이트 (SSRF 방지 겸 목적 제한) */
@@ -121,6 +139,13 @@ export function parseRaceText(text: string): ParsedRace {
     if (!time) continue;
     const ms = timeTokenToMs(time);
 
+    // 스플릿 표의 "Roxzone Time" 합계
+    if (/roxzone/i.test(line)) {
+      if (out.roxzoneTotalMs == null && ms < 60 * 60_000)
+        out.roxzoneTotalMs = ms;
+      continue;
+    }
+
     // 총 기록: "total"/"finish" 라인의 h:mm:ss
     if (/total|finish|overall/i.test(line) && time[3] != null) {
       if (/run/i.test(line)) {
@@ -147,6 +172,7 @@ export function parseRaceText(text: string): ParsedRace {
     }
   }
 
+  if (runLaps.length === 8) out.runs = runLaps;
   if (out.runTotalMs == null && runLaps.length === 8)
     out.runTotalMs = runLaps.reduce((a, b) => a + b, 0);
 
@@ -161,6 +187,151 @@ export function parseRaceText(text: string): ParsedRace {
     if (max > 0) out.totalMs = max;
   }
 
+  return out;
+}
+
+/**
+ * Race Replay 표 → 24구간.
+ *
+ * 공식 상세 페이지의 리플레이 표는 체크포인트마다
+ * <th class="desc">라벨</th><td class="time_day">시각</td>
+ * <td class="time">누적</td><td class="diff …">구간</td> 행을 가진다.
+ * 라벨 패턴 (스테이션 1~7):
+ *   "Rox In"(구간=직전 런) → "<종목> In"(=존 진입 전환) →
+ *   "<종목> Out"(=스테이션 수행) → "Rox Out"(=존 이탈 전환)
+ * 마지막 스테이션(월볼)은 Rox In 없이 "… In"(구간=런8)으로 바로 진입하고
+ * "Total" 행의 구간이 월볼 수행 시간이다.
+ * 구간값은 누적(time) 열의 차분으로 계산해 합계가 총 기록과 정확히 일치하게 한다.
+ */
+export function parseRaceReplay(html: string): {
+  segments: RaceSegment[];
+  runs: number[];
+  roxzones: number[];
+  startClock?: string;
+  totalMs: number;
+} | null {
+  const src = html.replace(/\s+/g, " ");
+  const rowRe =
+    /<th class="desc"[^>]*>([^<]+)<\/th>\s*<td class="time_day">([^<]*)<\/td>\s*<td class="time">([^<]*)<\/td>\s*<td class="diff[^"]*">([^<]*)<\/td>/g;
+
+  type Checkpoint = { label: string; clock: string; cumMs: number };
+  const cps: Checkpoint[] = [];
+  for (const m of src.matchAll(rowRe)) {
+    const cum = m[3].match(TIME_RE);
+    if (!cum) continue;
+    cps.push({
+      label: m[1].trim(),
+      clock: m[2].trim(),
+      cumMs: timeTokenToMs(cum),
+    });
+  }
+  if (cps.length < 10) return null;
+
+  const segments: RaceSegment[] = [];
+  let prevCum = 0;
+  let runN = 0;
+  let curRox: RaceSegment | null = null;
+  let pendingStationKey: string | null = null;
+
+  const stationOf = (label: string): string | null =>
+    STATION_KEYWORDS.find(([, re]) => re.test(label))?.[0] ?? null;
+
+  const startRun = (splitMs: number): RaceSegment => {
+    runN += 1;
+    segments.push({ kind: "run", stationKey: null, n: runN, splitMs });
+    const rox: RaceSegment = {
+      kind: "roxzone",
+      stationKey: null,
+      n: runN,
+      splitMs: 0,
+    };
+    segments.push(rox);
+    return rox;
+  };
+
+  for (const cp of cps) {
+    const seg = cp.cumMs - prevCum;
+    prevCum = cp.cumMs;
+    if (seg < 0) return null; // 누적이 역행하면 구조 가정이 깨진 것
+
+    const key = stationOf(cp.label);
+    if (/^rox(?:zone)?\s*in$/i.test(cp.label)) {
+      curRox = startRun(seg);
+    } else if (key && /\bin$/i.test(cp.label)) {
+      if (curRox && segments[segments.length - 1] === curRox) {
+        curRox.splitMs += seg; // 존 진입 전환
+      } else {
+        curRox = startRun(seg); // 월볼: Rox In 없이 런에서 바로 진입
+      }
+      pendingStationKey = key;
+    } else if (key && /\bout$/i.test(cp.label)) {
+      segments.push({ kind: "station", stationKey: key, n: runN, splitMs: seg });
+      pendingStationKey = null;
+    } else if (/^rox(?:zone)?\s*out$/i.test(cp.label)) {
+      if (curRox) curRox.splitMs += seg; // 존 이탈 전환
+    } else if (/total|finish/i.test(cp.label)) {
+      if (pendingStationKey) {
+        segments.push({
+          kind: "station",
+          stationKey: pendingStationKey,
+          n: runN,
+          splitMs: seg,
+        });
+        pendingStationKey = null;
+      }
+    }
+    // 그 외 라벨(예상 밖 체크포인트)은 무시 — 아래 검증에서 걸러짐
+  }
+
+  // 검증: 런 8 + 스테이션 8(서로 다른 종목)이어야 신뢰
+  const stationKeys = segments
+    .filter((s) => s.kind === "station")
+    .map((s) => s.stationKey);
+  if (runN !== 8 || stationKeys.length !== 8) return null;
+  if (new Set(stationKeys).size !== 8) return null;
+
+  // 출발 시각 = 첫 체크포인트 시각 − 그 누적 시간
+  let startClock: string | undefined;
+  const clockM = cps[0].clock.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
+  if (clockM) {
+    let s =
+      Number(clockM[1]) * 3600 +
+      Number(clockM[2]) * 60 +
+      Number(clockM[3]) -
+      Math.round(cps[0].cumMs / 1000);
+    if (s < 0) s += 24 * 3600;
+    const pad = (v: number) => String(v).padStart(2, "0");
+    startClock = `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+  }
+
+  return {
+    segments,
+    runs: segments.filter((s) => s.kind === "run").map((s) => s.splitMs),
+    roxzones: segments.filter((s) => s.kind === "roxzone").map((s) => s.splitMs),
+    startClock,
+    totalMs: cps[cps.length - 1].cumMs,
+  };
+}
+
+/** 상세 페이지 HTML 통합 파싱: 스플릿 표(텍스트) + Race Replay(구조) */
+export function parseRaceHtml(html: string): ParsedRace {
+  const out = parseRaceText(htmlToText(html));
+  const replay = parseRaceReplay(html);
+  if (replay) {
+    out.segments = replay.segments;
+    out.runs = replay.runs;
+    out.roxzones = replay.roxzones;
+    out.startClock = replay.startClock;
+    if (out.totalMs == null) out.totalMs = replay.totalMs;
+    if (out.runTotalMs == null)
+      out.runTotalMs = replay.runs.reduce((a, b) => a + b, 0);
+    if (out.roxzoneTotalMs == null)
+      out.roxzoneTotalMs = replay.roxzones.reduce((a, b) => a + b, 0);
+    // 스플릿 표에서 놓친 스테이션은 리플레이 값으로 보충
+    for (const s of replay.segments)
+      if (s.kind === "station" && s.stationKey && out.stations[s.stationKey] == null)
+        out.stations[s.stationKey] = s.splitMs;
+  }
   return out;
 }
 

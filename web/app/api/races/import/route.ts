@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import {
-  htmlToText,
   isAllowedImportUrl,
   parsedFieldCount,
-  parseRaceText,
+  parseRaceHtml,
 } from "@/lib/race-import";
 import { BROWSER_UA } from "@/lib/hyrox-results";
 
@@ -63,7 +62,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = parseRaceText(htmlToText(html));
+  const parsed = parseRaceHtml(html);
   if (parsedFieldCount(parsed) === 0) {
     return NextResponse.json(
       { error: t("raceNew.import.failParse") },

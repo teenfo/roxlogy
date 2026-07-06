@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMs, parseTimeToMs } from "@/lib/format";
-import { STATIONS } from "@/lib/hyrox";
+import { RUN_EXERCISE_ID, STATIONS } from "@/lib/hyrox";
 import { buildSearchUrl, type Season } from "@/lib/hyrox-results";
 import {
   parsedFieldCount,
   parseRaceText,
   type ParsedRace,
+  type RaceSegment,
 } from "@/lib/race-import";
+import { buildSessionRows, type SegmentForm } from "@/lib/session-builder";
 import { TimeInput } from "@/components/time-input";
 import { useI18n } from "@/components/i18n-provider";
 
@@ -63,6 +65,14 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [imported, setImported] = useState(false);
+  // Race Replay 상세 (24구간) — 있으면 세션 변환 가능
+  const [detail, setDetail] = useState<{
+    segments: RaceSegment[];
+    startClock?: string;
+  } | null>(null);
+  const [addSession, setAddSession] = useState(true);
+  // 레이스 저장 후 세션 추가만 실패한 경우 재시도 시 레이스 중복 저장 방지
+  const [savedRaceId, setSavedRaceId] = useState<string | null>(null);
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
   const canSearch = !!eventGroup && lastName.trim().length >= 2;
@@ -157,6 +167,12 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     for (const [key, ms] of Object.entries(parsed.stations))
       st[key] = formatMs(ms);
     if (Object.keys(st).length) setStationTexts((prev) => ({ ...prev, ...st }));
+    setDetail(
+      parsed.segments?.length
+        ? { segments: parsed.segments, startClock: parsed.startClock }
+        : null,
+    );
+    setSavedRaceId(null);
     setImported(true);
     setImportNotice(
       t("raceNew.import.parsed", { n: parsedFieldCount(parsed) }),
@@ -219,25 +235,85 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     }
     const runTotalMs = parseTimeToMs(runTotalText);
 
-    const { data, error: err } = await supabase
-      .from("race_results")
-      .insert({
-        user_id: user.id,
-        event: event.trim(),
-        event_date: eventDate || null,
-        division,
-        total_time_ms: totalMs,
-        splits: {
-          stations,
-          ...(runTotalMs != null ? { run_total_ms: runTotalMs } : {}),
-        },
-      })
-      .select("id")
-      .single();
+    let raceId = savedRaceId;
+    if (!raceId) {
+      const runs = detail?.segments
+        .filter((s) => s.kind === "run")
+        .map((s) => s.splitMs);
+      const roxzones = detail?.segments
+        .filter((s) => s.kind === "roxzone")
+        .map((s) => s.splitMs);
+      const { data, error: err } = await supabase
+        .from("race_results")
+        .insert({
+          user_id: user.id,
+          event: event.trim(),
+          event_date: eventDate || null,
+          division,
+          total_time_ms: totalMs,
+          splits: {
+            stations,
+            ...(runTotalMs != null ? { run_total_ms: runTotalMs } : {}),
+            ...(runs?.length ? { runs } : {}),
+            ...(roxzones?.length ? { roxzones } : {}),
+          },
+        })
+        .select("id")
+        .single();
+      if (err) {
+        setPending(false);
+        return setSaveError(t("raceNew.errSave", { msg: err.message }));
+      }
+      raceId = data.id;
+      setSavedRaceId(data.id);
+    }
+
+    // 리플레이 24구간 → 세션으로도 추가 (워치/폰과 동일한 멱등 업서트 계약)
+    if (addSession && detail) {
+      const forms: SegmentForm[] = detail.segments.map((seg) => {
+        const st = seg.stationKey
+          ? STATIONS.find((s) => s.key === seg.stationKey)
+          : null;
+        return {
+          kind: seg.kind,
+          stationKey: seg.stationKey,
+          n: seg.n,
+          exerciseId:
+            seg.kind === "run" ? RUN_EXERCISE_ID : (st?.exerciseId ?? null),
+          machineType: st?.machineType ?? null,
+          splitMs: seg.splitMs,
+        };
+      });
+      const startLocal = new Date(
+        `${eventDate || new Date().toISOString().slice(0, 10)}T${detail.startClock ?? "09:00:00"}`,
+      );
+      const built = buildSessionRows(
+        user.id,
+        Number.isNaN(startLocal.getTime())
+          ? new Date().toISOString()
+          : startLocal.toISOString(),
+        forms,
+      );
+      if (!("error" in built)) {
+        const { error: sErr } = await supabase
+          .from("sessions")
+          .upsert(built.session, { onConflict: "id" });
+        const { error: gErr } = sErr
+          ? { error: sErr }
+          : await supabase
+              .from("session_segments")
+              .upsert(built.segments, { onConflict: "session_id,seq" });
+        if (sErr || gErr) {
+          setPending(false);
+          return setSaveError(
+            t("raceNew.replay.errSession", { msg: (sErr ?? gErr)!.message }),
+          );
+        }
+      }
+    }
 
     setPending(false);
-    if (err) return setSaveError(t("raceNew.errSave", { msg: err.message }));
-    router.push(`/races/${data.id}`);
+    router.push(`/races/${raceId}`);
     router.refresh();
   }
 
@@ -507,6 +583,59 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                 ))}
               </div>
             </fieldset>
+
+            {/* Race Replay 상세 — 런 랩·록스존까지 인식된 경우 */}
+            {detail && (
+              <div className="rounded-md border border-track/30 bg-surface px-4 py-3">
+                <p className="text-sm font-semibold">
+                  {t("raceNew.replay.title")}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  {t("raceNew.replay.desc", { n: detail.segments.length })}
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-4">
+                  {detail.segments
+                    .filter((s) => s.kind === "run")
+                    .map((s) => (
+                      <span
+                        key={s.n}
+                        className="flex justify-between text-xs"
+                      >
+                        <span className="text-muted">
+                          {t("newSession.runLabel", { n: s.n })}
+                        </span>
+                        <span className="font-mono">{formatMs(s.splitMs)}</span>
+                      </span>
+                    ))}
+                </div>
+                <p className="mt-2 flex justify-between text-xs">
+                  <span className="text-muted">
+                    {t("raceNew.replay.roxzoneTotal")}
+                  </span>
+                  <span className="font-mono">
+                    {formatMs(
+                      detail.segments
+                        .filter((s) => s.kind === "roxzone")
+                        .reduce((a, s) => a + s.splitMs, 0),
+                    )}
+                  </span>
+                </p>
+                <label className="mt-3 flex items-start gap-2 border-t border-muted/20 pt-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={addSession}
+                    onChange={(e) => setAddSession(e.target.checked)}
+                    className="mt-0.5 accent-accent"
+                  />
+                  <span>
+                    {t("raceNew.replay.addSession")}
+                    <span className="mt-0.5 block text-xs text-muted">
+                      {t("raceNew.replay.addSessionHint")}
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
 
             {saveError && <p className="text-sm text-red-400">{saveError}</p>}
             <button

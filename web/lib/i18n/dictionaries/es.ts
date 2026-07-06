@@ -123,6 +123,13 @@ const es: Record<DictKey, string> = {
   "races.colDiff": "Dif.",
   "races.runTotal": "Total carrera (8 km)",
   "races.diffNote": "Dif. = carrera − entrenamiento. Azul significa que fuiste más rápido en la carrera.",
+  "races.replayTitle": "Race replay — desglose por tramo",
+  "races.colRun": "Carrera",
+  "races.colRoxzone": "Roxzone",
+  "races.colStation": "Estación",
+  "races.colStationTime": "Tiempo",
+  "races.replayNote":
+    "Del race replay oficial (puntos In/Out). Roxzone = tiempo de transición al entrar y salir de la estación.",
 
   "raceNew.title": "Registrar resultado oficial",
   "raceNew.desc": "Consulta tu marca en la página oficial de resultados y cópiala aquí.",
@@ -179,6 +186,15 @@ const es: Record<DictKey, string> = {
   "raceNew.import.failFetch": "Error al importar. Prueba la opción de pegar texto.",
   "raceNew.import.failParse":
     "No se reconocieron registros en el texto pegado. Copia la vista completa de resultados con nombres de estaciones y tiempos.",
+  "raceNew.replay.title": "Detalles del race replay",
+  "raceNew.replay.desc":
+    "Se reconocieron {n} segmentos (carreras · roxzones · estaciones) del race replay oficial. Se guardarán con este resultado.",
+  "raceNew.replay.roxzoneTotal": "Total roxzone",
+  "raceNew.replay.addSession": "Añadir esta carrera también como sesión",
+  "raceNew.replay.addSessionHint":
+    "Crea una sesión con todos los segmentos para verla en los gráficos de ritmo y el análisis.",
+  "raceNew.replay.errSession":
+    "La carrera se guardó, pero no se pudo añadir la sesión: {msg} — pulsa Guardar de nuevo para reintentar solo la sesión.",
 
   "predict.title": "Calculadora de parciales objetivo",
   "predict.desc":

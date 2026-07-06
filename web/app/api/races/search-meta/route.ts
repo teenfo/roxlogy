@@ -9,7 +9,7 @@ import {
   SEASONS,
   type Season,
 } from "@/lib/hyrox-results";
-import { htmlToText, parseRaceText } from "@/lib/race-import";
+import { htmlToText, parseRaceHtml, parseRaceText } from "@/lib/race-import";
 
 /**
  * 검색 폼용 메타: 시즌의 대회(event_main_group) 목록.
@@ -37,6 +37,24 @@ export async function GET(request: Request) {
         signal: AbortSignal.timeout(10_000),
       });
       const js = await res.text();
+      // parse=1 이면 통합 파서(스플릿+리플레이) 결과를 반환 (라이브 검증용)
+      if (searchParams.get("parse") === "1") {
+        const p = parseRaceHtml(js);
+        return NextResponse.json({
+          jsUrl,
+          event: p.event ?? null,
+          eventDate: p.eventDate ?? null,
+          division: p.division ?? null,
+          totalMs: p.totalMs ?? null,
+          runTotalMs: p.runTotalMs ?? null,
+          roxzoneTotalMs: p.roxzoneTotalMs ?? null,
+          startClock: p.startClock ?? null,
+          stations: p.stations,
+          runs: p.runs ?? null,
+          roxzones: p.roxzones ?? null,
+          segments: p.segments ?? null,
+        });
+      }
       // q=<리터럴> 이면 해당 문자열 주변 컨텍스트를 반환 (호출부 확인용)
       const q = searchParams.get("q");
       if (q) {
