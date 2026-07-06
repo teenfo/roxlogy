@@ -106,6 +106,10 @@ const en = {
   "newSession.errEmpty": "Enter at least one record.",
   "newSession.errSession": "Failed to save session: {msg}",
   "newSession.errSegments": "Failed to save segments: {msg}",
+  "newSession.editTitle": "Edit session",
+  "newSession.editDesc":
+    "Adjust the records and save — empty segments are removed.",
+  "sessions.edit": "Edit",
 
   // 레이스
   "races.title": "Races",
@@ -194,6 +198,10 @@ const en = {
   "raceNew.import.failFetch": "Import failed. Try the text-paste option.",
   "raceNew.import.failParse":
     "Couldn't recognize any records in the pasted text. Copy the whole results view including station names and times.",
+  "raceNew.import.firstNameMiss":
+    "No results matched the first name \"{name}\" — showing everyone for the search conditions.",
+  "raceNew.import.doublesHint":
+    "Doubles/relay teams can only be searched by the first-listed member's (team captain's) last name. If your team doesn't show up, search with your partner's last name — the first-name box matches both members.",
   "raceNew.replay.title": "Race replay details",
   "raceNew.replay.desc":
     "Recognized {n} segments (runs · roxzones · stations) from the official race replay. They'll be saved with this result.",
@@ -318,6 +326,7 @@ const en = {
   "meta.dashboard": "Dashboard — Roxlogy",
   "meta.sessions": "Session history — Roxlogy",
   "meta.sessionDetail": "{date} session — Roxlogy",
+  "meta.sessionEdit": "Edit session — Roxlogy",
   "meta.sessionNew": "Log session — Roxlogy",
   "meta.races": "Races — Roxlogy",
   "meta.raceNew": "Register race result — Roxlogy",

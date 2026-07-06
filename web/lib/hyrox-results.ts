@@ -198,9 +198,12 @@ function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z]/g, "");
 }
 
-export async function searchAthletes(
-  filters: SearchFilters,
-): Promise<{ hits: AthleteHit[]; blocked: boolean }> {
+export async function searchAthletes(filters: SearchFilters): Promise<{
+  hits: AthleteHit[];
+  blocked: boolean;
+  /** firstName을 줬을 때: 목록에서 부분일치가 있었는지 (없으면 전체 목록 반환) */
+  firstNameMatched?: boolean;
+}> {
   const last = filters.lastName.trim();
   if (last.length < 2) return { hits: [], blocked: false };
 
@@ -216,18 +219,6 @@ export async function searchAthletes(
   );
   if (!html) return { hits: [], blocked: true };
 
-  const seen = new Set<string>();
-  const collect = (list: AthleteHit[], divLabel?: string) => {
-    for (const h of list) {
-      if (seen.has(h.detailUrl)) continue;
-      seen.add(h.detailUrl);
-      hits.push(
-        divLabel ? { ...h, context: `${divLabel} · ${h.context}` } : h,
-      );
-    }
-  };
-
-  let hits: AthleteHit[] = [];
   const divisions = parseDivisionOptions(html);
   const first = parseAthleteList(html, filters.season);
   // 첫 응답의 디비전 라벨: 링크의 event= 코드와 일치하는 옵션
@@ -235,27 +226,55 @@ export async function searchAthletes(
     first[0]?.detailUrl.includes(`event=${encodeURIComponent(d.value)}`) ||
     first[0]?.detailUrl.includes(`event=${d.value}`),
   );
-  collect(first, firstDiv?.label);
+
+  const lists: { label?: string; hits: AthleteHit[] }[] = [
+    { label: firstDiv?.label, hits: first },
+  ];
 
   // 디비전을 지정하지 않은 대회 검색은 기본 디비전만 반환하므로
-  // 나머지 디비전도 조회·병합
+  // 나머지 디비전도 조회
   if (!filters.division && filters.eventGroup && divisions.length > 1) {
-    const rest = divisions.filter((d) => d.value !== firstDiv?.value).slice(0, 9);
+    const rest = divisions.filter((d) => d.value !== firstDiv?.value).slice(0, 14);
     const pages = await Promise.all(
       rest.map((d) => fetchHtml(`${url}&event=${encodeURIComponent(d.value)}`)),
     );
     pages.forEach((p, i) => {
-      if (p) collect(parseAthleteList(p, filters.season), rest[i].label);
+      if (p)
+        lists.push({
+          label: rest[i].label,
+          hits: parseAthleteList(p, filters.season),
+        });
     });
   }
 
-  // 이름(first name)은 서버에서 부분일치 필터 — 걸리는 게 없으면 전체 유지
+  // 라운드로빈 병합 — 100건 상한이 첫 디비전(싱글)에만 쏠려
+  // 더블즈/릴레이가 잘려나가지 않도록 디비전을 번갈아 채운다
+  let hits: AthleteHit[] = [];
+  const seen = new Set<string>();
+  for (let i = 0; ; i++) {
+    let any = false;
+    for (const l of lists) {
+      const h = l.hits[i];
+      if (!h) continue;
+      any = true;
+      if (seen.has(h.detailUrl)) continue;
+      seen.add(h.detailUrl);
+      hits.push(l.label ? { ...h, context: `${l.label} · ${h.context}` } : h);
+    }
+    if (!any) break;
+  }
+
+  // 이름(first name)은 서버에서 부분일치 필터 — 더블즈는 팀 문자열
+  // 전체("GAIN OH, CHOHO KIM")에 걸리므로 두 멤버 모두 매칭된다.
+  // 걸리는 게 없으면 전체 목록 유지 + firstNameMatched=false 로 알린다.
+  let firstNameMatched: boolean | undefined;
   if (filters.firstName?.trim()) {
     const f = normName(filters.firstName);
     if (f) {
       const matched = hits.filter((h) => normName(h.name).includes(f));
+      firstNameMatched = matched.length > 0;
       if (matched.length) hits = matched;
     }
   }
-  return { hits: hits.slice(0, 100), blocked: false };
+  return { hits: hits.slice(0, 100), blocked: false, firstNameMatched };
 }

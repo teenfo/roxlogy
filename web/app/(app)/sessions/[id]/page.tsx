@@ -125,7 +125,15 @@ export default async function SessionDetailPage({
         <Link href="/sessions" className="text-sm text-muted hover:text-foreground">
           {t("sessions.back")}
         </Link>
-        <DeleteButton kind="session" id={session.id} redirectTo="/sessions" />
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/sessions/${session.id}/edit`}
+            className="text-sm text-track hover:underline"
+          >
+            {t("sessions.edit")}
+          </Link>
+          <DeleteButton kind="session" id={session.id} redirectTo="/sessions" />
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">

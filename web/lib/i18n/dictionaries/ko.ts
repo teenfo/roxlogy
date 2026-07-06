@@ -100,6 +100,9 @@ const ko: Record<DictKey, string> = {
   "newSession.errEmpty": "기록을 1개 이상 입력해 주세요.",
   "newSession.errSession": "세션 저장 실패: {msg}",
   "newSession.errSegments": "세그먼트 저장 실패: {msg}",
+  "newSession.editTitle": "세션 수정",
+  "newSession.editDesc": "기록을 고친 뒤 저장하세요 — 비운 칸은 삭제됩니다.",
+  "sessions.edit": "수정",
 
   "races.title": "레이스",
   "races.register": "결과 등록",
@@ -186,6 +189,10 @@ const ko: Record<DictKey, string> = {
   "raceNew.import.failFetch": "가져오기에 실패했습니다. 텍스트 붙여넣기를 이용해 보세요.",
   "raceNew.import.failParse":
     "붙여넣은 텍스트에서 기록을 인식하지 못했습니다. 스테이션 이름과 시간이 포함된 결과 화면 전체를 복사해 주세요.",
+  "raceNew.import.firstNameMiss":
+    "이름 \"{name}\"과 일치하는 결과가 없어 검색 조건의 전체 목록을 표시합니다.",
+  "raceNew.import.doublesHint":
+    "더블즈/릴레이 팀은 첫 번째 멤버(팀 대표)의 성으로만 검색됩니다. 팀이 안 보이면 파트너의 성으로 검색해 보세요 — 이름 칸은 두 멤버 모두에 일치합니다.",
   "raceNew.replay.title": "레이스 리플레이 상세",
   "raceNew.replay.desc":
     "공식 레이스 리플레이에서 {n}개 구간(런·록스존·스테이션)을 인식했습니다. 이 결과와 함께 저장됩니다.",
@@ -302,6 +309,7 @@ const ko: Record<DictKey, string> = {
   "meta.dashboard": "대시보드 — Roxlogy",
   "meta.sessions": "세션 히스토리 — Roxlogy",
   "meta.sessionDetail": "{date} 세션 — Roxlogy",
+  "meta.sessionEdit": "세션 수정 — Roxlogy",
   "meta.sessionNew": "세션 기록 — Roxlogy",
   "meta.races": "레이스 — Roxlogy",
   "meta.raceNew": "레이스 결과 등록 — Roxlogy",

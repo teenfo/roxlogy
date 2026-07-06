@@ -74,11 +74,17 @@ export function buildSessionRows(
   userId: string,
   startedAtIso: string,
   segments: SegmentForm[],
+  opts?: {
+    /** 수정 모드: 기존 세션 id 재사용 (충돌 키 sessions(id)로 업서트) */
+    sessionId?: string;
+    /** 수정 모드: seq 순서대로 재사용할 기존 세그먼트 id */
+    segmentIds?: string[];
+  },
 ): SessionRows | { error: string } {
   const filled = segments.filter((s) => s.splitMs != null && s.splitMs > 0);
   if (!filled.length) return { error: "empty" as const };
 
-  const sessionId = crypto.randomUUID();
+  const sessionId = opts?.sessionId ?? crypto.randomUUID();
   const totalMs = filled.reduce((acc, s) => acc + (s.splitMs ?? 0), 0);
   const started = new Date(startedAtIso);
   const nowIso = new Date().toISOString();
@@ -95,7 +101,9 @@ export function buildSessionRows(
       client_updated_at: nowIso,
     },
     segments: filled.map((s, idx) => ({
-      id: crypto.randomUUID(),
+      // 같은 seq 자리의 기존 id를 재사용해야 erg_samples 참조가 유지되고
+      // (session_id, seq) 충돌 업데이트가 PK 변경을 시도하지 않는다
+      id: opts?.segmentIds?.[idx] ?? crypto.randomUUID(),
       session_id: sessionId,
       seq: idx + 1,
       kind: s.kind,

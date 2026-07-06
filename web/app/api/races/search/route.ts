@@ -73,8 +73,14 @@ export async function POST(request: Request) {
   }
 
   for (const filters of attempts) {
-    const { hits } = await searchAthletes(filters);
-    if (hits.length) return NextResponse.json({ hits });
+    const { hits, firstNameMatched } = await searchAthletes(filters);
+    if (hits.length)
+      return NextResponse.json({
+        hits,
+        // 사용자가 이름을 입력했는데 목록이 이름으로 걸러지지 못한 경우
+        // (완화 단계에서 이름이 빠졌거나 부분일치 0건 → 전체 목록 표시)
+        firstNameMiss: !!firstName && firstNameMatched !== true,
+      });
   }
-  return NextResponse.json({ hits: [] });
+  return NextResponse.json({ hits: [], firstNameMiss: false });
 }

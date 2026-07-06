@@ -51,6 +51,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
   // ── 2단계: 결과 목록
   const [hits, setHits] = useState<Hit[] | null>(null);
+  const [firstNameMiss, setFirstNameMiss] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
 
@@ -146,6 +147,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         setHits([]);
       } else {
         setHits(body.hits ?? []);
+        setFirstNameMiss(body.firstNameMiss === true);
       }
     } catch {
       setSearchError(t("raceNew.import.failFetch"));
@@ -453,6 +455,13 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         {hits !== null && !searchError && (
           <div className="mt-4 border-t border-muted/20 pt-3">
             <p className="text-sm font-semibold">{t("raceNew.step2")}</p>
+            {firstNameMiss && hits.length > 0 && (
+              <p className="mt-2 text-xs text-accent">
+                {t("raceNew.import.firstNameMiss", {
+                  name: firstName.trim(),
+                })}
+              </p>
+            )}
             {hits.length === 0 ? (
               <p className="mt-2 text-xs text-muted">
                 {t("raceNew.import.noMatches")}
@@ -483,6 +492,9 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                 {t("raceNew.import.loadingResult")}
               </p>
             )}
+            <p className="mt-2 text-xs text-muted">
+              {t("raceNew.import.doublesHint")}
+            </p>
           </div>
         )}
         {importNotice && (

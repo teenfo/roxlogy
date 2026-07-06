@@ -21,13 +21,62 @@ const KIND_BADGE: Record<string, string> = {
 
 type Row = SegmentForm & { text: string };
 
-export function SessionNewForm() {
+export type EditableSegment = {
+  id: string;
+  seq: number;
+  kind: string;
+  exercise_id: string | null;
+  split_time_ms: number | null;
+};
+
+export type SessionInitial = {
+  id: string;
+  startedAt: string; // ISO
+  segments: EditableSegment[]; // seq 순
+};
+
+/** 저장된 세그먼트(빈 칸 제외·재번호됨)를 24행 템플릿에 순서대로 되맵핑 */
+function rowsFromInitial(initial: SessionInitial): Row[] {
+  const rows: Row[] = raceSimTemplate().map((s) => ({ ...s, text: "" }));
+  let cursor = 0;
+  for (const seg of initial.segments) {
+    for (let i = cursor; i < rows.length; i++) {
+      const r = rows[i];
+      const matches =
+        r.kind === seg.kind &&
+        (seg.kind !== "station" || r.exerciseId === seg.exercise_id);
+      if (matches) {
+        if (seg.split_time_ms != null) {
+          rows[i] = {
+            ...r,
+            splitMs: seg.split_time_ms,
+            text: formatMs(seg.split_time_ms),
+          };
+        }
+        cursor = i + 1;
+        break;
+      }
+    }
+  }
+  return rows;
+}
+
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
+export function SessionNewForm({ initial }: { initial?: SessionInitial }) {
   const router = useRouter();
   const { t } = useI18n();
   const [rows, setRows] = useState<Row[]>(() =>
-    raceSimTemplate().map((s) => ({ ...s, text: "" })),
+    initial
+      ? rowsFromInitial(initial)
+      : raceSimTemplate().map((s) => ({ ...s, text: "" })),
   );
   const [startedAt, setStartedAt] = useState(() => {
+    if (initial) return toLocalInput(initial.startedAt);
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 16);
@@ -69,6 +118,12 @@ export function SessionNewForm() {
       user.id,
       new Date(startedAt).toISOString(),
       rows,
+      initial
+        ? {
+            sessionId: initial.id,
+            segmentIds: initial.segments.map((s) => s.id),
+          }
+        : undefined,
     );
     if ("error" in built) {
       setPending(false);
@@ -90,6 +145,18 @@ export function SessionNewForm() {
       setPending(false);
       return setError(t("newSession.errSegments", { msg: gErr.message }));
     }
+    // 수정에서 칸을 비워 세그먼트 수가 줄면 남은 꼬리 행 제거
+    if (initial && initial.segments.length > built.segments.length) {
+      const { error: dErr } = await supabase
+        .from("session_segments")
+        .delete()
+        .eq("session_id", built.session.id)
+        .gt("seq", built.segments.length);
+      if (dErr) {
+        setPending(false);
+        return setError(t("newSession.errSegments", { msg: dErr.message }));
+      }
+    }
 
     router.push(`/sessions/${built.session.id}`);
     router.refresh();
@@ -97,11 +164,18 @@ export function SessionNewForm() {
 
   return (
     <main>
-      <Link href="/sessions" className="text-sm text-muted hover:text-foreground">
+      <Link
+        href={initial ? `/sessions/${initial.id}` : "/sessions"}
+        className="text-sm text-muted hover:text-foreground"
+      >
         {t("sessions.back")}
       </Link>
-      <h1 className="mt-4 text-2xl font-bold">{t("newSession.title")}</h1>
-      <p className="mt-1 text-sm text-muted">{t("newSession.desc")}</p>
+      <h1 className="mt-4 text-2xl font-bold">
+        {initial ? t("newSession.editTitle") : t("newSession.title")}
+      </h1>
+      <p className="mt-1 text-sm text-muted">
+        {initial ? t("newSession.editDesc") : t("newSession.desc")}
+      </p>
 
       <div className="mt-6 flex items-center gap-3">
         <label className="text-sm text-muted">{t("newSession.startTime")}</label>

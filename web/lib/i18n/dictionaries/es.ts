@@ -100,6 +100,10 @@ const es: Record<DictKey, string> = {
   "newSession.errEmpty": "Introduce al menos un registro.",
   "newSession.errSession": "Error al guardar la sesión: {msg}",
   "newSession.errSegments": "Error al guardar segmentos: {msg}",
+  "newSession.editTitle": "Editar sesión",
+  "newSession.editDesc":
+    "Ajusta los registros y guarda — los segmentos vacíos se eliminan.",
+  "sessions.edit": "Editar",
 
   "races.title": "Carreras",
   "races.register": "Añadir resultado",
@@ -186,6 +190,10 @@ const es: Record<DictKey, string> = {
   "raceNew.import.failFetch": "Error al importar. Prueba la opción de pegar texto.",
   "raceNew.import.failParse":
     "No se reconocieron registros en el texto pegado. Copia la vista completa de resultados con nombres de estaciones y tiempos.",
+  "raceNew.import.firstNameMiss":
+    "Ningún resultado coincidió con el nombre \"{name}\" — se muestra la lista completa para las condiciones de búsqueda.",
+  "raceNew.import.doublesHint":
+    "Los equipos de dobles/relevos solo se pueden buscar por el apellido del primer miembro (capitán). Si tu equipo no aparece, busca con el apellido de tu pareja — el campo de nombre coincide con ambos miembros.",
   "raceNew.replay.title": "Detalles del race replay",
   "raceNew.replay.desc":
     "Se reconocieron {n} segmentos (carreras · roxzones · estaciones) del race replay oficial. Se guardarán con este resultado.",
@@ -302,6 +310,7 @@ const es: Record<DictKey, string> = {
   "meta.dashboard": "Panel — Roxlogy",
   "meta.sessions": "Historial de sesiones — Roxlogy",
   "meta.sessionDetail": "Sesión del {date} — Roxlogy",
+  "meta.sessionEdit": "Editar sesión — Roxlogy",
   "meta.sessionNew": "Registrar sesión — Roxlogy",
   "meta.races": "Carreras — Roxlogy",
   "meta.raceNew": "Registrar resultado — Roxlogy",
