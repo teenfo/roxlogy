@@ -55,6 +55,8 @@ function decodeEntities(s: string): string {
     .replace(/&#39;|&apos;/g, "'")
     .replace(/&quot;/g, '"')
     .replace(/&nbsp;/g, " ")
+    .replace(/&ndash;/g, "–")
+    .replace(/&mdash;/g, "—")
     .trim();
 }
 

@@ -39,6 +39,10 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const [sex, setSex] = useState("");
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [hits, setHits] = useState<
+    { name: string; context: string; season: string; detailUrl: string }[] | null
+  >(null);
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
 
@@ -99,6 +103,31 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       setShowPaste(true);
     }
     setImporting(false);
+  }
+
+  async function handleSearch() {
+    if (lastName.trim().length < 2 || !eventGroup) return;
+    setImportNotice(null);
+    setHits(null);
+    setSearching(true);
+    try {
+      const res = await fetch("/api/races/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          season,
+          eventGroup,
+          sex: sex || undefined,
+          lastName: lastName.trim(),
+          firstName: firstName.trim() || undefined,
+        }),
+      });
+      const body = await res.json();
+      setHits(res.ok ? (body.hits ?? []) : []);
+    } catch {
+      setHits([]);
+    }
+    setSearching(false);
   }
 
   function openOfficialSearch() {
@@ -228,7 +257,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               onKeyDown={(e) =>
-                e.key === "Enter" && (e.preventDefault(), openOfficialSearch())
+                e.key === "Enter" && (e.preventDefault(), handleSearch())
               }
               placeholder="Hong"
               className="rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
@@ -241,7 +270,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               onKeyDown={(e) =>
-                e.key === "Enter" && (e.preventDefault(), openOfficialSearch())
+                e.key === "Enter" && (e.preventDefault(), handleSearch())
               }
               placeholder="Gildong"
               className="rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
@@ -250,16 +279,69 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           <div className="flex items-end">
             <button
               type="button"
-              onClick={openOfficialSearch}
-              disabled={lastName.trim().length < 2}
+              onClick={handleSearch}
+              disabled={searching || lastName.trim().length < 2 || !eventGroup}
               className="w-full rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
             >
-              {t("raceNew.import.searchBtn")} ↗
+              {searching
+                ? t("raceNew.import.searching")
+                : t("raceNew.import.searchBtn")}
             </button>
           </div>
         </div>
 
-        <p className="mt-2 text-xs text-muted">{t("raceNew.import.steps")}</p>
+        {!eventGroup && (
+          <p className="mt-2 text-xs text-muted">
+            {t("raceNew.import.needEvent")}
+          </p>
+        )}
+
+        {hits !== null &&
+          (hits.length === 0 ? (
+            <p className="mt-2 text-xs text-muted">
+              {t("raceNew.import.noMatches")}
+            </p>
+          ) : (
+            <div className="mt-3">
+              <p className="text-xs text-muted">
+                {t("raceNew.import.pickResult")}
+              </p>
+              <ul className="mt-1.5 flex max-h-64 flex-col gap-1 overflow-y-auto">
+                {hits.map((h) => (
+                  <li key={h.detailUrl}>
+                    <button
+                      type="button"
+                      disabled={importing}
+                      onClick={() => importFromUrl(h.detailUrl)}
+                      className="w-full rounded-md bg-background px-3 py-2 text-left hover:bg-background/60 disabled:opacity-50"
+                    >
+                      <span className="block text-sm">{h.name}</span>
+                      {h.context && (
+                        <span className="mt-0.5 block truncate text-xs text-muted">
+                          {h.context}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {importing && (
+                <p className="mt-1.5 text-xs text-track">
+                  {t("raceNew.import.loadingResult")}
+                </p>
+              )}
+            </div>
+          ))}
+
+        <button
+          type="button"
+          onClick={openOfficialSearch}
+          disabled={lastName.trim().length < 2}
+          className="mt-3 text-xs text-track hover:underline disabled:opacity-40"
+        >
+          {t("raceNew.import.openSite")} ↗
+        </button>
+        <p className="mt-1 text-xs text-muted">{t("raceNew.import.steps")}</p>
 
         {/* 돌아와서: 결과 페이지 URL 붙여넣기 */}
         {(

@@ -146,7 +146,7 @@ const en = {
   "raceNew.errSave": "Save failed: {msg}",
   "raceNew.import.title": "Auto-import my result",
   "raceNew.import.desc":
-    "Search the official results with your details, open your result, and paste its URL — we fill in the numbers.",
+    "Pick the event, enter your name, and click your result — everything fills in automatically.",
   "raceNew.import.namePh": "Name as on your race bib (e.g. Hong Gildong)",
   "raceNew.search.season": "Season",
   "raceNew.search.event": "Event",
@@ -165,7 +165,8 @@ const en = {
     "No athletes found. Check the spelling used at registration, or use the URL / text options below.",
   "raceNew.import.urlToggle": "Import from a result-page URL instead",
   "raceNew.import.steps":
-    "1. Search opens the official results in a new tab · 2. open your result · 3. copy its URL and paste it below",
+    "No luck? Open the official search in a new tab, open your result, and paste its URL below.",
+  "raceNew.import.needEvent": "Select the event to search here.",
   "raceNew.import.openSite": "Search on the official site (new tab)",
   "raceNew.import.blockedHint":
     "The results site blocked our direct lookup. Use \"Search on the official site\", open your result there, copy the whole page (Ctrl+A, Ctrl+C), and paste it below — the fields fill in automatically.",
