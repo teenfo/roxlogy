@@ -26,6 +26,11 @@ export async function GET(request: Request) {
     const dbgEvent = searchParams.get("event");
     if (dbgEvent) qp.set("event", dbgEvent);
     if (searchParams.get("sex")) qp.set("search[sex]", searchParams.get("sex")!);
+    // 원시 파라미터 추가 프로브 (예: extra=format%3Dfrag)
+    for (const kv of (searchParams.get("extra") ?? "").split("&")) {
+      const [k, v] = kv.split("=");
+      if (k && v != null) qp.set(k, decodeURIComponent(v));
+    }
     const url = `https://results.hyrox.com/${season}/?${qp}`;
     let status = 0;
     let html = "";
