@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
-import { searchAthletes, SEASONS, type Season } from "@/lib/hyrox-results";
+import {
+  searchAthletes,
+  SEASONS,
+  type SearchFilters,
+  type Season,
+} from "@/lib/hyrox-results";
 
-/** 공식 결과 사이트에서 본인 결과 검색 — 로그인 필수, 1회성 조회 */
+/**
+ * 공식 결과 사이트에서 본인 결과 검색 — 로그인 필수, 1회성 조회.
+ * 공식 검색의 이름 매칭이 엄격하므로(성 필드 기준, 이름은 별도 필드)
+ * 0건이면 조건을 단계적으로 완화해 재시도한다:
+ *   ① 입력 그대로 → ② 성별 제외 → ③ 이름(first) 제외 → ④ 성·이름 스왑
+ */
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { t } = await getT();
@@ -32,14 +42,36 @@ export async function POST(request: Request) {
     ? (body.season as Season)
     : SEASONS[0];
   const lastName = (body.lastName ?? "").trim();
+  const firstName = (body.firstName ?? "").trim();
+  const eventGroup = body.eventGroup?.trim() || undefined;
+  const sex = body.sex === "M" || body.sex === "W" ? body.sex : undefined;
   if (lastName.length < 2) return NextResponse.json({ hits: [] });
 
-  const { hits, blocked } = await searchAthletes({
-    season,
-    eventGroup: body.eventGroup?.trim() || undefined,
-    sex: body.sex === "M" || body.sex === "W" ? body.sex : undefined,
-    lastName,
-    firstName: body.firstName?.trim() || undefined,
-  });
-  return NextResponse.json({ hits, blocked });
+  const attempts: SearchFilters[] = [
+    { season, eventGroup, sex, lastName, firstName: firstName || undefined },
+  ];
+  if (sex)
+    attempts.push({
+      season,
+      eventGroup,
+      lastName,
+      firstName: firstName || undefined,
+    });
+  if (firstName) {
+    attempts.push({ season, eventGroup, lastName });
+    if (firstName.length >= 2)
+      attempts.push({ season, eventGroup, lastName: firstName, firstName: lastName });
+  }
+  // 성 칸에 풀네임을 넣은 경우: 마지막 토큰만으로 재시도
+  const tokens = lastName.split(/\s+/);
+  if (tokens.length >= 2) {
+    attempts.push({ season, eventGroup, lastName: tokens[tokens.length - 1] });
+    attempts.push({ season, eventGroup, lastName: tokens[0] });
+  }
+
+  for (const filters of attempts) {
+    const { hits } = await searchAthletes(filters);
+    if (hits.length) return NextResponse.json({ hits });
+  }
+  return NextResponse.json({ hits: [] });
 }

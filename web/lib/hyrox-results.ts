@@ -143,7 +143,11 @@ export function parseAthleteList(html: string, season: string): AthleteHit[] {
   return hits;
 }
 
-/** 검색 조건 → 공식 사이트 검색 URL (딥링크·서버 조회 공용, 순수 함수) */
+/**
+ * 검색 조건 → 공식 사이트 검색 URL (딥링크·서버 조회 공용, 순수 함수).
+ * 주의: 사이트의 search[firstname]은 사실상 정확일치라(실측: "Cho",
+ * "Choho" 모두 0건) 보내지 않는다 — 이름은 결과 목록에 부분일치로 적용.
+ */
 export function buildSearchUrl(filters: SearchFilters): string {
   const params = new URLSearchParams({
     pid: "list",
@@ -151,13 +155,14 @@ export function buildSearchUrl(filters: SearchFilters): string {
     num_results: "100",
   });
   params.set("search[name]", filters.lastName.trim());
-  if (filters.firstName?.trim())
-    params.set("search[firstname]", filters.firstName.trim());
   if (filters.sex) params.set("search[sex]", filters.sex);
-  params.set("search[age_class]", "%");
-  params.set("search[nation]", "%");
   if (filters.eventGroup) params.set("event_main_group", filters.eventGroup);
   return `${BASE}/${filters.season}/?${params}`;
+}
+
+/** 이름 비교용 정규화: 소문자 + 영문자 외 제거 ("Cho Ho"≈"choho") */
+function normName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z]/g, "");
 }
 
 export async function searchAthletes(
@@ -178,5 +183,14 @@ export async function searchAthletes(
     }),
   );
   if (!html) return { hits: [], blocked: true };
-  return { hits: parseAthleteList(html, filters.season).slice(0, 30), blocked: false };
+  let hits = parseAthleteList(html, filters.season);
+  // 이름(first name)은 서버에서 부분일치 필터 — 걸리는 게 없으면 전체 유지
+  if (filters.firstName?.trim()) {
+    const f = normName(filters.firstName);
+    if (f) {
+      const matched = hits.filter((h) => normName(h.name).includes(f));
+      if (matched.length) hits = matched;
+    }
+  }
+  return { hits: hits.slice(0, 30), blocked: false };
 }

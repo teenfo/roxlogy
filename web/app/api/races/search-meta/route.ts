@@ -128,7 +128,7 @@ export async function GET(request: Request) {
         selectIds,
         idpLinks,
         groupsParsed: parseEventGroups(html).slice(0, 5),
-        hitsParsed: parseAthleteList(html, season).slice(0, 5),
+        hitsParsed: parseAthleteList(html, season).slice(0, 10),
         raceParsed: (() => {
           const r = parseRaceText(htmlToText(html));
           return {
