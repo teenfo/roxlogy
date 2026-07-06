@@ -156,6 +156,9 @@ const ko: Record<DictKey, string> = {
   "raceNew.import.noMatches":
     "선수를 찾지 못했습니다. 대회 등록 시 사용한 표기(영문)를 확인하거나 아래 URL/텍스트 방식을 이용하세요.",
   "raceNew.import.urlToggle": "결과 페이지 주소로 가져오기",
+  "raceNew.import.openSite": "공식 사이트에서 검색 (새 탭)",
+  "raceNew.import.blockedHint":
+    "결과 사이트가 서버 조회를 차단했습니다. \"공식 사이트에서 검색\"으로 새 탭을 열어 본인 결과 페이지에서 전체 복사(Ctrl+A, Ctrl+C)한 뒤 아래에 붙여넣으면 자동으로 채워집니다.",
   "raceNew.import.button": "가져오기",
   "raceNew.import.importing": "가져오는 중…",
   "raceNew.import.pasteOpen": "주소가 안 되나요? 결과 텍스트 붙여넣기",

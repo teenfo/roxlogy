@@ -156,6 +156,9 @@ const es: Record<DictKey, string> = {
   "raceNew.import.noMatches":
     "No se encontraron atletas. Revisa la ortografía usada al inscribirte o usa las opciones de URL / texto.",
   "raceNew.import.urlToggle": "Importar desde la URL de una página de resultados",
+  "raceNew.import.openSite": "Buscar en el sitio oficial (nueva pestaña)",
+  "raceNew.import.blockedHint":
+    "El sitio de resultados bloqueó la consulta directa. Usa \"Buscar en el sitio oficial\", abre tu resultado, copia toda la página (Ctrl+A, Ctrl+C) y pégala abajo: los campos se rellenan automáticamente.",
   "raceNew.import.button": "Importar",
   "raceNew.import.importing": "Importando…",
   "raceNew.import.pasteOpen": "¿No funciona la URL? Pega el texto del resultado",

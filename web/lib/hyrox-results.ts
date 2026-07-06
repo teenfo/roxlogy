@@ -140,24 +140,38 @@ export function parseAthleteList(html: string, season: string): AthleteHit[] {
   return hits;
 }
 
-export async function searchAthletes(
-  filters: SearchFilters,
-): Promise<AthleteHit[]> {
-  const last = filters.lastName.trim();
-  if (last.length < 2) return [];
-
+/** 검색 조건 → 공식 사이트 검색 URL (딥링크·서버 조회 공용, 순수 함수) */
+export function buildSearchUrl(filters: SearchFilters): string {
   const params = new URLSearchParams({
     pid: "list",
     pidp: "ranking_nav",
     num_results: "100",
   });
-  params.set("search[name]", last);
+  params.set("search[name]", filters.lastName.trim());
   if (filters.firstName?.trim())
     params.set("search[firstname]", filters.firstName.trim());
   if (filters.sex) params.set("search[sex]", filters.sex);
   if (filters.eventGroup) params.set("event_main_group", filters.eventGroup);
+  return `${BASE}/${filters.season}/?${params}`;
+}
 
-  const html = await fetchHtml(`${BASE}/${filters.season}/?${params}`);
-  if (!html) return [];
-  return parseAthleteList(html, filters.season).slice(0, 30);
+export async function searchAthletes(
+  filters: SearchFilters,
+): Promise<{ hits: AthleteHit[]; blocked: boolean }> {
+  const last = filters.lastName.trim();
+  if (last.length < 2) return { hits: [], blocked: false };
+
+  const url = buildSearchUrl(filters);
+  const html = await fetchHtml(url);
+  // 결과 사이트가 데이터센터 IP를 WAF로 차단하는 경우가 있어 진단 로그를 남긴다
+  console.log(
+    JSON.stringify({
+      tag: "hyrox-results-search",
+      url,
+      fetched: html !== null,
+      htmlLen: html?.length ?? 0,
+    }),
+  );
+  if (!html) return { hits: [], blocked: true };
+  return { hits: parseAthleteList(html, filters.season).slice(0, 30), blocked: false };
 }

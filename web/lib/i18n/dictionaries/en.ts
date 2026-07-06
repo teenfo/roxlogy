@@ -164,6 +164,9 @@ const en = {
   "raceNew.import.noMatches":
     "No athletes found. Check the spelling used at registration, or use the URL / text options below.",
   "raceNew.import.urlToggle": "Import from a result-page URL instead",
+  "raceNew.import.openSite": "Search on the official site (new tab)",
+  "raceNew.import.blockedHint":
+    "The results site blocked our direct lookup. Use \"Search on the official site\", open your result there, copy the whole page (Ctrl+A, Ctrl+C), and paste it below — the fields fill in automatically.",
   "raceNew.import.button": "Import",
   "raceNew.import.importing": "Importing…",
   "raceNew.import.pasteOpen": "URL not working? Paste the result text instead",

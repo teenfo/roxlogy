@@ -11,6 +11,7 @@ import {
   parseRaceText,
   type ParsedRace,
 } from "@/lib/race-import";
+import { buildSearchUrl, type Season } from "@/lib/hyrox-results";
 import { TimeInput } from "@/components/time-input";
 import { useI18n } from "@/components/i18n-provider";
 
@@ -123,11 +124,31 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         }),
       });
       const body = await res.json();
-      setHits(res.ok ? (body.hits ?? []) : []);
+      const got: typeof hits = res.ok ? (body.hits ?? []) : [];
+      setHits(got);
+      if (body.blocked || !got?.length) {
+        setShowPaste(true);
+        if (body.blocked) setImportNotice(t("raceNew.import.blockedHint"));
+      }
     } catch {
       setHits([]);
+      setShowPaste(true);
     }
     setSearching(false);
+  }
+
+  function openOfficialSearch() {
+    window.open(
+      buildSearchUrl({
+        season: season as Season,
+        eventGroup: eventGroup || undefined,
+        sex: sex === "M" || sex === "W" ? sex : undefined,
+        lastName: lastName.trim(),
+        firstName: firstName.trim() || undefined,
+      }),
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
 
   function handleTextImport() {
@@ -275,6 +296,15 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             </button>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={openOfficialSearch}
+          disabled={lastName.trim().length < 2}
+          className="mt-2 text-xs text-track hover:underline disabled:opacity-40"
+        >
+          {t("raceNew.import.openSite")} ↗
+        </button>
 
         {hits !== null &&
           (hits.length === 0 ? (

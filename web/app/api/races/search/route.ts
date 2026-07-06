@@ -34,12 +34,12 @@ export async function POST(request: Request) {
   const lastName = (body.lastName ?? "").trim();
   if (lastName.length < 2) return NextResponse.json({ hits: [] });
 
-  const hits = await searchAthletes({
+  const { hits, blocked } = await searchAthletes({
     season,
     eventGroup: body.eventGroup?.trim() || undefined,
     sex: body.sex === "M" || body.sex === "W" ? body.sex : undefined,
     lastName,
     firstName: body.firstName?.trim() || undefined,
   });
-  return NextResponse.json({ hits });
+  return NextResponse.json({ hits, blocked });
 }
