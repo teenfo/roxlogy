@@ -67,6 +67,13 @@ export async function GET(request: Request) {
         idpLinks,
         groupsParsed: parseEventGroups(html).slice(0, 5),
         hitsParsed: parseAthleteList(html, season).slice(0, 5),
+        // 첫 idp 링크 주변 원본 — 행 마크업 구조 확인용
+        idpContext: (() => {
+          const i = html.indexOf("idp=");
+          return i < 0
+            ? null
+            : html.slice(Math.max(0, i - 900), i + 400).replace(/\s+/g, " ");
+        })(),
         sample: html.slice(0, 600).replace(/\s+/g, " "),
       },
     });
