@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   BROWSER_UA,
   fetchEventGroups,
+  parseAthleteList,
   parseEventGroups,
   SEASONS,
   type Season,
@@ -19,7 +20,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ groups: [] });
 
   if (searchParams.get("debug") === "1") {
-    const url = `https://results.hyrox.com/${season}/?pid=list&pidp=ranking_nav`;
+    const qp = new URLSearchParams({ pid: "list", pidp: "ranking_nav" });
+    const dbgName = searchParams.get("name");
+    if (dbgName) qp.set("search[name]", dbgName);
+    const dbgEvent = searchParams.get("event");
+    if (dbgEvent) qp.set("event", dbgEvent);
+    if (searchParams.get("sex")) qp.set("search[sex]", searchParams.get("sex")!);
+    const url = `https://results.hyrox.com/${season}/?${qp}`;
     let status = 0;
     let html = "";
     try {
@@ -59,6 +66,7 @@ export async function GET(request: Request) {
         selectIds,
         idpLinks,
         groupsParsed: parseEventGroups(html).slice(0, 5),
+        hitsParsed: parseAthleteList(html, season).slice(0, 5),
         sample: html.slice(0, 600).replace(/\s+/g, " "),
       },
     });

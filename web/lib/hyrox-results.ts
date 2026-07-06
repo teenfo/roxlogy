@@ -68,9 +68,9 @@ const groupCache = new Map<string, { at: number; groups: EventGroup[] }>();
 const GROUP_TTL_MS = 6 * 60 * 60 * 1000;
 
 export function parseEventGroups(html: string): EventGroup[] {
-  // name="event_main_group" 또는 id에 event_main_group이 들어간 select
+  // 공식 목록 페이지의 대회 선택: <select name="event"> (실측 확인: 2026-07-06)
   const selectMatch = html.match(
-    /<select[^>]*(?:name|id)="[^"]*event_main_group[^"]*"[^>]*>([\s\S]*?)<\/select>/i,
+    /<select[^>]*(?:name|id)="event"[^>]*>([\s\S]*?)<\/select>/i,
   );
   if (!selectMatch) return [];
   const groups: EventGroup[] = [];
@@ -151,7 +151,7 @@ export function buildSearchUrl(filters: SearchFilters): string {
   if (filters.firstName?.trim())
     params.set("search[firstname]", filters.firstName.trim());
   if (filters.sex) params.set("search[sex]", filters.sex);
-  if (filters.eventGroup) params.set("event_main_group", filters.eventGroup);
+  if (filters.eventGroup) params.set("event", filters.eventGroup);
   return `${BASE}/${filters.season}/?${params}`;
 }
 
