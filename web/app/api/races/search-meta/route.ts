@@ -34,6 +34,19 @@ export async function GET(request: Request) {
         signal: AbortSignal.timeout(10_000),
       });
       const js = await res.text();
+      // q=<리터럴> 이면 해당 문자열 주변 컨텍스트를 반환 (호출부 확인용)
+      const q = searchParams.get("q");
+      if (q) {
+        const ctxs: string[] = [];
+        let idx = 0;
+        while (ctxs.length < 20) {
+          const i = js.indexOf(q, idx);
+          if (i < 0) break;
+          ctxs.push(js.slice(Math.max(0, i - 80), i + q.length + 160));
+          idx = i + q.length;
+        }
+        return NextResponse.json({ jsUrl, q, count: ctxs.length, ctxs });
+      }
       const urls = [
         ...new Set(
           [...js.matchAll(/["'\x60]([^"'\x60\s]*(?:json|api|ajax|graphql|list\?|content=)[^"'\x60\s]*)["'\x60]/gi)]
