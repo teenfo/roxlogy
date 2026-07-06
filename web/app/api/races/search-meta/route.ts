@@ -7,6 +7,7 @@ import {
   SEASONS,
   type Season,
 } from "@/lib/hyrox-results";
+import { htmlToText, parseRaceText } from "@/lib/race-import";
 
 /**
  * 검색 폼용 메타: 시즌의 대회(event_main_group) 목록.
@@ -128,6 +129,17 @@ export async function GET(request: Request) {
         idpLinks,
         groupsParsed: parseEventGroups(html).slice(0, 5),
         hitsParsed: parseAthleteList(html, season).slice(0, 5),
+        raceParsed: (() => {
+          const r = parseRaceText(htmlToText(html));
+          return {
+            event: r.event ?? null,
+            eventDate: r.eventDate ?? null,
+            division: r.division ?? null,
+            totalMs: r.totalMs ?? null,
+            runTotalMs: r.runTotalMs ?? null,
+            stations: r.stations,
+          };
+        })(),
         structure,
         scriptSrcs: [
           ...new Set(
