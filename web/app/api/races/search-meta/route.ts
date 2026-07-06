@@ -40,6 +40,9 @@ export async function GET(request: Request) {
           "User-Agent": BROWSER_UA,
           Accept: "text/html,application/xhtml+xml",
           "Accept-Language": "en",
+          ...(searchParams.get("xhr") === "1"
+            ? { "X-Requested-With": "XMLHttpRequest" }
+            : {}),
         },
         signal: AbortSignal.timeout(10_000),
       });
