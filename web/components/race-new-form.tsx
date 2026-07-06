@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMs, parseTimeToMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
@@ -30,39 +30,13 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const [pending, setPending] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importText, setImportText] = useState("");
-  const [showUrl, setShowUrl] = useState(false);
   const [showPaste, setShowPaste] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [season, setSeason] = useState("season-9");
-  const [eventGroup, setEventGroup] = useState("");
-  const [groups, setGroups] = useState<{ value: string; label: string }[]>([]);
   const [sex, setSex] = useState("");
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
-  const [searching, setSearching] = useState(false);
-  const [hits, setHits] = useState<
-    { name: string; context: string; season: string; detailUrl: string }[] | null
-  >(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/races/search-meta?season=${season}`)
-      .then((r) => r.json())
-      .then((b) => {
-        if (!cancelled) setGroups(b.groups ?? []);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [season]);
-
-  function changeSeason(next: string) {
-    setSeason(next);
-    setGroups([]);
-    setEventGroup("");
-  }
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
 
@@ -106,42 +80,10 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     setImporting(false);
   }
 
-  async function handleSearch() {
-    if (lastName.trim().length < 2) return;
-    setImportNotice(null);
-    setHits(null);
-    setSearching(true);
-    try {
-      const res = await fetch("/api/races/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          season,
-          eventGroup: eventGroup || undefined,
-          sex: sex || undefined,
-          lastName: lastName.trim(),
-          firstName: firstName.trim() || undefined,
-        }),
-      });
-      const body = await res.json();
-      const got: typeof hits = res.ok ? (body.hits ?? []) : [];
-      setHits(got);
-      if (body.blocked || !got?.length) {
-        setShowPaste(true);
-        if (body.blocked) setImportNotice(t("raceNew.import.blockedHint"));
-      }
-    } catch {
-      setHits([]);
-      setShowPaste(true);
-    }
-    setSearching(false);
-  }
-
   function openOfficialSearch() {
     window.open(
       buildSearchUrl({
         season: season as Season,
-        eventGroup: eventGroup || undefined,
         sex: sex === "M" || sex === "W" ? sex : undefined,
         lastName: lastName.trim(),
         firstName: firstName.trim() || undefined,
@@ -223,26 +165,11 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             {t("raceNew.search.season")}
             <select
               value={season}
-              onChange={(e) => changeSeason(e.target.value)}
+              onChange={(e) => setSeason(e.target.value)}
               className="rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
             >
               <option value="season-9">2026/27 (S9)</option>
               <option value="season-8">2025/26 (S8)</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-muted">
-            {t("raceNew.search.event")}
-            <select
-              value={eventGroup}
-              onChange={(e) => setEventGroup(e.target.value)}
-              className="rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
-            >
-              <option value="">{t("raceNew.search.allEvents")}</option>
-              {groups.map((g) => (
-                <option key={g.value} value={g.value}>
-                  {g.label}
-                </option>
-              ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs text-muted">
@@ -264,7 +191,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               onKeyDown={(e) =>
-                e.key === "Enter" && (e.preventDefault(), handleSearch())
+                e.key === "Enter" && (e.preventDefault(), openOfficialSearch())
               }
               placeholder="Hong"
               className="rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
@@ -277,7 +204,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               onKeyDown={(e) =>
-                e.key === "Enter" && (e.preventDefault(), handleSearch())
+                e.key === "Enter" && (e.preventDefault(), openOfficialSearch())
               }
               placeholder="Gildong"
               className="rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
@@ -286,72 +213,19 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           <div className="flex items-end">
             <button
               type="button"
-              onClick={handleSearch}
-              disabled={searching || lastName.trim().length < 2}
+              onClick={openOfficialSearch}
+              disabled={lastName.trim().length < 2}
               className="w-full rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
             >
-              {searching
-                ? t("raceNew.import.searching")
-                : t("raceNew.import.searchBtn")}
+              {t("raceNew.import.searchBtn")} ↗
             </button>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={openOfficialSearch}
-          disabled={lastName.trim().length < 2}
-          className="mt-2 text-xs text-track hover:underline disabled:opacity-40"
-        >
-          {t("raceNew.import.openSite")} ↗
-        </button>
+        <p className="mt-2 text-xs text-muted">{t("raceNew.import.steps")}</p>
 
-        {hits !== null &&
-          (hits.length === 0 ? (
-            <p className="mt-2 text-xs text-muted">
-              {t("raceNew.import.noMatches")}
-            </p>
-          ) : (
-            <div className="mt-3">
-              <p className="text-xs text-muted">
-                {t("raceNew.import.pickResult")}
-              </p>
-              <ul className="mt-1.5 flex max-h-64 flex-col gap-1 overflow-y-auto">
-                {hits.map((h) => (
-                  <li key={h.detailUrl}>
-                    <button
-                      type="button"
-                      disabled={importing}
-                      onClick={() => importFromUrl(h.detailUrl)}
-                      className="w-full rounded-md bg-background px-3 py-2 text-left hover:bg-background/60 disabled:opacity-50"
-                    >
-                      <span className="block text-sm">{h.name}</span>
-                      {h.context && (
-                        <span className="mt-0.5 block truncate text-xs text-muted">
-                          {h.context}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {importing && (
-                <p className="mt-1.5 text-xs text-track">
-                  {t("raceNew.import.loadingResult")}
-                </p>
-              )}
-            </div>
-          ))}
-
-        {/* 2차: URL 직접 입력 */}
-        <button
-          type="button"
-          onClick={() => setShowUrl((v) => !v)}
-          className="mt-3 mr-4 text-xs text-track hover:underline"
-        >
-          {t("raceNew.import.urlToggle")}
-        </button>
-        {showUrl && (
+        {/* 돌아와서: 결과 페이지 URL 붙여넣기 */}
+        {(
           <div className="mt-2 flex gap-2">
             <input
               type="url"
