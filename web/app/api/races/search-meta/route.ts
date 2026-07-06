@@ -55,7 +55,14 @@ export async function GET(request: Request) {
         [...html.matchAll(/<select[^>]*id="([^"]+)"/g)].map((m) => m[1]),
       ),
     ];
-    const idpLinks = [...html.matchAll(/idp=/g)].length;
+    // 주의: pidp=... 가 "idp="를 포함하므로 [?&] 경계로만 센다
+    const idpLinks = [...html.matchAll(/[?&](?:amp;)?idp=/g)].length;
+    const structure = {
+      listGroupItems: (html.match(/list-group-item/g) ?? []).length,
+      fullnameFields: (html.match(/type-fullname/g) ?? []).length,
+      tables: (html.match(/<table/g) ?? []).length,
+      rowsDiv: (html.match(/class="[^"]*\brow\b[^"]*"/g) ?? []).length,
+    };
     return NextResponse.json({
       debug: {
         url,
@@ -67,12 +74,13 @@ export async function GET(request: Request) {
         idpLinks,
         groupsParsed: parseEventGroups(html).slice(0, 5),
         hitsParsed: parseAthleteList(html, season).slice(0, 5),
-        // 첫 idp 링크 주변 원본 — 행 마크업 구조 확인용
+        structure,
+        // 첫 진짜 선수 링크 주변 원본 — 행 마크업 구조 확인용
         idpContext: (() => {
-          const i = html.indexOf("idp=");
-          return i < 0
-            ? null
-            : html.slice(Math.max(0, i - 900), i + 400).replace(/\s+/g, " ");
+          const m = html.match(/[?&](?:amp;)?idp=/);
+          if (!m || m.index == null) return null;
+          const i = m.index;
+          return html.slice(Math.max(0, i - 900), i + 400).replace(/\s+/g, " ");
         })(),
         sample: html.slice(0, 600).replace(/\s+/g, " "),
       },
