@@ -160,6 +160,23 @@ export function buildSearchUrl(filters: SearchFilters): string {
   return `${BASE}/${filters.season}/?${params}`;
 }
 
+/** 목록 페이지의 디비전 선택(select name="event") 옵션 파싱 */
+export function parseDivisionOptions(html: string): EventGroup[] {
+  const selectMatch = html.match(
+    /<select[^>]*name="event"[^>]*>([\s\S]*?)<\/select>/i,
+  );
+  if (!selectMatch) return [];
+  const out: EventGroup[] = [];
+  for (const m of selectMatch[1].matchAll(
+    /<option[^>]*value="([^"]*)"[^>]*>([\s\S]*?)<\/option>/gi,
+  )) {
+    const value = decodeEntities(m[1]);
+    const label = stripTags(m[2]);
+    if (value && label) out.push({ value, label });
+  }
+  return out;
+}
+
 /** 이름 비교용 정규화: 소문자 + 영문자 외 제거 ("Cho Ho"≈"choho") */
 function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z]/g, "");
@@ -173,7 +190,6 @@ export async function searchAthletes(
 
   const url = buildSearchUrl(filters);
   const html = await fetchHtml(url);
-  // 결과 사이트가 데이터센터 IP를 WAF로 차단하는 경우가 있어 진단 로그를 남긴다
   console.log(
     JSON.stringify({
       tag: "hyrox-results-search",
@@ -183,7 +199,39 @@ export async function searchAthletes(
     }),
   );
   if (!html) return { hits: [], blocked: true };
-  let hits = parseAthleteList(html, filters.season);
+
+  const seen = new Set<string>();
+  const collect = (list: AthleteHit[], divLabel?: string) => {
+    for (const h of list) {
+      if (seen.has(h.detailUrl)) continue;
+      seen.add(h.detailUrl);
+      hits.push(
+        divLabel ? { ...h, context: `${divLabel} · ${h.context}` } : h,
+      );
+    }
+  };
+
+  let hits: AthleteHit[] = [];
+  const divisions = parseDivisionOptions(html);
+  const first = parseAthleteList(html, filters.season);
+  // 첫 응답의 디비전 라벨: 링크의 event= 코드와 일치하는 옵션
+  const firstDiv = divisions.find((d) =>
+    first[0]?.detailUrl.includes(`event=${encodeURIComponent(d.value)}`) ||
+    first[0]?.detailUrl.includes(`event=${d.value}`),
+  );
+  collect(first, firstDiv?.label);
+
+  // 대회 지정 검색은 기본 디비전만 반환하므로 나머지 디비전도 조회·병합
+  if (filters.eventGroup && divisions.length > 1) {
+    const rest = divisions.filter((d) => d.value !== firstDiv?.value).slice(0, 9);
+    const pages = await Promise.all(
+      rest.map((d) => fetchHtml(`${url}&event=${encodeURIComponent(d.value)}`)),
+    );
+    pages.forEach((p, i) => {
+      if (p) collect(parseAthleteList(p, filters.season), rest[i].label);
+    });
+  }
+
   // 이름(first name)은 서버에서 부분일치 필터 — 걸리는 게 없으면 전체 유지
   if (filters.firstName?.trim()) {
     const f = normName(filters.firstName);
@@ -192,5 +240,5 @@ export async function searchAthletes(
       if (matched.length) hits = matched;
     }
   }
-  return { hits: hits.slice(0, 30), blocked: false };
+  return { hits: hits.slice(0, 50), blocked: false };
 }
