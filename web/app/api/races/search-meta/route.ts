@@ -4,6 +4,7 @@ import {
   fetchEventGroups,
   parseAthleteList,
   parseEventGroups,
+  searchAthletes,
   SEASONS,
   type Season,
 } from "@/lib/hyrox-results";
@@ -64,6 +65,21 @@ export async function GET(request: Request) {
     } catch (e) {
       return NextResponse.json({ error: String(e) }, { status: 500 });
     }
+  }
+
+  // 실검색 경로 검증: searchAthletes를 그대로 실행 (UI가 쓰는 코드와 동일)
+  if (searchParams.get("try") === "1") {
+    const { hits, blocked } = await searchAthletes({
+      season: season as Season,
+      eventGroup: searchParams.get("eventGroup") ?? undefined,
+      sex:
+        searchParams.get("sex") === "M" || searchParams.get("sex") === "W"
+          ? (searchParams.get("sex") as "M" | "W")
+          : undefined,
+      lastName: searchParams.get("lastName") ?? "",
+      firstName: searchParams.get("firstName") ?? undefined,
+    });
+    return NextResponse.json({ blocked, count: hits.length, hits: hits.slice(0, 10) });
   }
 
   if (searchParams.get("debug") === "1") {
