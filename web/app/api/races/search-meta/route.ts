@@ -19,6 +19,39 @@ export async function GET(request: Request) {
   if (!(SEASONS as readonly string[]).includes(season))
     return NextResponse.json({ groups: [] });
 
+  // JS 번들에서 실제 데이터 API 주소 탐색 (mikatiming 정적 호스트 한정)
+  const jsUrl = searchParams.get("jsurl");
+  if (jsUrl) {
+    try {
+      const u = new URL(jsUrl);
+      if (
+        !/(^|\.)mikatiming\.(com|net)$/.test(u.hostname) &&
+        u.hostname !== "results.hyrox.com"
+      )
+        return NextResponse.json({ error: "host not allowed" }, { status: 400 });
+      const res = await fetch(jsUrl, {
+        headers: { "User-Agent": BROWSER_UA },
+        signal: AbortSignal.timeout(10_000),
+      });
+      const js = await res.text();
+      const urls = [
+        ...new Set(
+          [...js.matchAll(/["'\x60]([^"'\x60\s]*(?:json|api|ajax|graphql|list\?|content=)[^"'\x60\s]*)["'\x60]/gi)]
+            .map((m) => m[1])
+            .filter((s) => s.length > 3 && s.length < 200),
+        ),
+      ].slice(0, 60);
+      return NextResponse.json({
+        jsUrl,
+        status: res.status,
+        len: js.length,
+        candidates: urls,
+      });
+    } catch (e) {
+      return NextResponse.json({ error: String(e) }, { status: 500 });
+    }
+  }
+
   if (searchParams.get("debug") === "1") {
     const qp = new URLSearchParams({ pid: "list", pidp: "ranking_nav" });
     const dbgName = searchParams.get("name");
@@ -83,6 +116,11 @@ export async function GET(request: Request) {
         groupsParsed: parseEventGroups(html).slice(0, 5),
         hitsParsed: parseAthleteList(html, season).slice(0, 5),
         structure,
+        scriptSrcs: [
+          ...new Set(
+            [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]),
+          ),
+        ].slice(0, 20),
         // 첫 진짜 선수 링크 주변 원본 — 행 마크업 구조 확인용
         idpContext: (() => {
           const m = html.match(/[?&](?:amp;)?idp=/);
