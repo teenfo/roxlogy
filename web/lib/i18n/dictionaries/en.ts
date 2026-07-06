@@ -145,6 +145,11 @@ const en = {
   "raceNew.errTotal": "Enter total time as mm:ss or h:mm:ss.",
   "raceNew.errSave": "Save failed: {msg}",
   "raceNew.import.title": "Auto-import my result",
+  "raceNew.step1": "1. Find your result",
+  "raceNew.step2": "2. Select your result",
+  "raceNew.step3": "3. Review and save",
+  "raceNew.manualToggle": "Enter manually, or import from URL / pasted text",
+  "raceNew.searchAgain": "Search again",
   "raceNew.import.desc":
     "Pick the event, enter your name, and click your result — everything fills in automatically.",
   "raceNew.import.namePh": "Name as on your race bib (e.g. Hong Gildong)",

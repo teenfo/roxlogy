@@ -137,6 +137,11 @@ const ko: Record<DictKey, string> = {
   "raceNew.errTotal": "총 기록을 mm:ss 또는 h:mm:ss로 입력해 주세요.",
   "raceNew.errSave": "저장 실패: {msg}",
   "raceNew.import.title": "내 결과 자동 가져오기",
+  "raceNew.step1": "1. 결과 검색",
+  "raceNew.step2": "2. 본인 결과 선택",
+  "raceNew.step3": "3. 확인 후 저장",
+  "raceNew.manualToggle": "직접 입력 · URL/텍스트로 가져오기",
+  "raceNew.searchAgain": "다시 검색",
   "raceNew.import.desc":
     "대회와 이름을 선택해 검색하고 본인 결과를 클릭하면 기록이 자동으로 채워집니다.",
   "raceNew.import.namePh": "대회 등록 이름 (예: Hong Gildong)",

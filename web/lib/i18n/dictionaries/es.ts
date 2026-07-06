@@ -137,6 +137,11 @@ const es: Record<DictKey, string> = {
   "raceNew.errTotal": "Introduce el tiempo total como mm:ss o h:mm:ss.",
   "raceNew.errSave": "Error al guardar: {msg}",
   "raceNew.import.title": "Importar mi resultado",
+  "raceNew.step1": "1. Busca tu resultado",
+  "raceNew.step2": "2. Elige tu resultado",
+  "raceNew.step3": "3. Revisa y guarda",
+  "raceNew.manualToggle": "Introducir manualmente o importar por URL / texto",
+  "raceNew.searchAgain": "Buscar de nuevo",
   "raceNew.import.desc":
     "Elige el evento, escribe tu nombre y haz clic en tu resultado: todo se rellena automáticamente.",
   "raceNew.import.namePh": "Nombre como en tu dorsal (p. ej. Juan Pérez)",
