@@ -46,8 +46,6 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
   useEffect(() => {
     let cancelled = false;
-    setGroups([]);
-    setEventGroup("");
     fetch(`/api/races/search-meta?season=${season}`)
       .then((r) => r.json())
       .then((b) => {
@@ -58,6 +56,12 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       cancelled = true;
     };
   }, [season]);
+
+  function changeSeason(next: string) {
+    setSeason(next);
+    setGroups([]);
+    setEventGroup("");
+  }
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
 
@@ -198,7 +202,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             {t("raceNew.search.season")}
             <select
               value={season}
-              onChange={(e) => setSeason(e.target.value)}
+              onChange={(e) => changeSeason(e.target.value)}
               className="rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
             >
               <option value="season-9">2026/27 (S9)</option>
