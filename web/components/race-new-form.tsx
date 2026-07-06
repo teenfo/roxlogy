@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMs, parseTimeToMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
@@ -34,11 +34,32 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const [importing, setImporting] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [season, setSeason] = useState("season-9");
+  const [eventGroup, setEventGroup] = useState("");
+  const [groups, setGroups] = useState<{ value: string; label: string }[]>([]);
   const [sex, setSex] = useState("");
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/races/search-meta?season=${season}`)
+      .then((r) => r.json())
+      .then((b) => {
+        if (!cancelled) setGroups(b.groups ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [season]);
+
+  function changeSeason(next: string) {
+    setSeason(next);
+    setGroups([]);
+    setEventGroup("");
+  }
 
   function applyParsed(parsed: ParsedRace) {
     if (parsed.event) setEvent(parsed.event);
@@ -84,6 +105,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     window.open(
       buildSearchUrl({
         season: season as Season,
+        eventGroup: eventGroup || undefined,
         sex: sex === "M" || sex === "W" ? sex : undefined,
         lastName: lastName.trim(),
         firstName: firstName.trim() || undefined,
@@ -165,11 +187,26 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             {t("raceNew.search.season")}
             <select
               value={season}
-              onChange={(e) => setSeason(e.target.value)}
+              onChange={(e) => changeSeason(e.target.value)}
               className="rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
             >
               <option value="season-9">2026/27 (S9)</option>
               <option value="season-8">2025/26 (S8)</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            {t("raceNew.search.event")}
+            <select
+              value={eventGroup}
+              onChange={(e) => setEventGroup(e.target.value)}
+              className="rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
+            >
+              <option value="">{t("raceNew.search.allEvents")}</option>
+              {groups.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs text-muted">

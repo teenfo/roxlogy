@@ -1,10 +1,11 @@
 /**
- * 공식 결과 사이트(results.hyrox.com — mika timing 계열 SSR) 검색.
+ * 공식 결과 사이트(results.hyrox.com — mika timing 계열) 검색.
  * 서버 전용 — API 라우트에서만 호출한다.
  *
- * 공식 검색 폼과 동일한 파라미터를 사용한다:
- *   pid=list & pidp=ranking_nav & event_main_group=<대회> &
- *   search[sex]=M|W & search[name]=<성> & search[firstname]=<이름>
+ * 공식 검색 폼(?pid=start)의 실측 필드(2026-07-06 확인)를 그대로 사용:
+ *   event_main_group=<대회> & event=<세부 이벤트> & search[name]=<성> &
+ *   search[firstname]=<이름> & search[sex]=M|W & search[age_class] &
+ *   search[nation] & num_results — 제출 대상은 ?pid=list
  *
  * 원칙(S12): 사용자가 본인 이름으로 요청한 1회성 조회만 수행.
  * 대량 수집·저장 아님. 실패 시 빈 배열 — 폼의 URL/텍스트 폴백이 항상 남는다.
@@ -68,9 +69,9 @@ const groupCache = new Map<string, { at: number; groups: EventGroup[] }>();
 const GROUP_TTL_MS = 6 * 60 * 60 * 1000;
 
 export function parseEventGroups(html: string): EventGroup[] {
-  // 공식 목록 페이지의 대회 선택: <select name="event"> (실측 확인: 2026-07-06)
+  // 검색 폼(?pid=start)의 대회 선택: <select name="event_main_group"> (실측: 2026-07-06)
   const selectMatch = html.match(
-    /<select[^>]*(?:name|id)="event"[^>]*>([\s\S]*?)<\/select>/i,
+    /<select[^>]*name="event_main_group"[^>]*>([\s\S]*?)<\/select>/i,
   );
   if (!selectMatch) return [];
   const groups: EventGroup[] = [];
@@ -88,7 +89,7 @@ export function parseEventGroups(html: string): EventGroup[] {
 export async function fetchEventGroups(season: Season): Promise<EventGroup[]> {
   const cached = groupCache.get(season);
   if (cached && Date.now() - cached.at < GROUP_TTL_MS) return cached.groups;
-  const html = await fetchHtml(`${BASE}/${season}/?pid=list&pidp=ranking_nav`);
+  const html = await fetchHtml(`${BASE}/${season}/?pid=start&pidp=ranking_nav`);
   const groups = html ? parseEventGroups(html) : [];
   if (groups.length) groupCache.set(season, { at: Date.now(), groups });
   return groups;
@@ -99,7 +100,7 @@ export async function fetchEventGroups(season: Season): Promise<EventGroup[]> {
 // ------------------------------------------------------------
 export type SearchFilters = {
   season: Season;
-  eventGroup?: string; // event_main_group 값 (없으면 시즌 전체)
+  eventGroup?: string; // event_main_group 값 (공식 폼의 대회 선택, 없으면 전체)
   sex?: "M" | "W";
   lastName: string;
   firstName?: string;
@@ -151,7 +152,9 @@ export function buildSearchUrl(filters: SearchFilters): string {
   if (filters.firstName?.trim())
     params.set("search[firstname]", filters.firstName.trim());
   if (filters.sex) params.set("search[sex]", filters.sex);
-  if (filters.eventGroup) params.set("event", filters.eventGroup);
+  params.set("search[age_class]", "%");
+  params.set("search[nation]", "%");
+  if (filters.eventGroup) params.set("event_main_group", filters.eventGroup);
   return `${BASE}/${filters.season}/?${params}`;
 }
 
