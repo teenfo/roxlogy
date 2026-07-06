@@ -40,12 +40,17 @@ export function isAllowedImportUrl(raw: string): boolean {
   }
 }
 
-/** HTML → 대략적 텍스트 (스크립트/스타일 제거, 태그를 개행으로) */
+/**
+ * HTML → 대략적 텍스트.
+ * 원본 소스의 개행을 먼저 무력화한 뒤(테이블 셀이 소스상 여러 줄로
+ * 쪼개져 있어도 한 행 = 한 줄이 되도록) 블록 경계 태그만 개행으로 바꾼다.
+ */
 export function htmlToText(html: string): string {
   return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "\n")
-    .replace(/<style[\s\S]*?<\/style>/gi, "\n")
-    .replace(/<(br|\/tr|\/li|\/p|\/div|\/h[1-6])[^>]*>/gi, "\n")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/\s+/g, " ")
+    .replace(/<(br|\/tr|\/li|\/p|\/div|\/h[1-6]|\/table)[^>]*>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -145,11 +150,13 @@ export function parseRaceText(text: string): ParsedRace {
   if (out.runTotalMs == null && runLaps.length === 8)
     out.runTotalMs = runLaps.reduce((a, b) => a + b, 0);
 
-  // 총 기록을 못 찾았으면 텍스트 내 최대 h:mm:ss 값으로 추정
+  // 총 기록을 못 찾았으면 텍스트 내 최대 h:mm:ss 값으로 추정.
+  // 단, 결과 페이지에는 시각(예: 19:34:40)도 섞여 있으므로
+  // 현실적인 완주 시간 범위(6시간 이하)만 후보로 삼는다.
   if (out.totalMs == null) {
     let max = 0;
     for (const m of text.matchAll(new RegExp(TIME_RE.source, "g"))) {
-      if (m[3] != null) max = Math.max(max, timeTokenToMs(m));
+      if (m[3] != null && Number(m[1]) <= 6) max = Math.max(max, timeTokenToMs(m));
     }
     if (max > 0) out.totalMs = max;
   }

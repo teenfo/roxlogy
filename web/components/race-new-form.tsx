@@ -121,9 +121,10 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   }
 
   function applyParsed(parsed: ParsedRace) {
-    if (parsed.event) setEvent(parsed.event);
-    else if (eventGroup)
+    // 검색 흐름에서는 사용자가 고른 대회가 가장 신뢰할 수 있는 이름이다
+    if (eventGroup)
       setEvent(`HYROX ${eventGroup.replace(/^\d{4}\s*/, "")}`);
+    else if (parsed.event) setEvent(parsed.event);
     if (parsed.eventDate) setEventDate(parsed.eventDate);
     if (parsed.division) setDivision(parsed.division);
     if (parsed.totalMs != null) setTotalText(formatMs(parsed.totalMs));
