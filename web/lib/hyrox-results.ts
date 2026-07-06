@@ -103,6 +103,7 @@ export async function fetchEventGroups(season: Season): Promise<EventGroup[]> {
 export type SearchFilters = {
   season: Season;
   eventGroup?: string; // event_main_group 값 (공식 폼의 대회 선택, 없으면 전체)
+  division?: string; // 목록 페이지 select name="event"의 값 (없으면 전 디비전)
   sex?: "M" | "W";
   lastName: string;
   firstName?: string;
@@ -157,6 +158,7 @@ export function buildSearchUrl(filters: SearchFilters): string {
   params.set("search[name]", filters.lastName.trim());
   if (filters.sex) params.set("search[sex]", filters.sex);
   if (filters.eventGroup) params.set("event_main_group", filters.eventGroup);
+  if (filters.division) params.set("event", filters.division);
   return `${BASE}/${filters.season}/?${params}`;
 }
 
@@ -175,6 +177,20 @@ export function parseDivisionOptions(html: string): EventGroup[] {
     if (value && label) out.push({ value, label });
   }
   return out;
+}
+
+/** 대회의 디비전 목록 — 검색 폼 드롭다운용 */
+export async function fetchDivisions(
+  season: Season,
+  eventGroup: string,
+): Promise<EventGroup[]> {
+  const params = new URLSearchParams({
+    pid: "list",
+    pidp: "ranking_nav",
+    event_main_group: eventGroup,
+  });
+  const html = await fetchHtml(`${BASE}/${season}/?${params}`);
+  return html ? parseDivisionOptions(html) : [];
 }
 
 /** 이름 비교용 정규화: 소문자 + 영문자 외 제거 ("Cho Ho"≈"choho") */
@@ -221,8 +237,9 @@ export async function searchAthletes(
   );
   collect(first, firstDiv?.label);
 
-  // 대회 지정 검색은 기본 디비전만 반환하므로 나머지 디비전도 조회·병합
-  if (filters.eventGroup && divisions.length > 1) {
+  // 디비전을 지정하지 않은 대회 검색은 기본 디비전만 반환하므로
+  // 나머지 디비전도 조회·병합
+  if (!filters.division && filters.eventGroup && divisions.length > 1) {
     const rest = divisions.filter((d) => d.value !== firstDiv?.value).slice(0, 9);
     const pages = await Promise.all(
       rest.map((d) => fetchHtml(`${url}&event=${encodeURIComponent(d.value)}`)),
@@ -240,5 +257,5 @@ export async function searchAthletes(
       if (matched.length) hits = matched;
     }
   }
-  return { hits: hits.slice(0, 50), blocked: false };
+  return { hits: hits.slice(0, 100), blocked: false };
 }

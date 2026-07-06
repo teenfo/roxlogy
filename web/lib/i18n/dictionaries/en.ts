@@ -156,6 +156,7 @@ const en = {
   "raceNew.search.season": "Season",
   "raceNew.search.event": "Event",
   "raceNew.search.allEvents": "All events",
+  "raceNew.search.allDivisions": "All divisions",
   "raceNew.search.gender": "Gender",
   "raceNew.search.any": "All",
   "raceNew.search.male": "Men",

@@ -39,6 +39,8 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const [season, setSeason] = useState("season-8");
   const [groups, setGroups] = useState<Group[]>([]);
   const [eventGroup, setEventGroup] = useState("");
+  const [divisions, setDivisions] = useState<Group[]>([]);
+  const [searchDivision, setSearchDivision] = useState("");
   const [sex, setSex] = useState("");
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -85,8 +87,29 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     setSeason(next);
     setGroups([]);
     setEventGroup("");
+    setDivisions([]);
+    setSearchDivision("");
     setHits(null);
   }
+
+  // 대회 선택 시 그 대회의 디비전 목록 로드
+  useEffect(() => {
+    if (!eventGroup) return;
+    let cancelled = false;
+    fetch(
+      `/api/races/search-meta?season=${season}&divisionsFor=${encodeURIComponent(eventGroup)}`,
+    )
+      .then((r) => r.json())
+      .then((b) => {
+        if (!cancelled) setDivisions(b.divisions ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setDivisions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventGroup, season]);
 
   async function handleSearch() {
     if (!canSearch) return;
@@ -101,6 +124,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         body: JSON.stringify({
           season,
           eventGroup,
+          division: searchDivision || undefined,
           sex: sex || undefined,
           lastName: lastName.trim(),
           firstName: firstName.trim() || undefined,
@@ -253,6 +277,8 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               value={eventGroup}
               onChange={(e) => {
                 setEventGroup(e.target.value);
+                setDivisions([]);
+                setSearchDivision("");
                 setHits(null);
               }}
               className={inputCls}
@@ -263,6 +289,25 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               {groups.map((g) => (
                 <option key={g.value} value={g.value}>
                   {g.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            {t("raceNew.division")}
+            <select
+              value={searchDivision}
+              onChange={(e) => {
+                setSearchDivision(e.target.value);
+                setHits(null);
+              }}
+              disabled={!eventGroup}
+              className={inputCls}
+            >
+              <option value="">{t("raceNew.search.allDivisions")}</option>
+              {divisions.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
                 </option>
               ))}
             </select>

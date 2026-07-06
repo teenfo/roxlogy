@@ -148,6 +148,7 @@ const es: Record<DictKey, string> = {
   "raceNew.search.season": "Temporada",
   "raceNew.search.event": "Evento",
   "raceNew.search.allEvents": "Todos los eventos",
+  "raceNew.search.allDivisions": "Todas las divisiones",
   "raceNew.search.gender": "Género",
   "raceNew.search.any": "Todos",
   "raceNew.search.male": "Masculino",

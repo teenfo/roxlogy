@@ -26,6 +26,7 @@ export async function POST(request: Request) {
   let body: {
     season?: string;
     eventGroup?: string;
+    division?: string;
     sex?: string;
     lastName?: string;
     firstName?: string;
@@ -44,29 +45,31 @@ export async function POST(request: Request) {
   const lastName = (body.lastName ?? "").trim();
   const firstName = (body.firstName ?? "").trim();
   const eventGroup = body.eventGroup?.trim() || undefined;
+  const division = body.division?.trim() || undefined;
   const sex = body.sex === "M" || body.sex === "W" ? body.sex : undefined;
   if (lastName.length < 2) return NextResponse.json({ hits: [] });
 
   const attempts: SearchFilters[] = [
-    { season, eventGroup, sex, lastName, firstName: firstName || undefined },
+    { season, eventGroup, division, sex, lastName, firstName: firstName || undefined },
   ];
   if (sex)
     attempts.push({
       season,
       eventGroup,
+      division,
       lastName,
       firstName: firstName || undefined,
     });
   if (firstName) {
-    attempts.push({ season, eventGroup, lastName });
+    attempts.push({ season, eventGroup, division, lastName });
     if (firstName.length >= 2)
-      attempts.push({ season, eventGroup, lastName: firstName, firstName: lastName });
+      attempts.push({ season, eventGroup, division, lastName: firstName, firstName: lastName });
   }
   // 성 칸에 풀네임을 넣은 경우: 마지막 토큰만으로 재시도
   const tokens = lastName.split(/\s+/);
   if (tokens.length >= 2) {
-    attempts.push({ season, eventGroup, lastName: tokens[tokens.length - 1] });
-    attempts.push({ season, eventGroup, lastName: tokens[0] });
+    attempts.push({ season, eventGroup, division, lastName: tokens[tokens.length - 1] });
+    attempts.push({ season, eventGroup, division, lastName: tokens[0] });
   }
 
   for (const filters of attempts) {

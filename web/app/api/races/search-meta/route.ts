@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   BROWSER_UA,
+  fetchDivisions,
   fetchEventGroups,
   parseAthleteList,
   parseEventGroups,
@@ -67,11 +68,19 @@ export async function GET(request: Request) {
     }
   }
 
+  // 대회의 디비전 목록 (검색 폼 드롭다운)
+  const divisionsFor = searchParams.get("divisionsFor");
+  if (divisionsFor) {
+    const divisions = await fetchDivisions(season as Season, divisionsFor);
+    return NextResponse.json({ divisions });
+  }
+
   // 실검색 경로 검증: searchAthletes를 그대로 실행 (UI가 쓰는 코드와 동일)
   if (searchParams.get("try") === "1") {
     const { hits, blocked } = await searchAthletes({
       season: season as Season,
       eventGroup: searchParams.get("eventGroup") ?? undefined,
+      division: searchParams.get("division") ?? undefined,
       sex:
         searchParams.get("sex") === "M" || searchParams.get("sex") === "W"
           ? (searchParams.get("sex") as "M" | "W")

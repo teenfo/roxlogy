@@ -148,6 +148,7 @@ const ko: Record<DictKey, string> = {
   "raceNew.search.season": "시즌",
   "raceNew.search.event": "대회",
   "raceNew.search.allEvents": "전체 대회",
+  "raceNew.search.allDivisions": "전체 디비전",
   "raceNew.search.gender": "성별",
   "raceNew.search.any": "전체",
   "raceNew.search.male": "남자",
