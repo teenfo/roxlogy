@@ -7,6 +7,7 @@ import {
   parsedFieldCount,
   parseRaceText,
 } from "@/lib/race-import";
+import { BROWSER_UA } from "@/lib/hyrox-results";
 
 /**
  * 본인 결과 페이지 URL을 서버에서 1회 가져와 파싱한다.
@@ -39,7 +40,12 @@ export async function POST(request: Request) {
   let html: string;
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "Roxlogy/1.0 (self-result import)" },
+      // 결과 사이트가 비브라우저 UA를 차단하는 경우가 있어 브라우저 UA 사용
+      headers: {
+        "User-Agent": BROWSER_UA,
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "en",
+      },
       signal: AbortSignal.timeout(10_000),
       redirect: "follow",
     });

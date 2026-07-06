@@ -138,7 +138,15 @@ const es: Record<DictKey, string> = {
   "raceNew.errSave": "Error al guardar: {msg}",
   "raceNew.import.title": "Importar mi resultado",
   "raceNew.import.desc":
-    "Pega la URL de tu página de resultado del sitio oficial y rellenaremos los datos.",
+    "Busca tu nombre en los resultados oficiales, elige tu resultado y rellenaremos los datos.",
+  "raceNew.import.namePh": "Nombre como en tu dorsal (p. ej. Juan Pérez)",
+  "raceNew.import.searchBtn": "Buscar",
+  "raceNew.import.searching": "Buscando…",
+  "raceNew.import.pickResult": "Selecciona tu resultado:",
+  "raceNew.import.loadingResult": "Cargando resultado…",
+  "raceNew.import.noMatches":
+    "No se encontraron atletas. Revisa la ortografía usada al inscribirte o usa las opciones de URL / texto.",
+  "raceNew.import.urlToggle": "Importar desde la URL de una página de resultados",
   "raceNew.import.button": "Importar",
   "raceNew.import.importing": "Importando…",
   "raceNew.import.pasteOpen": "¿No funciona la URL? Pega el texto del resultado",

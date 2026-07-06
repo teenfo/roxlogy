@@ -146,7 +146,15 @@ const en = {
   "raceNew.errSave": "Save failed: {msg}",
   "raceNew.import.title": "Auto-import my result",
   "raceNew.import.desc":
-    "Paste the URL of your own result page from the official results site and we'll fill in the numbers.",
+    "Search your name on the official results, pick your result, and we'll fill in the numbers.",
+  "raceNew.import.namePh": "Name as on your race bib (e.g. Hong Gildong)",
+  "raceNew.import.searchBtn": "Search",
+  "raceNew.import.searching": "Searching…",
+  "raceNew.import.pickResult": "Select your result:",
+  "raceNew.import.loadingResult": "Loading result…",
+  "raceNew.import.noMatches":
+    "No athletes found. Check the spelling used at registration, or use the URL / text options below.",
+  "raceNew.import.urlToggle": "Import from a result-page URL instead",
   "raceNew.import.button": "Import",
   "raceNew.import.importing": "Importing…",
   "raceNew.import.pasteOpen": "URL not working? Paste the result text instead",

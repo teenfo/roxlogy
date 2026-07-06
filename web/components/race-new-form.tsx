@@ -29,9 +29,15 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const [pending, setPending] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importText, setImportText] = useState("");
+  const [showUrl, setShowUrl] = useState(false);
   const [showPaste, setShowPaste] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [searchName, setSearchName] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [hits, setHits] = useState<
+    { name: string; season: string; detailUrl: string }[] | null
+  >(null);
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
 
@@ -51,16 +57,15 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     );
   }
 
-  async function handleUrlImport() {
+  async function importFromUrl(url: string) {
     setImportNotice(null);
     setError(null);
-    if (!importUrl.trim()) return;
     setImporting(true);
     try {
       const res = await fetch("/api/races/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: importUrl.trim() }),
+        body: JSON.stringify({ url }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -74,6 +79,25 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       setShowPaste(true);
     }
     setImporting(false);
+  }
+
+  async function handleSearch() {
+    if (!searchName.trim()) return;
+    setImportNotice(null);
+    setHits(null);
+    setSearching(true);
+    try {
+      const res = await fetch("/api/races/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: searchName.trim() }),
+      });
+      const body = await res.json();
+      setHits(res.ok ? (body.hits ?? []) : []);
+    } catch {
+      setHits([]);
+    }
+    setSearching(false);
   }
 
   function handleTextImport() {
@@ -141,25 +165,91 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       <section className="mt-6 max-w-lg rounded-md border border-track/30 bg-surface px-4 py-4">
         <p className="text-sm font-semibold">{t("raceNew.import.title")}</p>
         <p className="mt-1 text-xs text-muted">{t("raceNew.import.desc")}</p>
+
+        {/* 1차: 이름 검색 */}
         <div className="mt-3 flex gap-2">
           <input
-            type="url"
-            value={importUrl}
-            onChange={(e) => setImportUrl(e.target.value)}
-            placeholder="https://results.hyrox.com/…"
+            type="search"
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearch())}
+            placeholder={t("raceNew.import.namePh")}
             className="min-w-0 flex-1 rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
           />
           <button
             type="button"
-            onClick={handleUrlImport}
-            disabled={importing || !importUrl.trim()}
+            onClick={handleSearch}
+            disabled={searching || !searchName.trim()}
             className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
           >
-            {importing
-              ? t("raceNew.import.importing")
-              : t("raceNew.import.button")}
+            {searching
+              ? t("raceNew.import.searching")
+              : t("raceNew.import.searchBtn")}
           </button>
         </div>
+
+        {hits !== null &&
+          (hits.length === 0 ? (
+            <p className="mt-2 text-xs text-muted">
+              {t("raceNew.import.noMatches")}
+            </p>
+          ) : (
+            <div className="mt-3">
+              <p className="text-xs text-muted">
+                {t("raceNew.import.pickResult")}
+              </p>
+              <ul className="mt-1.5 flex max-h-56 flex-col gap-1 overflow-y-auto">
+                {hits.map((h) => (
+                  <li key={h.detailUrl}>
+                    <button
+                      type="button"
+                      disabled={importing}
+                      onClick={() => importFromUrl(h.detailUrl)}
+                      className="flex w-full items-center justify-between rounded-md bg-background px-3 py-2 text-left text-sm hover:bg-background/60 disabled:opacity-50"
+                    >
+                      <span>{h.name}</span>
+                      <span className="text-xs text-muted">{h.season}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {importing && (
+                <p className="mt-1.5 text-xs text-track">
+                  {t("raceNew.import.loadingResult")}
+                </p>
+              )}
+            </div>
+          ))}
+
+        {/* 2차: URL 직접 입력 */}
+        <button
+          type="button"
+          onClick={() => setShowUrl((v) => !v)}
+          className="mt-3 mr-4 text-xs text-track hover:underline"
+        >
+          {t("raceNew.import.urlToggle")}
+        </button>
+        {showUrl && (
+          <div className="mt-2 flex gap-2">
+            <input
+              type="url"
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              placeholder="https://results.hyrox.com/…"
+              className="min-w-0 flex-1 rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+            <button
+              type="button"
+              onClick={() => importFromUrl(importUrl.trim())}
+              disabled={importing || !importUrl.trim()}
+              className="shrink-0 rounded-md border border-muted/40 px-4 py-2 text-sm font-semibold hover:border-foreground disabled:opacity-40"
+            >
+              {importing
+                ? t("raceNew.import.importing")
+                : t("raceNew.import.button")}
+            </button>
+          </div>
+        )}
 
         <button
           type="button"

@@ -138,7 +138,15 @@ const ko: Record<DictKey, string> = {
   "raceNew.errSave": "저장 실패: {msg}",
   "raceNew.import.title": "내 결과 자동 가져오기",
   "raceNew.import.desc":
-    "공식 결과 사이트의 본인 결과 페이지 주소를 붙여넣으면 기록을 자동으로 채웁니다.",
+    "공식 결과에서 이름을 검색해 본인 결과를 선택하면 기록을 자동으로 채웁니다.",
+  "raceNew.import.namePh": "대회 등록 이름 (예: Hong Gildong)",
+  "raceNew.import.searchBtn": "검색",
+  "raceNew.import.searching": "검색 중…",
+  "raceNew.import.pickResult": "본인 결과를 선택하세요:",
+  "raceNew.import.loadingResult": "기록 불러오는 중…",
+  "raceNew.import.noMatches":
+    "선수를 찾지 못했습니다. 대회 등록 시 사용한 표기(영문)를 확인하거나 아래 URL/텍스트 방식을 이용하세요.",
+  "raceNew.import.urlToggle": "결과 페이지 주소로 가져오기",
   "raceNew.import.button": "가져오기",
   "raceNew.import.importing": "가져오는 중…",
   "raceNew.import.pasteOpen": "주소가 안 되나요? 결과 텍스트 붙여넣기",
