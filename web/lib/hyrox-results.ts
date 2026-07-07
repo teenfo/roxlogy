@@ -254,6 +254,20 @@ function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z]/g, "");
 }
 
+/**
+ * 목록 페이지의 "N Results | M Members" 카운터에서 멤버 매칭 수.
+ * 공식 백엔드는 search[firstname]을 주면 팀의 두 번째 멤버까지 매칭해
+ * 집계하지만, 행은 SSR·브라우저 어느 쪽에도 렌더하지 않는다(실측:
+ * 2026-07-08, "GAIN OH, CHOHO KIM" → name=Kim&firstname=Choho 에 "1 Members").
+ * 이 카운터를 소속 디비전 탐지 신호로 쓴다.
+ */
+function parseMemberCount(html: string): number {
+  const m = html
+    .replace(/\s+/g, " ")
+    .match(/(\d+)\s*Results\s*\|\s*(\d+)\s*Members/i);
+  return m ? Number(m[2]) : 0;
+}
+
 export async function searchAthletes(filters: SearchFilters): Promise<{
   hits: AthleteHit[];
   blocked: boolean;
@@ -346,6 +360,72 @@ export async function searchAthletes(filters: SearchFilters): Promise<{
       hits.push(l.label ? { ...h, context: `${l.label} · ${h.context}` } : h);
     }
     if (!any) break;
+  }
+
+  // 더블즈/릴레이 구제: 성+이름으로 여전히 못 찾았고 대회가 선택돼
+  // 있으면, 멤버 카운터로 두 번째 멤버의 소속 디비전을 특정한 뒤
+  // 그 디비전 목록만 페이지 단위로 훑어 두 이름이 모두 포함된 팀 행을
+  // 찾는다. 공식 검색은 팀 대표 성만 색인하므로 이 경로가 유일하다.
+  if (fNorm && !firstFound() && filters.eventGroup) {
+    const lNorm = normName(last);
+    const teamDivs = divisions.filter((d) =>
+      /doubles|relay|mixed/i.test(d.label),
+    );
+    const flagged = (
+      await Promise.all(
+        teamDivs.map(async (d) => {
+          const qp = new URLSearchParams({
+            pid: "list",
+            pidp: "ranking_nav",
+            event: d.value,
+          });
+          qp.set("search[name]", last);
+          qp.set("search[firstname]", filters.firstName!.trim());
+          const h = await fetchHtml(`${BASE}/${filters.season}/?${qp}`);
+          return h && parseMemberCount(h) > 0 ? d : null;
+        }),
+      )
+    ).filter((d): d is EventGroup => d !== null);
+
+    for (const d of flagged.slice(0, 2)) {
+      const found: AthleteHit[] = [];
+      // 디비전 전체를 3페이지 단위로 훑되, 찾는 즉시/빈 페이지에서 중단
+      for (let page = 1; page <= 9 && !found.length; page += 3) {
+        const batch = [page, page + 1, page + 2].map((p) => {
+          const qp = new URLSearchParams({
+            pid: "list",
+            pidp: "ranking_nav",
+            event: d.value,
+            num_results: "100",
+          });
+          if (p > 1) qp.set("page", String(p));
+          return `${BASE}/${filters.season}/?${qp}`;
+        });
+        const pages = await Promise.all(batch.map((u) => fetchHtml(u)));
+        let sawEmpty = false;
+        for (const ph of pages) {
+          if (!ph) continue;
+          const rows = parseAthleteList(ph, filters.season);
+          if (!rows.length) sawEmpty = true;
+          found.push(
+            ...rows.filter((h) => {
+              const n = normName(h.name);
+              return n.includes(fNorm) && n.includes(lNorm);
+            }),
+          );
+        }
+        if (sawEmpty) break;
+      }
+      if (found.length) {
+        // 병합(위 라운드로빈)은 이미 끝났으므로 결과 배열에 직접 추가
+        for (const h of found.slice(0, 5)) {
+          if (seen.has(h.detailUrl)) continue;
+          seen.add(h.detailUrl);
+          hits.unshift({ ...h, context: `${d.label} · ${h.context}` });
+        }
+        break;
+      }
+    }
   }
 
   // 이름(first name)은 서버에서 부분일치 필터 — 더블즈는 팀 문자열
