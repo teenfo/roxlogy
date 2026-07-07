@@ -1,0 +1,30 @@
+# JS 렌더링이 필요한 외부 페이지 프로브 (수동 실행 전용).
+# 헤드리스 Chrome으로 렌더된 DOM에서 패턴 주변을 출력한다 — 단건 조회만.
+name: probe-browser
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL to render
+        required: true
+        type: string
+      grep:
+        description: extended-regex; matches printed with context
+        required: true
+        type: string
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: render and grep
+        env:
+          URL: ${{ inputs.url }}
+          PAT: ${{ inputs.grep }}
+        run: |
+          google-chrome --headless=new --disable-gpu --no-sandbox \
+            --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" \
+            --virtual-time-budget=15000 --dump-dom "$URL" > dom.html 2>/dev/null || true
+          echo "DOM bytes: $(wc -c < dom.html)"
+          echo "---"
+          tr -d '\n' < dom.html | grep -o -E ".{0,120}${PAT}.{0,240}" | head -40 || echo "NO MATCH"
