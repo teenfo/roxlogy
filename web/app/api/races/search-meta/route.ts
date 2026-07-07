@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   BROWSER_UA,
+  fetchAvailableSeasons,
   fetchDivisions,
   fetchEventGroups,
   parseAthleteList,
@@ -18,6 +19,13 @@ import { htmlToText, parseRaceHtml, parseRaceText } from "@/lib/race-import";
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+
+  // 실존하는 시즌 목록 (검색 폼 시즌 드롭다운)
+  if (searchParams.get("seasons") === "1") {
+    const seasons = await fetchAvailableSeasons();
+    return NextResponse.json({ seasons });
+  }
+
   const season = searchParams.get("season") ?? SEASONS[0];
   if (!(SEASONS as readonly string[]).includes(season))
     return NextResponse.json({ groups: [] });

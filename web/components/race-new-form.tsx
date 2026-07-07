@@ -18,9 +18,10 @@ import { TimeInput } from "@/components/time-input";
 import { useI18n } from "@/components/i18n-provider";
 
 const DIVISIONS = ["open", "pro", "doubles", "pro_doubles", "relay"] as const;
-const SEASON_OPTIONS = [
-  { value: "season-8", label: "2025/26 (S8)" },
+// 폴백 — 실제 목록은 /api/races/search-meta?seasons=1 로 대체됨
+const DEFAULT_SEASON_OPTIONS = [
   { value: "season-9", label: "2026/27 (S9)" },
+  { value: "season-8", label: "2025/26 (S8)" },
 ];
 
 type Hit = { name: string; context: string; season: string; detailUrl: string };
@@ -39,6 +40,9 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
   // ── 1단계: 조회 조건 (기본 시즌 = 결과가 존재하는 최신 시즌)
   const [season, setSeason] = useState("season-8");
+  const [seasonOptions, setSeasonOptions] = useState<Group[]>(
+    DEFAULT_SEASON_OPTIONS,
+  );
   const [groups, setGroups] = useState<Group[]>([]);
   const [eventGroup, setEventGroup] = useState("");
   const [divisions, setDivisions] = useState<Group[]>([]);
@@ -77,6 +81,26 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
   const canSearch = !!eventGroup && lastName.trim().length >= 2;
+
+  // 실존 시즌 목록 로드 — 없는 시즌은 드롭다운에서 제외
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/races/search-meta?seasons=1")
+      .then((r) => r.json())
+      .then((b) => {
+        if (cancelled || !b.seasons?.length) return;
+        setSeasonOptions(b.seasons);
+        setSeason((cur) =>
+          (b.seasons as Group[]).some((s) => s.value === cur)
+            ? cur
+            : (b.seasons as Group[])[0].value,
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 시즌의 대회 목록 로드 (공식 검색 폼의 event_main_group 옵션)
   useEffect(() => {
@@ -342,7 +366,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               onChange={(e) => changeSeason(e.target.value)}
               className={inputCls}
             >
-              {SEASON_OPTIONS.map((o) => (
+              {seasonOptions.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>

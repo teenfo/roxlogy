@@ -13,9 +13,31 @@
 
 const BASE = "https://results.hyrox.com";
 
-/** 검색 대상 시즌 — 새 시즌 시작 시 앞에 추가 */
-export const SEASONS = ["season-9", "season-8"] as const;
+/**
+ * 검색 후보 시즌 (최신 우선). 실제 존재 여부는 런타임에 확인한다
+ * (fetchAvailableSeasons) — 없는 시즌은 드롭다운에 노출되지 않으므로
+ * 새 시즌이 열리면 앞에 추가만 하면 된다.
+ */
+export const SEASONS = [
+  "season-9",
+  "season-8",
+  "season-7",
+  "season-6",
+  "season-5",
+  "season-4",
+  "season-3",
+  "season-2",
+  "season-1",
+] as const;
 export type Season = (typeof SEASONS)[number];
+
+/** 시즌 표시 라벨: season-8 → "2025/26 (S8)" (S1 = 2018/19 기준) */
+export function seasonLabel(season: string): string {
+  const n = Number(season.replace("season-", ""));
+  if (!Number.isFinite(n) || n < 1) return season;
+  const start = 2017 + n;
+  return `${start}/${String(start + 1).slice(2)} (S${n})`;
+}
 
 export const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
@@ -95,6 +117,34 @@ export async function fetchEventGroups(season: Season): Promise<EventGroup[]> {
   const groups = html ? parseEventGroups(html) : [];
   if (groups.length) groupCache.set(season, { at: Date.now(), groups });
   return groups;
+}
+
+const seasonsCache: { at: number; seasons: EventGroup[] } = {
+  at: 0,
+  seasons: [],
+};
+
+/**
+ * 결과 사이트에 실제 존재하는 시즌 목록 (검색 폼이 파싱되는 시즌만).
+ * 후보 전체를 병렬로 확인하고 6시간 캐시 — 공개 사실 정보만 조회.
+ */
+export async function fetchAvailableSeasons(): Promise<EventGroup[]> {
+  if (
+    seasonsCache.seasons.length &&
+    Date.now() - seasonsCache.at < GROUP_TTL_MS
+  )
+    return seasonsCache.seasons;
+  const checks = await Promise.all(
+    SEASONS.map(async (s) => ((await fetchEventGroups(s)).length ? s : null)),
+  );
+  const seasons = checks
+    .filter((s): s is Season => s !== null)
+    .map((s) => ({ value: s as string, label: seasonLabel(s) }));
+  if (seasons.length) {
+    seasonsCache.at = Date.now();
+    seasonsCache.seasons = seasons;
+  }
+  return seasons;
 }
 
 // ------------------------------------------------------------
