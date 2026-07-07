@@ -304,16 +304,30 @@ export async function searchAthletes(filters: SearchFilters): Promise<{
     });
   }
 
-  // 페이지 상한(num_results=100)에 걸린 목록은 2페이지까지 이어붙인다
+  // 페이지 상한(num_results=100)에 걸린 목록은 page=N으로 이어붙인다
   // (흔한 성은 한 디비전에서 100건을 넘음 — 스크래퍼 생태계의 page= 파라미터.
   //  page를 무시하는 응답이 와도 아래 병합의 dedupe가 흡수하므로 무해)
-  await Promise.all(
-    lists.map(async (l) => {
-      if (l.hits.length < 100) return;
-      const p = await fetchHtml(`${l.url}&page=2`);
-      if (p) l.hits = l.hits.concat(parseAthleteList(p, filters.season));
-    }),
-  );
+  // 목록은 랭킹순이라 이름(firstName)이 있는데 아직 안 걸렸으면
+  // 걸릴 때까지 더 깊이 따라간다 — 매칭 즉시 중단, 최대 6페이지.
+  const fNorm = filters.firstName?.trim() ? normName(filters.firstName) : "";
+  const firstFound = () =>
+    !!fNorm &&
+    lists.some((l) => l.hits.some((h) => normName(h.name).includes(fNorm)));
+  const maxPage = fNorm ? 6 : 2;
+  for (let page = 2; page <= maxPage; page++) {
+    if (firstFound()) break;
+    const targets = lists.filter((l) => l.hits.length >= 100 * (page - 1));
+    if (!targets.length) break;
+    const pages = await Promise.all(
+      targets.map((l) => fetchHtml(`${l.url}&page=${page}`)),
+    );
+    pages.forEach((p, i) => {
+      if (p)
+        targets[i].hits = targets[i].hits.concat(
+          parseAthleteList(p, filters.season),
+        );
+    });
+  }
 
   // 라운드로빈 병합 — 100건 상한이 첫 디비전(싱글)에만 쏠려
   // 더블즈/릴레이가 잘려나가지 않도록 디비전을 번갈아 채운다
