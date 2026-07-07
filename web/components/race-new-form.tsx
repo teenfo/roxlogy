@@ -181,10 +181,11 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     setSearching(false);
   }
 
-  function applyParsed(parsed: ParsedRace) {
-    // 검색 흐름에서는 사용자가 고른 대회가 가장 신뢰할 수 있는 이름이다
+  function applyParsed(parsed: ParsedRace, eventHint?: string) {
+    // 대회명 신뢰 순서: 사용자가 고른 대회 > 결과 행의 도시(통합 검색) > 페이지 파싱
     if (eventGroup)
       setEvent(`HYROX ${eventGroup.replace(/^\d{4}\s*/, "")}`);
+    else if (eventHint) setEvent(eventHint);
     else if (parsed.event) setEvent(parsed.event);
     if (parsed.eventDate) setEventDate(parsed.eventDate);
     if (parsed.division) setDivision(parsed.division);
@@ -206,7 +207,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     );
   }
 
-  async function importFromUrl(url: string) {
+  async function importFromUrl(url: string, eventHint?: string) {
     if (!url) return;
     setImportNotice(null);
     setSaveError(null);
@@ -219,11 +220,17 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       });
       const body = await res.json();
       if (!res.ok) setImportNotice(body.error ?? t("raceNew.import.failFetch"));
-      else applyParsed(body.parsed as ParsedRace);
+      else applyParsed(body.parsed as ParsedRace, eventHint);
     } catch {
       setImportNotice(t("raceNew.import.failFetch"));
     }
     setImporting(false);
+  }
+
+  /** 통합 랭킹 행 문맥("… City Incheon 2026 …") → 대회명 힌트 */
+  function eventHintFromContext(context: string): string | undefined {
+    const m = context.match(/City\s+([A-Za-z][A-Za-z .'’-]*?)\s+(20\d{2})/);
+    return m ? `HYROX ${m[1].trim()}` : undefined;
   }
 
   function openOfficialSearch() {
@@ -498,7 +505,9 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                     <button
                       type="button"
                       disabled={importing}
-                      onClick={() => importFromUrl(h.detailUrl)}
+                      onClick={() =>
+                        importFromUrl(h.detailUrl, eventHintFromContext(h.context))
+                      }
                       className="w-full rounded-md bg-background px-3 py-2 text-left hover:bg-background/60 disabled:opacity-50"
                     >
                       <span className="block text-sm">{h.name}</span>
