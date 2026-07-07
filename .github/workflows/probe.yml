@@ -1,0 +1,36 @@
+# 외부 결과 사이트/배포 응답 프로브 (수동 실행 전용).
+# 샌드박스 egress가 막힌 환경에서 검증용 — 단건 조회만 수행한다.
+name: probe
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL to fetch
+        required: true
+        type: string
+      grep:
+        description: optional extended-regex; matches printed with context
+        required: false
+        type: string
+        default: ""
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: fetch
+        env:
+          URL: ${{ inputs.url }}
+          PAT: ${{ inputs.grep }}
+        run: |
+          curl -sL --max-time 25 \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" \
+            -H "Accept: text/html,application/xhtml+xml" \
+            -H "Accept-Language: en" \
+            "$URL" -o page.html -w "HTTP %{http_code} bytes %{size_download}\n"
+          echo "---"
+          if [ -n "$PAT" ]; then
+            tr -d '\n' < page.html | grep -o -E ".{0,120}${PAT}.{0,240}" | head -40 || echo "NO MATCH"
+          else
+            head -c 3000 page.html
+          fi
