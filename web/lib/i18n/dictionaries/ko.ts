@@ -174,7 +174,8 @@ const ko: Record<DictKey, string> = {
   "raceNew.import.urlToggle": "결과 페이지 주소로 가져오기",
   "raceNew.import.steps":
     "안 나오나요? 새 탭에서 공식 검색을 열어 본인 결과의 주소(URL)를 아래에 붙여넣어도 됩니다.",
-  "raceNew.import.needEvent": "대회를 선택하면 여기서 바로 검색됩니다.",
+  "raceNew.import.needEvent":
+    "대회 미선택 시 시즌 통합 랭킹에서 검색됩니다. 대회를 선택하면 레이스 리플레이 상세(록스존·구간별 세션)까지 가져올 수 있습니다.",
   "raceNew.import.openSite": "공식 사이트에서 검색 (새 탭)",
   "raceNew.import.blockedHint":
     "결과 사이트가 서버 조회를 차단했습니다. \"공식 사이트에서 검색\"으로 새 탭을 열어 본인 결과 페이지에서 전체 복사(Ctrl+A, Ctrl+C)한 뒤 아래에 붙여넣으면 자동으로 채워집니다.",

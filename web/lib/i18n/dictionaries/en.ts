@@ -183,7 +183,8 @@ const en = {
   "raceNew.import.urlToggle": "Import from a result-page URL instead",
   "raceNew.import.steps":
     "No luck? Open the official search in a new tab, open your result, and paste its URL below.",
-  "raceNew.import.needEvent": "Select the event to search here.",
+  "raceNew.import.needEvent":
+    "No event selected — searching the season-wide overall ranking. Pick the event to also import race replay details (roxzones, per-leg session).",
   "raceNew.import.openSite": "Search on the official site (new tab)",
   "raceNew.import.blockedHint":
     "The results site blocked our direct lookup. Use \"Search on the official site\", open your result there, copy the whole page (Ctrl+A, Ctrl+C), and paste it below — the fields fill in automatically.",

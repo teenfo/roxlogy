@@ -80,7 +80,8 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const [savedRaceId, setSavedRaceId] = useState<string | null>(null);
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
-  const canSearch = !!eventGroup && lastName.trim().length >= 2;
+  // 대회 미선택도 허용 — 이때는 시즌 통합 랭킹(list_overall)에서 검색된다
+  const canSearch = lastName.trim().length >= 2;
 
   // 실존 시즌 목록 로드 — 없는 시즌은 드롭다운에서 제외
   useEffect(() => {

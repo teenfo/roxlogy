@@ -175,7 +175,8 @@ const es: Record<DictKey, string> = {
   "raceNew.import.urlToggle": "Importar desde la URL de una página de resultados",
   "raceNew.import.steps":
     "¿Nada? Abre la búsqueda oficial en una pestaña nueva, abre tu resultado y pega su URL abajo.",
-  "raceNew.import.needEvent": "Selecciona el evento para buscar aquí.",
+  "raceNew.import.needEvent":
+    "Sin evento seleccionado se busca en el ranking general de la temporada. Elige el evento para importar también los detalles del race replay (roxzones, sesión por tramo).",
   "raceNew.import.openSite": "Buscar en el sitio oficial (nueva pestaña)",
   "raceNew.import.blockedHint":
     "El sitio de resultados bloqueó la consulta directa. Usa \"Buscar en el sitio oficial\", abre tu resultado, copia toda la página (Ctrl+A, Ctrl+C) y pégala abajo: los campos se rellenan automáticamente.",

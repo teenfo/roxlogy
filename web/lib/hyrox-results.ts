@@ -198,10 +198,15 @@ export function parseAthleteList(html: string, season: string): AthleteHit[] {
  * 검색 조건 → 공식 사이트 검색 URL (딥링크·서버 조회 공용, 순수 함수).
  * 주의: 사이트의 search[firstname]은 사실상 정확일치라(실측: "Cho",
  * "Choho" 모두 0건) 보내지 않는다 — 이름은 결과 목록에 부분일치로 적용.
+ *
+ * 대회(eventGroup) 미지정이면 시즌 통합 랭킹(pid=list_overall)을 쓴다 —
+ * pid=list는 event_main_group 없이는 행을 SSR하지 않지만(실측),
+ * list_overall은 시즌 전체를 대상으로 이름 검색이 동작한다(실측: 2026-07-07).
  */
 export function buildSearchUrl(filters: SearchFilters): string {
+  const overall = !filters.eventGroup;
   const params = new URLSearchParams({
-    pid: "list",
+    pid: overall ? "list_overall" : "list",
     pidp: "ranking_nav",
     num_results: "100",
   });
@@ -209,6 +214,7 @@ export function buildSearchUrl(filters: SearchFilters): string {
   if (filters.sex) params.set("search[sex]", filters.sex);
   if (filters.eventGroup) params.set("event_main_group", filters.eventGroup);
   if (filters.division) params.set("event", filters.division);
+  else if (overall) params.set("event", "H_HYROXOVERALL");
   return `${BASE}/${filters.season}/?${params}`;
 }
 
@@ -277,13 +283,13 @@ export async function searchAthletes(filters: SearchFilters): Promise<{
     first[0]?.detailUrl.includes(`event=${d.value}`),
   );
 
-  const lists: { label?: string; hits: AthleteHit[] }[] = [
-    { label: firstDiv?.label, hits: first },
+  const lists: { label?: string; url: string; hits: AthleteHit[] }[] = [
+    { label: firstDiv?.label, url, hits: first },
   ];
 
-  // 디비전을 지정하지 않은 대회 검색은 기본 디비전만 반환하므로
-  // 나머지 디비전도 조회
-  if (!filters.division && filters.eventGroup && divisions.length > 1) {
+  // 디비전을 지정하지 않은 검색은 기본 디비전만 반환하므로 나머지도 조회
+  // (대회 검색 = 그 대회의 디비전들, 통합 검색 = 5개 통합 랭킹 디비전)
+  if (!filters.division && divisions.length > 1) {
     const rest = divisions.filter((d) => d.value !== firstDiv?.value).slice(0, 14);
     const pages = await Promise.all(
       rest.map((d) => fetchHtml(`${url}&event=${encodeURIComponent(d.value)}`)),
@@ -292,10 +298,22 @@ export async function searchAthletes(filters: SearchFilters): Promise<{
       if (p)
         lists.push({
           label: rest[i].label,
+          url: `${url}&event=${encodeURIComponent(rest[i].value)}`,
           hits: parseAthleteList(p, filters.season),
         });
     });
   }
+
+  // 페이지 상한(num_results=100)에 걸린 목록은 2페이지까지 이어붙인다
+  // (흔한 성은 한 디비전에서 100건을 넘음 — 스크래퍼 생태계의 page= 파라미터.
+  //  page를 무시하는 응답이 와도 아래 병합의 dedupe가 흡수하므로 무해)
+  await Promise.all(
+    lists.map(async (l) => {
+      if (l.hits.length < 100) return;
+      const p = await fetchHtml(`${l.url}&page=2`);
+      if (p) l.hits = l.hits.concat(parseAthleteList(p, filters.season));
+    }),
+  );
 
   // 라운드로빈 병합 — 100건 상한이 첫 디비전(싱글)에만 쏠려
   // 더블즈/릴레이가 잘려나가지 않도록 디비전을 번갈아 채운다
