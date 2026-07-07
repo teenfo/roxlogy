@@ -308,12 +308,14 @@ export async function searchAthletes(filters: SearchFilters): Promise<{
   // (흔한 성은 한 디비전에서 100건을 넘음 — 스크래퍼 생태계의 page= 파라미터.
   //  page를 무시하는 응답이 와도 아래 병합의 dedupe가 흡수하므로 무해)
   // 목록은 랭킹순이라 이름(firstName)이 있는데 아직 안 걸렸으면
-  // 걸릴 때까지 더 깊이 따라간다 — 매칭 즉시 중단, 최대 6페이지.
+  // 조금 더 깊이 따라간다 — 매칭 즉시 중단, 최대 4페이지.
+  // (더 깊으면 응답이 함수 시간 상한에 걸린다. 흔한 성으로 아주 깊은
+  //  순위의 더블즈 팀은 대회를 선택한 검색으로 안내 — UI 문구 참조)
   const fNorm = filters.firstName?.trim() ? normName(filters.firstName) : "";
   const firstFound = () =>
     !!fNorm &&
     lists.some((l) => l.hits.some((h) => normName(h.name).includes(fNorm)));
-  const maxPage = fNorm ? 6 : 2;
+  const maxPage = fNorm ? 4 : 2;
   for (let page = 2; page <= maxPage; page++) {
     if (firstFound()) break;
     const targets = lists.filter((l) => l.hits.length >= 100 * (page - 1));

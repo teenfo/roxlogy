@@ -202,7 +202,7 @@ const en = {
   "raceNew.import.firstNameMiss":
     "No results matched the first name \"{name}\" — showing everyone for the search conditions.",
   "raceNew.import.doublesHint":
-    "Doubles/relay teams can only be searched by the first-listed member's (team captain's) last name. If your team doesn't show up, search with your partner's last name — the first-name box matches both members.",
+    "Doubles/relay teams can only be searched by the first-listed member's (team captain's) last name. If your team doesn't show up, select the event, then search your partner's last name with your own first name — the first-name box matches both members.",
   "raceNew.replay.title": "Race replay details",
   "raceNew.replay.desc":
     "Recognized {n} segments (runs · roxzones · stations) from the official race replay. They'll be saved with this result.",

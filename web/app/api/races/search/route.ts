@@ -14,6 +14,9 @@ import {
  * 0건이면 조건을 단계적으로 완화해 재시도한다:
  *   ① 입력 그대로 → ② 성별 제외 → ③ 이름(first) 제외 → ④ 성·이름 스왑
  */
+// 완화 단계 × 디비전 병합 × 페이지 추적으로 외부 조회가 많다 — 기본 상한(15s) 방지
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { t } = await getT();

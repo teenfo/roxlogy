@@ -17,6 +17,9 @@ import { htmlToText, parseRaceHtml, parseRaceText } from "@/lib/race-import";
  * 공개 사실 정보(대회 목록)만 다루므로 인증 불요 — 결과 캐시됨.
  * ?debug=1 이면 원본 페이지의 폼 필드명 진단 정보를 함께 반환.
  */
+// 시즌 프로브(9개 병렬)·검증 모드가 외부 조회를 여러 번 한다 — 기본 상한 방지
+export const maxDuration = 60;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 

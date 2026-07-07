@@ -194,7 +194,7 @@ const es: Record<DictKey, string> = {
   "raceNew.import.firstNameMiss":
     "Ningún resultado coincidió con el nombre \"{name}\" — se muestra la lista completa para las condiciones de búsqueda.",
   "raceNew.import.doublesHint":
-    "Los equipos de dobles/relevos solo se pueden buscar por el apellido del primer miembro (capitán). Si tu equipo no aparece, busca con el apellido de tu pareja — el campo de nombre coincide con ambos miembros.",
+    "Los equipos de dobles/relevos solo se pueden buscar por el apellido del primer miembro (capitán). Si tu equipo no aparece, selecciona el evento y busca con el apellido de tu pareja y tu propio nombre — el campo de nombre coincide con ambos miembros.",
   "raceNew.replay.title": "Detalles del race replay",
   "raceNew.replay.desc":
     "Se reconocieron {n} segmentos (carreras · roxzones · estaciones) del race replay oficial. Se guardarán con este resultado.",
