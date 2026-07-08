@@ -7,13 +7,20 @@ export async function generateMetadata() {
 }
 
 const CATEGORIES = ["strength", "running", "conditioning", "mobility"] as const;
+// 시드 04의 장비 어휘 (필터 드롭다운)
+const EQUIPMENT = [
+  "skierg", "rower", "sled", "kettlebell", "sandbag", "wallball", "barbell",
+  "dumbbell", "pullupbar", "airbike", "treadmill", "box", "band", "medball",
+  "slamball", "rope", "jumprope", "machine", "trapbar", "yoke", "dipbar",
+  "foamroller", "abwheel",
+] as const;
 
 export default async function ExercisesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; equipment?: string }>;
 }) {
-  const { q, category } = await searchParams;
+  const { q, category, equipment } = await searchParams;
   const supabase = await createClient();
   const { t, locale } = await getT();
 
@@ -27,6 +34,8 @@ export default async function ExercisesPage({
   }
   if (category && (CATEGORIES as readonly string[]).includes(category))
     query = query.eq("category", category);
+  if (equipment && (EQUIPMENT as readonly string[]).includes(equipment))
+    query = query.contains("equipment", [equipment]);
 
   const { data: exercises } = await query;
 
@@ -52,6 +61,18 @@ export default async function ExercisesPage({
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {t(`exercises.cat.${c}`)}
+            </option>
+          ))}
+        </select>
+        <select
+          name="equipment"
+          defaultValue={equipment ?? ""}
+          className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent"
+        >
+          <option value="">{t("exercises.allEquipment")}</option>
+          {EQUIPMENT.map((e) => (
+            <option key={e} value={e}>
+              {e}
             </option>
           ))}
         </select>

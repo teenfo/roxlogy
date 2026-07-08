@@ -2,19 +2,63 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { formatMs, parseTimeToMs } from "@/lib/format";
-import { predictSplits, LEVELS, type Level } from "@/lib/predict";
+import {
+  achievabilityTier,
+  predictSplits,
+  LEVELS,
+  type Level,
+} from "@/lib/predict";
 import { useI18n } from "@/components/i18n-provider";
 
-export function PredictForm() {
+const TIER_STYLE: Record<string, string> = {
+  aggressive: "border-red-400/60 text-red-400",
+  challenging: "border-accent/60 text-accent",
+  realistic: "border-track/60 text-track",
+  comfortable: "border-muted/60 text-muted",
+};
+
+export function PredictForm({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const { t } = useI18n();
   const [targetText, setTargetText] = useState("1:30:00");
   const [level, setLevel] = useState<Level>("intermediate");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
+    "idle",
+  );
 
-  const result = useMemo(() => {
-    const ms = parseTimeToMs(targetText);
-    return ms != null ? predictSplits(ms, level) : null;
-  }, [targetText, level]);
+  const targetMs = useMemo(() => parseTimeToMs(targetText), [targetText]);
+  const result = useMemo(
+    () => (targetMs != null ? predictSplits(targetMs, level) : null),
+    [targetMs, level],
+  );
+  const tier = useMemo(
+    () => (targetMs != null ? achievabilityTier(targetMs, level) : null),
+    [targetMs, level],
+  );
+
+  async function saveGoal() {
+    if (!result || targetMs == null) return;
+    setSaveState("saving");
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setSaveState("idle");
+      return;
+    }
+    await supabase.from("goal_plans").insert({
+      user_id: user.id,
+      target_total_ms: targetMs,
+      level,
+      run_total_ms: result.runTotalMs,
+      station_total_ms: result.stationTotalMs,
+      roxzone_total_ms: result.roxzoneTotalMs,
+      stations: result.stations.map((s) => ({ key: s.key, targetMs: s.targetMs })),
+    });
+    setSaveState("saved");
+  }
 
   return (
     <main>
@@ -53,7 +97,20 @@ export function PredictForm() {
         </p>
       ) : (
         <>
-          <section className="mt-8 grid grid-cols-3 gap-3">
+          {tier && (
+            <div className="mt-6 flex items-center gap-3">
+              <span
+                className={`rounded-full border px-3 py-1 text-sm font-semibold ${TIER_STYLE[tier]}`}
+              >
+                {t(`predict.tier.${tier}`)}
+              </span>
+              <span className="text-xs text-muted">
+                {t(`predict.tierNote.${tier}`)}
+              </span>
+            </div>
+          )}
+
+          <section className="mt-6 grid grid-cols-3 gap-3">
             <div className="rounded-md bg-surface px-4 py-3">
               <p className="text-xs text-muted">{t("predict.runPerKm")}</p>
               <p className="mt-1 font-mono text-xl font-bold text-track">
@@ -106,12 +163,37 @@ export function PredictForm() {
             </ol>
           </section>
 
-          <p className="mt-6 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm text-muted">
-            <Link href="/signup" className="text-accent hover:underline">
-              {t("predict.signupPrompt.before")}
-            </Link>
-            {t("predict.signupPrompt.after")}
-          </p>
+          {isLoggedIn ? (
+            <div className="mt-6 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={saveGoal}
+                disabled={saveState !== "idle"}
+                className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-50"
+              >
+                {saveState === "saving"
+                  ? t("common.saving")
+                  : saveState === "saved"
+                    ? t("predict.saved")
+                    : t("predict.saveGoal")}
+              </button>
+              {saveState === "saved" && (
+                <Link
+                  href="/dashboard"
+                  className="text-sm text-accent hover:underline"
+                >
+                  {t("predict.viewRehearsal")}
+                </Link>
+              )}
+            </div>
+          ) : (
+            <p className="mt-6 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm text-muted">
+              <Link href="/signup" className="text-accent hover:underline">
+                {t("predict.signupPrompt.before")}
+              </Link>
+              {t("predict.signupPrompt.after")}
+            </p>
+          )}
         </>
       )}
     </main>

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getT } from "@/lib/i18n";
+import { createClient } from "@/lib/supabase/server";
 import { PredictForm } from "@/components/predict-form";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 
@@ -11,6 +12,10 @@ export async function generateMetadata() {
 
 export default async function PredictPage() {
   const { t } = await getT();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return (
     <>
       <header className="border-b border-surface">
@@ -31,7 +36,7 @@ export default async function PredictPage() {
         </nav>
       </header>
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
-        <PredictForm />
+        <PredictForm isLoggedIn={!!user} />
       </div>
     </>
   );

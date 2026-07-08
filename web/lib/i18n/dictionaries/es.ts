@@ -57,6 +57,20 @@ const es: Record<DictKey, string> = {
   "dash.totalSessions": "Sesiones totales",
   "dash.trendTitle": "Totales de sesiones recientes",
   "dash.prTitle": "Mejores marcas por estación",
+  "dash.corrTitle": "Entrenamiento vs carrera",
+  "dash.corrDesc":
+    "Totales de sesiones de simulacro frente a tus tiempos reales de carrera en el tiempo — ¿entrenas hacia el día de carrera?",
+  "dash.corrSim": "Simulacro",
+  "dash.corrRace": "Carrera",
+  "dash.rehearsalTitle": "Informe de ensayo",
+  "dash.rehearsalDesc":
+    "Último objetivo guardado ({target}) vs tu última sesión de simulacro ({sim}).",
+  "dash.rehStation": "Estación",
+  "dash.rehTarget": "Objetivo",
+  "dash.rehActual": "Real",
+  "dash.rehGap": "Dif.",
+  "dash.rehNote":
+    "Dif. = real − objetivo. Azul significa que superaste tu parcial objetivo en esa estación.",
   "dash.recentTitle": "Sesiones recientes",
   "dash.viewAll": "Ver todas",
   "dash.empty": "Aún no hay sesiones registradas.",
@@ -223,6 +237,20 @@ const es: Record<DictKey, string> = {
   "predict.stationTargets": "Objetivos por estación",
   "predict.signupPrompt.before": "Crea una cuenta",
   "predict.signupPrompt.after": " para registrar sesiones y compararlas con estos objetivos.",
+  "predict.saveGoal": "Guardar este objetivo",
+  "predict.saved": "Objetivo guardado ✓",
+  "predict.viewRehearsal": "Ver ensayo en el panel →",
+  "predict.tier.aggressive": "Agresivo",
+  "predict.tier.challenging": "Exigente",
+  "predict.tier.realistic": "Realista",
+  "predict.tier.comfortable": "Cómodo",
+  "predict.tierNote.aggressive":
+    "Cerca del máximo de este nivel: todo tiene que salir bien.",
+  "predict.tierNote.challenging":
+    "Exigente, pero alcanzable con entrenamiento enfocado.",
+  "predict.tierNote.realistic": "Un objetivo sólido y alcanzable para este nivel.",
+  "predict.tierNote.comfortable":
+    "Cómodo para este nivel: considera un objetivo más rápido.",
 
   "events.title": "Eventos",
   "events.desc": "Calendario oficial anunciado. Confirma fechas y entradas en el sitio oficial.",
@@ -249,6 +277,7 @@ const es: Record<DictKey, string> = {
   "exercises.desc": "Estaciones de carrera y ejercicios de entrenamiento. La base completa (360+) se amplía progresivamente.",
   "exercises.searchPh": "Buscar por nombre",
   "exercises.allCategories": "Todas las categorías",
+  "exercises.allEquipment": "Todo el equipo",
   "exercises.cat.strength": "Fuerza",
   "exercises.cat.running": "Carrera",
   "exercises.cat.conditioning": "Acondicionamiento",

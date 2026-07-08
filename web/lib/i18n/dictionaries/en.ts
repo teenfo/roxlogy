@@ -61,6 +61,20 @@ const en = {
   "dash.totalSessions": "All sessions",
   "dash.trendTitle": "Recent session totals",
   "dash.prTitle": "Station bests",
+  "dash.corrTitle": "Training vs race",
+  "dash.corrDesc":
+    "Race-sim session totals against your actual race times over time — are you training toward race day?",
+  "dash.corrSim": "Race sim",
+  "dash.corrRace": "Race",
+  "dash.rehearsalTitle": "Rehearsal report",
+  "dash.rehearsalDesc":
+    "Latest saved goal ({target}) vs your latest race-sim session ({sim}).",
+  "dash.rehStation": "Station",
+  "dash.rehTarget": "Target",
+  "dash.rehActual": "Actual",
+  "dash.rehGap": "Gap",
+  "dash.rehNote":
+    "Gap = actual − target. Blue means you beat your goal split on that station.",
   "dash.recentTitle": "Recent sessions",
   "dash.viewAll": "View all",
   "dash.empty": "No sessions recorded yet.",
@@ -232,6 +246,18 @@ const en = {
   "predict.stationTargets": "Station targets",
   "predict.signupPrompt.before": "Create an account",
   "predict.signupPrompt.after": " to log training sessions and compare them against these targets.",
+  "predict.saveGoal": "Save this goal",
+  "predict.saved": "Goal saved ✓",
+  "predict.viewRehearsal": "See rehearsal on dashboard →",
+  "predict.tier.aggressive": "Aggressive",
+  "predict.tier.challenging": "Challenging",
+  "predict.tier.realistic": "Realistic",
+  "predict.tier.comfortable": "Comfortable",
+  "predict.tierNote.aggressive":
+    "Near the top of this level — everything has to go right.",
+  "predict.tierNote.challenging": "A stretch, but within reach with focused training.",
+  "predict.tierNote.realistic": "A solid, achievable target for this level.",
+  "predict.tierNote.comfortable": "Comfortably within this level — consider a faster goal.",
 
   // 대회 일정
   "events.title": "Race events",
@@ -260,6 +286,7 @@ const en = {
   "exercises.desc": "Race stations and training exercises. The full database (360+) is being added over time.",
   "exercises.searchPh": "Search by name",
   "exercises.allCategories": "All categories",
+  "exercises.allEquipment": "All equipment",
   "exercises.cat.strength": "Strength",
   "exercises.cat.running": "Running",
   "exercises.cat.conditioning": "Conditioning",

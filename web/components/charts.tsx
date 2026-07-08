@@ -186,6 +186,107 @@ export function BreakdownStackBar({
   );
 }
 
+function MultiTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { name?: string; value?: number; color?: string }[];
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const rows = payload.filter((p) => p.value != null);
+  if (!rows.length) return null;
+  return (
+    <div className="rounded-md border border-muted/30 bg-background px-3 py-2 text-xs">
+      <p className="text-muted">{label}</p>
+      {rows.map((p, i) => (
+        <p key={i} className="mt-0.5 flex items-center gap-1.5 font-mono">
+          <span
+            className="inline-block h-2 w-2 rounded-sm"
+            style={{ background: p.color }}
+          />
+          <span className="text-muted">{p.name}</span>
+          <span className="font-semibold text-foreground">
+            {formatMs(p.value)}
+          </span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/** 훈련(시뮬) 총시간 vs 레이스 총시간 시계열 — 두 시리즈 라인 (S16) */
+export function CorrelationLine({
+  data,
+  simLabel,
+  raceLabel,
+}: {
+  data: { date: string; sim: number | null; race: number | null }[];
+  simLabel: string;
+  raceLabel: string;
+}) {
+  return (
+    <div>
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke={GRID} vertical={false} />
+          <XAxis
+            dataKey="date"
+            tick={{ fill: INK_MUTED, fontSize: 10 }}
+            tickLine={false}
+            axisLine={{ stroke: GRID }}
+          />
+          <YAxis
+            tickFormatter={(v: number) => formatMs(v)}
+            tick={{ fill: INK_MUTED, fontSize: 10 }}
+            tickLine={false}
+            axisLine={false}
+            width={52}
+            domain={["dataMin - 60000", "dataMax + 60000"]}
+          />
+          <Tooltip content={<MultiTooltip />} cursor={{ stroke: GRID }} />
+          <Line
+            type="monotone"
+            dataKey="sim"
+            name={simLabel}
+            stroke={CHART_COLORS.run}
+            strokeWidth={2}
+            connectNulls
+            dot={{ r: 3, fill: CHART_COLORS.run, stroke: SURFACE, strokeWidth: 2 }}
+          />
+          <Line
+            type="monotone"
+            dataKey="race"
+            name={raceLabel}
+            stroke={CHART_COLORS.station}
+            strokeWidth={2}
+            connectNulls
+            dot={{ r: 4, fill: CHART_COLORS.station, stroke: SURFACE, strokeWidth: 2 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+      <div className="mt-2 flex gap-4 text-xs text-muted">
+        <span className="flex items-center gap-1.5">
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-sm"
+            style={{ background: CHART_COLORS.run }}
+          />
+          {simLabel}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-sm"
+            style={{ background: CHART_COLORS.station }}
+          />
+          {raceLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /** 대시보드 최근 세션 추이 — 단일 시리즈 미니 바 */
 export function TrendBars({
   data,
