@@ -6,9 +6,10 @@
 ## 현재 상태 (완료)
 
 - **웹 (Vercel, roxlogy.com)**: 인증(이메일+구글), 세션 히스토리/상세/수동입력/수정,
-  레이스 등록(공식 결과 검색·Race Replay 24구간 가져오기·세션 변환·파트너 이름 검색),
-  훈련 대비 비교, 페이싱 등급(S15), 목표 스플릿 계산기(/predict), 대회 일정(/events),
-  운동 DB 뷰어, 다국어(en/ko/es)
+  훈련 로그(메모·RPE, 소유자 전용 노출), 레이스 등록(공식 결과 검색·Race Replay 24구간
+  가져오기·세션 변환·파트너 이름 검색), 훈련 대비 비교, 페이싱 등급(S15),
+  필드 대비 백분위(S13, 레이스 상세·목록·대시보드), 목표 스플릿 계산기(/predict),
+  대회 일정(/events), 운동 DB 뷰어, 다국어(en/ko/es)
 - **DB (Supabase)**: 마이그레이션 001–004 — 전체 스키마 + RLS(조인 정책) +
   멱등 업서트/LWW/soft delete + session_metrics + race_events
 - **인프라**: Vercel 자동 배포(main), Cloudflare DNS, GitHub Actions 프로브 워크플로
