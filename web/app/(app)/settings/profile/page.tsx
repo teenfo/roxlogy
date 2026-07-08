@@ -26,6 +26,7 @@ export default async function ProfileSettingsPage() {
         gender: profile?.gender ?? "",
         height_cm: profile?.height_cm?.toString() ?? "",
         weight_kg: profile?.weight_kg?.toString() ?? "",
+        leaderboard_opt_in: profile?.leaderboard_opt_in ?? false,
       }}
       email={user!.email ?? ""}
     />

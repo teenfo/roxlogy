@@ -16,6 +16,7 @@ type ProfileFields = {
   gender: string;
   height_cm: string;
   weight_kg: string;
+  leaderboard_opt_in: boolean;
 };
 
 export function ProfileForm({
@@ -32,7 +33,10 @@ export function ProfileForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  function set<K extends keyof ProfileFields>(key: K, value: string) {
+  function set<K extends keyof ProfileFields>(
+    key: K,
+    value: ProfileFields[K],
+  ) {
     setFields((f) => ({ ...f, [key]: value }));
     setSaved(false);
   }
@@ -58,6 +62,7 @@ export function ProfileForm({
         gender: fields.gender || null,
         height_cm: fields.height_cm ? Number(fields.height_cm) : null,
         weight_kg: fields.weight_kg ? Number(fields.weight_kg) : null,
+        leaderboard_opt_in: fields.leaderboard_opt_in,
       })
       .eq("id", user.id);
 
@@ -153,6 +158,21 @@ export function ProfileForm({
             />
           </label>
         </div>
+
+        <label className="flex items-start gap-2 rounded-md bg-surface px-4 py-3 text-sm">
+          <input
+            type="checkbox"
+            checked={fields.leaderboard_opt_in}
+            onChange={(e) => set("leaderboard_opt_in", e.target.checked)}
+            className="mt-0.5 accent-accent"
+          />
+          <span>
+            {t("profile.leaderboardOptIn")}
+            <span className="mt-0.5 block text-xs text-muted">
+              {t("profile.leaderboardOptInHint")}
+            </span>
+          </span>
+        </label>
 
         {error && <p className="text-sm text-red-400">{error}</p>}
         {saved && <p className="text-sm text-track">{t("profile.saved")}</p>}

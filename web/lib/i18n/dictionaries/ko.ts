@@ -18,6 +18,7 @@ const ko: Record<DictKey, string> = {
   "nav.sessions": "세션",
   "nav.races": "레이스",
   "nav.programs": "프로그램",
+  "nav.leaderboard": "리더보드",
   "nav.events": "일정",
   "nav.exercises": "운동",
   "nav.profile": "프로필",
@@ -296,6 +297,9 @@ const ko: Record<DictKey, string> = {
   "profile.height": "신장 (cm)",
   "profile.weight": "체중 (kg)",
   "profile.saved": "저장되었습니다.",
+  "profile.leaderboardOptIn": "리더보드에 표시",
+  "profile.leaderboardOptInHint":
+    "켜면 표시 이름과 최고 기록이 공개 리더보드에 노출됩니다. 기본값은 꺼짐입니다.",
   "profile.errSave": "저장 실패: {msg}",
   "profile.language": "언어",
   "profile.languageDesc": "이 브라우저에 즉시 적용됩니다.",
@@ -347,6 +351,22 @@ const ko: Record<DictKey, string> = {
   "meta.races": "레이스 — Roxlogy",
   "meta.programs": "프로그램 — Roxlogy",
   "meta.programNew": "새 프로그램 — Roxlogy",
+  "meta.leaderboard": "리더보드 — Roxlogy",
+
+  // 리더보드 (S8)
+  "leaderboard.title": "리더보드",
+  "leaderboard.desc":
+    "옵트인한 Roxlogy 선수들의 레이스 시뮬 총기록·스테이션 스플릿 최고 기록입니다.",
+  "leaderboard.overall": "종합",
+  "leaderboard.allDivisions": "전체 디비전",
+  "leaderboard.athlete": "선수",
+  "leaderboard.division": "디비전",
+  "leaderboard.best": "최고 기록",
+  "leaderboard.empty": "이 보드에는 아직 기록이 없습니다.",
+  "leaderboard.optInPrompt": "리더보드에 표시되지 않고 있습니다.",
+  "leaderboard.optInLink": "프로필에서 참여 설정 →",
+  "leaderboard.privacyNote":
+    "옵트인한 선수만 표시되며, 표시 이름과 최고 기록 외에는 아무것도 노출되지 않습니다.",
 
   // 프로그램 (S9)
   "programs.title": "훈련 프로그램",

@@ -18,6 +18,7 @@ const es: Record<DictKey, string> = {
   "nav.sessions": "Sesiones",
   "nav.races": "Carreras",
   "nav.programs": "Programas",
+  "nav.leaderboard": "Clasificación",
   "nav.events": "Eventos",
   "nav.exercises": "Ejercicios",
   "nav.profile": "Perfil",
@@ -301,6 +302,9 @@ const es: Record<DictKey, string> = {
   "profile.height": "Altura (cm)",
   "profile.weight": "Peso (kg)",
   "profile.saved": "Guardado.",
+  "profile.leaderboardOptIn": "Aparecer en la clasificación",
+  "profile.leaderboardOptInHint":
+    "Si está activo, tu nombre y tus mejores tiempos aparecen en las clasificaciones públicas. Desactivado por defecto.",
   "profile.errSave": "Error al guardar: {msg}",
   "profile.language": "Idioma",
   "profile.languageDesc": "Se aplica a este navegador de inmediato.",
@@ -352,6 +356,22 @@ const es: Record<DictKey, string> = {
   "meta.races": "Carreras — Roxlogy",
   "meta.programs": "Programas — Roxlogy",
   "meta.programNew": "Nuevo programa — Roxlogy",
+  "meta.leaderboard": "Clasificación — Roxlogy",
+
+  // Clasificación (S8)
+  "leaderboard.title": "Clasificación",
+  "leaderboard.desc":
+    "Mejores totales de simulacro y parciales por estación entre los atletas de Roxlogy que participan.",
+  "leaderboard.overall": "General",
+  "leaderboard.allDivisions": "Todas las divisiones",
+  "leaderboard.athlete": "Atleta",
+  "leaderboard.division": "División",
+  "leaderboard.best": "Mejor",
+  "leaderboard.empty": "Aún no hay entradas en esta tabla.",
+  "leaderboard.optInPrompt": "No apareces en la clasificación.",
+  "leaderboard.optInLink": "Actívalo en tu perfil →",
+  "leaderboard.privacyNote":
+    "Solo aparecen los atletas que se han inscrito, mostrando su nombre y mejores tiempos, nada más.",
 
   // Programas (S9)
   "programs.title": "Programas de entrenamiento",

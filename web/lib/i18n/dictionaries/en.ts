@@ -19,6 +19,7 @@ const en = {
   "nav.sessions": "Sessions",
   "nav.races": "Races",
   "nav.programs": "Programs",
+  "nav.leaderboard": "Leaderboard",
   "nav.events": "Events",
   "nav.exercises": "Exercises",
   "nav.profile": "Profile",
@@ -311,6 +312,9 @@ const en = {
   "profile.height": "Height (cm)",
   "profile.weight": "Weight (kg)",
   "profile.saved": "Saved.",
+  "profile.leaderboardOptIn": "Appear on leaderboards",
+  "profile.leaderboardOptInHint":
+    "When on, your display name and best times appear on public leaderboards. Off by default.",
   "profile.errSave": "Save failed: {msg}",
   "profile.language": "Language",
   "profile.languageDesc": "Applies to this browser immediately.",
@@ -366,6 +370,22 @@ const en = {
   "meta.races": "Races — Roxlogy",
   "meta.programs": "Programs — Roxlogy",
   "meta.programNew": "New program — Roxlogy",
+  "meta.leaderboard": "Leaderboard — Roxlogy",
+
+  // 리더보드 (S8)
+  "leaderboard.title": "Leaderboard",
+  "leaderboard.desc":
+    "Best race-sim totals and station splits among opted-in Roxlogy athletes.",
+  "leaderboard.overall": "Overall",
+  "leaderboard.allDivisions": "All divisions",
+  "leaderboard.athlete": "Athlete",
+  "leaderboard.division": "Division",
+  "leaderboard.best": "Best",
+  "leaderboard.empty": "No entries yet for this board.",
+  "leaderboard.optInPrompt": "You're not on the leaderboard.",
+  "leaderboard.optInLink": "Opt in from your profile →",
+  "leaderboard.privacyNote":
+    "Only athletes who opted in appear here, showing their display name and best times — nothing else.",
 
   // 프로그램 (S9)
   "programs.title": "Training programs",
