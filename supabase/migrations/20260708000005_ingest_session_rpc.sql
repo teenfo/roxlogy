@@ -92,7 +92,7 @@ begin
         (id, session_id, seq, kind, exercise_id, machine_type,
          split_time_ms, started_at, ended_at)
       values
-        (coalesce((seg->>'id')::uuid, uuid_generate_v4()),
+        (coalesce((seg->>'id')::uuid, gen_random_uuid()),
          sid,
          (seg->>'seq')::int,
          seg->>'kind',
