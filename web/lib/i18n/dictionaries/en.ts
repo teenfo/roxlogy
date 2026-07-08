@@ -100,6 +100,11 @@ const en = {
   "sessions.runLapTrend": "Run lap trend (1km)",
   "sessions.lapN": "Lap {n}",
   "sessions.segments": "Segments",
+  "sessions.ergCurves": "Power & pace curves",
+  "sessions.ergCurvesDesc":
+    "From PM5 raw data, downsampled by the analysis worker.",
+  "sessions.powerCurve": "Power (W)",
+  "sessions.paceCurve": "Pace (/500m)",
   "sessions.noSegments": "No segment records.",
   "sessions.run1km": "1km run",
   "sessions.transition": "Transition",

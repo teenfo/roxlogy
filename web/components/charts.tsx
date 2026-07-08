@@ -287,6 +287,59 @@ export function CorrelationLine({
   );
 }
 
+/** erg 세그먼트 파워/페이스 곡선 (S6) — 워커가 다운샘플(LTTB)한 시계열 */
+export function ErgCurve({
+  data,
+  color,
+  unit,
+}: {
+  data: { t: number; v: number }[];
+  color: string;
+  unit: string;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={160}>
+      <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        <CartesianGrid stroke={GRID} vertical={false} />
+        <XAxis
+          dataKey="t"
+          type="number"
+          domain={["dataMin", "dataMax"]}
+          tickFormatter={(v: number) => `${Math.round(v)}s`}
+          tick={{ fill: INK_MUTED, fontSize: 10 }}
+          tickLine={false}
+          axisLine={{ stroke: GRID }}
+        />
+        <YAxis
+          tick={{ fill: INK_MUTED, fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          width={40}
+          domain={["dataMin", "dataMax"]}
+        />
+        <Tooltip
+          cursor={{ stroke: GRID }}
+          contentStyle={{
+            background: "#141414",
+            border: "1px solid #ffffff22",
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+          labelFormatter={(v) => `${Math.round(Number(v))}s`}
+          formatter={((v: number) => [`${v} ${unit}`, ""]) as never}
+        />
+        <Line
+          type="monotone"
+          dataKey="v"
+          stroke={color}
+          strokeWidth={2}
+          dot={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
 /** 대시보드 최근 세션 추이 — 단일 시리즈 미니 바 */
 export function TrendBars({
   data,

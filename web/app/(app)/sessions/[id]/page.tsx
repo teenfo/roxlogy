@@ -11,9 +11,11 @@ import {
 } from "@/lib/analysis";
 import {
   BreakdownStackBar,
+  ErgCurve,
   RunLapLine,
   SegmentSplitBars,
 } from "@/components/charts";
+import { CHART_COLORS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
 
 const KIND_BADGE: Record<string, string> = {
@@ -33,6 +35,8 @@ type Segment = {
     avg_power: number | null;
     avg_spm: number | null;
     avg_pace_500: number | null;
+    pace_curve: [number, number][] | null;
+    power_curve: [number, number][] | null;
   } | null;
   erg_samples: { sample_count: number }[] | null;
 };
@@ -74,7 +78,7 @@ export default async function SessionDetailPage({
        session_segments (
          id, seq, kind, machine_type, split_time_ms,
          exercises ( name_ko, name_en ),
-         segment_metrics ( avg_power, avg_spm, avg_pace_500 ),
+         segment_metrics ( avg_power, avg_spm, avg_pace_500, pace_curve, power_curve ),
          erg_samples ( sample_count )
        )`,
     )
@@ -117,6 +121,26 @@ export default async function SessionDetailPage({
         exName(s.exercises) ?? `${t(`kind.${s.kind}`)} ${s.seq}`,
       ms: s.split_time_ms!,
       kind: s.kind,
+    }));
+
+  // S6 파워/페이스 곡선 — 워커가 채운 segment_metrics 곡선이 있는 세그먼트
+  const ergSegments = segments
+    .filter(
+      (s) =>
+        (s.segment_metrics?.pace_curve?.length ?? 0) > 1 ||
+        (s.segment_metrics?.power_curve?.length ?? 0) > 1,
+    )
+    .map((s) => ({
+      key: s.id,
+      name: exName(s.exercises) ?? `${t(`kind.${s.kind}`)} ${s.seq}`,
+      pace: (s.segment_metrics?.pace_curve ?? []).map(([tt, v]) => ({
+        t: tt,
+        v,
+      })),
+      power: (s.segment_metrics?.power_curve ?? []).map(([tt, v]) => ({
+        t: tt,
+        v,
+      })),
     }));
 
   return (
@@ -211,6 +235,32 @@ export default async function SessionDetailPage({
                 ms: s.split_time_ms!,
               }))}
             />
+          </div>
+        </section>
+      )}
+
+      {ergSegments.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">{t("sessions.ergCurves")}</h2>
+          <p className="mt-1 text-sm text-muted">{t("sessions.ergCurvesDesc")}</p>
+          <div className="mt-3 flex flex-col gap-4">
+            {ergSegments.map((e) => (
+              <div key={e.key} className="rounded-md bg-surface p-4">
+                <p className="text-sm font-semibold">{e.name}</p>
+                {e.power.length > 1 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-muted">{t("sessions.powerCurve")}</p>
+                    <ErgCurve data={e.power} color={CHART_COLORS.station} unit="W" />
+                  </div>
+                )}
+                {e.pace.length > 1 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-muted">{t("sessions.paceCurve")}</p>
+                    <ErgCurve data={e.pace} color={CHART_COLORS.run} unit="/500m" />
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </section>
       )}

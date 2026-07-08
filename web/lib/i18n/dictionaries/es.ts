@@ -95,6 +95,11 @@ const es: Record<DictKey, string> = {
   "sessions.runLapTrend": "Tendencia de vueltas (1 km)",
   "sessions.lapN": "Vuelta {n}",
   "sessions.segments": "Segmentos",
+  "sessions.ergCurves": "Curvas de potencia y ritmo",
+  "sessions.ergCurvesDesc":
+    "De los datos brutos del PM5, submuestreados por el worker de análisis.",
+  "sessions.powerCurve": "Potencia (W)",
+  "sessions.paceCurve": "Ritmo (/500m)",
   "sessions.noSegments": "Sin registros de segmentos.",
   "sessions.run1km": "Carrera 1 km",
   "sessions.transition": "Transición",
