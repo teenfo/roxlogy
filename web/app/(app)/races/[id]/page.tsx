@@ -5,6 +5,7 @@ import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
+import { PercentileBar } from "@/components/percentile-bar";
 
 type RaceSplits = {
   stations?: Record<string, number>;
@@ -43,6 +44,21 @@ export default async function RaceDetailPage({
     .eq("id", id)
     .maybeSingle();
   if (!race) notFound();
+
+  // 필드 대비 백분위 (공개 집계 분포 기준) — 성별은 본인 프로필에서
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("gender")
+    .maybeSingle();
+  let percentile: number | null = null;
+  if (race.division && race.total_time_ms != null) {
+    const { data: pct } = await supabase.rpc("race_percentile", {
+      p_total_ms: race.total_time_ms,
+      p_division: race.division,
+      p_gender: profile?.gender ?? null,
+    });
+    percentile = typeof pct === "number" ? pct : pct == null ? null : Number(pct);
+  }
 
   // 비교 대상: 스테이션 세그먼트가 있는 가장 최근 세션 (레이스 시뮬)
   const { data: sims } = await supabase
@@ -99,6 +115,14 @@ export default async function RaceDetailPage({
           ? t(`division.${race.division}` as Parameters<typeof t>[0])
           : "—"}
       </p>
+
+      {percentile != null && race.division && (
+        <PercentileBar
+          pct={percentile}
+          division={race.division}
+          gender={profile?.gender ?? null}
+        />
+      )}
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">
