@@ -1,0 +1,9 @@
+.gradle/
+build/
+local.properties
+*.keystore
+!gradle/wrapper/gradle-wrapper.jar
+.idea/
+*.iml
+captures/
+.cxx/

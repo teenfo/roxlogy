@@ -42,14 +42,19 @@
 > **S13 백분위**는 v1(공개 분포) 완료 — 공식 결과 대량 수집(정밀 분포)의 검토는
 > **컷오버 이후**로 미룸. 웹으로 완결 가능한 Phase 2(S8·S9·S10)는 완료.
 
-### M6 — 워치 앱 (Wear OS, Kotlin + Wear Compose)
-- `android/` 하위 `:wear` + `:shared` 모듈, PM5 BLE(C2 BLE/CSAFE) raw 수집,
-  레이스 시뮬 세그먼트 기록, 오프라인 보관(M3 확정 한도), Data Layer 전송
-- 착수 조건: M3 배포 + 계약 문서 확정
-
-### M7 — 폰 앱 (Android, Kotlin + Compose)
-- `:app` 모듈: Data Layer 수신 → ingest-session 업로드(재시도 큐),
-  세션 열람은 웹 딥링크 우선
+### M6/M7 — 네이티브 앱 (착수됨) — 상표·법무 게이트 클리어(2026-07-08)
+`android/` 모노레포(`:shared`/`:wear`/`:app`). 단계 계획:
+- **N0 토대** ✅ — Gradle 모노레포 + `:shared`(ingest 계약 모델·직렬화, 순수 Kotlin) +
+  `:wear`/`:app` 최소 스캐폴드 + GitHub Actions(shared 테스트 + APK 빌드).
+- **N1 PM5 파서** — `:shared`에 Concept2 PM BLE 프레임 파서(순수 Kotlin) + 바이트 픽스처
+  유닛테스트 → **실기 없이 CI로 파싱 correctness 검증**.
+- **N2 워치 수집** — BLE 스캔/연결·구독, 포그라운드 서비스, Wear Compose 실시간 UI.
+- **N3 세션 구조** — 레이스 시뮬 24구간 기록 + Room 오프라인(최근 20세션/72h).
+- **N4 Data Layer** — 워치→폰 세션 번들 전송.
+- **N5 폰 업로드** — supabase-kt 로그인 → `ingest-session` 업로드(재시도·멱등).
+- **N6a 사이드로드 배포(지금)** — release 서명 + CI Releases APK → 다운로드 페이지 연결.
+- **N6b 플레이스토어(컷오버 이후·보류)**.
+- 검증: `:shared`는 CI/로컬 유닛테스트, BLE/UX는 사용자 실기(워치+PM5 보유).
 
 ### M8 — Phase 2 (우선순위 확정: S8 → S13 → S9 → S10)
 1. **S8 리더보드** ✅ — 전체/8스테이션 순위, 디비전 필터, `leaderboard_opt_in`
@@ -67,7 +72,8 @@
 - 카카오 OAuth: 도입하지 않음 (2026-07-08 결정 — 이메일+구글 유지)
 
 ## 게이트/결정 항목
-- [ ] Roxlogy 상표 정밀검색(KIPRIS 등) — 스토어 출시(M6/M7) 전
+- [x] Roxlogy 상표·법무 — **클리어 완료(2026-07-08)**. M6/M7 및 스토어 등록 가능.
+- [ ] 플레이스토어/앱스토어 등록 — **컷오버 이후**(보류). 그 전엔 사이드로드 APK로 배포.
 - [ ] hosub 분석 워커 배포·상시 운영 — **컷오버 이후**(후순위, 웹 즉석 계산으로 대체)
 - [ ] S13 공식 결과 **대량 수집** 검토 — **컷오버 이후**(정밀 분포 교체 시, v1 공개 분포는 완료)
 - hosub GPU/로컬 LLM(S11 AI 코칭)은 Phase 2 후반 TBD
