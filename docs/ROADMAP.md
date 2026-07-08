@@ -15,31 +15,26 @@
 
 ## 마일스톤
 
-### M3 — S2 세션 수신 API (데이터 토대 A) ← 진행 중
-워치/폰의 전제 조건. 웹 수동입력이 이미 쓰는 계약(003)을 공식 API로 승격.
+### M3 — S2 세션 수신 API (데이터 토대 A) ✅ 완료
+워치/폰의 전제 조건. 웹 수동입력 계약(003)을 공식 API로 승격.
+- API 계약 문서 `docs/API_CONTRACT.md`, 마이그레이션 005 `ingest_session` RPC(LWW 가드·
+  세그먼트 스냅샷·erg 업서트), Edge Function `ingest-session`(배포됨, JWT 본인 검증).
+- search-meta 개발용 debug/try/jsurl 모드 제거. 라이브 검증 완료(멱등·LWW·소유권·401).
 
-1. API 계약 문서 `docs/API_CONTRACT.md` — `POST /functions/v1/ingest-session`
-   요청/응답 스키마, 에러 코드, 멱등 규칙, LWW 가드, soft delete 동기화
-2. 결정 확정: raw 원본 1Hz 보존 / 곡선용 파생은 세그먼트당 ≤120pt(LTTB, 워커 생성) /
-   페이로드 상한 요청당 2MB·세션당 erg 샘플 30,000개 / 워치 오프라인 보관 20세션·72h
-3. Edge Function `supabase/functions/ingest-session/` — JWT 본인 검증, 페이로드 검증,
-   멱등 업서트(+LWW 가드), `analysis_status='pending'` 마킹
-4. 정리: `web/app/api/races/search-meta`의 개발용 debug/try/jsurl 모드 제거
+### M4 — S5 hosub 분석 워커 (데이터 토대 B) ✅ 완료
+- `worker/` (Python + httpx + Docker). **outbound pull 전용**, service role env로만.
+- `analysis_status='pending'` 폴링 → `analyze.py`(analysis.ts 이식)로 지표 계산 →
+  erg raw는 LTTB 곡선 다운샘플 → `done`. 선점(compare-and-set)·stale 스위퍼.
+- 웹은 워커 결과 우선, 없으면 즉석 계산 폴백. 라이브 검증 완료.
 
-### M4 — S5 hosub 분석 워커 (데이터 토대 B)
-- `worker/` 신규 (Python + Docker). **outbound pull 전용** — 인바운드 포트 금지,
-  service role 키는 hosub 환경변수로만
-- 루프: `analysis_status='pending'` 폴링 → `web/lib/analysis.ts` 산식 이식으로
-  `session_metrics`/`segment_metrics` 계산 → erg raw 있으면 곡선 다운샘플(LTTB) →
-  `analysis_status='done'`
-- 웹은 워커 결과 우선 표시, 없으면 기존 즉석 계산 폴백
+### M5 — 웹 잔여 고도화 ✅ 완료
+- S3: 운동 DB 확충 — 시드 04 (총 120종, uuid5 결정적 id) + 장비 필터
+- S14: `goal_plans` 테이블(마이그레이션 006) + achievabilityTier + 저장 UI
+- S16: CorrelationLine — 시뮬 세션 vs 레이스 총시간 시계열(대시보드)
+- S17: 리허설 리포트 — 최신 목표 vs 최신 시뮬 세션 스테이션별 대비(대시보드)
+- S6: 워커 곡선 기반 파워/페이스 차트(ErgCurve) — 세션 상세
 
-### M5 — 웹 잔여 고도화 (M3·M4와 병행 가능)
-- S3: 운동 DB 360+ 시드 확충 (카테고리·장비 필터)
-- S14: 목표 달성 확률 티어 + `goal_plans` 테이블(마이그레이션 005) + 저장 UI
-- S16: 훈련→레이스 상관 — 레이스 여러 건 vs 훈련 추이 시계열 차트
-- S17: 레이스 시뮬 리허설 리포트 — goal_plans 목표 대비 실측 세션 비교
-- S6 잔여: 워커 곡선 데이터 기반 파워/페이스 차트 (M4 이후)
+> 다음: **M6 워치 앱** (M3 배포·계약 확정 완료 — 착수 조건 충족) 또는 **M8 Phase 2**.
 
 ### M6 — 워치 앱 (Wear OS, Kotlin + Wear Compose)
 - `android/` 하위 `:wear` + `:shared` 모듈, PM5 BLE(C2 BLE/CSAFE) raw 수집,
