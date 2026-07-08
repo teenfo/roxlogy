@@ -40,6 +40,17 @@ const en = {
     "Register official race results and compare them station-by-station against your training sims. See how training changes race day.",
   "landing.predictLink": "Target split calculator →",
   "landing.eventsLink": "Find race events →",
+  "landing.downloadLink": "Get the app →",
+  "download.title": "Get Roxlogy",
+  "download.desc": "Native watch & phone apps are on the way. The web app works today on any browser.",
+  "download.androidTitle": "Android",
+  "download.androidDesc": "Watch (Wear OS) and phone apps.",
+  "download.comingSoon": "Coming soon",
+  "download.playStore": "Get it on Google Play",
+  "download.apkButton": "Download APK",
+  "download.sideloadNote": "To install the APK, allow installs from unknown sources in your device settings, then open the downloaded file.",
+  "download.androidPending": "Direct download will be available here soon. Store links will replace it once published.",
+  "download.webCta": "No install needed —",
 
   // 인증
   "auth.loginTitle": "Log in",
@@ -503,6 +514,7 @@ const en = {
   "meta.raceNew": "Register race result — Roxlogy",
   "meta.predict": "Target split calculator — Roxlogy",
   "meta.events": "Race events — Roxlogy",
+  "meta.download": "Get the app — Roxlogy",
   "meta.exercises": "Exercise database — Roxlogy",
   "meta.profile": "Profile settings — Roxlogy",
 } as const;

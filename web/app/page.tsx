@@ -45,6 +45,9 @@ export default async function Landing() {
           <Link href="/events" className="text-track hover:underline">
             {t("landing.eventsLink")}
           </Link>
+          <Link href="/download" className="text-track hover:underline">
+            {t("landing.downloadLink")}
+          </Link>
         </div>
       </section>
 
