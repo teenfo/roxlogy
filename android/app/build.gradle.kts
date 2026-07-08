@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.foundation)
+    implementation(libs.compose.material3)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.play.services.wearable)
     implementation(libs.okhttp)

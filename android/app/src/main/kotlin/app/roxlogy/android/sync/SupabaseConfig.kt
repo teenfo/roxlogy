@@ -2,29 +2,35 @@ package app.roxlogy.android.sync
 
 /**
  * Supabase 클라이언트 설정.
- * anon(publishable) 키는 공개 키라 클라이언트 포함이 안전하다.
- * **service role 키는 절대 포함 금지** (서버/워커 전용 — 루트 CLAUDE.md).
- * 실제 anon 키는 빌드시 주입(BuildConfig/CI 시크릿) 권장 — 여기서는 자리표시자.
+ * anon 키는 **공개(publishable) 키**라 클라이언트 포함이 안전하다 (웹앱도 동일 키 사용).
+ * **service role 키는 절대 포함 금지** (서버/워커·CI 전용 — 루트 CLAUDE.md).
  */
 object SupabaseConfig {
     const val PROJECT_URL = "https://vuloxbpfhyqkvgmpmkst.supabase.co"
     const val INGEST_URL = "$PROJECT_URL/functions/v1/ingest-session"
+    const val AUTH_TOKEN_URL = "$PROJECT_URL/auth/v1/token"
 
-    // TODO(N5b): BuildConfig로 주입. anon 키는 공개 키이므로 노출 자체는 문제 없음.
-    const val ANON_KEY = ""
+    // 공개 anon 키 (JWT). 노출돼도 RLS로 보호되므로 안전.
+    const val ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
+            "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1bG94YnBmaHlxa3ZnbXBta3N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMTc0NzgsImV4cCI6MjA5ODc5MzQ3OH0." +
+            "WhmfRIZWBS88_Rf-e_p7tMpOLKEX9kKxC67KVrLZGjs"
 }
 
-/**
- * Supabase Auth 액세스 토큰 저장소 (N5b에서 supabase-kt 로그인과 연결).
- * 지금은 자리표시자 — 토큰이 없으면 업로드는 보류된다.
- */
+/** Supabase Auth 토큰 저장소 (액세스 + 리프레시). 프로세스 메모리 보관. */
 object TokenStore {
     @Volatile
-    private var accessToken: String? = null
+    private var access: String? = null
 
-    fun setAccessToken(token: String?) {
-        accessToken = token
+    @Volatile
+    private var refresh: String? = null
+
+    fun set(accessToken: String?, refreshToken: String?) {
+        access = accessToken
+        refresh = refreshToken
     }
 
-    fun accessToken(): String? = accessToken
+    fun accessToken(): String? = access
+    fun refreshToken(): String? = refresh
+    fun isLoggedIn(): Boolean = access != null
 }

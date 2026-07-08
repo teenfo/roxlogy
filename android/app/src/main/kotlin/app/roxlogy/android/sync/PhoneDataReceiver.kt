@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 class PhoneDataReceiver : WearableListenerService() {
 
     private val uploader = IngestUploader()
+    private val auth = AuthClient()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onDataChanged(events: DataEventBuffer) {
@@ -29,7 +30,13 @@ class PhoneDataReceiver : WearableListenerService() {
             val json = map.getByteArray(WearPaths.KEY_PAYLOAD)?.decodeToString() ?: continue
             val token = TokenStore.accessToken() ?: continue // 로그인 전이면 보류
 
-            scope.launch { uploader.upload(json, token) }
+            scope.launch {
+                uploader.upload(
+                    json = json,
+                    initialToken = token,
+                    tokenRefresh = { auth.refreshAccessToken() },
+                )
+            }
         }
     }
 }

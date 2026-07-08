@@ -51,7 +51,8 @@
 - **N2 워치 수집** — BLE 스캔/연결·구독, 포그라운드 서비스, Wear Compose 실시간 UI.
 - **N3 세션 구조** — 레이스 시뮬 24구간 기록 + Room 오프라인(최근 20세션/72h).
 - **N4 Data Layer** — 워치→폰 세션 번들 전송.
-- **N5 폰 업로드** — supabase-kt 로그인 → `ingest-session` 업로드(재시도·멱등).
+- **N5 폰 업로드** — GoTrue REST 로그인(okhttp) → JWT → `ingest-session` 업로드
+  (재시도·멱등). N5b 로그인 화면 + 토큰 갱신 배선 완료 (Google OAuth는 N5c).
 - **N6a 사이드로드 배포** ✅ — `android-release` 워크플로가 release APK 빌드 →
   Supabase 공개 버킷(`app-downloads`) 업로드 → 다운로드 페이지(`/download`)가 워치·폰
   APK 공개 URL 연결. 활성화 조건: CI 시크릿 `SUPABASE_SERVICE_ROLE_KEY` 설정 후
