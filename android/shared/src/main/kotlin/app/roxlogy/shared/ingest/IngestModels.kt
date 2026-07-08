@@ -74,8 +74,11 @@ object IngestLimits {
 }
 
 object IngestJson {
+    // encodeDefaults=true: source_device 등 기본값 필드도 항상 전송한다.
+    // (sessions.source_device는 NOT NULL·서버 기본값 없음 → 생략하면 수신 실패.)
+    // explicitNulls=false: null 필드(deleted_at·template_id 등)는 생략해 페이로드를 가볍게.
     val encoder: Json = Json {
-        encodeDefaults = false
+        encodeDefaults = true
         explicitNulls = false
         ignoreUnknownKeys = true
     }

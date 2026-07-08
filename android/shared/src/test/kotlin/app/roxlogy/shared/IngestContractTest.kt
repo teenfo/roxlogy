@@ -55,9 +55,10 @@ class IngestContractTest {
     }
 
     @Test
-    fun `omits nulls and defaults so payload stays lean`() {
+    fun `omits null fields so payload stays lean`() {
         val json = IngestJson.encode(sampleRequest())
-        // deleted_at=null, template_id=null 등은 직렬화에서 생략
+        // deleted_at=null, template_id=null 등 null 필드는 생략 (explicitNulls=false).
+        // 기본값 필드(source_device)는 NOT NULL 컬럼이라 생략하지 않고 항상 전송한다.
         assertFalse(json.contains("deleted_at"))
         assertFalse(json.contains("template_id"))
     }
