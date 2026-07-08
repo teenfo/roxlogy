@@ -17,6 +17,7 @@ const en = {
   "common.analysisPending": "Analysis pending",
 
   // 내비게이션
+  "nav.dashboard": "Dashboard",
   "nav.sessions": "Sessions",
   "nav.races": "Races",
   "nav.programs": "Programs",

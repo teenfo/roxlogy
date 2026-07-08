@@ -16,6 +16,7 @@ const ko: Record<DictKey, string> = {
   "common.needLogin": "로그인이 필요합니다.",
   "common.analysisPending": "분석 대기중",
 
+  "nav.dashboard": "대시보드",
   "nav.sessions": "세션",
   "nav.races": "레이스",
   "nav.programs": "프로그램",

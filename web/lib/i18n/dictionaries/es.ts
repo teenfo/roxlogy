@@ -16,6 +16,7 @@ const es: Record<DictKey, string> = {
   "common.needLogin": "Debes iniciar sesión.",
   "common.analysisPending": "Análisis pendiente",
 
+  "nav.dashboard": "Panel",
   "nav.sessions": "Sesiones",
   "nav.races": "Carreras",
   "nav.programs": "Programas",
