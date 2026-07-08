@@ -27,6 +27,7 @@ export default async function DashboardPage() {
     { data: races },
     { data: goals },
     { data: benchmarks },
+    { data: enrollment },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user!.id).single(),
     supabase
@@ -64,6 +65,16 @@ export default async function DashboardPage() {
       .order("created_at", { ascending: false })
       .limit(1),
     supabase.from("race_benchmarks").select("division, gender, scope, percentiles"),
+    supabase
+      .from("program_enrollments")
+      .select(
+        `start_date,
+         programs ( id, title,
+           program_days ( day_index, focus,
+             workout_templates ( id, title, type ) ) )`,
+      )
+      .eq("active", true)
+      .maybeSingle(),
   ]);
 
   const all = sessions ?? [];
@@ -87,6 +98,47 @@ export default async function DashboardPage() {
         bms,
       )
     : null;
+
+  // 오늘의 운동: 활성 프로그램 등록 → 시작일 기준 오늘의 day_index 매핑
+  type EnrollProgram = {
+    start_date: string;
+    programs: {
+      id: string;
+      title: string;
+      program_days: {
+        day_index: number;
+        focus: string | null;
+        workout_templates: { id: string; title: string; type: string }[];
+      }[];
+    } | null;
+  };
+  const enroll = (enrollment ?? null) as unknown as EnrollProgram | null;
+  let today: {
+    programId: string;
+    programTitle: string;
+    dayNumber: number;
+    focus: string | null;
+    workouts: { id: string; title: string; type: string }[];
+  } | null = null;
+  if (enroll?.programs) {
+    const start = new Date(enroll.start_date + "T00:00:00");
+    const nowMid = new Date();
+    nowMid.setHours(0, 0, 0, 0);
+    const dayNumber =
+      Math.floor((nowMid.getTime() - start.getTime()) / 86400000) + 1;
+    if (dayNumber >= 1) {
+      const day = enroll.programs.program_days.find(
+        (d) => d.day_index === dayNumber,
+      );
+      today = {
+        programId: enroll.programs.id,
+        programTitle: enroll.programs.title,
+        dayNumber,
+        focus: day?.focus ?? null,
+        workouts: day?.workout_templates ?? [],
+      };
+    }
+  }
 
   const now = new Date();
   const monday = new Date(now);
@@ -227,6 +279,43 @@ export default async function DashboardPage() {
           </p>
         </div>
       </section>
+
+      {today && (
+        <section className="mt-8">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-semibold">{t("dash.todayTitle")}</h2>
+            <Link
+              href={`/programs/${today.programId}`}
+              className="text-sm text-accent hover:underline"
+            >
+              {today.programTitle}
+            </Link>
+          </div>
+          <div className="mt-3 rounded-md bg-surface px-4 py-4">
+            <p className="text-sm font-semibold">
+              {t("programs.dayN", { n: today.dayNumber })}
+              {today.focus ? ` · ${today.focus}` : ""}
+            </p>
+            {today.workouts.length ? (
+              <ul className="mt-3 flex flex-col gap-2">
+                {today.workouts.map((w) => (
+                  <li
+                    key={w.id}
+                    className="flex items-center justify-between rounded-md bg-background px-3 py-2.5"
+                  >
+                    <span className="text-sm">{w.title}</span>
+                    <span className="text-xs text-muted">
+                      {t(`programs.type.${w.type}` as Parameters<typeof t>[0])}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-muted">{t("dash.todayRest")}</p>
+            )}
+          </div>
+        </section>
+      )}
 
       {latestRace && latestRacePct != null && latestRace.division && (
         <PercentileBar

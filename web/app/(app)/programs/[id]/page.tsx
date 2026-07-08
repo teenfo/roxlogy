@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { ProgramBuilder } from "@/components/program-builder";
+import { ProgramEnrollButton } from "@/components/program-enroll-button";
 import { DeleteButton } from "@/components/delete-button";
 
 export async function generateMetadata({
@@ -54,6 +55,14 @@ export default async function ProgramDetailPage({
 
   const isOwner = program.owner_id === user!.id;
 
+  // 이 프로그램에 대한 활성 등록 여부 (오늘의 운동 연결)
+  const { count: enrollCount } = await supabase
+    .from("program_enrollments")
+    .select("id", { count: "exact", head: true })
+    .eq("program_id", program.id)
+    .eq("active", true);
+  const isEnrolled = (enrollCount ?? 0) > 0;
+
   // 소유자면 편집용 운동 목록도 함께 전달
   const { data: exercises } = isOwner
     ? await supabase
@@ -91,9 +100,12 @@ export default async function ProgramDetailPage({
         <Link href="/programs" className="text-sm text-muted hover:text-foreground">
           {t("programs.back")}
         </Link>
-        {isOwner && (
-          <DeleteButton kind="program" id={program.id} redirectTo="/programs" />
-        )}
+        <div className="flex items-center gap-4">
+          <ProgramEnrollButton programId={program.id} initialActive={isEnrolled} />
+          {isOwner && (
+            <DeleteButton kind="program" id={program.id} redirectTo="/programs" />
+          )}
+        </div>
       </div>
 
       <h1 className="mt-4 text-2xl font-bold">{program.title}</h1>

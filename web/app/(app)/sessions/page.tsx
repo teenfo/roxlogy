@@ -9,29 +9,98 @@ export async function generateMetadata() {
 }
 
 const PAGE_SIZE = 20;
+const SOURCES = ["all", "web", "watch", "phone"] as const;
+const PERIODS = ["all", "7d", "30d", "90d"] as const;
+const TYPES = ["all", "sim"] as const;
+type Source = (typeof SOURCES)[number];
+type Period = (typeof PERIODS)[number];
+type SessType = (typeof TYPES)[number];
+
+const PERIOD_DAYS: Record<Period, number | null> = {
+  all: null,
+  "7d": 7,
+  "30d": 30,
+  "90d": 90,
+};
 
 export default async function SessionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    source?: string;
+    period?: string;
+    type?: string;
+  }>;
 }) {
-  const { page: pageParam } = await searchParams;
-  const page = Math.max(1, Number(pageParam) || 1);
+  const sp = await searchParams;
+  const page = Math.max(1, Number(sp.page) || 1);
+  const source = (SOURCES as readonly string[]).includes(sp.source ?? "")
+    ? (sp.source as Source)
+    : "all";
+  const period = (PERIODS as readonly string[]).includes(sp.period ?? "")
+    ? (sp.period as Period)
+    : "all";
+  const type = (TYPES as readonly string[]).includes(sp.type ?? "")
+    ? (sp.type as SessType)
+    : "all";
   const from = (page - 1) * PAGE_SIZE;
 
   const supabase = await createClient();
   const { t, tag } = await getT();
-  const { data: sessions, count } = await supabase
+
+  // 시뮬만: 스테이션 세그먼트가 있는 세션 id를 선별해 일반 id 필터로 적용
+  // (count/range와 호환되도록 일반 WHERE 절로 들어감)
+  let simIds: string[] | null = null;
+  if (type === "sim") {
+    const { data: segRows } = await supabase
+      .from("session_segments")
+      .select("session_id")
+      .eq("kind", "station");
+    simIds = [...new Set((segRows ?? []).map((r) => r.session_id))];
+  }
+
+  let query = supabase
     .from("sessions")
     .select("id, started_at, total_time_ms, source_device, analysis_status", {
       count: "exact",
     })
-    .is("deleted_at", null)
+    .is("deleted_at", null);
+
+  if (source !== "all") query = query.eq("source_device", source);
+  const days = PERIOD_DAYS[period];
+  if (days != null) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    query = query.gte("started_at", cutoff.toISOString());
+  }
+  if (simIds != null) query = query.in("id", simIds.length ? simIds : [""]);
+
+  const { data: sessions, count } = await query
     .order("started_at", { ascending: false })
     .range(from, from + PAGE_SIZE - 1);
 
   const total = count ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // 필터를 유지하며 쿼리스트링 구성 (필터 변경 시 page 리셋)
+  const qs = (over: Record<string, string>) => {
+    const p = new URLSearchParams();
+    const merged = { source, period, type, ...over };
+    if (merged.source !== "all") p.set("source", merged.source);
+    if (merged.period !== "all") p.set("period", merged.period);
+    if (merged.type !== "all") p.set("type", merged.type);
+    if (over.page) p.set("page", over.page);
+    const s = p.toString();
+    return s ? `/sessions?${s}` : "/sessions";
+  };
+
+  const chip = (active: boolean) =>
+    `rounded-full border px-3 py-1 text-xs transition ${
+      active
+        ? "border-accent text-accent"
+        : "border-muted/30 text-muted hover:border-foreground"
+    }`;
 
   return (
     <main>
@@ -46,9 +115,42 @@ export default async function SessionsPage({
       </div>
       <p className="mt-1 text-sm text-muted">{t("sessions.total", { n: total })}</p>
 
+      <div className="mt-4 flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs text-muted">{t("sessions.fltSource")}</span>
+          {SOURCES.map((s) => (
+            <Link key={s} href={qs({ source: s })} className={chip(source === s)}>
+              {s === "all"
+                ? t("sessions.fltAll")
+                : t(`source.${s}` as Parameters<typeof t>[0])}
+            </Link>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs text-muted">{t("sessions.fltPeriod")}</span>
+          {PERIODS.map((p) => (
+            <Link key={p} href={qs({ period: p })} className={chip(period === p)}>
+              {p === "all"
+                ? t("sessions.fltAll")
+                : t(`sessions.period.${p}` as Parameters<typeof t>[0])}
+            </Link>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs text-muted">{t("sessions.fltType")}</span>
+          {TYPES.map((ty) => (
+            <Link key={ty} href={qs({ type: ty })} className={chip(type === ty)}>
+              {ty === "all" ? t("sessions.fltAll") : t("sessions.typeSim")}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       {!sessions?.length ? (
         <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("sessions.empty")}
+          {total === 0 && (source !== "all" || period !== "all" || type !== "all")
+            ? t("sessions.emptyFiltered")
+            : t("sessions.empty")}
         </p>
       ) : (
         <ul className="mt-6 flex flex-col gap-2">
@@ -78,7 +180,7 @@ export default async function SessionsPage({
       {lastPage > 1 && (
         <nav className="mt-6 flex justify-center gap-4 text-sm">
           {page > 1 && (
-            <Link href={`/sessions?page=${page - 1}`} className="text-accent">
+            <Link href={qs({ page: String(page - 1) })} className="text-accent">
               {t("sessions.pagePrev")}
             </Link>
           )}
@@ -86,7 +188,7 @@ export default async function SessionsPage({
             {page} / {lastPage}
           </span>
           {page < lastPage && (
-            <Link href={`/sessions?page=${page + 1}`} className="text-accent">
+            <Link href={qs({ page: String(page + 1) })} className="text-accent">
               {t("sessions.pageNext")}
             </Link>
           )}
