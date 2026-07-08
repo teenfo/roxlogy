@@ -60,6 +60,7 @@ const ko: Record<DictKey, string> = {
   "dash.totalSessions": "전체 세션",
   "dash.trendTitle": "최근 세션 총시간 추이",
   "dash.prTitle": "스테이션 최고 기록",
+  "dash.latestRaceTitle": "최근 레이스 — 필드 대비 위치",
   "dash.corrTitle": "훈련 vs 레이스",
   "dash.corrDesc":
     "레이스 시뮬 세션 총시간과 실제 레이스 기록을 시간축에서 비교 — 레이스를 향해 훈련이 수렴하고 있나요?",

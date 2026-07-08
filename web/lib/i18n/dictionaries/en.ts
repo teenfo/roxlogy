@@ -64,6 +64,7 @@ const en = {
   "dash.totalSessions": "All sessions",
   "dash.trendTitle": "Recent session totals",
   "dash.prTitle": "Station bests",
+  "dash.latestRaceTitle": "Latest race — where you stand",
   "dash.corrTitle": "Training vs race",
   "dash.corrDesc":
     "Race-sim session totals against your actual race times over time — are you training toward race day?",

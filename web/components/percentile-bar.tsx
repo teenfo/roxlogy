@@ -1,17 +1,23 @@
+import Link from "next/link";
 import { getT } from "@/lib/i18n";
 
 /**
  * 필드 대비 백분위 표시. pct = "상위 몇 %"(작을수록 빠름).
  * 공개 집계 분포(race_benchmarks) 기준 — 절대 순위 아님.
+ * heading/link로 헤더를 바꿔 대시보드 카드로도 재사용.
  */
 export async function PercentileBar({
   pct,
   division,
   gender,
+  heading,
+  link,
 }: {
   pct: number;
   division: string;
   gender: string | null;
+  heading?: string;
+  link?: { href: string; label: string };
 }) {
   const { t } = await getT();
   const top = Math.max(1, Math.round(pct));
@@ -21,11 +27,21 @@ export async function PercentileBar({
 
   return (
     <section className="mt-6 rounded-md bg-surface px-4 py-4">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-muted">
-          {t("percentile.title")}
-        </h2>
-        <span className="font-mono text-xl font-bold text-accent">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="flex min-w-0 flex-col">
+          <h2 className="text-sm font-semibold text-muted">
+            {heading ?? t("percentile.title")}
+          </h2>
+          {link && (
+            <Link
+              href={link.href}
+              className="truncate text-sm font-semibold text-accent hover:underline"
+            >
+              {link.label}
+            </Link>
+          )}
+        </div>
+        <span className="shrink-0 font-mono text-xl font-bold text-accent">
           {t("percentile.top", { pct: String(top) })}
         </span>
       </div>

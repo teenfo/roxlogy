@@ -60,6 +60,7 @@ const es: Record<DictKey, string> = {
   "dash.totalSessions": "Sesiones totales",
   "dash.trendTitle": "Totales de sesiones recientes",
   "dash.prTitle": "Mejores marcas por estación",
+  "dash.latestRaceTitle": "Última carrera — tu posición",
   "dash.corrTitle": "Entrenamiento vs carrera",
   "dash.corrDesc":
     "Totales de sesiones de simulacro frente a tus tiempos reales de carrera en el tiempo — ¿entrenas hacia el día de carrera?",

@@ -4,6 +4,8 @@ import { getT } from "@/lib/i18n";
 import { formatDate, formatDateShort, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { CorrelationLine, TrendBars } from "@/components/charts";
+import { PercentileBar } from "@/components/percentile-bar";
+import { percentileOf, type Benchmark } from "@/lib/percentile";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -24,6 +26,7 @@ export default async function DashboardPage() {
     { data: simSessions },
     { data: races },
     { data: goals },
+    { data: benchmarks },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user!.id).single(),
     supabase
@@ -52,7 +55,7 @@ export default async function DashboardPage() {
       .limit(12),
     supabase
       .from("race_results")
-      .select("id, event, event_date, total_time_ms")
+      .select("id, event, event_date, division, total_time_ms")
       .order("event_date", { ascending: true })
       .limit(30),
     supabase
@@ -60,10 +63,30 @@ export default async function DashboardPage() {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(1),
+    supabase.from("race_benchmarks").select("division, gender, scope, percentiles"),
   ]);
 
   const all = sessions ?? [];
   const recent = all.slice(0, 3);
+
+  // 최근 레이스 필드 대비 백분위 (공개 분포 기준) — races는 event_date 오름차순
+  const raceList = (races ?? []) as {
+    id: string;
+    event: string;
+    event_date: string | null;
+    division: string | null;
+    total_time_ms: number | null;
+  }[];
+  const latestRace = raceList.length ? raceList[raceList.length - 1] : null;
+  const bms = (benchmarks ?? []) as Benchmark[];
+  const latestRacePct = latestRace
+    ? percentileOf(
+        latestRace.total_time_ms,
+        latestRace.division,
+        profile?.gender ?? null,
+        bms,
+      )
+    : null;
 
   const now = new Date();
   const monday = new Date(now);
@@ -204,6 +227,16 @@ export default async function DashboardPage() {
           </p>
         </div>
       </section>
+
+      {latestRace && latestRacePct != null && latestRace.division && (
+        <PercentileBar
+          pct={latestRacePct}
+          division={latestRace.division}
+          gender={profile?.gender ?? null}
+          heading={t("dash.latestRaceTitle")}
+          link={{ href: `/races/${latestRace.id}`, label: latestRace.event }}
+        />
+      )}
 
       {trend.length >= 2 && (
         <section className="mt-8">
