@@ -22,7 +22,7 @@ export default async function SessionEditPage({
   const { data: session } = await supabase
     .from("sessions")
     .select(
-      "id, started_at, session_segments ( id, seq, kind, exercise_id, split_time_ms )",
+      "id, started_at, notes, rpe, session_segments ( id, seq, kind, exercise_id, split_time_ms )",
     )
     .eq("id", id)
     .is("deleted_at", null)
@@ -35,7 +35,13 @@ export default async function SessionEditPage({
 
   return (
     <SessionNewForm
-      initial={{ id: session.id, startedAt: session.started_at, segments }}
+      initial={{
+        id: session.id,
+        startedAt: session.started_at,
+        segments,
+        notes: session.notes,
+        rpe: session.rpe,
+      }}
     />
   );
 }

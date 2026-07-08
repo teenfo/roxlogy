@@ -78,7 +78,7 @@ export default async function SessionDetailPage({
   const { data: session } = await supabase
     .from("sessions")
     .select(
-      `id, user_id, shared, started_at, ended_at, total_time_ms, source_device, analysis_status,
+      `id, user_id, shared, started_at, ended_at, total_time_ms, source_device, analysis_status, notes, rpe,
        session_metrics ( run_lap_deviation_ms, roxzone_total_ms, pacing_grade ),
        session_segments (
          id, seq, kind, machine_type, split_time_ms,
@@ -188,6 +188,24 @@ export default async function SessionDetailPage({
           device: t(`source.${session.source_device}` as Parameters<typeof t>[0]),
         })}
       </p>
+
+      {isOwner && (session.rpe != null || session.notes) && (
+        <section className="mt-6 rounded-md bg-surface px-4 py-3">
+          {session.rpe != null && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted">{t("sessions.rpe")}</span>
+              <span className="rounded-full bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
+                {t("sessions.rpeValue", { n: session.rpe })}
+              </span>
+            </div>
+          )}
+          {session.notes && (
+            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/90">
+              {session.notes}
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-md bg-surface px-4 py-3">

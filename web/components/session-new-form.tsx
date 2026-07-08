@@ -33,6 +33,8 @@ export type SessionInitial = {
   id: string;
   startedAt: string; // ISO
   segments: EditableSegment[]; // seq 순
+  notes?: string | null;
+  rpe?: number | null;
 };
 
 /** 저장된 세그먼트(빈 칸 제외·재번호됨)를 24행 템플릿에 순서대로 되맵핑 */
@@ -81,6 +83,8 @@ export function SessionNewForm({ initial }: { initial?: SessionInitial }) {
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 16);
   });
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [rpe, setRpe] = useState<number | null>(initial?.rpe ?? null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -122,8 +126,10 @@ export function SessionNewForm({ initial }: { initial?: SessionInitial }) {
         ? {
             sessionId: initial.id,
             segmentIds: initial.segments.map((s) => s.id),
+            notes,
+            rpe,
           }
-        : undefined,
+        : { notes, rpe },
     );
     if ("error" in built) {
       setPending(false);
@@ -184,6 +190,39 @@ export function SessionNewForm({ initial }: { initial?: SessionInitial }) {
           value={startedAt}
           onChange={(e) => setStartedAt(e.target.value)}
           className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent"
+        />
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <label className="text-sm text-muted">{t("newSession.rpe")}</label>
+        <div className="flex flex-wrap gap-1">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setRpe(rpe === n ? null : n)}
+              className={`h-8 w-8 rounded-md border text-xs font-semibold transition ${
+                rpe === n
+                  ? "border-accent bg-accent text-background"
+                  : "border-muted/30 text-muted hover:border-foreground"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-muted">{t("newSession.rpeHint")}</span>
+      </div>
+
+      <div className="mt-4">
+        <label className="text-sm text-muted">{t("newSession.notes")}</label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          maxLength={2000}
+          placeholder={t("newSession.notesPlaceholder")}
+          className="mt-1 w-full resize-y rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
         />
       </div>
 

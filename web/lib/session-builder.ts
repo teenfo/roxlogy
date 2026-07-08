@@ -58,6 +58,8 @@ export type SessionRows = {
     ended_at: string;
     total_time_ms: number;
     client_updated_at: string;
+    notes: string | null;
+    rpe: number | null;
   };
   segments: {
     id: string;
@@ -79,6 +81,9 @@ export function buildSessionRows(
     sessionId?: string;
     /** 수정 모드: seq 순서대로 재사용할 기존 세그먼트 id */
     segmentIds?: string[];
+    /** 주관적 훈련 로그 (선택) */
+    notes?: string | null;
+    rpe?: number | null;
   },
 ): SessionRows | { error: string } {
   const filled = segments.filter((s) => s.splitMs != null && s.splitMs > 0);
@@ -99,6 +104,8 @@ export function buildSessionRows(
       ended_at: new Date(started.getTime() + totalMs).toISOString(),
       total_time_ms: totalMs,
       client_updated_at: nowIso,
+      notes: opts?.notes?.trim() ? opts.notes.trim() : null,
+      rpe: opts?.rpe ?? null,
     },
     segments: filled.map((s, idx) => ({
       // 같은 seq 자리의 기존 id를 재사용해야 erg_samples 참조가 유지되고
