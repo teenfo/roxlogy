@@ -41,6 +41,12 @@ export default async function AppLayout({
             {t("nav.programs")}
           </Link>
           <Link
+            href="/schedule"
+            className="hidden text-sm text-muted hover:text-foreground sm:block"
+          >
+            {t("nav.schedule")}
+          </Link>
+          <Link
             href="/leaderboard"
             className="hidden text-sm text-muted hover:text-foreground sm:block"
           >

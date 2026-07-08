@@ -22,7 +22,7 @@ export default async function SessionEditPage({
   const { data: session } = await supabase
     .from("sessions")
     .select(
-      "id, started_at, notes, rpe, session_segments ( id, seq, kind, exercise_id, split_time_ms )",
+      "id, started_at, notes, rpe, template_id, session_segments ( id, seq, kind, exercise_id, split_time_ms )",
     )
     .eq("id", id)
     .is("deleted_at", null)
@@ -41,6 +41,7 @@ export default async function SessionEditPage({
         segments,
         notes: session.notes,
         rpe: session.rpe,
+        templateId: session.template_id,
       }}
     />
   );

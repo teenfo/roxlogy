@@ -35,7 +35,10 @@ export type SessionInitial = {
   segments: EditableSegment[]; // seq 순
   notes?: string | null;
   rpe?: number | null;
+  templateId?: string | null;
 };
+
+export type TodayWorkout = { id: string; title: string };
 
 /** 저장된 세그먼트(빈 칸 제외·재번호됨)를 24행 템플릿에 순서대로 되맵핑 */
 function rowsFromInitial(initial: SessionInitial): Row[] {
@@ -69,7 +72,13 @@ function toLocalInput(iso: string): string {
   return d.toISOString().slice(0, 16);
 }
 
-export function SessionNewForm({ initial }: { initial?: SessionInitial }) {
+export function SessionNewForm({
+  initial,
+  todayWorkouts = [],
+}: {
+  initial?: SessionInitial;
+  todayWorkouts?: TodayWorkout[];
+}) {
   const router = useRouter();
   const { t } = useI18n();
   const [rows, setRows] = useState<Row[]>(() =>
@@ -85,6 +94,9 @@ export function SessionNewForm({ initial }: { initial?: SessionInitial }) {
   });
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [rpe, setRpe] = useState<number | null>(initial?.rpe ?? null);
+  const [templateId, setTemplateId] = useState<string | null>(
+    initial?.templateId ?? null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -128,8 +140,9 @@ export function SessionNewForm({ initial }: { initial?: SessionInitial }) {
             segmentIds: initial.segments.map((s) => s.id),
             notes,
             rpe,
+            templateId,
           }
-        : { notes, rpe },
+        : { notes, rpe, templateId },
     );
     if ("error" in built) {
       setPending(false);
@@ -213,6 +226,30 @@ export function SessionNewForm({ initial }: { initial?: SessionInitial }) {
         </div>
         <span className="text-xs text-muted">{t("newSession.rpeHint")}</span>
       </div>
+
+      {todayWorkouts.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <label className="text-sm text-muted">{t("newSession.linkWorkout")}</label>
+          <div className="flex flex-wrap gap-1.5">
+            {todayWorkouts.map((w) => (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() =>
+                  setTemplateId(templateId === w.id ? null : w.id)
+                }
+                className={`rounded-full border px-3 py-1 text-xs transition ${
+                  templateId === w.id
+                    ? "border-accent bg-accent text-background"
+                    : "border-muted/30 text-muted hover:border-foreground"
+                }`}
+              >
+                {w.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-4">
         <label className="text-sm text-muted">{t("newSession.notes")}</label>

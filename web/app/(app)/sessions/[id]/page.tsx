@@ -79,6 +79,7 @@ export default async function SessionDetailPage({
     .from("sessions")
     .select(
       `id, user_id, shared, started_at, ended_at, total_time_ms, source_device, analysis_status, notes, rpe,
+       workout_templates ( id, title, program_days ( day_index, programs ( id, title ) ) ),
        session_metrics ( run_lap_deviation_ms, roxzone_total_ms, pacing_grade ),
        session_segments (
          id, seq, kind, machine_type, split_time_ms,
@@ -94,6 +95,18 @@ export default async function SessionDetailPage({
   if (!session) notFound();
 
   const isOwner = session.user_id === user!.id;
+
+  // 연결된 프로그램 워크아웃 (RLS: 비공개 프로그램은 타인에게 embed되지 않음)
+  type LinkedWorkout = {
+    id: string;
+    title: string;
+    program_days: {
+      day_index: number;
+      programs: { id: string; title: string } | null;
+    } | null;
+  } | null;
+  const linked = (session.workout_templates ??
+    null) as unknown as LinkedWorkout;
 
   const exName = (ex: Segment["exercises"]) =>
     ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : null;
@@ -188,6 +201,26 @@ export default async function SessionDetailPage({
           device: t(`source.${session.source_device}` as Parameters<typeof t>[0]),
         })}
       </p>
+
+      {linked && (
+        <p className="mt-2 text-sm">
+          <span className="text-muted">{t("sessions.partOfProgram")} </span>
+          {linked.program_days?.programs ? (
+            <Link
+              href={`/programs/${linked.program_days.programs.id}`}
+              className="text-accent hover:underline"
+            >
+              {linked.program_days.programs.title}
+              {linked.program_days.day_index != null
+                ? ` · ${t("programs.dayN", { n: linked.program_days.day_index })}`
+                : ""}
+              {` · ${linked.title}`}
+            </Link>
+          ) : (
+            <span className="text-foreground/90">{linked.title}</span>
+          )}
+        </p>
+      )}
 
       {isOwner && (session.rpe != null || session.notes) && (
         <section className="mt-6 rounded-md bg-surface px-4 py-3">

@@ -60,6 +60,7 @@ export type SessionRows = {
     client_updated_at: string;
     notes: string | null;
     rpe: number | null;
+    template_id: string | null;
   };
   segments: {
     id: string;
@@ -84,6 +85,8 @@ export function buildSessionRows(
     /** 주관적 훈련 로그 (선택) */
     notes?: string | null;
     rpe?: number | null;
+    /** 프로그램 워크아웃 연결 (선택) */
+    templateId?: string | null;
   },
 ): SessionRows | { error: string } {
   const filled = segments.filter((s) => s.splitMs != null && s.splitMs > 0);
@@ -106,6 +109,7 @@ export function buildSessionRows(
       client_updated_at: nowIso,
       notes: opts?.notes?.trim() ? opts.notes.trim() : null,
       rpe: opts?.rpe ?? null,
+      template_id: opts?.templateId ?? null,
     },
     segments: filled.map((s, idx) => ({
       // 같은 seq 자리의 기존 id를 재사용해야 erg_samples 참조가 유지되고

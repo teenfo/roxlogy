@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 
@@ -94,24 +95,29 @@ export default async function ExercisesPage({
             const primary = locale === "ko" ? ex.name_ko : ex.name_en;
             const secondary = locale === "ko" ? ex.name_en : ex.name_ko;
             return (
-              <li key={ex.id} className="rounded-md bg-surface px-4 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold">{primary}</p>
-                  {ex.station_type && (
-                    <span className="rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent">
-                      {t("exercises.stationN", {
-                        n: ex.station_type.replace("station_", ""),
-                      })}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-xs text-muted">
-                  {secondary}
-                  {ex.category
-                    ? ` · ${t(`exercises.cat.${ex.category}` as Parameters<typeof t>[0])}`
-                    : ""}
-                  {ex.equipment?.length ? ` · ${ex.equipment.join(", ")}` : ""}
-                </p>
+              <li key={ex.id}>
+                <Link
+                  href={`/exercises/${ex.id}`}
+                  className="block rounded-md bg-surface px-4 py-3 hover:bg-surface/70"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{primary}</p>
+                    {ex.station_type && (
+                      <span className="rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent">
+                        {t("exercises.stationN", {
+                          n: ex.station_type.replace("station_", ""),
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {secondary}
+                    {ex.category
+                      ? ` · ${t(`exercises.cat.${ex.category}` as Parameters<typeof t>[0])}`
+                      : ""}
+                    {ex.equipment?.length ? ` · ${ex.equipment.join(", ")}` : ""}
+                  </p>
+                </Link>
               </li>
             );
           })}
