@@ -3,10 +3,16 @@
 
     <uses-feature android:name="android.hardware.type.watch" />
 
-    <!-- PM5 BLE 수집 (N2에서 사용) -->
+    <!-- PM5 BLE 수집 -->
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Android 11 이하 BLE 스캔용 -->
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
 
     <application
         android:allowBackup="true"
