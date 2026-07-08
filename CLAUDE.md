@@ -13,9 +13,9 @@
 - **"HYROX" 상표를 앱 이름·서브타이틀·패키지명에 쓰지 말 것** (설명문 내 호환성 언급만 허용)
 
 ## 현재 Phase
-**Phase 1 — 온라인 사이트(데이터 토대) 우선.**
-지금 작업 순서: ①Supabase 스키마+RLS 확정 → ②세션 수신 API(멱등 업서트) → ③세션 히스토리/상세 웹 화면 → ④hosub 분석 워커.
-워치/폰 네이티브 앱은 데이터 토대 검증 후 착수.
+**Phase 1 잔여 — 데이터 토대 완성.** 로드맵은 `docs/ROADMAP.md` (2026-07-08 확정).
+①스키마+RLS ✅ ③세션/레이스 웹 ✅ → 지금: **M3 세션 수신 API(S2, Edge Function)** → M4 hosub 워커(S5), 웹 고도화(M5)는 병행.
+워치/폰 네이티브 앱(M6/M7)은 M3 배포·계약 확정 후 착수. Phase 2 순서: S8→S13→S9→S10. 카카오 OAuth는 도입하지 않음.
 
 ## 기술 스택 (확정 — 임의 변경 금지)
 - **워치**: Kotlin + Wear Compose (네이티브). PM5 BLE 직결 때문에 네이티브 강제.
@@ -42,10 +42,13 @@
 ## 디렉토리 구조
 ```
 docs/PLANNING.md         # 전체 기획 (상세)
+docs/ROADMAP.md          # 마일스톤 로드맵 (현재 상태·우선순위)
+docs/API_CONTRACT.md     # S2 세션 수신 API 계약
 supabase/migrations/     # SQL 마이그레이션 (스키마+RLS)
+supabase/functions/      # Edge Functions (ingest-session 등)
 supabase/seed/           # 시드 데이터 (운동 DB 등)
 web/                     # Next.js 웹앱
-.github/workflows/       # CI/CD
+.github/workflows/       # CI/CD + 수동 프로브(probe, probe-browser)
 ```
 
 ## 코딩 컨벤션
@@ -64,7 +67,7 @@ web/                     # Next.js 웹앱
 ## 미해결 결정 (착수 전 확인 필요)
 - [x] RLS 조인 정책 상세 (세그먼트·raw) — 마이그레이션 002에서 구현·격리 검증 완료
 - [x] 멱등 업서트 키·LWW 기준 — 마이그레이션 003 (`client_updated_at`, soft delete 포함)
-- [ ] raw 다운샘플링 기준 (곡선 차트용) + 업로드 페이로드 상한
-- [ ] S2 API 계약 문서 (요청/응답 스키마, 에러 코드) — **S2 착수 전 필요**
-- [x] 앱/패키지명 — Roxlogy 확정 (상표 출원 전 정밀검색만 남음)
-- [ ] 오프라인 세션 보관 한도 (워치 로컬)
+- [x] raw 다운샘플링 기준 + 업로드 페이로드 상한 — 원본 1Hz 보존, 곡선용 파생 세그먼트당 ≤120pt(LTTB, 워커 생성), 요청당 2MB·세션당 erg 샘플 30,000개 (docs/API_CONTRACT.md)
+- [x] S2 API 계약 문서 — docs/API_CONTRACT.md
+- [x] 앱/패키지명 — Roxlogy 확정 (상표 출원 전 정밀검색만 남음 → M6/M7 전 게이트, ROADMAP 참조)
+- [x] 오프라인 세션 보관 한도 (워치 로컬) — 최근 20세션 또는 72시간 (docs/API_CONTRACT.md)

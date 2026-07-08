@@ -13,6 +13,26 @@ on:
         required: false
         type: string
         default: ""
+      method:
+        description: HTTP method (GET/POST)
+        required: false
+        type: string
+        default: GET
+      data:
+        description: optional request body (JSON)
+        required: false
+        type: string
+        default: ""
+      bearer:
+        description: optional Authorization bearer token
+        required: false
+        type: string
+        default: ""
+      apikey:
+        description: optional apikey header
+        required: false
+        type: string
+        default: ""
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -22,12 +42,18 @@ jobs:
         env:
           URL: ${{ inputs.url }}
           PAT: ${{ inputs.grep }}
+          METHOD: ${{ inputs.method }}
+          DATA: ${{ inputs.data }}
+          BEARER: ${{ inputs.bearer }}
+          APIKEY: ${{ inputs.apikey }}
         run: |
-          curl -sL --max-time 25 \
-            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" \
-            -H "Accept: text/html,application/xhtml+xml" \
-            -H "Accept-Language: en" \
-            "$URL" -o page.html -w "HTTP %{http_code} bytes %{size_download}\n"
+          args=(-sL --max-time 25 -X "$METHOD"
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+            -H "Accept-Language: en")
+          if [ -n "$DATA" ]; then args+=(-H "Content-Type: application/json" --data "$DATA"); fi
+          if [ -n "$BEARER" ]; then args+=(-H "Authorization: Bearer $BEARER"); fi
+          if [ -n "$APIKEY" ]; then args+=(-H "apikey: $APIKEY"); fi
+          curl "${args[@]}" "$URL" -o page.html -w "HTTP %{http_code} bytes %{size_download}\n"
           echo "---"
           if [ -n "$PAT" ]; then
             tr -d '\n' < page.html | grep -o -E ".{0,120}${PAT}.{0,240}" | head -40 || echo "NO MATCH"
