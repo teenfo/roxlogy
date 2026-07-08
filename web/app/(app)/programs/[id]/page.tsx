@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { ProgramBuilder } from "@/components/program-builder";
 import { ProgramEnrollButton } from "@/components/program-enroll-button";
+import { CloneProgramButton } from "@/components/clone-program-button";
 import { DeleteButton } from "@/components/delete-button";
 
 export async function generateMetadata({
@@ -101,6 +102,9 @@ export default async function ProgramDetailPage({
           {t("programs.back")}
         </Link>
         <div className="flex items-center gap-4">
+          {!isOwner && (
+            <CloneProgramButton programId={program.id} title={program.title} />
+          )}
           <ProgramEnrollButton programId={program.id} initialActive={isEnrolled} />
           {isOwner && (
             <DeleteButton kind="program" id={program.id} redirectTo="/programs" />

@@ -68,6 +68,22 @@ export default async function SchedulePage({
   const dayMap = new Map(
     enroll.programs.program_days.map((d) => [d.day_index, d]),
   );
+
+  // 완료 판정: 이 프로그램의 워크아웃 템플릿에 태깅된 내 세션
+  const allTemplateIds = enroll.programs.program_days.flatMap((d) =>
+    d.workout_templates.map((w) => w.id),
+  );
+  const { data: doneRows } = allTemplateIds.length
+    ? await supabase
+        .from("sessions")
+        .select("id, template_id")
+        .is("deleted_at", null)
+        .in("template_id", allTemplateIds)
+    : { data: [] };
+  const doneByTemplate = new Map<string, string>();
+  for (const r of (doneRows ?? []) as { id: string; template_id: string | null }[])
+    if (r.template_id) doneByTemplate.set(r.template_id, r.id);
+
   const start = midnight(new Date(enroll.start_date + "T00:00:00"));
   const today = midnight(new Date());
 
@@ -79,13 +95,24 @@ export default async function SchedulePage({
     date.setDate(base.getDate() + i);
     const dayIndex =
       Math.floor((date.getTime() - start.getTime()) / 86400000) + 1;
+    const day = dayIndex >= 1 ? (dayMap.get(dayIndex) ?? null) : null;
+    const doneSessionId = day
+      ? (day.workout_templates
+          .map((w) => doneByTemplate.get(w.id))
+          .find(Boolean) ?? null)
+      : null;
     return {
       date,
       dayIndex,
       isToday: date.getTime() === today.getTime(),
-      day: dayIndex >= 1 ? (dayMap.get(dayIndex) ?? null) : null,
+      day,
+      doneSessionId,
     };
   });
+
+  // 이번 주 달성률: 워크아웃이 있는 날 중 완료한 비율
+  const scheduled = week7.filter((d) => d.day?.workout_templates.length);
+  const doneCount = scheduled.filter((d) => d.doneSessionId).length;
 
   return (
     <main>
@@ -119,6 +146,23 @@ export default async function SchedulePage({
         </Link>
       </nav>
 
+      {scheduled.length > 0 && (
+        <div className="mt-4 flex items-center gap-3">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface">
+            <div
+              className="h-full rounded-full bg-track"
+              style={{ width: `${(doneCount / scheduled.length) * 100}%` }}
+            />
+          </div>
+          <span className="text-xs text-muted">
+            {t("schedule.weeklyRate", {
+              done: doneCount,
+              total: scheduled.length,
+            })}
+          </span>
+        </div>
+      )}
+
       <ul className="mt-6 flex flex-col gap-2">
         {week7.map((d) => (
           <li
@@ -128,10 +172,19 @@ export default async function SchedulePage({
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                {d.doneSessionId && (
+                  <Link
+                    href={`/sessions/${d.doneSessionId}`}
+                    className="text-track"
+                    title={t("schedule.done")}
+                  >
+                    ✓
+                  </Link>
+                )}
                 {formatDateShort(d.date.toISOString(), tag)}
                 {d.isToday && (
-                  <span className="ml-2 text-xs text-accent">
+                  <span className="ml-1 text-xs text-accent">
                     {t("schedule.today")}
                   </span>
                 )}

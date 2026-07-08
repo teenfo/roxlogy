@@ -149,6 +149,8 @@ const en = {
   "schedule.thisWeek": "This week",
   "schedule.today": "Today",
   "schedule.rest": "Rest",
+  "schedule.done": "Done",
+  "schedule.weeklyRate": "{done}/{total} done",
   "newSession.notesPlaceholder": "How did it go? Conditions, feel, what to fix next time…",
   "newSession.runLabel": "Run {n} (1km)",
   "newSession.roxzoneLabel": "Roxzone {n}",
@@ -342,6 +344,9 @@ const en = {
   "exercises.detStation": "Station",
   "exercises.detEquipment": "Equipment",
   "exercises.detHowTo": "How to",
+  "exercises.myTrend": "My trend",
+  "exercises.trendBestLatest": "Best {best} · latest {latest}",
+  "exercises.trendNote": "Your splits for this exercise over time (last 15).",
   "exercises.stationN": "Station {n}",
 
   // 프로필 설정
@@ -455,6 +460,8 @@ const en = {
   "programs.mineEmpty": "No programs yet. Create your first plan.",
   "programs.community": "Community programs",
   "programs.back": "← Programs",
+  "programs.clone": "Clone",
+  "programs.copySuffix": "copy",
   "programs.start": "Start (from today)",
   "programs.stop": "Stop",
   "programs.enrolled": "In progress",

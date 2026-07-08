@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import { formatDateShort, formatMs } from "@/lib/format";
+import { RunLapLine } from "@/components/charts";
 
 export async function generateMetadata({
   params,
@@ -27,7 +29,7 @@ export default async function ExerciseDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, locale } = await getT();
+  const { t, tag, locale } = await getT();
 
   const { data: ex } = await supabase
     .from("exercises")
@@ -35,6 +37,34 @@ export default async function ExerciseDetailPage({
     .eq("id", id)
     .maybeSingle();
   if (!ex) notFound();
+
+  // 이 운동에 대한 내 세션 스플릿 추이 (RLS: 본인 세그먼트만 조회됨)
+  const { data: segRows } = await supabase
+    .from("session_segments")
+    .select("split_time_ms, sessions!inner ( started_at, deleted_at )")
+    .eq("exercise_id", id)
+    .not("split_time_ms", "is", null)
+    .is("sessions.deleted_at", null);
+  type SegRow = {
+    split_time_ms: number;
+    sessions: { started_at: string } | null;
+  };
+  const splits = ((segRows ?? []) as unknown as SegRow[])
+    .filter((r) => r.sessions?.started_at)
+    .sort(
+      (a, b) =>
+        new Date(a.sessions!.started_at).getTime() -
+        new Date(b.sessions!.started_at).getTime(),
+    )
+    .slice(-15);
+  const trend = splits.map((r) => ({
+    name: formatDateShort(r.sessions!.started_at, tag),
+    ms: r.split_time_ms,
+  }));
+  const best = splits.length
+    ? Math.min(...splits.map((r) => r.split_time_ms))
+    : null;
+  const latest = splits.length ? splits[splits.length - 1].split_time_ms : null;
 
   const primary = locale === "ko" ? ex.name_ko : ex.name_en;
   const secondary = locale === "ko" ? ex.name_en : ex.name_ko;
@@ -88,6 +118,24 @@ export default async function ExerciseDetailPage({
             </div>
           ))}
         </dl>
+      )}
+
+      {trend.length >= 2 && (
+        <section className="mt-8">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-semibold">{t("exercises.myTrend")}</h2>
+            <span className="text-xs text-muted">
+              {t("exercises.trendBestLatest", {
+                best: best != null ? formatMs(best) : "—",
+                latest: latest != null ? formatMs(latest) : "—",
+              })}
+            </span>
+          </div>
+          <div className="mt-3 rounded-md bg-surface p-4">
+            <RunLapLine data={trend} />
+          </div>
+          <p className="mt-2 text-xs text-muted">{t("exercises.trendNote")}</p>
+        </section>
       )}
 
       {ex.description_ko && (
