@@ -20,6 +20,7 @@ const en = {
   "nav.races": "Races",
   "nav.programs": "Programs",
   "nav.leaderboard": "Leaderboard",
+  "nav.feed": "Feed",
   "nav.events": "Events",
   "nav.exercises": "Exercises",
   "nav.profile": "Profile",
@@ -371,6 +372,21 @@ const en = {
   "meta.programs": "Programs — Roxlogy",
   "meta.programNew": "New program — Roxlogy",
   "meta.leaderboard": "Leaderboard — Roxlogy",
+  "meta.feed": "Feed — Roxlogy",
+
+  // 커뮤니티 (S10)
+  "feed.title": "Community feed",
+  "feed.desc": "Shared race-sim sessions from the Roxlogy community.",
+  "feed.discover": "Discover",
+  "feed.followingTab": "Following",
+  "feed.emptyDiscover": "No shared sessions yet. Share one of yours to get started.",
+  "feed.emptyFollowing": "No sessions from athletes you follow yet.",
+  "feed.follow": "Follow",
+  "feed.following": "Following",
+  "feed.back": "← Feed",
+  "share.share": "Share",
+  "share.shared": "Shared ✓",
+  "share.hint": "Make this session visible in the community feed.",
 
   // 리더보드 (S8)
   "leaderboard.title": "Leaderboard",

@@ -19,6 +19,7 @@ const ko: Record<DictKey, string> = {
   "nav.races": "레이스",
   "nav.programs": "프로그램",
   "nav.leaderboard": "리더보드",
+  "nav.feed": "피드",
   "nav.events": "일정",
   "nav.exercises": "운동",
   "nav.profile": "프로필",
@@ -352,6 +353,21 @@ const ko: Record<DictKey, string> = {
   "meta.programs": "프로그램 — Roxlogy",
   "meta.programNew": "새 프로그램 — Roxlogy",
   "meta.leaderboard": "리더보드 — Roxlogy",
+  "meta.feed": "피드 — Roxlogy",
+
+  // 커뮤니티 (S10)
+  "feed.title": "커뮤니티 피드",
+  "feed.desc": "Roxlogy 커뮤니티가 공유한 레이스 시뮬 세션입니다.",
+  "feed.discover": "둘러보기",
+  "feed.followingTab": "팔로잉",
+  "feed.emptyDiscover": "아직 공유된 세션이 없습니다. 내 세션을 공유해 시작해 보세요.",
+  "feed.emptyFollowing": "팔로우한 선수의 세션이 아직 없습니다.",
+  "feed.follow": "팔로우",
+  "feed.following": "팔로잉",
+  "feed.back": "← 피드",
+  "share.share": "공유",
+  "share.shared": "공유됨 ✓",
+  "share.hint": "이 세션을 커뮤니티 피드에 노출합니다.",
 
   // 리더보드 (S8)
   "leaderboard.title": "리더보드",

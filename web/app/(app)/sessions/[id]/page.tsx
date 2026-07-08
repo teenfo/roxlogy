@@ -17,6 +17,8 @@ import {
 } from "@/components/charts";
 import { CHART_COLORS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
+import { ShareToggle } from "@/components/share-toggle";
+import { FollowButton } from "@/components/follow-button";
 
 const KIND_BADGE: Record<string, string> = {
   run: "border-track/60 text-track",
@@ -69,11 +71,14 @@ export default async function SessionDetailPage({
   const { id } = await params;
   const supabase = await createClient();
   const { t, tag, locale } = await getT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: session } = await supabase
     .from("sessions")
     .select(
-      `id, started_at, ended_at, total_time_ms, source_device, analysis_status,
+      `id, user_id, shared, started_at, ended_at, total_time_ms, source_device, analysis_status,
        session_metrics ( run_lap_deviation_ms, roxzone_total_ms, pacing_grade ),
        session_segments (
          id, seq, kind, machine_type, split_time_ms,
@@ -87,6 +92,8 @@ export default async function SessionDetailPage({
     .maybeSingle();
 
   if (!session) notFound();
+
+  const isOwner = session.user_id === user!.id;
 
   const exName = (ex: Segment["exercises"]) =>
     ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : null;
@@ -146,18 +153,26 @@ export default async function SessionDetailPage({
   return (
     <main>
       <div className="flex items-center justify-between">
-        <Link href="/sessions" className="text-sm text-muted hover:text-foreground">
-          {t("sessions.back")}
+        <Link
+          href={isOwner ? "/sessions" : "/feed"}
+          className="text-sm text-muted hover:text-foreground"
+        >
+          {isOwner ? t("sessions.back") : t("feed.back")}
         </Link>
-        <div className="flex items-center gap-4">
-          <Link
-            href={`/sessions/${session.id}/edit`}
-            className="text-sm text-track hover:underline"
-          >
-            {t("sessions.edit")}
-          </Link>
-          <DeleteButton kind="session" id={session.id} redirectTo="/sessions" />
-        </div>
+        {isOwner ? (
+          <div className="flex items-center gap-4">
+            <ShareToggle id={session.id} shared={session.shared} />
+            <Link
+              href={`/sessions/${session.id}/edit`}
+              className="text-sm text-track hover:underline"
+            >
+              {t("sessions.edit")}
+            </Link>
+            <DeleteButton kind="session" id={session.id} redirectTo="/sessions" />
+          </div>
+        ) : (
+          <FollowButton authorId={session.user_id} />
+        )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">

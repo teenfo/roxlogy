@@ -19,6 +19,7 @@ const es: Record<DictKey, string> = {
   "nav.races": "Carreras",
   "nav.programs": "Programas",
   "nav.leaderboard": "Clasificación",
+  "nav.feed": "Feed",
   "nav.events": "Eventos",
   "nav.exercises": "Ejercicios",
   "nav.profile": "Perfil",
@@ -357,6 +358,22 @@ const es: Record<DictKey, string> = {
   "meta.programs": "Programas — Roxlogy",
   "meta.programNew": "Nuevo programa — Roxlogy",
   "meta.leaderboard": "Clasificación — Roxlogy",
+  "meta.feed": "Feed — Roxlogy",
+
+  // Comunidad (S10)
+  "feed.title": "Feed de la comunidad",
+  "feed.desc": "Sesiones de simulacro compartidas por la comunidad de Roxlogy.",
+  "feed.discover": "Descubrir",
+  "feed.followingTab": "Siguiendo",
+  "feed.emptyDiscover":
+    "Aún no hay sesiones compartidas. Comparte una tuya para empezar.",
+  "feed.emptyFollowing": "Aún no hay sesiones de atletas que sigues.",
+  "feed.follow": "Seguir",
+  "feed.following": "Siguiendo",
+  "feed.back": "← Feed",
+  "share.share": "Compartir",
+  "share.shared": "Compartido ✓",
+  "share.hint": "Haz visible esta sesión en el feed de la comunidad.",
 
   // Clasificación (S8)
   "leaderboard.title": "Clasificación",

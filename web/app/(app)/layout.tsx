@@ -47,6 +47,12 @@ export default async function AppLayout({
             {t("nav.leaderboard")}
           </Link>
           <Link
+            href="/feed"
+            className="text-sm text-muted hover:text-foreground"
+          >
+            {t("nav.feed")}
+          </Link>
+          <Link
             href="/events"
             className="hidden text-sm text-muted hover:text-foreground sm:block"
           >
