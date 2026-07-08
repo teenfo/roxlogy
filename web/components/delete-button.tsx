@@ -5,13 +5,13 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 
-/** 세션 soft delete 또는 레이스 결과 삭제 — 확인 단계 포함 */
+/** 세션 soft delete / 레이스 결과·프로그램 삭제 — 확인 단계 포함 */
 export function DeleteButton({
   kind,
   id,
   redirectTo,
 }: {
-  kind: "session" | "race";
+  kind: "session" | "race" | "program";
   id: string;
   redirectTo: string;
 }) {
@@ -32,8 +32,11 @@ export function DeleteButton({
           client_updated_at: new Date().toISOString(),
         })
         .eq("id", id);
-    } else {
+    } else if (kind === "race") {
       await supabase.from("race_results").delete().eq("id", id);
+    } else {
+      // program — 하위 days/templates/items는 on delete cascade
+      await supabase.from("programs").delete().eq("id", id);
     }
     router.push(redirectTo);
     router.refresh();

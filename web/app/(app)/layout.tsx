@@ -35,6 +35,12 @@ export default async function AppLayout({
             {t("nav.races")}
           </Link>
           <Link
+            href="/programs"
+            className="hidden text-sm text-muted hover:text-foreground sm:block"
+          >
+            {t("nav.programs")}
+          </Link>
+          <Link
             href="/events"
             className="hidden text-sm text-muted hover:text-foreground sm:block"
           >
