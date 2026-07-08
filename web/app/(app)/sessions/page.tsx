@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
+import { ExportButton } from "@/components/export-button";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -113,7 +114,10 @@ export default async function SessionsPage({
           {t("sessions.record")}
         </Link>
       </div>
-      <p className="mt-1 text-sm text-muted">{t("sessions.total", { n: total })}</p>
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <p className="text-sm text-muted">{t("sessions.total", { n: total })}</p>
+        {total > 0 && <ExportButton kind="sessions" />}
+      </div>
 
       <div className="mt-4 flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-1.5">

@@ -56,20 +56,26 @@ export default async function FeedPage({
       ) : (
         <ul className="mt-6 flex flex-col gap-2">
           {feed.map((r) => (
-            <li key={r.session_id}>
+            <li
+              key={r.session_id}
+              className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5"
+            >
+              <div className="flex flex-col gap-0.5">
+                <Link
+                  href={`/u/${r.author_id}`}
+                  className="text-sm font-semibold hover:text-accent"
+                >
+                  {r.author_name}
+                </Link>
+                <span className="text-xs text-muted">
+                  {formatDate(r.started_at, tag)}
+                </span>
+              </div>
               <Link
                 href={`/sessions/${r.session_id}`}
-                className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
+                className="font-mono text-lg font-semibold text-accent hover:underline"
               >
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold">{r.author_name}</span>
-                  <span className="text-xs text-muted">
-                    {formatDate(r.started_at, tag)}
-                  </span>
-                </div>
-                <span className="font-mono text-lg font-semibold text-accent">
-                  {formatMs(r.total_time_ms)}
-                </span>
+                {formatMs(r.total_time_ms)}
               </Link>
             </li>
           ))}

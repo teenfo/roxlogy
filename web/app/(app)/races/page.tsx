@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatMs } from "@/lib/format";
 import { percentileOf, type Benchmark } from "@/lib/percentile";
+import { ExportButton } from "@/components/export-button";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -30,12 +31,15 @@ export default async function RacesPage() {
     <main>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("races.title")}</h1>
-        <Link
-          href="/races/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
-        >
-          {t("races.register")}
-        </Link>
+        <div className="flex items-center gap-3">
+          {!!races?.length && <ExportButton kind="races" />}
+          <Link
+            href="/races/new"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          >
+            {t("races.register")}
+          </Link>
+        </div>
       </div>
 
       <section className="mt-4 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm">

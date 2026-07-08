@@ -32,7 +32,7 @@ export default async function DashboardPage() {
     supabase.from("profiles").select("*").eq("id", user!.id).single(),
     supabase
       .from("sessions")
-      .select("id, started_at, total_time_ms, source_device")
+      .select("id, started_at, total_time_ms, source_device, template_id")
       .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(60),
@@ -139,6 +139,9 @@ export default async function DashboardPage() {
       };
     }
   }
+  const todayDone =
+    !!today?.workouts.length &&
+    today.workouts.some((w) => all.some((s) => s.template_id === w.id));
 
   const now = new Date();
   const monday = new Date(now);
@@ -146,6 +149,22 @@ export default async function DashboardPage() {
   monday.setHours(0, 0, 0, 0);
   const weekly = all.filter((s) => new Date(s.started_at) >= monday);
   const weeklyMs = weekly.reduce((acc, s) => acc + (s.total_time_ms ?? 0), 0);
+
+  // 연속 훈련일: 오늘(없으면 어제)부터 거슬러 세션이 있는 연속 일수
+  const localKey = (d: Date) => {
+    const x = new Date(d);
+    x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
+    return x.toISOString().slice(0, 10);
+  };
+  const sessionDays = new Set(all.map((s) => localKey(new Date(s.started_at))));
+  let streak = 0;
+  const probe = new Date();
+  probe.setHours(0, 0, 0, 0);
+  if (!sessionDays.has(localKey(probe))) probe.setDate(probe.getDate() - 1);
+  while (sessionDays.has(localKey(probe))) {
+    streak++;
+    probe.setDate(probe.getDate() - 1);
+  }
 
   const pr = new Map<string, number>();
   for (const seg of stationSegs ?? []) {
@@ -259,7 +278,13 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-md bg-surface px-4 py-3">
+          <p className="text-xs text-muted">{t("dash.streak")}</p>
+          <p className="mt-1 text-2xl font-bold">
+            {t("dash.streakDays", { n: streak })}
+          </p>
+        </div>
         <div className="rounded-md bg-surface px-4 py-3">
           <p className="text-xs text-muted">{t("dash.weekSessions")}</p>
           <p className="mt-1 text-2xl font-bold">
@@ -272,7 +297,7 @@ export default async function DashboardPage() {
             {formatMs(weeklyMs)}
           </p>
         </div>
-        <div className="col-span-2 rounded-md bg-surface px-4 py-3 sm:col-span-1">
+        <div className="rounded-md bg-surface px-4 py-3">
           <p className="text-xs text-muted">{t("dash.totalSessions")}</p>
           <p className="mt-1 text-2xl font-bold">
             {t("dash.count", { n: all.length })}
@@ -282,8 +307,21 @@ export default async function DashboardPage() {
 
       {today && (
         <section className="mt-8">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold">{t("dash.todayTitle")}</h2>
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+              {t("dash.todayTitle")}
+              {today.workouts.length > 0 && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    todayDone
+                      ? "bg-track/15 text-track"
+                      : "bg-accent/15 text-accent"
+                  }`}
+                >
+                  {todayDone ? t("dash.todayDone") : t("dash.todayTodo")}
+                </span>
+              )}
+            </h2>
             <Link
               href={`/programs/${today.programId}`}
               className="text-sm text-accent hover:underline"
