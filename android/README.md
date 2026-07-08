@@ -23,8 +23,23 @@ Android Studio로 `android/`를 열면 자동 동기화된다. `local.properties
 
 ## CI
 `.github/workflows/android.yml` — 푸시 시 `:shared` 테스트 + 워치/폰 debug APK 빌드 →
-아티팩트 업로드. (N6a에서 release 서명 APK를 GitHub Releases로 게시 → 웹 다운로드
-페이지 `web/lib/app-links.ts`의 `ANDROID_APK_URL`로 연결.)
+아티팩트 업로드.
+
+## 사이드로드 배포 (N6a)
+`.github/workflows/android-release.yml` — `workflow_dispatch` 또는 `v*` 태그 푸시 시:
+1. 워치/폰 **release APK** 빌드 (현재 debug 서명 — 사이드로드 설치 가능)
+2. Supabase **공개 스토리지 버킷 `app-downloads`** 에 업로드
+   (`roxlogy-wear-latest.apk` / `roxlogy-phone-latest.apk`)
+3. 웹 다운로드 페이지(`web/lib/app-links.ts`)가 그 공개 URL을 가리킴 → **roxlogy.com/download**
+   에서 직접 다운로드.
+
+**필요한 CI 시크릿 (한 번 설정)**: `SUPABASE_SERVICE_ROLE_KEY` (서버 전용 — 스토리지
+업로드용. 클라이언트/앱에는 절대 포함 금지). 설정 후 Actions에서 `android-release`를
+수동 실행(Run workflow)하면 다운로드가 활성화된다.
+
+## Play Store (N6b, 컷오버 이후)
+정식 릴리스 keystore로 서명 → 내부 테스트 트랙 → 정식 등록. 그때 `PLAY_STORE_URL`을
+채우면 다운로드 페이지가 스토어 배지로 전환된다.
 
 ## 보안 규칙 (엄수 — 루트 CLAUDE.md)
 - Supabase **service role 키는 클라이언트에 절대 금지.** 폰은 anon 키 + 사용자 JWT로만

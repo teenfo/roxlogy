@@ -52,8 +52,11 @@
 - **N3 세션 구조** — 레이스 시뮬 24구간 기록 + Room 오프라인(최근 20세션/72h).
 - **N4 Data Layer** — 워치→폰 세션 번들 전송.
 - **N5 폰 업로드** — supabase-kt 로그인 → `ingest-session` 업로드(재시도·멱등).
-- **N6a 사이드로드 배포(지금)** — release 서명 + CI Releases APK → 다운로드 페이지 연결.
-- **N6b 플레이스토어(컷오버 이후·보류)**.
+- **N6a 사이드로드 배포** ✅ — `android-release` 워크플로가 release APK 빌드 →
+  Supabase 공개 버킷(`app-downloads`) 업로드 → 다운로드 페이지(`/download`)가 워치·폰
+  APK 공개 URL 연결. 활성화 조건: CI 시크릿 `SUPABASE_SERVICE_ROLE_KEY` 설정 후
+  워크플로 1회 실행.
+- **N6b 플레이스토어(컷오버 이후·보류)** — 정식 keystore 서명 + 스토어 등록.
 - 검증: `:shared`는 CI/로컬 유닛테스트, BLE/UX는 사용자 실기(워치+PM5 보유).
 
 ### M8 — Phase 2 (우선순위 확정: S8 → S13 → S9 → S10)

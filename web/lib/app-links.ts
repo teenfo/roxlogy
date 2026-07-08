@@ -1,14 +1,19 @@
-// 앱 배포 링크. 스토어 등록·APK 게시 전에는 모두 null → 다운로드 페이지가
-// "곧 제공" 상태로 렌더된다.
+// 앱 배포 링크.
 //
-// 게시 방법:
-//  - 직접 APK: web/public/downloads/ 에 파일을 두고
-//    ANDROID_APK_URL = "/downloads/roxlogy-<버전>.apk" 로 설정 (roxlogy.com에서 직접 다운로드)
-//    또는 외부 URL(GitHub Releases 등)을 그대로 지정.
-//  - 스토어 등록 후: PLAY_STORE_URL / APP_STORE_URL 을 채우면 배지 링크로 즉시 전환.
+// 사이드로드 APK는 android-release 워크플로가 빌드해 Supabase 공개 스토리지
+// (app-downloads 버킷)에 업로드한다 → 아래 공개 URL로 직접 다운로드.
+// 최초 릴리스 실행(CI 시크릿 SUPABASE_SERVICE_ROLE_KEY 필요) 전에는 파일이 없어
+// 링크가 404일 수 있다.
 //
-// iOS는 직접 설치가 불가하므로 다운로드 페이지에 노출하지 않는다(App Store 등록 후 배지만).
+// 플레이스토어/앱스토어 등록(컷오버 이후)이 되면 PLAY_STORE_URL/APP_STORE_URL을
+// 채운다 — 그러면 다운로드 페이지가 배지 링크로 전환된다.
+// iOS는 직접 설치가 불가하므로 App Store 등록 전에는 노출하지 않는다.
 
-export const ANDROID_APK_URL: string | null = null;
+const STORAGE_PUBLIC =
+  "https://vuloxbpfhyqkvgmpmkst.supabase.co/storage/v1/object/public/app-downloads";
+
+export const ANDROID_WEAR_APK_URL: string | null = `${STORAGE_PUBLIC}/roxlogy-wear-latest.apk`;
+export const ANDROID_PHONE_APK_URL: string | null = `${STORAGE_PUBLIC}/roxlogy-phone-latest.apk`;
+
 export const PLAY_STORE_URL: string | null = null;
 export const APP_STORE_URL: string | null = null;

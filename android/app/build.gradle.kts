@@ -19,6 +19,8 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // 사이드로드 배포는 debug 서명으로 설치 가능. Play Store(N6b)는 별도 릴리스 keystore.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

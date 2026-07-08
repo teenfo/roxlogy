@@ -1,0 +1,64 @@
+name: android-release
+
+# 사이드로드 배포: release APK를 빌드해 Supabase 공개 스토리지에 업로드한다.
+# 다운로드 페이지(web/lib/app-links.ts)가 이 공개 URL을 가리킨다.
+# 필요한 CI 시크릿: SUPABASE_SERVICE_ROLE_KEY (서버 전용 — 클라이언트 노출 금지).
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;34.0.0"
+
+      - name: Build release APKs
+        run: ./gradlew :wear:assembleRelease :app:assembleRelease
+
+      - name: Upload APKs to Supabase Storage (public)
+        env:
+          SR: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BASE: https://vuloxbpfhyqkvgmpmkst.supabase.co/storage/v1/object/app-downloads
+        run: |
+          if [ -z "$SR" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY secret not set — cannot publish"
+            exit 1
+          fi
+          upload() {
+            local file="$1" name="$2"
+            echo "Uploading $name…"
+            curl -sSf -X POST \
+              -H "Authorization: Bearer $SR" \
+              -H "apikey: $SR" \
+              -H "x-upsert: true" \
+              -H "Content-Type: application/vnd.android.package-archive" \
+              --data-binary "@$file" \
+              "$BASE/$name" > /dev/null
+          }
+          upload wear/build/outputs/apk/release/wear-release.apk roxlogy-wear-latest.apk
+          upload app/build/outputs/apk/release/app-release.apk roxlogy-phone-latest.apk
+          echo "Published to https://vuloxbpfhyqkvgmpmkst.supabase.co/storage/v1/object/public/app-downloads/"
+
+      - name: Upload APKs as workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: roxlogy-release-apks
+          path: |
+            android/wear/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

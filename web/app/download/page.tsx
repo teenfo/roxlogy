@@ -2,7 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { getT } from "@/lib/i18n";
 import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ANDROID_APK_URL, PLAY_STORE_URL } from "@/lib/app-links";
+import {
+  ANDROID_PHONE_APK_URL,
+  ANDROID_WEAR_APK_URL,
+  PLAY_STORE_URL,
+} from "@/lib/app-links";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -11,7 +15,11 @@ export async function generateMetadata() {
 
 export default async function DownloadPage() {
   const { t } = await getT();
-  const androidReady = !!(ANDROID_APK_URL || PLAY_STORE_URL);
+  const hasApk = !!(ANDROID_WEAR_APK_URL || ANDROID_PHONE_APK_URL);
+  const androidReady = !!PLAY_STORE_URL || hasApk;
+
+  const apkBtn =
+    "rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110";
 
   return (
     <main className="flex flex-1 flex-col">
@@ -36,11 +44,9 @@ export default async function DownloadPage() {
                 {t("download.androidDesc")}
               </p>
             </div>
-            {!androidReady && (
-              <span className="shrink-0 rounded-full bg-background px-3 py-1 text-xs text-muted">
-                {t("download.comingSoon")}
-              </span>
-            )}
+            <span className="shrink-0 rounded-full bg-background px-3 py-1 text-xs text-muted">
+              {androidReady ? t("download.beta") : t("download.comingSoon")}
+            </span>
           </div>
 
           {PLAY_STORE_URL ? (
@@ -48,19 +54,28 @@ export default async function DownloadPage() {
               href={PLAY_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-block rounded-md bg-accent px-6 py-2.5 text-sm font-bold text-background hover:brightness-110"
+              className={`mt-4 inline-block ${apkBtn}`}
             >
               {t("download.playStore")}
             </a>
-          ) : ANDROID_APK_URL ? (
+          ) : hasApk ? (
             <>
-              <a
-                href={ANDROID_APK_URL}
-                download
-                className="mt-4 inline-block rounded-md bg-accent px-6 py-2.5 text-sm font-bold text-background hover:brightness-110"
-              >
-                {t("download.apkButton")}
-              </a>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {ANDROID_WEAR_APK_URL && (
+                  <a href={ANDROID_WEAR_APK_URL} download className={apkBtn}>
+                    {t("download.wearApk")}
+                  </a>
+                )}
+                {ANDROID_PHONE_APK_URL && (
+                  <a
+                    href={ANDROID_PHONE_APK_URL}
+                    download
+                    className="rounded-md border border-accent px-5 py-2.5 text-sm font-semibold text-accent hover:bg-accent/10"
+                  >
+                    {t("download.phoneApk")}
+                  </a>
+                )}
+              </div>
               <p className="mt-3 text-xs leading-relaxed text-muted">
                 {t("download.sideloadNote")}
               </p>
