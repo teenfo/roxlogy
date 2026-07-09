@@ -83,7 +83,15 @@ export default async function GoalsPage() {
                     })}
                   </p>
                 </div>
-                <GoalDeleteButton goalId={g.id} />
+                <div className="flex shrink-0 items-center gap-3">
+                  <Link
+                    href={`/predict?goal=${g.id}`}
+                    className="text-xs font-semibold text-accent hover:underline"
+                  >
+                    {t("common.edit")}
+                  </Link>
+                  <GoalDeleteButton goalId={g.id} />
+                </div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2 text-xs">

@@ -31,6 +31,18 @@ export type PredictSession = {
   roxTotalMs: number;
 };
 
+export type EditGoal = {
+  id: string;
+  target_total_ms: number;
+  level: string | null;
+  division: string | null;
+  event_name: string | null;
+  event_date: string | null;
+  run_total_ms: number | null;
+  roxzone_total_ms: number | null;
+  stations: { key: string; targetMs: number }[] | null;
+};
+
 type Adjust = {
   stations: Record<string, string>;
   run: string;
@@ -45,17 +57,25 @@ export function PredictForm({
   eventName = null,
   eventDate = null,
   initialDivision = null,
+  editGoal = null,
 }: {
   isLoggedIn?: boolean;
   sessions?: PredictSession[];
   eventName?: string | null;
   eventDate?: string | null;
   initialDivision?: string | null;
+  editGoal?: EditGoal | null;
 }) {
   const { t } = useI18n();
-  const [targetText, setTargetText] = useState("1:30:00");
-  const [level, setLevel] = useState<Level>("intermediate");
-  const [division, setDivision] = useState<string>(initialDivision ?? "");
+  const [targetText, setTargetText] = useState(
+    editGoal ? formatMs(editGoal.target_total_ms) : "1:30:00",
+  );
+  const [level, setLevel] = useState<Level>(
+    (editGoal?.level as Level) ?? "intermediate",
+  );
+  const [division, setDivision] = useState<string>(
+    editGoal?.division ?? initialDivision ?? "",
+  );
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
@@ -71,7 +91,20 @@ export function PredictForm({
   );
 
   // 조정 패널 상태 (로그인 시). null이면 아직 미개시 → 제안값으로 시드.
-  const [adj, setAdj] = useState<Adjust | null>(null);
+  // 수정 모드면 저장된 목표값으로 시드.
+  const [adj, setAdj] = useState<Adjust | null>(() => {
+    if (!editGoal) return null;
+    const stations: Record<string, string> = {};
+    STATION_KEYS.forEach((k) => {
+      const s = editGoal.stations?.find((x) => x.key === k);
+      stations[k] = formatMs(s?.targetMs ?? 0);
+    });
+    return {
+      stations,
+      run: formatMs(editGoal.run_total_ms ?? 0),
+      rox: formatMs(editGoal.roxzone_total_ms ?? 0),
+    };
+  });
   const [pickedSession, setPickedSession] = useState<string>("");
 
   function seedFromResult(): Adjust | null {
@@ -148,8 +181,7 @@ export function PredictForm({
       targetMs: parseTimeToMs(eff.stations[k] ?? "") ?? 0,
     }));
     const stationTotal = stationsMs.reduce((a, s) => a + s.targetMs, 0);
-    await supabase.from("goal_plans").insert({
-      user_id: user.id,
+    const payload = {
       target_total_ms: adjustedMs,
       level,
       division: division || null,
@@ -159,7 +191,12 @@ export function PredictForm({
       station_total_ms: stationTotal,
       roxzone_total_ms: parseTimeToMs(eff.rox) ?? 0,
       stations: stationsMs,
-    });
+    };
+    if (editGoal) {
+      await supabase.from("goal_plans").update(payload).eq("id", editGoal.id);
+    } else {
+      await supabase.from("goal_plans").insert({ user_id: user.id, ...payload });
+    }
     setSaveState("saved");
   }
 
@@ -406,7 +443,9 @@ export function PredictForm({
                     ? t("common.saving")
                     : saveState === "saved"
                       ? t("predict.saved")
-                      : t("predict.saveGoal")}
+                      : editGoal
+                        ? t("predict.updateGoal")
+                        : t("predict.saveGoal")}
                 </button>
                 {saveState === "saved" && (
                   <Link

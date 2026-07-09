@@ -4,7 +4,11 @@ import { getT } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 import { STATIONS } from "@/lib/hyrox";
 import { formatDateShort } from "@/lib/format";
-import { PredictForm, type PredictSession } from "@/components/predict-form";
+import {
+  PredictForm,
+  type PredictSession,
+  type EditGoal,
+} from "@/components/predict-form";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
@@ -19,7 +23,12 @@ export async function generateMetadata() {
 export default async function PredictPage({
   searchParams,
 }: {
-  searchParams: Promise<{ event?: string; date?: string; division?: string }>;
+  searchParams: Promise<{
+    event?: string;
+    date?: string;
+    division?: string;
+    goal?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const { t, tag } = await getT();
@@ -31,7 +40,18 @@ export default async function PredictPage({
   // 로그인 시: 최근 레이스 시뮬 세션을 목표 계산용으로 불러온다.
   let sessions: PredictSession[] = [];
   let isAdmin = false;
+  let editGoal: EditGoal | null = null;
   if (user) {
+    if (sp.goal) {
+      const { data: g } = await supabase
+        .from("goal_plans")
+        .select(
+          "id, target_total_ms, level, division, event_name, event_date, run_total_ms, roxzone_total_ms, stations",
+        )
+        .eq("id", sp.goal)
+        .maybeSingle();
+      if (g) editGoal = g as EditGoal;
+    }
     const { data: profile } = await supabase
       .from("profiles")
       .select("is_admin")
@@ -135,9 +155,10 @@ export default async function PredictPage({
         <PredictForm
           isLoggedIn={!!user}
           sessions={sessions}
-          eventName={sp.event ?? null}
-          eventDate={sp.date ?? null}
+          eventName={editGoal?.event_name ?? sp.event ?? null}
+          eventDate={editGoal?.event_date ?? sp.date ?? null}
           initialDivision={sp.division ?? null}
+          editGoal={editGoal}
         />
       </div>
     </>
