@@ -410,10 +410,10 @@ export function PredictForm({
                 </button>
                 {saveState === "saved" && (
                   <Link
-                    href="/dashboard"
+                    href="/goals"
                     className="text-sm text-accent hover:underline"
                   >
-                    {t("predict.viewRehearsal")}
+                    {t("goals.title")}
                   </Link>
                 )}
               </div>

@@ -381,7 +381,12 @@ export default async function DashboardPage() {
 
       {rehearsal && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("dash.rehearsalTitle")}</h2>
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-lg font-semibold">{t("dash.rehearsalTitle")}</h2>
+            <Link href="/goals" className="text-sm text-accent hover:underline">
+              {t("goals.title")}
+            </Link>
+          </div>
           {(rehearsal.eventName || rehearsal.division) && (
             <p className="mt-1 text-sm font-medium text-accent">
               {rehearsal.eventName ?? ""}

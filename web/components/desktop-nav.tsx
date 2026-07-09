@@ -22,6 +22,7 @@ const GROUPS: { key: string; items: Item[] }[] = [
       { href: "/races", key: "nav.races" },
       { href: "/events", key: "nav.events" },
       { href: "/predict", key: "nav.predict" },
+      { href: "/goals", key: "nav.goals" },
       { href: "/leaderboard", key: "nav.leaderboard" },
     ],
   },
