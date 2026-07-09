@@ -109,12 +109,20 @@ export default async function SessionsPage({
     <main>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("sessions.title")}</h1>
-        <Link
-          href="/sessions/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
-        >
-          {t("sessions.record")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/sessions/compare"
+            className="rounded-md border border-muted/30 px-4 py-2 text-sm font-semibold text-muted hover:border-foreground hover:text-foreground"
+          >
+            {t("compare.title")}
+          </Link>
+          <Link
+            href="/sessions/new"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          >
+            {t("sessions.record")}
+          </Link>
+        </div>
       </div>
       <div className="mt-1 flex items-center justify-between gap-3">
         <p className="text-sm text-muted">{t("sessions.total", { n: total })}</p>
