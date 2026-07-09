@@ -15,6 +15,28 @@ export default async function AppLayout({
   if (!user) redirect("/login");
   const { t } = await getT();
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin, disabled")
+    .eq("id", user.id)
+    .maybeSingle();
+  const isAdmin = profile?.is_admin === true;
+
+  // 비활성(정지) 계정: 앱 접근 차단
+  if (profile?.disabled) {
+    return (
+      <main className="mx-auto max-w-md px-6 py-24 text-center">
+        <h1 className="text-xl font-bold">{t("suspended.title")}</h1>
+        <p className="mt-2 text-sm text-muted">{t("suspended.body")}</p>
+        <form action="/auth/signout" method="post" className="mt-6">
+          <button type="submit" className="text-sm text-accent hover:underline">
+            {t("common.logout")}
+          </button>
+        </form>
+      </main>
+    );
+  }
+
   return (
     <>
       <header className="border-b border-surface">
@@ -57,6 +79,14 @@ export default async function AppLayout({
 
           {/* 데스크톱 우측 (프로필·로그아웃) */}
           <div className="ml-auto hidden items-center gap-4 sm:flex">
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="text-sm font-semibold text-accent hover:brightness-110"
+              >
+                {t("nav.admin")}
+              </Link>
+            )}
             <Link
               href="/settings/profile"
               className="text-sm text-muted hover:text-foreground"
@@ -74,7 +104,7 @@ export default async function AppLayout({
           </div>
 
           {/* 모바일 햄버거 메뉴 */}
-          <MobileNav />
+          <MobileNav isAdmin={isAdmin} />
         </nav>
       </header>
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">

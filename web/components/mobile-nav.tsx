@@ -18,9 +18,12 @@ const LINKS: { href: string; key: string }[] = [
   { href: "/settings/profile", key: "nav.profile" },
 ];
 
-export function MobileNav() {
+export function MobileNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const links = isAdmin
+    ? [...LINKS, { href: "/admin", key: "nav.admin" }]
+    : LINKS;
 
   return (
     <div className="relative ml-auto sm:hidden">
@@ -56,7 +59,7 @@ export function MobileNav() {
             className="fixed inset-0 z-10 cursor-default"
           />
           <nav className="absolute right-0 z-20 mt-2 flex w-48 flex-col rounded-md border border-surface bg-background py-2 shadow-lg">
-            {LINKS.map((l) => (
+            {links.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
