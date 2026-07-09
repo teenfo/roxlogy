@@ -494,6 +494,7 @@ const es: Record<DictKey, string> = {
   "programs.errSave": "Error al guardar: {msg}",
   "programs.addDay": "Añadir día",
   "programs.addWorkout": "Añadir entrenamiento",
+  "programs.raceSimConfirm": "¿Añadir automáticamente todas las estaciones (carrera + 8 estaciones)?\nAceptar las añade; Cancelar te deja añadirlas a mano.",
   "programs.addItem": "Añadir",
   "programs.workoutTitlePh": "Título del entrenamiento",
   "programs.untitledWorkout": "Entrenamiento",

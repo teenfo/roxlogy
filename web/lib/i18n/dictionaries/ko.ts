@@ -487,6 +487,7 @@ const ko: Record<DictKey, string> = {
   "programs.errSave": "저장 실패: {msg}",
   "programs.addDay": "일자 추가",
   "programs.addWorkout": "워크아웃 추가",
+  "programs.raceSimConfirm": "레이스 전체 종목(런 + 8스테이션)을 자동 등록하시겠습니까?\n확인 시 자동 등록, 취소 시 직접 추가합니다.",
   "programs.addItem": "추가",
   "programs.workoutTitlePh": "워크아웃 제목",
   "programs.untitledWorkout": "워크아웃",

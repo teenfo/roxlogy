@@ -4,6 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { RUN_EXERCISE_ID, STATIONS } from "@/lib/hyrox";
+
+/** 레이스 시뮬 전체 종목 순서: (런 → 스테이션) × 8 = 16 */
+const RACE_SIM_SEQUENCE: string[] = STATIONS.flatMap((s) => [
+  RUN_EXERCISE_ID,
+  s.exerciseId,
+]);
 
 type Item = {
   id: string;
@@ -75,15 +82,34 @@ export function ProgramBuilder({
   const delDay = (id: string) =>
     run(() => supabase.from("program_days").delete().eq("id", id));
 
-  const addWorkout = (dayId: string, title: string, type: string) =>
-    run(() =>
-      supabase.from("workout_templates").insert({
-        program_day_id: dayId,
-        title: title.trim() || t("programs.untitledWorkout"),
-        type,
-        structure: {},
-      }),
-    );
+  const addWorkout = (
+    dayId: string,
+    title: string,
+    type: string,
+    autofillRaceSim: boolean,
+  ) =>
+    run(async () => {
+      const { data: created } = await supabase
+        .from("workout_templates")
+        .insert({
+          program_day_id: dayId,
+          title: title.trim() || t("programs.untitledWorkout"),
+          type,
+          structure: {},
+        })
+        .select("id")
+        .single();
+      // 레이스 시뮬 자동 등록: 전체 종목(런+8스테이션)을 순서대로 항목으로 추가
+      if (autofillRaceSim && created?.id) {
+        const rows = RACE_SIM_SEQUENCE.map((exId, i) => ({
+          template_id: created.id,
+          seq: i + 1,
+          exercise_id: exId,
+          target: null,
+        }));
+        await supabase.from("workout_template_items").insert(rows);
+      }
+    });
 
   const delWorkout = (id: string) =>
     run(() => supabase.from("workout_templates").delete().eq("id", id));
@@ -123,7 +149,9 @@ export function ProgramBuilder({
           busy={busy}
           inputCls={inputCls}
           onDelDay={() => delDay(d.id)}
-          onAddWorkout={(title, type) => addWorkout(d.id, title, type)}
+          onAddWorkout={(title, type, autofill) =>
+            addWorkout(d.id, title, type, autofill)
+          }
           onDelWorkout={delWorkout}
           onAddItem={addItem}
           onDelItem={delItem}
@@ -166,7 +194,7 @@ function DayCard({
   busy: boolean;
   inputCls: string;
   onDelDay: () => void;
-  onAddWorkout: (title: string, type: string) => void;
+  onAddWorkout: (title: string, type: string, autofillRaceSim: boolean) => void;
   onDelWorkout: (id: string) => void;
   onAddItem: (w: Workout) => void;
   onDelItem: (id: string) => void;
@@ -316,7 +344,11 @@ function DayCard({
         <button
           type="button"
           onClick={() => {
-            onAddWorkout(wTitle, wType);
+            const autofill =
+              wType === "race_sim"
+                ? window.confirm(t("programs.raceSimConfirm"))
+                : false;
+            onAddWorkout(wTitle, wType, autofill);
             setWTitle("");
           }}
           disabled={busy}

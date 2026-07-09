@@ -506,6 +506,7 @@ const en = {
   "programs.errSave": "Save failed: {msg}",
   "programs.addDay": "Add day",
   "programs.addWorkout": "Add workout",
+  "programs.raceSimConfirm": "Auto-add all race stations (run + 8 stations)?\nOK adds them; Cancel lets you add them manually.",
   "programs.addItem": "Add",
   "programs.workoutTitlePh": "Workout title",
   "programs.untitledWorkout": "Workout",
