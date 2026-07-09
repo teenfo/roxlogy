@@ -203,14 +203,28 @@ export default async function SchedulePage({
                 {d.day.workout_templates.length > 0 && (
                   <ul className="mt-1 flex flex-wrap gap-1.5">
                     {d.day.workout_templates.map((w) => (
-                      <li
-                        key={w.id}
-                        className="rounded-full bg-background px-2.5 py-0.5 text-xs text-muted"
-                      >
-                        {w.title}
+                      <li key={w.id}>
+                        <Link
+                          href={`/workouts/${w.id}`}
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs ${
+                            d.isToday
+                              ? "bg-accent/20 font-semibold text-accent hover:brightness-110"
+                              : "bg-background text-muted hover:text-foreground"
+                          }`}
+                        >
+                          {w.title}
+                        </Link>
                       </li>
                     ))}
                   </ul>
+                )}
+                {d.isToday && d.day.workout_templates.length > 0 && (
+                  <Link
+                    href={`/workouts/${d.day.workout_templates[0].id}`}
+                    className="mt-2 inline-block text-xs font-semibold text-accent hover:underline"
+                  >
+                    {t("schedule.viewToday")}
+                  </Link>
                 )}
               </div>
             ) : (
