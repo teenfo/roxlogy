@@ -1,0 +1,33 @@
+name: sync-race-events
+
+# 대회 일정 자동 동기화 — race_events 테이블을 주기적으로 멱등 upsert.
+# 소스: HYROX_EVENTS_API_URL(있으면 라이브 피드) 또는 supabase/data/race-events.json.
+# 필요한 시크릿: SUPABASE_SERVICE_ROLE_KEY (서버 전용). 선택: HYROX_EVENTS_API_URL.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # 매주 월요일 06:00 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/data/race-events.json"
+      - "scripts/sync-race-events.mjs"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Sync race events
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          HYROX_EVENTS_API_URL: ${{ secrets.HYROX_EVENTS_API_URL }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY not set — skipping sync."
+            exit 0
+          fi
+          node scripts/sync-race-events.mjs
