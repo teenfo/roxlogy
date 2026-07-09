@@ -27,6 +27,8 @@ const ko: Record<DictKey, string> = {
   "nav.exercises": "운동",
   "nav.predict": "계산기",
   "nav.admin": "관리자",
+  "nav.grpTraining": "훈련",
+  "nav.grpRace": "레이스",
   "suspended.title": "정지된 계정",
   "suspended.body": "계정이 비활성화되었습니다. 오류라고 생각되면 문의해 주세요.",
   "admin.tabOverview": "개요",

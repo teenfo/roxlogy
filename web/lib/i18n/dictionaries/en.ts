@@ -28,6 +28,8 @@ const en = {
   "nav.exercises": "Exercises",
   "nav.predict": "Calculator",
   "nav.admin": "Admin",
+  "nav.grpTraining": "Training",
+  "nav.grpRace": "Race",
   "suspended.title": "Account suspended",
   "suspended.body": "Your account has been disabled. Contact support if you think this is a mistake.",
   "admin.tabOverview": "Overview",

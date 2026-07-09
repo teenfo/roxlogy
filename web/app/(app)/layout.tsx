@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
 
 export default async function AppLayout({
@@ -46,36 +47,8 @@ export default async function AppLayout({
             <span className="text-sm font-black tracking-widest">ROXLOGY</span>
           </Link>
 
-          {/* 데스크톱 내비 */}
-          <div className="hidden items-center gap-6 sm:flex">
-            <Link href="/sessions" className="text-sm text-muted hover:text-foreground">
-              {t("nav.sessions")}
-            </Link>
-            <Link href="/races" className="text-sm text-muted hover:text-foreground">
-              {t("nav.races")}
-            </Link>
-            <Link href="/programs" className="text-sm text-muted hover:text-foreground">
-              {t("nav.programs")}
-            </Link>
-            <Link href="/schedule" className="text-sm text-muted hover:text-foreground">
-              {t("nav.schedule")}
-            </Link>
-            <Link href="/leaderboard" className="text-sm text-muted hover:text-foreground">
-              {t("nav.leaderboard")}
-            </Link>
-            <Link href="/feed" className="text-sm text-muted hover:text-foreground">
-              {t("nav.feed")}
-            </Link>
-            <Link href="/exercises" className="text-sm text-muted hover:text-foreground">
-              {t("nav.exercises")}
-            </Link>
-            <Link href="/predict" className="text-sm text-muted hover:text-foreground">
-              {t("nav.predict")}
-            </Link>
-            <Link href="/events" className="text-sm text-muted hover:text-foreground">
-              {t("nav.events")}
-            </Link>
-          </div>
+          {/* 데스크톱 내비 (훈련·레이스는 드롭다운으로 묶음) */}
+          <DesktopNav />
 
           {/* 데스크톱 우측 (프로필·로그아웃) */}
           <div className="ml-auto hidden items-center gap-4 sm:flex">

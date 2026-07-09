@@ -27,6 +27,8 @@ const es: Record<DictKey, string> = {
   "nav.exercises": "Ejercicios",
   "nav.predict": "Calculadora",
   "nav.admin": "Admin",
+  "nav.grpTraining": "Entreno",
+  "nav.grpRace": "Carrera",
   "suspended.title": "Cuenta suspendida",
   "suspended.body": "Tu cuenta ha sido deshabilitada. Contacta con soporte si crees que es un error.",
   "admin.tabOverview": "Resumen",
