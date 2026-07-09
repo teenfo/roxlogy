@@ -59,6 +59,15 @@ class MainActivity : ComponentActivity() {
 
 private enum class Phase { IDLE, RECORDING, SENT }
 
+/** /500m 페이스(초)를 mm:ss로. 값이 없으면 "—". */
+private fun formatPace(paceSec: Double?): String {
+    if (paceSec == null || paceSec <= 0) return "—"
+    val total = paceSec.toInt()
+    val m = total / 60
+    val s = total % 60
+    return "%d:%02d".format(m, s)
+}
+
 private fun blePermissions(): Array<String> =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
@@ -132,8 +141,9 @@ fun RecorderApp(ble: Pm5BleClient, sender: WearDataSender) {
                 }
                 phase == Phase.RECORDING -> {
                     val s = latest
-                    Text("${s?.watts ?: 0} W")
-                    Text("spm ${s?.spm ?: 0} · ${machine.wire}")
+                    Text("${s?.dist?.toInt() ?: 0} m")
+                    Text("${s?.watts ?: 0} W · spm ${s?.spm ?: 0}")
+                    Text("/500m ${formatPace(s?.pace)} · ${machine.wire}")
                     Chip(
                         onClick = { finishRecording() },
                         label = { Text("종료·전송") },

@@ -36,8 +36,8 @@ jobs:
           BASE: https://vuloxbpfhyqkvgmpmkst.supabase.co/storage/v1/object/app-downloads
         run: |
           if [ -z "$SR" ]; then
-            echo "::error::SUPABASE_SERVICE_ROLE_KEY secret not set — cannot publish"
-            exit 1
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY not set — skipping public publish; APKs still available as workflow artifacts."
+            exit 0
           fi
           upload() {
             local file="$1" name="$2"
