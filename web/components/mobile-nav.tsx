@@ -13,6 +13,7 @@ const LINKS: { href: string; key: string }[] = [
   { href: "/leaderboard", key: "nav.leaderboard" },
   { href: "/feed", key: "nav.feed" },
   { href: "/exercises", key: "nav.exercises" },
+  { href: "/predict", key: "nav.predict" },
   { href: "/events", key: "nav.events" },
   { href: "/settings/profile", key: "nav.profile" },
 ];

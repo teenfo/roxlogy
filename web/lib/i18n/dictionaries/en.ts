@@ -26,6 +26,7 @@ const en = {
   "nav.feed": "Feed",
   "nav.events": "Event finder",
   "nav.exercises": "Exercises",
+  "nav.predict": "Calculator",
   "nav.profile": "Profile",
 
   // 랜딩
@@ -210,6 +211,8 @@ const en = {
   "races.noSim":
     "No race-sim session to compare. Log a session and we'll put it side by side with this race.",
   "races.noSimLink": "Log a session",
+  "races.toSession": "Send to session",
+  "races.toSessionEmpty": "This race has no splits to convert.",
   "races.totalOnlyCompare":
     "This race has no station splits, so only totals are compared: race {race} vs sim {sim}",
   "races.colSegment": "Segment",
@@ -449,6 +452,8 @@ const en = {
   "division.doubles": "Doubles",
   "division.pro_doubles": "Pro Doubles",
   "division.relay": "Relay",
+  "division.mixed_doubles": "Mixed Doubles",
+  "division.mixed_relay": "Mixed Relay",
   "pacing.very_consistent": "Very consistent",
   "pacing.consistent": "Consistent",
   "pacing.variable": "Variable",

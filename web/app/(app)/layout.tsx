@@ -47,6 +47,9 @@ export default async function AppLayout({
             <Link href="/exercises" className="text-sm text-muted hover:text-foreground">
               {t("nav.exercises")}
             </Link>
+            <Link href="/predict" className="text-sm text-muted hover:text-foreground">
+              {t("nav.predict")}
+            </Link>
             <Link href="/events" className="text-sm text-muted hover:text-foreground">
               {t("nav.events")}
             </Link>

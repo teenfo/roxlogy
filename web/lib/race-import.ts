@@ -127,11 +127,14 @@ export function parseRaceText(text: string): ParsedRace {
         out.eventDate = `${eu[3]}-${eu[2].padStart(2, "0")}-${eu[1].padStart(2, "0")}`;
     }
 
-    // 디비전
+    // 디비전 (믹스 우선 판정)
     if (!out.division) {
+      const mixed = /\bmixed\b/i.test(line);
       if (/pro\s*doubles/i.test(line)) out.division = "pro_doubles";
-      else if (/\bdoubles\b/i.test(line)) out.division = "doubles";
-      else if (/\brelay\b/i.test(line)) out.division = "relay";
+      else if (/\bdoubles\b/i.test(line))
+        out.division = mixed ? "mixed_doubles" : "doubles";
+      else if (/\brelay\b/i.test(line))
+        out.division = mixed ? "mixed_relay" : "relay";
       else if (/\bpro\b/i.test(line)) out.division = "pro";
       else if (/\bopen\b/i.test(line)) out.division = "open";
     }

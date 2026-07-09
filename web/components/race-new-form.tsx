@@ -14,10 +14,9 @@ import {
   type RaceSegment,
 } from "@/lib/race-import";
 import { buildSessionRows, type SegmentForm } from "@/lib/session-builder";
+import { DIVISIONS } from "@/lib/divisions";
 import { TimeInput } from "@/components/time-input";
 import { useI18n } from "@/components/i18n-provider";
-
-const DIVISIONS = ["open", "pro", "doubles", "pro_doubles", "relay"] as const;
 // 폴백 — 실제 목록은 /api/races/search-meta?seasons=1 로 대체됨
 const DEFAULT_SEASON_OPTIONS = [
   { value: "season-9", label: "2026/27 (S9)" },

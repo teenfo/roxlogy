@@ -6,6 +6,7 @@ import { formatDate, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
 import { PercentileBar } from "@/components/percentile-bar";
+import { RaceToSessionButton } from "@/components/race-to-session-button";
 
 type RaceSplits = {
   stations?: Record<string, number>;
@@ -100,7 +101,15 @@ export default async function RaceDetailPage({
         <Link href="/races" className="text-sm text-muted hover:text-foreground">
           {t("races.back")}
         </Link>
-        <DeleteButton kind="race" id={race.id} redirectTo="/races" />
+        <div className="flex items-center gap-3">
+          <RaceToSessionButton
+            raceId={race.id}
+            division={race.division ?? null}
+            eventDate={race.event_date ?? null}
+            splits={splits}
+          />
+          <DeleteButton kind="race" id={race.id} redirectTo="/races" />
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">

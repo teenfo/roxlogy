@@ -3,13 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
+import { DIVISIONS } from "@/lib/divisions";
 
 export async function generateMetadata() {
   const { t } = await getT();
   return { title: t("meta.leaderboard") };
 }
-
-const DIVISIONS = ["open", "pro", "doubles", "pro_doubles", "relay"] as const;
 
 type Row = {
   rank: number;

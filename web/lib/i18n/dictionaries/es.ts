@@ -25,6 +25,7 @@ const es: Record<DictKey, string> = {
   "nav.feed": "Feed",
   "nav.events": "Buscar eventos",
   "nav.exercises": "Ejercicios",
+  "nav.predict": "Calculadora",
   "nav.profile": "Perfil",
 
   "landing.tagline": "La ciencia de las carreras híbridas",
@@ -203,6 +204,8 @@ const es: Record<DictKey, string> = {
   "races.noSim":
     "No hay simulacros para comparar. Registra una sesión y la pondremos junto a esta carrera.",
   "races.noSimLink": "Registrar una sesión",
+  "races.toSession": "Enviar a sesión",
+  "races.toSessionEmpty": "Esta carrera no tiene parciales para convertir.",
   "races.totalOnlyCompare":
     "Esta carrera no tiene parciales por estación, así que solo se comparan totales: carrera {race} vs simulacro {sim}",
   "races.colSegment": "Segmento",
@@ -437,6 +440,8 @@ const es: Record<DictKey, string> = {
   "division.doubles": "Dobles",
   "division.pro_doubles": "Pro Dobles",
   "division.relay": "Relevos",
+  "division.mixed_doubles": "Dobles Mixto",
+  "division.mixed_relay": "Relevos Mixto",
   "pacing.very_consistent": "Muy consistente",
   "pacing.consistent": "Consistente",
   "pacing.variable": "Variable",

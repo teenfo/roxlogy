@@ -48,6 +48,24 @@ export function raceSimTemplate(): SegmentForm[] {
   ]);
 }
 
+/** 저장된 레이스 결과의 splits(JSONB) → 레이스 시뮬 24행 폼으로 채움 */
+export type RaceSplits = {
+  stations?: Record<string, number>;
+  run_total_ms?: number;
+  runs?: number[];
+  roxzones?: number[];
+};
+
+export function raceSplitsToForms(splits: RaceSplits): SegmentForm[] {
+  return raceSimTemplate().map((f) => {
+    if (f.kind === "run")
+      return { ...f, splitMs: splits.runs?.[f.n - 1] ?? null };
+    if (f.kind === "roxzone")
+      return { ...f, splitMs: splits.roxzones?.[f.n - 1] ?? null };
+    return { ...f, splitMs: splits.stations?.[f.stationKey!] ?? null };
+  });
+}
+
 export type SessionRows = {
   session: {
     id: string;

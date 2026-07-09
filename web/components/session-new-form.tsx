@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMs } from "@/lib/format";
+import { DIVISIONS } from "@/lib/divisions";
 import {
   buildSessionRows,
   raceSimTemplate,
@@ -42,8 +43,6 @@ export type SessionInitial = {
 };
 
 export type TodayWorkout = { id: string; title: string };
-
-const DIVISIONS = ["open", "pro", "doubles", "pro_doubles", "relay"] as const;
 
 /** 저장된 세그먼트(빈 칸 제외·재번호됨)를 24행 템플릿에 순서대로 되맵핑 */
 function rowsFromInitial(initial: SessionInitial): Row[] {

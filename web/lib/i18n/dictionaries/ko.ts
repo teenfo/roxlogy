@@ -25,6 +25,7 @@ const ko: Record<DictKey, string> = {
   "nav.feed": "피드",
   "nav.events": "대회일정검색",
   "nav.exercises": "운동",
+  "nav.predict": "계산기",
   "nav.profile": "프로필",
 
   "landing.tagline": "하이브리드 레이스를 데이터로 연구하다",
@@ -200,6 +201,8 @@ const ko: Record<DictKey, string> = {
   "races.noSim":
     "비교할 레이스 시뮬 세션이 없습니다. 세션을 기록하면 레이스와 나란히 비교해 드립니다.",
   "races.noSimLink": "세션을 기록",
+  "races.toSession": "세션으로 보내기",
+  "races.toSessionEmpty": "변환할 스플릿이 없는 레이스입니다.",
   "races.totalOnlyCompare":
     "이 레이스에 스테이션 스플릿이 입력되지 않아 총 기록만 비교합니다: 레이스 {race} vs 시뮬 {sim}",
   "races.colSegment": "구간",
@@ -431,6 +434,8 @@ const ko: Record<DictKey, string> = {
   "division.doubles": "더블",
   "division.pro_doubles": "프로 더블",
   "division.relay": "릴레이",
+  "division.mixed_doubles": "믹스 더블",
+  "division.mixed_relay": "믹스 릴레이",
   "pacing.very_consistent": "매우 일정",
   "pacing.consistent": "일정",
   "pacing.variable": "기복 있음",
