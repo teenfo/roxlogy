@@ -36,6 +36,19 @@ export function formatDateShort(
   });
 }
 
+/** 짧은 날짜 + 2자리 연도 (차트 축 등 연도 구분이 필요한 곳). */
+export function formatDateShortYear(
+  iso: string | null | undefined,
+  tag: string = "en-US",
+): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString(tag, {
+    year: "2-digit",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 /**
  * 프로그램 일차(day_index, 1-based)에 해당하는 실제 날짜를 짧은 형식으로.
  * startDate(YYYY-MM-DD)가 없으면 null. 날짜만 다루므로 UTC로 계산해 TZ 밀림 방지.

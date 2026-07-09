@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
-import { formatDate, formatDateShort, formatMs } from "@/lib/format";
+import { formatDate, formatDateShortYear, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { CorrelationLine, TrendBars } from "@/components/charts";
 import { RehearsalReport } from "@/components/rehearsal-report";
@@ -184,7 +184,7 @@ export default async function DashboardPage() {
     .slice(0, 8)
     .reverse()
     .map((s) => ({
-      name: formatDateShort(s.started_at, tag),
+      name: formatDateShortYear(s.started_at, tag),
       ms: s.total_time_ms ?? 0,
     }));
 
@@ -205,7 +205,7 @@ export default async function DashboardPage() {
   >();
   const put = (iso: string, key: "sim" | "race", ms: number | null) => {
     if (ms == null) return;
-    const date = formatDateShort(iso, tag);
+    const date = formatDateShortYear(iso, tag);
     const cur = corrMap.get(date) ?? {
       date,
       ts: new Date(iso).getTime(),
@@ -252,7 +252,7 @@ export default async function DashboardPage() {
       }
       return {
         id: s.id,
-        label: formatDateShort(s.started_at, tag),
+        label: formatDateShortYear(s.started_at, tag),
         total: s.total_time_ms,
         stations,
       };
