@@ -510,6 +510,7 @@ const en = {
   "programs.workoutTitlePh": "Workout title",
   "programs.untitledWorkout": "Workout",
   "programs.pickExercise": "Pick an exercise…",
+  "programs.noItems": "No exercises yet — add one below.",
   "programs.targetPh": "e.g. 3x10",
   "programs.type.race_sim": "Race sim",
   "programs.type.wod": "WOD",

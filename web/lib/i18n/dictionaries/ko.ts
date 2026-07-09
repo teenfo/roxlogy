@@ -491,6 +491,7 @@ const ko: Record<DictKey, string> = {
   "programs.workoutTitlePh": "워크아웃 제목",
   "programs.untitledWorkout": "워크아웃",
   "programs.pickExercise": "운동 선택…",
+  "programs.noItems": "등록된 운동이 없습니다 — 아래에서 추가하세요.",
   "programs.targetPh": "예: 3x10",
   "programs.type.race_sim": "레이스 시뮬",
   "programs.type.wod": "WOD",

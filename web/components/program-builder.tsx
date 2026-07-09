@@ -212,19 +212,24 @@ function DayCard({
               </button>
             </div>
 
-            <ul className="mt-1.5 flex flex-col gap-1">
-              {w.workout_template_items
-                .slice()
-                .sort((a, b) => a.seq - b.seq)
-                .map((it) => (
-                  <li
-                    key={it.id}
-                    className="flex items-center justify-between text-xs"
-                  >
-                    <span>{exName(it.exercises)}</span>
-                    <span className="flex items-center gap-2">
+            {w.workout_template_items.length > 0 ? (
+              <ul className="mt-2 flex flex-col gap-1.5">
+                {w.workout_template_items
+                  .slice()
+                  .sort((a, b) => a.seq - b.seq)
+                  .map((it, i) => (
+                    <li
+                      key={it.id}
+                      className="flex items-center gap-3 rounded-md bg-surface px-3 py-2"
+                    >
+                      <span className="w-5 shrink-0 text-right font-mono text-xs text-muted">
+                        {i + 1}
+                      </span>
+                      <span className="flex-1 truncate text-sm font-medium text-foreground">
+                        {exName(it.exercises)}
+                      </span>
                       {it.target?.note && (
-                        <span className="font-mono text-muted">
+                        <span className="shrink-0 rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
                           {it.target.note}
                         </span>
                       )}
@@ -232,14 +237,19 @@ function DayCard({
                         type="button"
                         onClick={() => onDelItem(it.id)}
                         disabled={busy}
-                        className="text-muted hover:text-red-400"
+                        aria-label={t("common.delete")}
+                        className="shrink-0 text-sm text-muted hover:text-red-400"
                       >
                         ✕
                       </button>
-                    </span>
-                  </li>
-                ))}
-            </ul>
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <p className="mt-2 rounded-md border border-dashed border-muted/25 px-3 py-2 text-xs text-muted">
+                {t("programs.noItems")}
+              </p>
+            )}
 
             {/* 항목 추가 */}
             <div className="mt-2 flex flex-wrap gap-2">

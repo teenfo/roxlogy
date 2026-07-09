@@ -498,6 +498,7 @@ const es: Record<DictKey, string> = {
   "programs.workoutTitlePh": "Título del entrenamiento",
   "programs.untitledWorkout": "Entrenamiento",
   "programs.pickExercise": "Elige un ejercicio…",
+  "programs.noItems": "Sin ejercicios todavía — añade uno abajo.",
   "programs.targetPh": "p. ej. 3x10",
   "programs.type.race_sim": "Simulacro",
   "programs.type.wod": "WOD",

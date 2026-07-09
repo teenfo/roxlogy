@@ -149,18 +149,25 @@ export default async function ProgramDetailPage({
                         {t(`programs.type.${w.type}` as Parameters<typeof t>[0])}
                       </span>
                     </p>
-                    <ul className="mt-1.5 flex flex-col gap-1">
+                    <ul className="mt-2 flex flex-col gap-1.5">
                       {w.workout_template_items
                         .slice()
                         .sort((a, b) => a.seq - b.seq)
-                        .map((it) => (
+                        .map((it, i) => (
                           <li
                             key={it.id}
-                            className="flex justify-between text-xs text-muted"
+                            className="flex items-center gap-3 rounded-md bg-surface px-3 py-2"
                           >
-                            <span>{exName(it.exercises)}</span>
+                            <span className="w-5 shrink-0 text-right font-mono text-xs text-muted">
+                              {i + 1}
+                            </span>
+                            <span className="flex-1 truncate text-sm font-medium text-foreground">
+                              {exName(it.exercises)}
+                            </span>
                             {it.target?.note && (
-                              <span className="font-mono">{it.target.note}</span>
+                              <span className="shrink-0 rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
+                                {it.target.note}
+                              </span>
                             )}
                           </li>
                         ))}
