@@ -50,6 +50,12 @@ fun PhoneApp() {
     var loggedIn by remember { mutableStateOf(TokenStore.isLoggedIn()) }
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var showWod by remember { mutableStateOf(false) }
+
+    if (loggedIn && showWod) {
+        WodScreen(onBack = { showWod = false })
+        return
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -62,6 +68,12 @@ fun PhoneApp() {
                 "로그인됨 — 워치 세션이 자동 업로드됩니다.",
                 modifier = Modifier.padding(top = 16.dp),
             )
+            Button(
+                onClick = { showWod = true },
+                modifier = Modifier.padding(top = 16.dp),
+            ) {
+                Text("오늘의 WOD")
+            }
         } else {
             OutlinedTextField(
                 value = email,
