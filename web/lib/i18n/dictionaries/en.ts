@@ -506,6 +506,8 @@ const en = {
   "profile.errSave": "Save failed: {msg}",
   "profile.language": "Language",
   "profile.languageDesc": "Applies to this browser immediately.",
+  "profile.getApp": "Get the app",
+  "profile.getAppDesc": "Download the watch & phone apps.",
   "profile.linkedTitle": "Linked accounts",
   "profile.provider.email": "Email",
   "profile.provider.google": "Google",

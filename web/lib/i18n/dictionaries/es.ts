@@ -496,6 +496,8 @@ const es: Record<DictKey, string> = {
   "profile.errSave": "Error al guardar: {msg}",
   "profile.language": "Idioma",
   "profile.languageDesc": "Se aplica a este navegador de inmediato.",
+  "profile.getApp": "Descargar la app",
+  "profile.getAppDesc": "Descarga las apps de reloj y teléfono.",
   "profile.linkedTitle": "Cuentas vinculadas",
   "profile.provider.email": "Correo",
   "profile.provider.google": "Google",

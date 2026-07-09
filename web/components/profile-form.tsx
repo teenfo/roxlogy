@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -85,6 +86,19 @@ export function ProfileForm({
           <LocaleSwitcher />
         </label>
       </div>
+
+      <Link
+        href="/download"
+        className="mt-4 flex max-w-md items-center justify-between gap-4 rounded-md bg-surface px-4 py-4 text-sm hover:bg-surface/70"
+      >
+        <span>
+          {t("profile.getApp")}
+          <span className="mt-0.5 block text-xs text-muted">
+            {t("profile.getAppDesc")}
+          </span>
+        </span>
+        <span className="shrink-0 text-accent">→</span>
+      </Link>
 
       <LinkedAccounts />
 

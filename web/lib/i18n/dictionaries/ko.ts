@@ -490,6 +490,8 @@ const ko: Record<DictKey, string> = {
   "profile.errSave": "저장 실패: {msg}",
   "profile.language": "언어",
   "profile.languageDesc": "이 브라우저에 즉시 적용됩니다.",
+  "profile.getApp": "앱 다운로드",
+  "profile.getAppDesc": "워치·폰 앱을 다운로드하세요.",
   "profile.linkedTitle": "연결된 계정",
   "profile.provider.email": "이메일",
   "profile.provider.google": "Google",
