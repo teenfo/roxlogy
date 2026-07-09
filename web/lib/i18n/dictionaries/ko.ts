@@ -18,7 +18,7 @@ const ko: Record<DictKey, string> = {
 
   "nav.dashboard": "대시보드",
   "nav.sessions": "세션",
-  "nav.races": "레이스",
+  "nav.races": "레이스결과",
   "nav.programs": "프로그램",
   "nav.schedule": "일정",
   "nav.leaderboard": "리더보드",
@@ -370,6 +370,7 @@ const ko: Record<DictKey, string> = {
   "predict.stationSum": "스테이션 합계",
   "predict.roxzoneBudget": "트랜지션 예산 (8회)",
   "predict.roxzoneEach": "회당 ~{time}",
+  "predict.roxzoneInfo": "트랜지션(록스존)은 런을 마치고 다음 스테이션에 도착해 시작하기까지의 이동·준비 시간입니다 — 스테이션까지 걷기, 세팅, 초크 등. 하이록스에는 8번의 트랜지션이 있고, 이 값은 그 전체에 배정한 시간 예산입니다.",
   "predict.stationTargets": "스테이션별 목표",
   "predict.signupPrompt.before": "계정을 만들면",
   "predict.signupPrompt.after": " 훈련 세션을 기록하고 이 목표와 실측을 비교할 수 있습니다.",

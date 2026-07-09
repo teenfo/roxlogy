@@ -18,7 +18,7 @@ const es: Record<DictKey, string> = {
 
   "nav.dashboard": "Panel",
   "nav.sessions": "Sesiones",
-  "nav.races": "Carreras",
+  "nav.races": "Resultados",
   "nav.programs": "Programas",
   "nav.schedule": "Calendario",
   "nav.leaderboard": "Clasificación",
@@ -373,6 +373,7 @@ const es: Record<DictKey, string> = {
   "predict.stationSum": "Total estaciones",
   "predict.roxzoneBudget": "Presupuesto de transiciones (8x)",
   "predict.roxzoneEach": "~{time} cada una",
+  "predict.roxzoneInfo": "La roxzone (transición) es el tiempo desde que terminas una carrera hasta que empiezas la siguiente estación: caminar hasta la estación, preparación, magnesio. HYROX tiene 8; este es el tiempo total presupuestado para esas transiciones.",
   "predict.stationTargets": "Objetivos por estación",
   "predict.signupPrompt.before": "Crea una cuenta",
   "predict.signupPrompt.after": " para registrar sesiones y compararlas con estos objetivos.",

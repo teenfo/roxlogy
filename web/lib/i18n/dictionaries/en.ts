@@ -19,7 +19,7 @@ const en = {
   // 내비게이션
   "nav.dashboard": "Dashboard",
   "nav.sessions": "Sessions",
-  "nav.races": "Races",
+  "nav.races": "Race results",
   "nav.programs": "Programs",
   "nav.schedule": "Schedule",
   "nav.leaderboard": "Leaderboard",
@@ -382,6 +382,7 @@ const en = {
   "predict.stationSum": "Stations total",
   "predict.roxzoneBudget": "Transition budget (8x)",
   "predict.roxzoneEach": "~{time} each",
+  "predict.roxzoneInfo": "The roxzone (transition) is the time from finishing a run to starting the next station and back — walking to the station, setup, chalk. HYROX has 8 of them; this is the total time budgeted for those transitions.",
   "predict.stationTargets": "Station targets",
   "predict.signupPrompt.before": "Create an account",
   "predict.signupPrompt.after": " to log training sessions and compare them against these targets.",

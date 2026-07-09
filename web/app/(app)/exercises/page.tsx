@@ -117,6 +117,18 @@ export default async function ExercisesPage({
                       : ""}
                     {ex.equipment?.length ? ` · ${ex.equipment.join(", ")}` : ""}
                   </p>
+                  {Array.isArray(ex.muscles) && ex.muscles.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {ex.muscles.map((m: string) => (
+                        <span
+                          key={m}
+                          className="rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-semibold text-track"
+                        >
+                          {t(`muscle.${m}` as Parameters<typeof t>[0])}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </Link>
               </li>
             );

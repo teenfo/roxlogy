@@ -6,6 +6,8 @@ import { STATIONS } from "@/lib/hyrox";
 import { formatDateShort } from "@/lib/format";
 import { PredictForm, type PredictSession } from "@/components/predict-form";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { DesktopNav } from "@/components/desktop-nav";
+import { MobileNav } from "@/components/mobile-nav";
 
 const EX_TO_KEY = new Map(STATIONS.map((s) => [s.exerciseId, s.key]));
 
@@ -23,7 +25,14 @@ export default async function PredictPage() {
 
   // 로그인 시: 최근 레이스 시뮬 세션을 목표 계산용으로 불러온다.
   let sessions: PredictSession[] = [];
+  let isAdmin = false;
   if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+    isAdmin = profile?.is_admin === true;
     const { data: rows } = await supabase
       .from("sessions")
       .select(
@@ -65,21 +74,57 @@ export default async function PredictPage() {
   return (
     <>
       <header className="border-b border-surface">
-        <nav className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} />
-            <span className="text-sm font-black tracking-widest">ROXLOGY</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <LocaleSwitcher compact />
-            <Link
-              href="/login"
-              className="text-sm text-muted hover:text-foreground"
-            >
-              {t("common.login")}
+        {user ? (
+          // 로그인 상태: 앱과 동일한 상단 내비게이션
+          <nav className="mx-auto flex max-w-4xl items-center gap-6 px-6 py-4">
+            <Link href="/dashboard" className="flex items-center gap-2.5">
+              <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} />
+              <span className="text-sm font-black tracking-widest">ROXLOGY</span>
             </Link>
-          </div>
-        </nav>
+            <DesktopNav />
+            <div className="ml-auto hidden items-center gap-4 sm:flex">
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="text-sm font-semibold text-accent hover:brightness-110"
+                >
+                  {t("nav.admin")}
+                </Link>
+              )}
+              <Link
+                href="/settings/profile"
+                className="text-sm text-muted hover:text-foreground"
+              >
+                {t("nav.profile")}
+              </Link>
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="text-sm text-muted hover:text-foreground"
+                >
+                  {t("common.logout")}
+                </button>
+              </form>
+            </div>
+            <MobileNav isAdmin={isAdmin} />
+          </nav>
+        ) : (
+          <nav className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
+            <Link href="/" className="flex items-center gap-2.5">
+              <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} />
+              <span className="text-sm font-black tracking-widest">ROXLOGY</span>
+            </Link>
+            <div className="flex items-center gap-4">
+              <LocaleSwitcher compact />
+              <Link
+                href="/login"
+                className="text-sm text-muted hover:text-foreground"
+              >
+                {t("common.login")}
+              </Link>
+            </div>
+          </nav>
+        )}
       </header>
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         <PredictForm isLoggedIn={!!user} sessions={sessions} />

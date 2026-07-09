@@ -11,6 +11,7 @@ import {
   LEVELS,
   type Level,
 } from "@/lib/predict";
+import { InfoTip } from "@/components/info-tip";
 import { useI18n } from "@/components/i18n-provider";
 
 const TIER_STYLE: Record<string, string> = {
@@ -221,7 +222,10 @@ export function PredictForm({
               </p>
             </div>
             <div className="rounded-md bg-surface px-4 py-3">
-              <p className="text-xs text-muted">{t("predict.roxzoneBudget")}</p>
+              <p className="text-xs text-muted">
+                {t("predict.roxzoneBudget")}
+                <InfoTip text={t("predict.roxzoneInfo")} />
+              </p>
               <p className="mt-1 font-mono text-xl font-bold">
                 {formatMs(result.roxzoneTotalMs)}
               </p>
