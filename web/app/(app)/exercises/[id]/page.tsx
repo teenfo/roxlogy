@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDateShort, formatMs } from "@/lib/format";
 import { RunLapLine } from "@/components/charts";
+import { ExerciseDrills, type Drill } from "@/components/exercise-drills";
 
 export async function generateMetadata({
   params,
@@ -66,6 +67,16 @@ export default async function ExerciseDetailPage({
     : null;
   const latest = splits.length ? splits[splits.length - 1].split_time_ms : null;
 
+  // 이 운동에 대해 내가 직접 추가한 도움 훈련 (RLS: 본인 것만)
+  const { data: drillRows } = await supabase
+    .from("exercise_drills")
+    .select("id, title, body")
+    .eq("exercise_id", id)
+    .order("created_at", { ascending: true });
+  const drills = (drillRows ?? []) as Drill[];
+
+  const muscles: string[] = Array.isArray(ex.muscles) ? ex.muscles : [];
+
   const primary = locale === "ko" ? ex.name_ko : ex.name_en;
   const secondary = locale === "ko" ? ex.name_en : ex.name_ko;
 
@@ -120,6 +131,22 @@ export default async function ExerciseDetailPage({
         </dl>
       )}
 
+      {muscles.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm text-muted">{t("exercises.detTarget")}</h2>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {muscles.map((m) => (
+              <span
+                key={m}
+                className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track"
+              >
+                {t(`muscle.${m}` as Parameters<typeof t>[0])}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
       {trend.length >= 2 && (
         <section className="mt-8">
           <div className="flex items-baseline justify-between">
@@ -146,6 +173,8 @@ export default async function ExerciseDetailPage({
           </p>
         </section>
       )}
+
+      <ExerciseDrills exerciseId={id} initial={drills} />
     </main>
   );
 }
