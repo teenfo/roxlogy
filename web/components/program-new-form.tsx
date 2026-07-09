@@ -14,6 +14,8 @@ export function ProgramNewForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [weeks, setWeeks] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [level, setLevel] = useState<string>("intermediate");
   const [isPublic, setIsPublic] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,8 @@ export function ProgramNewForm() {
         title: title.trim(),
         description: description.trim() || null,
         weeks: weeks ? Number(weeks) : null,
+        start_date: startDate || null,
+        end_date: endDate || null,
         level,
         is_public: isPublic,
       })
@@ -102,6 +106,27 @@ export function ProgramNewForm() {
                 </option>
               ))}
             </select>
+          </label>
+        </div>
+        <div className="flex gap-4">
+          <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
+            {t("programs.fldStartDate")}
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className={inputCls}
+            />
+          </label>
+          <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
+            {t("programs.fldEndDate")}
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
+              className={inputCls}
+            />
           </label>
         </div>
         <label className="flex items-center gap-2 text-sm">

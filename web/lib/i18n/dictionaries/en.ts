@@ -533,6 +533,8 @@ const en = {
   "programs.fldDesc": "Description (optional)",
   "programs.fldWeeks": "Weeks",
   "programs.fldLevel": "Level",
+  "programs.fldStartDate": "Start date",
+  "programs.fldEndDate": "End date",
   "programs.fldPublic": "Share publicly",
   "programs.publicHint": "Public programs are visible to all Roxlogy users.",
   "programs.errTitle": "Enter a program title.",

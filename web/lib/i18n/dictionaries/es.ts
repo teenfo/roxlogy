@@ -520,6 +520,8 @@ const es: Record<DictKey, string> = {
   "programs.fldDesc": "Descripción (opcional)",
   "programs.fldWeeks": "Semanas",
   "programs.fldLevel": "Nivel",
+  "programs.fldStartDate": "Fecha de inicio",
+  "programs.fldEndDate": "Fecha de fin",
   "programs.fldPublic": "Compartir públicamente",
   "programs.publicHint":
     "Los programas públicos son visibles para todos los usuarios de Roxlogy.",

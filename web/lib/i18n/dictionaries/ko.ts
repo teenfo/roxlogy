@@ -513,6 +513,8 @@ const ko: Record<DictKey, string> = {
   "programs.fldDesc": "설명 (선택)",
   "programs.fldWeeks": "주차",
   "programs.fldLevel": "레벨",
+  "programs.fldStartDate": "시작일",
+  "programs.fldEndDate": "종료일",
   "programs.fldPublic": "공개 공유",
   "programs.publicHint": "공개 프로그램은 모든 Roxlogy 사용자에게 표시됩니다.",
   "programs.errTitle": "프로그램 제목을 입력해 주세요.",

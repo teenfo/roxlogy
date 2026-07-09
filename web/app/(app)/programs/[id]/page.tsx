@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import { formatDateShort, programDayDate } from "@/lib/format";
 import { ProgramBuilder } from "@/components/program-builder";
+import { ProgramDatesEditor } from "@/components/program-dates-editor";
 import { ProgramEnrollButton } from "@/components/program-enroll-button";
 import { CloneProgramButton } from "@/components/clone-program-button";
 import { DeleteButton } from "@/components/delete-button";
@@ -29,7 +31,7 @@ export default async function ProgramDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, locale } = await getT();
+  const { t, tag, locale } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -38,7 +40,7 @@ export default async function ProgramDetailPage({
   const { data: program } = await supabase
     .from("programs")
     .select(
-      `id, owner_id, title, description, weeks, level, is_public,
+      `id, owner_id, title, description, weeks, level, is_public, start_date, end_date,
        program_days (
          id, day_index, focus, notes,
          workout_templates (
@@ -120,8 +122,22 @@ export default async function ProgramDetailPage({
         {program.weeks ? ` · ${t("programs.weeksN", { n: program.weeks })}` : ""}
         {program.is_public ? ` · ${t("programs.public")}` : ""}
       </p>
+      {(program.start_date || program.end_date) && (
+        <p className="mt-1 text-sm font-medium text-track">
+          {formatDateShort(program.start_date, tag)} –{" "}
+          {formatDateShort(program.end_date, tag)}
+        </p>
+      )}
       {program.description && (
         <p className="mt-3 whitespace-pre-wrap text-sm">{program.description}</p>
+      )}
+
+      {isOwner && (
+        <ProgramDatesEditor
+          programId={program.id}
+          initialStart={program.start_date}
+          initialEnd={program.end_date}
+        />
       )}
 
       {isOwner ? (
@@ -130,6 +146,7 @@ export default async function ProgramDetailPage({
           initialDays={days}
           exercises={exercises ?? []}
           locale={locale}
+          startDate={program.start_date}
         />
       ) : (
         <div className="mt-8 flex flex-col gap-4">
@@ -137,6 +154,12 @@ export default async function ProgramDetailPage({
             <section key={d.id} className="rounded-md bg-surface p-4">
               <h2 className="font-semibold">
                 {t("programs.dayN", { n: d.day_index })}
+                {(() => {
+                  const dt = programDayDate(program.start_date, d.day_index, tag);
+                  return dt ? (
+                    <span className="ml-2 text-xs font-medium text-track">{dt}</span>
+                  ) : null;
+                })()}
                 {d.focus ? ` · ${d.focus}` : ""}
               </h2>
               {d.notes && <p className="mt-1 text-xs text-muted">{d.notes}</p>}

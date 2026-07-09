@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { RUN_EXERCISE_ID, STATIONS } from "@/lib/hyrox";
+import { programDayDate } from "@/lib/format";
 
 /** 레이스 시뮬 전체 종목 순서: (런 → 스테이션) × 8 = 16 */
 const RACE_SIM_SEQUENCE: string[] = STATIONS.flatMap((s) => [
@@ -45,11 +46,13 @@ export function ProgramBuilder({
   initialDays,
   exercises,
   locale,
+  startDate = null,
 }: {
   programId: string;
   initialDays: Day[];
   exercises: Exercise[];
   locale: string;
+  startDate?: string | null;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -142,6 +145,7 @@ export function ProgramBuilder({
         <DayCard
           key={d.id}
           day={d}
+          dayDate={programDayDate(startDate, d.day_index, locale)}
           exercises={exercises}
           exName={exName}
           pick={pick}
@@ -172,6 +176,7 @@ export function ProgramBuilder({
 
 function DayCard({
   day,
+  dayDate,
   exercises,
   exName,
   pick,
@@ -185,6 +190,7 @@ function DayCard({
   onDelItem,
 }: {
   day: Day;
+  dayDate: string | null;
   exercises: Exercise[];
   exName: (ex: { name_ko: string; name_en: string } | null) => string;
   pick: Record<string, { ex: string; note: string }>;
@@ -208,6 +214,9 @@ function DayCard({
       <div className="flex items-center justify-between">
         <h2 className="font-semibold">
           {t("programs.dayN", { n: day.day_index })}
+          {dayDate ? (
+            <span className="ml-2 text-xs font-medium text-track">{dayDate}</span>
+          ) : null}
           {day.focus ? ` · ${day.focus}` : ""}
         </h2>
         <button

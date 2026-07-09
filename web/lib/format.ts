@@ -36,6 +36,27 @@ export function formatDateShort(
   });
 }
 
+/**
+ * 프로그램 일차(day_index, 1-based)에 해당하는 실제 날짜를 짧은 형식으로.
+ * startDate(YYYY-MM-DD)가 없으면 null. 날짜만 다루므로 UTC로 계산해 TZ 밀림 방지.
+ */
+export function programDayDate(
+  startDate: string | null | undefined,
+  dayIndex: number,
+  tag: string = "en-US",
+): string | null {
+  if (!startDate) return null;
+  const base = new Date(`${startDate}T00:00:00Z`);
+  if (Number.isNaN(base.getTime())) return null;
+  base.setUTCDate(base.getUTCDate() + (dayIndex - 1));
+  return base.toLocaleDateString(tag, {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+  });
+}
+
 /** "mm:ss" / "h:mm:ss" → ms. 잘못된 입력이면 null */
 export function parseTimeToMs(input: string): number | null {
   const t = input.trim();
