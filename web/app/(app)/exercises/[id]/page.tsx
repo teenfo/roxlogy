@@ -76,6 +76,9 @@ export default async function ExerciseDetailPage({
   const drills = (drillRows ?? []) as Drill[];
 
   const muscles: string[] = Array.isArray(ex.muscles) ? ex.muscles : [];
+  const helps: string[] = Array.isArray(ex.helps_stations)
+    ? ex.helps_stations
+    : [];
 
   const primary = locale === "ko" ? ex.name_ko : ex.name_en;
   const secondary = locale === "ko" ? ex.name_en : ex.name_ko;
@@ -144,6 +147,23 @@ export default async function ExerciseDetailPage({
               </span>
             ))}
           </div>
+        </section>
+      )}
+
+      {helps.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm text-muted">{t("exercises.detHelps")}</h2>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {helps.map((h) => (
+              <span
+                key={h}
+                className="rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent"
+              >
+                {t(`hstation.${h}` as Parameters<typeof t>[0])}
+              </span>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-muted">{t("exercises.detHelpsHint")}</p>
         </section>
       )}
 

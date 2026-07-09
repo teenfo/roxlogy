@@ -117,14 +117,24 @@ export default async function ExercisesPage({
                       : ""}
                     {ex.equipment?.length ? ` · ${ex.equipment.join(", ")}` : ""}
                   </p>
-                  {Array.isArray(ex.muscles) && ex.muscles.length > 0 && (
+                  {((Array.isArray(ex.muscles) && ex.muscles.length > 0) ||
+                    (Array.isArray(ex.helps_stations) &&
+                      ex.helps_stations.length > 0)) && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
-                      {ex.muscles.map((m: string) => (
+                      {(ex.muscles ?? []).map((m: string) => (
                         <span
-                          key={m}
+                          key={`m-${m}`}
                           className="rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-semibold text-track"
                         >
                           {t(`muscle.${m}` as Parameters<typeof t>[0])}
+                        </span>
+                      ))}
+                      {(ex.helps_stations ?? []).map((h: string) => (
+                        <span
+                          key={`h-${h}`}
+                          className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent"
+                        >
+                          {t(`hstation.${h}` as Parameters<typeof t>[0])}
                         </span>
                       ))}
                     </div>
