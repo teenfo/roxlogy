@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMs, parseTimeToMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
+import { DIVISIONS } from "@/lib/divisions";
 import {
   achievabilityTier,
   predictSplits,
@@ -41,13 +42,20 @@ const STATION_KEYS = STATIONS.map((s) => s.key);
 export function PredictForm({
   isLoggedIn = false,
   sessions = [],
+  eventName = null,
+  eventDate = null,
+  initialDivision = null,
 }: {
   isLoggedIn?: boolean;
   sessions?: PredictSession[];
+  eventName?: string | null;
+  eventDate?: string | null;
+  initialDivision?: string | null;
 }) {
   const { t } = useI18n();
   const [targetText, setTargetText] = useState("1:30:00");
   const [level, setLevel] = useState<Level>("intermediate");
+  const [division, setDivision] = useState<string>(initialDivision ?? "");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
@@ -144,6 +152,9 @@ export function PredictForm({
       user_id: user.id,
       target_total_ms: adjustedMs,
       level,
+      division: division || null,
+      event_name: eventName,
+      event_date: eventDate,
       run_total_ms: parseTimeToMs(eff.run) ?? 0,
       station_total_ms: stationTotal,
       roxzone_total_ms: parseTimeToMs(eff.rox) ?? 0,
@@ -159,6 +170,16 @@ export function PredictForm({
     <main>
       <h1 className="text-2xl font-bold">{t("predict.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("predict.desc")}</p>
+
+      {eventName && (
+        <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-4 py-3">
+          <p className="text-xs text-muted">{t("predict.forEvent")}</p>
+          <p className="mt-0.5 text-sm font-semibold text-accent">
+            {eventName}
+            {eventDate ? ` · ${eventDate}` : ""}
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1.5 text-sm text-muted">
@@ -285,23 +306,43 @@ export function PredictForm({
                 </button>
               </div>
 
-              {sessions.length > 0 && (
-                <label className="mt-4 flex flex-col gap-1.5 text-sm text-muted">
-                  {t("predict.fromSession")}
+              <div className="mt-4 flex flex-wrap gap-4">
+                <label className="flex flex-col gap-1.5 text-sm text-muted">
+                  {t("newSession.division")}
                   <select
-                    value={pickedSession}
-                    onChange={(e) => loadSession(e.target.value)}
-                    className="max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                    value={division}
+                    onChange={(e) => {
+                      setDivision(e.target.value);
+                      setSaveState("idle");
+                    }}
+                    className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
                   >
-                    <option value="">{t("predict.fromSessionPh")}</option>
-                    {sessions.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label} · {formatMs(s.total)}
+                    <option value="">{t("newSession.divisionNone")}</option>
+                    {DIVISIONS.map((d) => (
+                      <option key={d} value={d}>
+                        {t(`division.${d}` as Parameters<typeof t>[0])}
                       </option>
                     ))}
                   </select>
                 </label>
-              )}
+                {sessions.length > 0 && (
+                  <label className="flex flex-col gap-1.5 text-sm text-muted">
+                    {t("predict.fromSession")}
+                    <select
+                      value={pickedSession}
+                      onChange={(e) => loadSession(e.target.value)}
+                      className="max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                    >
+                      <option value="">{t("predict.fromSessionPh")}</option>
+                      {sessions.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.label} · {formatMs(s.total)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
 
               <div className="mt-4 rounded-md bg-background px-4 py-3">
                 <p className="text-xs text-muted">{t("predict.adjustedTotal")}</p>

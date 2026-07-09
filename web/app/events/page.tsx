@@ -157,16 +157,26 @@ export default async function EventsPage({
                             t("events.tbd"),
                           )}
                         </p>
-                        {e.official_url && (
-                          <a
-                            href={e.official_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-track hover:underline"
+                        <div className="mt-1 flex items-center justify-end gap-3">
+                          {e.official_url && (
+                            <a
+                              href={e.official_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-track hover:underline"
+                            >
+                              {t("events.official")}
+                            </a>
+                          )}
+                          <Link
+                            href={`/predict?event=${encodeURIComponent(e.name)}${
+                              e.start_date ? `&date=${e.start_date}` : ""
+                            }`}
+                            className="rounded-md border border-accent/50 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/10"
                           >
-                            {t("events.official")}
-                          </a>
-                        )}
+                            {t("events.setGoal")}
+                          </Link>
+                        </div>
                       </div>
                     </li>
                   ))}

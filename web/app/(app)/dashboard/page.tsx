@@ -226,6 +226,9 @@ export default async function DashboardPage() {
   const goal = (goals?.[0] ?? null) as {
     target_total_ms: number;
     stations: { key: string; targetMs: number }[] | null;
+    division: string | null;
+    event_name: string | null;
+    event_date: string | null;
   } | null;
   const latestSim = sims[0];
   const rehearsal =
@@ -247,7 +250,14 @@ export default async function DashboardPage() {
             .filter((r) => r.actual != null);
           const simTotal = latestSim.total_time_ms ?? null;
           return rows.length
-            ? { rows, simTotal, target: goal.target_total_ms }
+            ? {
+                rows,
+                simTotal,
+                target: goal.target_total_ms,
+                division: goal.division,
+                eventName: goal.event_name,
+                eventDate: goal.event_date,
+              }
             : null;
         })()
       : null;
@@ -372,6 +382,19 @@ export default async function DashboardPage() {
       {rehearsal && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("dash.rehearsalTitle")}</h2>
+          {(rehearsal.eventName || rehearsal.division) && (
+            <p className="mt-1 text-sm font-medium text-accent">
+              {rehearsal.eventName ?? ""}
+              {rehearsal.eventName && rehearsal.eventDate
+                ? ` · ${rehearsal.eventDate}`
+                : ""}
+              {rehearsal.division
+                ? `${rehearsal.eventName ? " · " : ""}${t(
+                    `division.${rehearsal.division}` as Parameters<typeof t>[0],
+                  )}`
+                : ""}
+            </p>
+          )}
           <p className="mt-1 text-sm text-muted">
             {t("dash.rehearsalDesc", {
               target: formatMs(rehearsal.target),

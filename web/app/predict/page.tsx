@@ -16,7 +16,12 @@ export async function generateMetadata() {
   return { title: t("meta.predict"), description: t("predict.desc") };
 }
 
-export default async function PredictPage() {
+export default async function PredictPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ event?: string; date?: string; division?: string }>;
+}) {
+  const sp = await searchParams;
   const { t, tag } = await getT();
   const supabase = await createClient();
   const {
@@ -127,7 +132,13 @@ export default async function PredictPage() {
         )}
       </header>
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
-        <PredictForm isLoggedIn={!!user} sessions={sessions} />
+        <PredictForm
+          isLoggedIn={!!user}
+          sessions={sessions}
+          eventName={sp.event ?? null}
+          eventDate={sp.date ?? null}
+          initialDivision={sp.division ?? null}
+        />
       </div>
     </>
   );
