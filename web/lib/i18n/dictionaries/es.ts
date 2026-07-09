@@ -23,7 +23,7 @@ const es: Record<DictKey, string> = {
   "nav.schedule": "Calendario",
   "nav.leaderboard": "Clasificación",
   "nav.feed": "Feed",
-  "nav.events": "Eventos",
+  "nav.events": "Buscar eventos",
   "nav.exercises": "Ejercicios",
   "nav.profile": "Perfil",
 
@@ -159,6 +159,12 @@ const es: Record<DictKey, string> = {
   "newSession.rpeHint": "Qué tan duro se sintió, 1–10 (opcional)",
   "newSession.notes": "Notas",
   "newSession.linkWorkout": "Programa de hoy",
+  "newSession.division": "División",
+  "newSession.divisionNone": "Ninguna",
+  "newSession.excludeLeaderboard": "Ocultar esta sesión de la clasificación",
+  "newSession.raceLinked":
+    "La división se establece desde el resultado de carrera vinculado y no se puede cambiar aquí.",
+  "sessions.race": "Carrera",
   "sessions.partOfProgram": "Parte de",
   "schedule.title": "Calendario semanal",
   "schedule.noProgram": "Sin programa activo.",

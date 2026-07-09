@@ -260,11 +260,6 @@ export default async function DashboardPage() {
             {profile?.display_name ?? user!.email}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            {t("dash.division")}:{" "}
-            {profile?.division
-              ? t(`division.${profile.division}` as Parameters<typeof t>[0])
-              : t("dash.unset")}{" "}
-            ·{" "}
             <Link href="/settings/profile" className="text-accent hover:underline">
               {t("dash.profileSettings")}
             </Link>

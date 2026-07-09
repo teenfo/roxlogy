@@ -22,7 +22,6 @@ export default async function ProfileSettingsPage() {
     <ProfileForm
       initial={{
         display_name: profile?.display_name ?? "",
-        division: profile?.division ?? "",
         gender: profile?.gender ?? "",
         height_cm: profile?.height_cm?.toString() ?? "",
         weight_kg: profile?.weight_kg?.toString() ?? "",

@@ -63,9 +63,11 @@ export default async function SessionsPage({
 
   let query = supabase
     .from("sessions")
-    .select("id, started_at, total_time_ms, source_device, analysis_status", {
-      count: "exact",
-    })
+    .select(
+      `id, started_at, total_time_ms, source_device, analysis_status, division,
+       race_results ( event, event_date, season, division )`,
+      { count: "exact" },
+    )
     .is("deleted_at", null);
 
   if (source !== "all") query = query.eq("source_device", source);
@@ -158,26 +160,70 @@ export default async function SessionsPage({
         </p>
       ) : (
         <ul className="mt-6 flex flex-col gap-2">
-          {sessions.map((s) => (
-            <li key={s.id}>
-              <Link
-                href={`/sessions/${s.id}`}
-                className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
-              >
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm">{formatDate(s.started_at, tag)}</span>
-                  <span className="text-xs text-muted">
-                    {t(`source.${s.source_device}` as Parameters<typeof t>[0])}
-                    {s.analysis_status !== "done" &&
-                      ` · ${t("common.analysisPending")}`}
+          {sessions.map((s) => {
+            const raceRaw = (s as { race_results?: unknown }).race_results;
+            const race = (Array.isArray(raceRaw) ? raceRaw[0] : raceRaw) as
+              | {
+                  event: string | null;
+                  event_date: string | null;
+                  season: string | null;
+                  division: string | null;
+                }
+              | null
+              | undefined;
+            const isRace = !!race;
+            const div = isRace ? race?.division : s.division;
+            const divLabel = div
+              ? t(`division.${div}` as Parameters<typeof t>[0])
+              : null;
+            return (
+              <li key={s.id}>
+                <Link
+                  href={`/sessions/${s.id}`}
+                  className={`flex items-center justify-between rounded-md px-4 py-3.5 ${
+                    isRace
+                      ? "bg-accent/10 ring-1 ring-accent/30 hover:bg-accent/15"
+                      : "bg-surface hover:bg-surface/70"
+                  }`}
+                >
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    {isRace ? (
+                      <>
+                        <span className="flex items-center gap-2 text-sm font-semibold">
+                          <span className="truncate">{race?.event}</span>
+                          <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
+                            {t("sessions.race")}
+                          </span>
+                        </span>
+                        <span className="text-xs text-muted">
+                          {race?.event_date
+                            ? formatDate(race.event_date, tag)
+                            : formatDate(s.started_at, tag)}
+                          {race?.season ? ` · ${race.season}` : ""}
+                          {divLabel ? ` · ${divLabel}` : ""}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm">
+                          {formatDate(s.started_at, tag)}
+                        </span>
+                        <span className="text-xs text-muted">
+                          {t(`source.${s.source_device}` as Parameters<typeof t>[0])}
+                          {divLabel ? ` · ${divLabel}` : ""}
+                          {s.analysis_status !== "done" &&
+                            ` · ${t("common.analysisPending")}`}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <span className="shrink-0 font-mono text-lg font-semibold">
+                    {formatMs(s.total_time_ms)}
                   </span>
-                </div>
-                <span className="font-mono text-lg font-semibold">
-                  {formatMs(s.total_time_ms)}
-                </span>
-              </Link>
-            </li>
-          ))}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
 

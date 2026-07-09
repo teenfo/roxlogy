@@ -61,6 +61,9 @@ export type SessionRows = {
     notes: string | null;
     rpe: number | null;
     template_id: string | null;
+    division: string | null;
+    race_result_id: string | null;
+    leaderboard_excluded: boolean;
   };
   segments: {
     id: string;
@@ -87,6 +90,12 @@ export function buildSessionRows(
     rpe?: number | null;
     /** 프로그램 워크아웃 연결 (선택) */
     templateId?: string | null;
+    /** 디비전 (선택) */
+    division?: string | null;
+    /** 레이스 결과 연동 (레이스→세션 변환 시) */
+    raceResultId?: string | null;
+    /** 리더보드 노출 제외 (세션별) */
+    leaderboardExcluded?: boolean;
   },
 ): SessionRows | { error: string } {
   const filled = segments.filter((s) => s.splitMs != null && s.splitMs > 0);
@@ -110,6 +119,9 @@ export function buildSessionRows(
       notes: opts?.notes?.trim() ? opts.notes.trim() : null,
       rpe: opts?.rpe ?? null,
       template_id: opts?.templateId ?? null,
+      division: opts?.division ?? null,
+      race_result_id: opts?.raceResultId ?? null,
+      leaderboard_excluded: opts?.leaderboardExcluded ?? false,
     },
     segments: filled.map((s, idx) => ({
       // 같은 seq 자리의 기존 id를 재사용해야 erg_samples 참조가 유지되고

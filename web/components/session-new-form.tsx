@@ -36,9 +36,14 @@ export type SessionInitial = {
   notes?: string | null;
   rpe?: number | null;
   templateId?: string | null;
+  division?: string | null;
+  raceResultId?: string | null;
+  leaderboardExcluded?: boolean;
 };
 
 export type TodayWorkout = { id: string; title: string };
+
+const DIVISIONS = ["open", "pro", "doubles", "pro_doubles", "relay"] as const;
 
 /** 저장된 세그먼트(빈 칸 제외·재번호됨)를 24행 템플릿에 순서대로 되맵핑 */
 function rowsFromInitial(initial: SessionInitial): Row[] {
@@ -75,9 +80,11 @@ function toLocalInput(iso: string): string {
 export function SessionNewForm({
   initial,
   todayWorkouts = [],
+  defaultDivision = null,
 }: {
   initial?: SessionInitial;
   todayWorkouts?: TodayWorkout[];
+  defaultDivision?: string | null;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -97,6 +104,14 @@ export function SessionNewForm({
   const [templateId, setTemplateId] = useState<string | null>(
     initial?.templateId ?? null,
   );
+  const [division, setDivision] = useState<string>(
+    initial?.division ?? defaultDivision ?? "",
+  );
+  const [lbExcluded, setLbExcluded] = useState<boolean>(
+    initial?.leaderboardExcluded ?? false,
+  );
+  // 레이스 연동 세션은 폼에서 유지 (수정 시 링크 보존)
+  const raceResultId = initial?.raceResultId ?? null;
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -141,8 +156,18 @@ export function SessionNewForm({
             notes,
             rpe,
             templateId,
+            division: division || null,
+            raceResultId,
+            leaderboardExcluded: lbExcluded,
           }
-        : { notes, rpe, templateId },
+        : {
+            notes,
+            rpe,
+            templateId,
+            division: division || null,
+            raceResultId,
+            leaderboardExcluded: lbExcluded,
+          },
     );
     if ("error" in built) {
       setPending(false);
@@ -196,7 +221,7 @@ export function SessionNewForm({
         {initial ? t("newSession.editDesc") : t("newSession.desc")}
       </p>
 
-      <div className="mt-6 flex items-center gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <label className="text-sm text-muted">{t("newSession.startTime")}</label>
         <input
           type="datetime-local"
@@ -204,7 +229,36 @@ export function SessionNewForm({
           onChange={(e) => setStartedAt(e.target.value)}
           className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent"
         />
+        <label className="ml-2 text-sm text-muted">{t("newSession.division")}</label>
+        <select
+          value={division}
+          onChange={(e) => setDivision(e.target.value)}
+          disabled={!!raceResultId}
+          className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent disabled:opacity-60"
+        >
+          <option value="">{t("newSession.divisionNone")}</option>
+          {DIVISIONS.map((d) => (
+            <option key={d} value={d}>
+              {t(`division.${d}` as Parameters<typeof t>[0])}
+            </option>
+          ))}
+        </select>
+        {raceResultId && (
+          <span className="basis-full text-xs text-muted">
+            {t("newSession.raceLinked")}
+          </span>
+        )}
       </div>
+
+      <label className="mt-3 flex items-center gap-2 text-sm text-muted">
+        <input
+          type="checkbox"
+          checked={lbExcluded}
+          onChange={(e) => setLbExcluded(e.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        {t("newSession.excludeLeaderboard")}
+      </label>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <label className="text-sm text-muted">{t("newSession.rpe")}</label>

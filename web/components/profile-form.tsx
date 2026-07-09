@@ -7,12 +7,10 @@ import { useI18n } from "@/components/i18n-provider";
 import { LinkedAccounts } from "@/components/linked-accounts";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 
-const DIVISIONS = ["open", "pro", "doubles", "pro_doubles", "relay"] as const;
 const GENDERS = ["male", "female", "other"] as const;
 
 type ProfileFields = {
   display_name: string;
-  division: string;
   gender: string;
   height_cm: string;
   weight_kg: string;
@@ -58,7 +56,6 @@ export function ProfileForm({
       .from("profiles")
       .update({
         display_name: fields.display_name.trim() || null,
-        division: fields.division || null,
         gender: fields.gender || null,
         height_cm: fields.height_cm ? Number(fields.height_cm) : null,
         weight_kg: fields.weight_kg ? Number(fields.weight_kg) : null,
@@ -102,21 +99,7 @@ export function ProfileForm({
         </label>
 
         <div className="flex gap-4">
-          <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
-            {t("raceNew.division")}
-            <select
-              value={fields.division}
-              onChange={(e) => set("division", e.target.value)}
-              className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
-            >
-              <option value="">{t("dash.unset")}</option>
-              {DIVISIONS.map((v) => (
-                <option key={v} value={v}>
-                  {t(`division.${v}`)}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* 디비전은 세션·레이스 단위로 관리 (여러 디비전 출전 가능) — 프로필에서 제거 */}
           <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
             {t("profile.gender")}
             <select

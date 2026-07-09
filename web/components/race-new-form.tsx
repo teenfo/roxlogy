@@ -284,6 +284,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           event: event.trim(),
           event_date: eventDate || null,
           division,
+          season: seasonOptions.find((s) => s.value === season)?.label ?? null,
           total_time_ms: totalMs,
           splits: {
             stations,
@@ -327,6 +328,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           ? new Date().toISOString()
           : startLocal.toISOString(),
         forms,
+        { division, raceResultId: raceId ?? undefined },
       );
       if (!("error" in built)) {
         const { error: sErr } = await supabase

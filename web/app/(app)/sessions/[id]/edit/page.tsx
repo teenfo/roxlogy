@@ -22,7 +22,7 @@ export default async function SessionEditPage({
   const { data: session } = await supabase
     .from("sessions")
     .select(
-      "id, started_at, notes, rpe, template_id, session_segments ( id, seq, kind, exercise_id, split_time_ms )",
+      "id, started_at, notes, rpe, template_id, division, race_result_id, leaderboard_excluded, session_segments ( id, seq, kind, exercise_id, split_time_ms )",
     )
     .eq("id", id)
     .is("deleted_at", null)
@@ -42,6 +42,9 @@ export default async function SessionEditPage({
         notes: session.notes,
         rpe: session.rpe,
         templateId: session.template_id,
+        division: session.division,
+        raceResultId: session.race_result_id,
+        leaderboardExcluded: session.leaderboard_excluded,
       }}
     />
   );

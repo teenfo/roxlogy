@@ -24,7 +24,7 @@ const en = {
   "nav.schedule": "Schedule",
   "nav.leaderboard": "Leaderboard",
   "nav.feed": "Feed",
-  "nav.events": "Events",
+  "nav.events": "Event finder",
   "nav.exercises": "Exercises",
   "nav.profile": "Profile",
 
@@ -165,6 +165,12 @@ const en = {
   "newSession.rpeHint": "How hard it felt, 1–10 (optional)",
   "newSession.notes": "Notes",
   "newSession.linkWorkout": "Today's program",
+  "newSession.division": "Division",
+  "newSession.divisionNone": "None",
+  "newSession.excludeLeaderboard": "Hide this session from the leaderboard",
+  "newSession.raceLinked":
+    "Division is set from the linked race result and can't be changed here.",
+  "sessions.race": "Race",
   "sessions.partOfProgram": "Part of",
   "schedule.title": "Weekly schedule",
   "schedule.noProgram": "No active program.",
