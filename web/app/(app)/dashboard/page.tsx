@@ -4,6 +4,7 @@ import { getT } from "@/lib/i18n";
 import { formatDate, formatDateShort, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { CorrelationLine, TrendBars } from "@/components/charts";
+import { RehearsalReport } from "@/components/rehearsal-report";
 import { PercentileBar } from "@/components/percentile-bar";
 import { percentileOf, type Benchmark } from "@/lib/percentile";
 
@@ -63,7 +64,7 @@ export default async function DashboardPage() {
       .from("goal_plans")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(1),
+      .limit(20),
     supabase.from("race_benchmarks").select("division, gender, scope, percentiles"),
     supabase
       .from("program_enrollments")
@@ -222,45 +223,42 @@ export default async function DashboardPage() {
   const showCorr =
     corr.some((c) => c.sim != null) && corr.some((c) => c.race != null);
 
-  // S17 리허설 리포트: 최신 목표 vs 최신 시뮬 세션 스테이션별 대비
-  const goal = (goals?.[0] ?? null) as {
+  // S17 리허설 리포트: 목표·세션을 골라 스테이션별로 대비 (클라이언트 드롭박스)
+  const goalRows = ((goals ?? []) as {
+    id: string;
     target_total_ms: number;
     stations: { key: string; targetMs: number }[] | null;
     division: string | null;
     event_name: string | null;
     event_date: string | null;
-  } | null;
-  const latestSim = sims[0];
-  const rehearsal =
-    goal?.stations && latestSim
-      ? (() => {
-          const actual = new Map<string, number>();
-          for (const seg of latestSim.session_segments) {
-            if (seg.kind !== "station" || !seg.exercise_id || seg.split_time_ms == null)
-              continue;
-            const st = STATIONS.find((x) => x.exerciseId === seg.exercise_id);
-            if (st) actual.set(st.key, seg.split_time_ms);
-          }
-          const rows = goal.stations
-            .map((g) => ({
-              key: g.key,
-              target: g.targetMs,
-              actual: actual.get(g.key) ?? null,
-            }))
-            .filter((r) => r.actual != null);
-          const simTotal = latestSim.total_time_ms ?? null;
-          return rows.length
-            ? {
-                rows,
-                simTotal,
-                target: goal.target_total_ms,
-                division: goal.division,
-                eventName: goal.event_name,
-                eventDate: goal.event_date,
-              }
-            : null;
-        })()
-      : null;
+  }[])
+    .filter((g) => Array.isArray(g.stations) && g.stations.length > 0)
+    .map((g) => ({
+      id: g.id,
+      target: g.target_total_ms,
+      division: g.division,
+      eventName: g.event_name,
+      eventDate: g.event_date,
+      stations: g.stations!,
+    }));
+  const rehearsalSessions = sims
+    .map((s) => {
+      const stations: Record<string, number> = {};
+      for (const seg of s.session_segments) {
+        if (seg.kind !== "station" || !seg.exercise_id || seg.split_time_ms == null)
+          continue;
+        const st = STATIONS.find((x) => x.exerciseId === seg.exercise_id);
+        if (st) stations[st.key] = seg.split_time_ms;
+      }
+      return {
+        id: s.id,
+        label: formatDateShort(s.started_at, tag),
+        total: s.total_time_ms,
+        stations,
+      };
+    })
+    .filter((s) => Object.keys(s.stations).length > 0);
+  const showRehearsal = goalRows.length > 0 && rehearsalSessions.length > 0;
 
   return (
     <main>
@@ -379,75 +377,8 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      {rehearsal && (
-        <section className="mt-8">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-semibold">{t("dash.rehearsalTitle")}</h2>
-            <Link href="/goals" className="text-sm text-accent hover:underline">
-              {t("goals.title")}
-            </Link>
-          </div>
-          {(rehearsal.eventName || rehearsal.division) && (
-            <p className="mt-1 text-sm font-medium text-accent">
-              {rehearsal.eventName ?? ""}
-              {rehearsal.eventName && rehearsal.eventDate
-                ? ` · ${rehearsal.eventDate}`
-                : ""}
-              {rehearsal.division
-                ? `${rehearsal.eventName ? " · " : ""}${t(
-                    `division.${rehearsal.division}` as Parameters<typeof t>[0],
-                  )}`
-                : ""}
-            </p>
-          )}
-          <p className="mt-1 text-sm text-muted">
-            {t("dash.rehearsalDesc", {
-              target: formatMs(rehearsal.target),
-              sim: rehearsal.simTotal ? formatMs(rehearsal.simTotal) : "—",
-            })}
-          </p>
-          <div className="mt-3 overflow-x-auto rounded-md bg-surface p-4">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-background text-left text-xs text-muted">
-                  <th className="py-2 pr-4 font-normal">{t("dash.rehStation")}</th>
-                  <th className="py-2 pr-4 text-right font-normal">
-                    {t("dash.rehTarget")}
-                  </th>
-                  <th className="py-2 pr-4 text-right font-normal">
-                    {t("dash.rehActual")}
-                  </th>
-                  <th className="py-2 text-right font-normal">{t("dash.rehGap")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rehearsal.rows.map((r) => {
-                  const gap = r.actual! - r.target; // 양수 = 목표보다 느림
-                  return (
-                    <tr key={r.key} className="border-b border-background/60">
-                      <td className="py-2 pr-4">
-                        {t(`station.${r.key}` as Parameters<typeof t>[0])}
-                      </td>
-                      <td className="py-2 pr-4 text-right font-mono text-muted">
-                        {formatMs(r.target)}
-                      </td>
-                      <td className="py-2 pr-4 text-right font-mono">
-                        {formatMs(r.actual!)}
-                      </td>
-                      <td
-                        className={`py-2 text-right font-mono ${gap <= 0 ? "text-track" : "text-red-400"}`}
-                      >
-                        {gap <= 0 ? "-" : "+"}
-                        {formatMs(Math.abs(gap))}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <p className="mt-2 text-xs text-muted">{t("dash.rehNote")}</p>
-          </div>
-        </section>
+      {showRehearsal && (
+        <RehearsalReport goals={goalRows} sessions={rehearsalSessions} />
       )}
 
       {showCorr && (

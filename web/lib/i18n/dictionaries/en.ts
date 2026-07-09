@@ -163,6 +163,9 @@ const en = {
   "dash.rehearsalTitle": "Rehearsal report",
   "dash.rehearsalDesc":
     "Latest saved goal ({target}) vs your latest race-sim session ({sim}).",
+  "dash.rehGoal": "Goal",
+  "dash.rehSession": "Session",
+  "dash.rehNoMatch": "This session has no station splits matching the goal.",
   "dash.rehStation": "Station",
   "dash.rehTarget": "Target",
   "dash.rehActual": "Actual",

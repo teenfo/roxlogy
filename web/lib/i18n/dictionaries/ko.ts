@@ -159,6 +159,9 @@ const ko: Record<DictKey, string> = {
   "dash.rehearsalTitle": "리허설 리포트",
   "dash.rehearsalDesc":
     "최근 저장한 목표({target}) vs 최근 레이스 시뮬 세션({sim}).",
+  "dash.rehGoal": "목표",
+  "dash.rehSession": "세션",
+  "dash.rehNoMatch": "이 세션에는 목표와 대응하는 스테이션 스플릿이 없습니다.",
   "dash.rehStation": "스테이션",
   "dash.rehTarget": "목표",
   "dash.rehActual": "실측",

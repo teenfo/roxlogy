@@ -159,6 +159,9 @@ const es: Record<DictKey, string> = {
   "dash.rehearsalTitle": "Informe de ensayo",
   "dash.rehearsalDesc":
     "Último objetivo guardado ({target}) vs tu última sesión de simulacro ({sim}).",
+  "dash.rehGoal": "Objetivo",
+  "dash.rehSession": "Sesión",
+  "dash.rehNoMatch": "Esta sesión no tiene parciales de estación que coincidan con el objetivo.",
   "dash.rehStation": "Estación",
   "dash.rehTarget": "Objetivo",
   "dash.rehActual": "Real",
