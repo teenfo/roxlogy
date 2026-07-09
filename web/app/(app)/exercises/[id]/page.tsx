@@ -114,14 +114,25 @@ export default async function ExerciseDetailPage({
       <h1 className="mt-4 text-2xl font-bold">{primary}</h1>
       <p className="mt-1 text-sm text-muted">{secondary}</p>
 
-      {ex.media_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={ex.media_url}
-          alt={primary}
-          className="mt-6 max-h-80 w-full rounded-md object-cover"
-        />
-      )}
+      {ex.media_url &&
+        (/youtube\.com|youtu\.be/.test(ex.media_url) ? (
+          <a
+            href={ex.media_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 flex items-center gap-2 rounded-md bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface/70"
+          >
+            <span className="text-lg text-red-500">▶</span>
+            {t("exercises.watchDemo")}
+          </a>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={ex.media_url}
+            alt={primary}
+            className="mt-6 max-h-80 w-full rounded-md object-cover"
+          />
+        ))}
 
       {meta.length > 0 && (
         <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">

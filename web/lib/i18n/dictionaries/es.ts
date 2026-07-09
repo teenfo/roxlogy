@@ -452,6 +452,7 @@ const es: Record<DictKey, string> = {
   "exercises.trendNote": "Tus parciales en este ejercicio (últimos 15).",
   "exercises.stationN": "Estación {n}",
   "exercises.detTarget": "Músculos trabajados",
+  "exercises.watchDemo": "Ver vídeo demostración",
   "exercises.detHelps": "Ayuda a estas estaciones",
   "exercises.detHelpsHint": "Estaciones de HYROX a las que transfiere este movimiento.",
   "exercises.drillsTitle": "Ejercicios útiles",

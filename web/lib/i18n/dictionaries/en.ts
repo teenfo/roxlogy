@@ -461,6 +461,7 @@ const en = {
   "exercises.trendNote": "Your splits for this exercise over time (last 15).",
   "exercises.stationN": "Station {n}",
   "exercises.detTarget": "Target muscles",
+  "exercises.watchDemo": "Watch demo video",
   "exercises.detHelps": "Helps these stations",
   "exercises.detHelpsHint": "HYROX stations this movement carries over to.",
   "exercises.drillsTitle": "Helpful drills",

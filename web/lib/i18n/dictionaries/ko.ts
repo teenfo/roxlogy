@@ -446,6 +446,7 @@ const ko: Record<DictKey, string> = {
   "exercises.trendNote": "이 운동의 내 스플릿 추이 (최근 15회).",
   "exercises.stationN": "스테이션 {n}",
   "exercises.detTarget": "타겟 부위",
+  "exercises.watchDemo": "시연 영상 보기",
   "exercises.detHelps": "도움 되는 스테이션",
   "exercises.detHelpsHint": "이 동작이 전이되는 HYROX 스테이션입니다.",
   "exercises.drillsTitle": "도움이 되는 훈련",
