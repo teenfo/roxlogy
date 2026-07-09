@@ -2,6 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import {
+  WorkoutChecklist,
+  type ChecklistItem,
+} from "@/components/workout-checklist";
 
 export async function generateMetadata({
   params,
@@ -64,8 +68,31 @@ export default async function WorkoutPage({
   const items = ((w.workout_template_items ?? []) as unknown as Item[])
     .slice()
     .sort((a, b) => a.seq - b.seq);
-  const exName = (ex: Item["exercises"]) =>
-    ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : "—";
+
+  // 이 WOD의 아이템 중 내가 완료한 것 (RLS: 본인 완료만 조회됨)
+  const itemIds = items.map((it) => it.id);
+  const { data: compRows } = itemIds.length
+    ? await supabase
+        .from("workout_item_completions")
+        .select("item_id")
+        .in("item_id", itemIds)
+    : { data: [] as { item_id: string }[] };
+  const completed = ((compRows ?? []) as { item_id: string }[]).map(
+    (r) => r.item_id,
+  );
+
+  const checklist: ChecklistItem[] = items.map((it) => {
+    const exRaw = it.exercises as unknown;
+    const ex = (Array.isArray(exRaw) ? exRaw[0] : exRaw) as
+      | { id: string; name_ko: string; name_en: string }
+      | null;
+    return {
+      id: it.id,
+      name: ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : "—",
+      exerciseId: ex?.id ?? null,
+      targetNote: it.target?.note ?? null,
+    };
+  });
 
   return (
     <main>
@@ -91,39 +118,7 @@ export default async function WorkoutPage({
         {day?.focus ? ` · ${day.focus}` : ""}
       </p>
 
-      {items.length === 0 ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("workouts.noItems")}
-        </p>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-1.5">
-          {items.map((it, i) => (
-            <li
-              key={it.id}
-              className="flex items-center gap-3 rounded-md bg-surface px-4 py-2.5"
-            >
-              <span className="w-6 text-right font-mono text-xs text-muted">
-                {i + 1}
-              </span>
-              {it.exercises ? (
-                <Link
-                  href={`/exercises/${it.exercises.id}`}
-                  className="flex-1 truncate text-sm font-medium hover:text-accent"
-                >
-                  {exName(it.exercises)}
-                </Link>
-              ) : (
-                <span className="flex-1 truncate text-sm font-medium">—</span>
-              )}
-              {it.target?.note && (
-                <span className="shrink-0 rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
-                  {it.target.note}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <WorkoutChecklist items={checklist} initialCompleted={completed} />
     </main>
   );
 }

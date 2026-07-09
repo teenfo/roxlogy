@@ -84,6 +84,34 @@ export default async function SchedulePage({
   for (const r of (doneRows ?? []) as { id: string; template_id: string | null }[])
     if (r.template_id) doneByTemplate.set(r.template_id, r.id);
 
+  // WOD 체크리스트 완료 판정: 템플릿의 모든 아이템이 완료되면 WOD 완료로 본다
+  const { data: itemRows } = allTemplateIds.length
+    ? await supabase
+        .from("workout_template_items")
+        .select("id, template_id")
+        .in("template_id", allTemplateIds)
+    : { data: [] };
+  const itemsByTemplate = new Map<string, string[]>();
+  for (const r of (itemRows ?? []) as { id: string; template_id: string }[]) {
+    const arr = itemsByTemplate.get(r.template_id) ?? [];
+    arr.push(r.id);
+    itemsByTemplate.set(r.template_id, arr);
+  }
+  const allItemIds = (itemRows ?? []).map((r) => (r as { id: string }).id);
+  const { data: compRows } = allItemIds.length
+    ? await supabase
+        .from("workout_item_completions")
+        .select("item_id")
+        .in("item_id", allItemIds)
+    : { data: [] };
+  const completedItems = new Set(
+    (compRows ?? []).map((r) => (r as { item_id: string }).item_id),
+  );
+  const wodDoneTemplates = new Set<string>();
+  for (const [tid, ids] of itemsByTemplate)
+    if (ids.length > 0 && ids.every((i) => completedItems.has(i)))
+      wodDoneTemplates.add(tid);
+
   const start = midnight(new Date(enroll.start_date + "T00:00:00"));
   const today = midnight(new Date());
 
@@ -101,18 +129,23 @@ export default async function SchedulePage({
           .map((w) => doneByTemplate.get(w.id))
           .find(Boolean) ?? null)
       : null;
+    // WOD 완료(체크리스트) 또는 태깅된 세션이 있으면 완료로 본다
+    const wodDone = day
+      ? day.workout_templates.some((w) => wodDoneTemplates.has(w.id))
+      : false;
     return {
       date,
       dayIndex,
       isToday: date.getTime() === today.getTime(),
       day,
       doneSessionId,
+      done: !!doneSessionId || wodDone,
     };
   });
 
   // 이번 주 달성률: 워크아웃이 있는 날 중 완료한 비율
   const scheduled = week7.filter((d) => d.day?.workout_templates.length);
-  const doneCount = scheduled.filter((d) => d.doneSessionId).length;
+  const doneCount = scheduled.filter((d) => d.done).length;
 
   return (
     <main>
@@ -173,9 +206,13 @@ export default async function SchedulePage({
           >
             <div className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-2 text-sm font-semibold">
-                {d.doneSessionId && (
+                {d.done && (
                   <Link
-                    href={`/sessions/${d.doneSessionId}`}
+                    href={
+                      d.doneSessionId
+                        ? `/sessions/${d.doneSessionId}`
+                        : `/workouts/${d.day!.workout_templates[0].id}`
+                    }
                     className="text-track"
                     title={t("schedule.done")}
                   >
