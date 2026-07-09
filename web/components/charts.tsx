@@ -347,15 +347,22 @@ export function TrendBars({
   data: { name: string; ms: number }[];
 }) {
   return (
-    <ResponsiveContainer width="100%" height={120}>
+    <ResponsiveContainer width="100%" height={140}>
       <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+        <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis
           dataKey="name"
           tick={{ fill: INK_MUTED, fontSize: 10 }}
           tickLine={false}
           axisLine={{ stroke: GRID }}
         />
-        <YAxis hide />
+        <YAxis
+          tickFormatter={(v: number) => formatMs(v)}
+          tick={{ fill: INK_MUTED, fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          width={52}
+        />
         <Tooltip content={<DarkTooltip />} cursor={{ fill: "#ffffff0d" }} />
         <Bar
           dataKey="ms"
