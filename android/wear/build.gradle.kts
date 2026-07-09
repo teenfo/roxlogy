@@ -16,11 +16,24 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        // N6b: 릴리스 keystore가 env로 주어지면 사용, 없으면 debug 폴백(사이드로드 설치 가능).
+        create("release") {
+            val ksFile = System.getenv("ROXLOGY_KEYSTORE_FILE")
+            if (ksFile != null && file(ksFile).exists()) {
+                storeFile = file(ksFile)
+                storePassword = System.getenv("ROXLOGY_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ROXLOGY_KEY_ALIAS")
+                keyPassword = System.getenv("ROXLOGY_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // 사이드로드 배포는 debug 서명으로 설치 가능. Play Store(N6b)는 별도 릴리스 keystore.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile != null }
+                ?: signingConfigs.getByName("debug")
         }
     }
 

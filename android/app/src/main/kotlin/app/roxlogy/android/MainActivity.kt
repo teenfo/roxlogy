@@ -19,10 +19,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.roxlogy.android.sync.AuthClient
+import app.roxlogy.android.sync.GoogleSignInHelper
 import app.roxlogy.android.sync.TokenStore
 import kotlinx.coroutines.launch
 
@@ -40,7 +42,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PhoneApp() {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val auth = remember { AuthClient() }
+    val google = remember { GoogleSignInHelper(context) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loggedIn by remember { mutableStateOf(TokenStore.isLoggedIn()) }
@@ -95,6 +99,30 @@ fun PhoneApp() {
                 modifier = Modifier.padding(top = 16.dp),
             ) {
                 Text(if (busy) "로그인 중…" else "로그인")
+            }
+            if (google.isConfigured()) {
+                Button(
+                    onClick = {
+                        busy = true
+                        status = null
+                        scope.launch {
+                            val idToken = google.getIdToken()
+                            if (idToken == null) {
+                                status = "Google 로그인 취소/실패"
+                            } else {
+                                when (val r = auth.signInWithGoogle(idToken)) {
+                                    is AuthClient.Result.Ok -> loggedIn = true
+                                    is AuthClient.Result.Error -> status = "Google 로그인 실패: ${r.message}"
+                                }
+                            }
+                            busy = false
+                        }
+                    },
+                    enabled = !busy,
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    Text("Google로 로그인")
+                }
             }
             status?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))

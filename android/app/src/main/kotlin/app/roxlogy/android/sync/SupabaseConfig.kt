@@ -10,6 +10,11 @@ object SupabaseConfig {
     const val INGEST_URL = "$PROJECT_URL/functions/v1/ingest-session"
     const val AUTH_TOKEN_URL = "$PROJECT_URL/auth/v1/token"
 
+    // Google 로그인용 웹 클라이언트 ID (Google Cloud OAuth). Supabase Google 프로바이더에
+    // 등록된 것과 동일해야 한다. 값이 없으면 Google 버튼은 비활성.
+    // TODO(N5c): Google Cloud OAuth 웹 클라이언트 ID 주입.
+    const val GOOGLE_WEB_CLIENT_ID = ""
+
     // 공개 anon 키 (JWT). 노출돼도 RLS로 보호되므로 안전.
     const val ANON_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +

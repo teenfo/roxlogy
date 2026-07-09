@@ -34,6 +34,12 @@ class AuthClient(
         post("${SupabaseConfig.AUTH_TOKEN_URL}?grant_type=password", body)
     }
 
+    /** Google ID 토큰을 Supabase 세션으로 교환 (GoTrue id_token grant). 성공 시 TokenStore 갱신. */
+    suspend fun signInWithGoogle(idToken: String): Result = withContext(Dispatchers.IO) {
+        val body = json.encodeToString(IdTokenGrant.serializer(), IdTokenGrant("google", idToken))
+        post("${SupabaseConfig.AUTH_TOKEN_URL}?grant_type=id_token", body)
+    }
+
     /** 리프레시 토큰으로 새 액세스 토큰 발급. 성공 시 새 액세스 토큰 반환(널이면 실패). */
     suspend fun refreshAccessToken(): String? = withContext(Dispatchers.IO) {
         val rt = TokenStore.refreshToken() ?: return@withContext null
@@ -74,6 +80,9 @@ class AuthClient(
 
     @Serializable
     private data class RefreshGrant(val refresh_token: String)
+
+    @Serializable
+    private data class IdTokenGrant(val provider: String, val id_token: String)
 
     @Serializable
     private data class TokenResponse(

@@ -149,4 +149,7 @@ class Pm5BleClient(private val context: Context) {
 
     /** 현재까지 누적된 세션 샘플 (세그먼트 종료 시 조립에 사용). */
     fun snapshot(): List<ErgSample> = accumulator.snapshot()
+
+    /** 세그먼트 기록 시작 시 누적 초기화. */
+    fun resetSamples() = accumulator.clear()
 }
