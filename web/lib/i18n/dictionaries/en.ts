@@ -120,6 +120,8 @@ const en = {
   "auth.signupTitle": "Create account",
   "auth.email": "Email",
   "auth.password": "Password",
+  "auth.showPassword": "Show",
+  "auth.hidePassword": "Hide",
   "auth.processing": "Working…",
   "auth.submitLogin": "Log in",
   "auth.submitSignup": "Sign up",

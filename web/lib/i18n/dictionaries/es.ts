@@ -117,6 +117,8 @@ const es: Record<DictKey, string> = {
   "auth.signupTitle": "Crear cuenta",
   "auth.email": "Correo electrónico",
   "auth.password": "Contraseña",
+  "auth.showPassword": "Mostrar",
+  "auth.hidePassword": "Ocultar",
   "auth.processing": "Procesando…",
   "auth.submitLogin": "Iniciar sesión",
   "auth.submitSignup": "Registrarse",

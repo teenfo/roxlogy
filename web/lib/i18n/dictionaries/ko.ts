@@ -117,6 +117,8 @@ const ko: Record<DictKey, string> = {
   "auth.signupTitle": "계정 만들기",
   "auth.email": "이메일",
   "auth.password": "비밀번호",
+  "auth.showPassword": "표시",
+  "auth.hidePassword": "숨김",
   "auth.processing": "처리 중…",
   "auth.submitLogin": "로그인",
   "auth.submitSignup": "가입하기",

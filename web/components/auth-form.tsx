@@ -36,6 +36,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -119,14 +120,24 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           </label>
           <label className="flex flex-col gap-1.5 text-sm text-muted">
             {t("auth.password")}
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-md border border-muted/30 bg-surface px-3 py-2.5 pr-16 text-foreground outline-none focus:border-accent"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-2 my-auto h-7 rounded px-2 text-xs font-semibold text-muted hover:text-foreground"
+              >
+                {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+              </button>
+            </div>
           </label>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
