@@ -37,7 +37,15 @@ export default async function FeedPage({
 
   return (
     <main>
-      <h1 className="text-2xl font-bold">{t("feed.title")}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{t("feed.title")}</h1>
+        <Link
+          href="/members"
+          className="rounded-md border border-accent/40 px-3 py-1.5 text-sm font-semibold text-accent hover:bg-accent/10"
+        >
+          {t("feed.findMembers")}
+        </Link>
+      </div>
       <p className="mt-1 text-sm text-muted">{t("feed.desc")}</p>
 
       <div className="mt-6 flex gap-2">

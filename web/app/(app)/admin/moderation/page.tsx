@@ -16,7 +16,7 @@ export default async function AdminModerationPage() {
   const { data: rows } = await supabase
     .from("sessions")
     .select(
-      "id, started_at, total_time_ms, division, leaderboard_excluded, user_id",
+      "id, started_at, total_time_ms, division, leaderboard_excluded, source_device, user_id",
     )
     .is("deleted_at", null)
     .order("started_at", { ascending: false })
@@ -28,6 +28,7 @@ export default async function AdminModerationPage() {
     total_time_ms: number | null;
     division: string | null;
     leaderboard_excluded: boolean;
+    source_device: string | null;
     user_id: string;
   };
   const sessions = (rows ?? []) as Row[];
@@ -56,6 +57,7 @@ export default async function AdminModerationPage() {
               <th className="py-2 pr-4 font-normal">{t("admin.colWhen")}</th>
               <th className="py-2 pr-4 font-normal">{t("admin.colUser")}</th>
               <th className="py-2 pr-4 text-right font-normal">{t("admin.colTotal")}</th>
+              <th className="py-2 pr-4 font-normal">{t("sessions.fltSource")}</th>
               <th className="py-2 pr-4 font-normal">{t("newSession.division")}</th>
               <th className="py-2 text-right font-normal">{t("admin.colActions")}</th>
             </tr>
@@ -82,6 +84,11 @@ export default async function AdminModerationPage() {
                   )}
                 </td>
                 <td className="py-2.5 pr-4">
+                  {s.source_device
+                    ? t(`source.${s.source_device}` as Parameters<typeof t>[0])
+                    : "—"}
+                </td>
+                <td className="py-2.5 pr-4">
                   {s.division
                     ? t(`division.${s.division}` as Parameters<typeof t>[0])
                     : "—"}
@@ -96,7 +103,7 @@ export default async function AdminModerationPage() {
             ))}
             {!sessions.length && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-sm text-muted">
+                <td colSpan={6} className="py-8 text-center text-sm text-muted">
                   {t("sessions.empty")}
                 </td>
               </tr>

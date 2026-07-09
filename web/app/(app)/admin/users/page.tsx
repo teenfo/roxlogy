@@ -11,6 +11,7 @@ export async function generateMetadata() {
 type AdminUser = {
   id: string;
   display_name: string | null;
+  email: string | null;
   created_at: string;
   is_admin: boolean;
   disabled: boolean;
@@ -60,8 +61,12 @@ export default async function AdminUsersPage({
                   <span className="font-medium">
                     {u.display_name ?? t("admin.noName")}
                   </span>
-                  <span className="ml-2 font-mono text-[10px] text-muted">
-                    {u.id.slice(0, 8)}
+                  <span className="mt-0.5 block text-xs text-muted">
+                    {u.email ?? (
+                      <span className="font-mono text-[10px]">
+                        {u.id.slice(0, 8)}
+                      </span>
+                    )}
                   </span>
                 </td>
                 <td className="py-2.5 pr-4 text-muted">
