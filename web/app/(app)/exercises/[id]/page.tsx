@@ -80,6 +80,15 @@ export default async function ExerciseDetailPage({
     ? ex.helps_stations
     : [];
 
+  // 특정 유튜브 영상이면 임베드, 검색 링크면 버튼, 그 외 URL은 이미지
+  const media: string | null = ex.media_url ?? null;
+  const ytId = media
+    ? (media.match(
+        /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/,
+      )?.[1] ?? null)
+    : null;
+  const isYtSearch = !!media && /youtube\.com\/results/.test(media);
+
   const primary = locale === "ko" ? ex.name_ko : ex.name_en;
   const secondary = locale === "ko" ? ex.name_en : ex.name_ko;
 
@@ -114,25 +123,44 @@ export default async function ExerciseDetailPage({
       <h1 className="mt-4 text-2xl font-bold">{primary}</h1>
       <p className="mt-1 text-sm text-muted">{secondary}</p>
 
-      {ex.media_url &&
-        (/youtube\.com|youtu\.be/.test(ex.media_url) ? (
+      {ytId ? (
+        <div className="mt-6">
+          <div className="relative aspect-video w-full overflow-hidden rounded-md bg-black">
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${ytId}`}
+              title={primary}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 h-full w-full"
+            />
+          </div>
           <a
-            href={ex.media_url}
+            href={media!}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-6 flex items-center gap-2 rounded-md bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface/70"
+            className="mt-1.5 inline-block text-xs text-muted hover:text-foreground"
           >
-            <span className="text-lg text-red-500">▶</span>
-            {t("exercises.watchDemo")}
+            {t("exercises.watchOnYoutube")}
           </a>
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={ex.media_url}
-            alt={primary}
-            className="mt-6 max-h-80 w-full rounded-md object-cover"
-          />
-        ))}
+        </div>
+      ) : isYtSearch ? (
+        <a
+          href={media!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 flex items-center gap-2 rounded-md bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface/70"
+        >
+          <span className="text-lg text-red-500">▶</span>
+          {t("exercises.watchDemo")}
+        </a>
+      ) : media ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={media}
+          alt={primary}
+          className="mt-6 max-h-80 w-full rounded-md object-cover"
+        />
+      ) : null}
 
       {meta.length > 0 && (
         <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">

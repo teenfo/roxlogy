@@ -462,6 +462,7 @@ const en = {
   "exercises.stationN": "Station {n}",
   "exercises.detTarget": "Target muscles",
   "exercises.watchDemo": "Watch demo video",
+  "exercises.watchOnYoutube": "Watch on YouTube ↗",
   "exercises.detHelps": "Helps these stations",
   "exercises.detHelpsHint": "HYROX stations this movement carries over to.",
   "exercises.drillsTitle": "Helpful drills",
