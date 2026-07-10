@@ -17,9 +17,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,9 +33,11 @@ import app.roxlogy.shared.ingest.ErgSample
 import app.roxlogy.shared.record.SessionAssembler
 import app.roxlogy.shared.sim.SimEngine
 import app.roxlogy.wear.ble.Pm5BleClient
+import app.roxlogy.wear.run.RunDistanceTracker
 import app.roxlogy.wear.sync.WearDataSender
 import app.roxlogy.wear.ui.SimRings
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
 
@@ -96,12 +100,33 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
     var pm5Latest by remember { mutableStateOf<ErgSample?>(null) }
     var startIso by remember { mutableStateOf("") }
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val tracker = remember { RunDistanceTracker(context) }
+    var distNow by remember { mutableStateOf(0.0) }
+    var slotStartDist by remember { mutableStateOf(0.0) }
+
     version.let {} // read to subscribe
 
     val active = phase == AppPhase.RUNNING && !engine.isDone
     LaunchedEffect(active, slotStartMs) {
         while (active) {
             nowMs = System.currentTimeMillis()
+            distNow = tracker.distanceMeters
+            // 트레드밀 실거리 1km 도달 시 자동 랩 (수동 랩 버튼도 상시)
+            if (engine.current?.kind == "run" && tracker.active &&
+                (distNow - slotStartDist) >= app.roxlogy.shared.sim.HyroxSim.RUN_METERS
+            ) {
+                engine.record(System.currentTimeMillis() - slotStartMs)
+                version++
+                if (engine.isDone) {
+                    phase = AppPhase.DONE
+                    scope.launch { tracker.stop() }
+                } else {
+                    slotStartMs = System.currentTimeMillis()
+                    slotStartDist = tracker.distanceMeters
+                }
+            }
             delay(250)
         }
     }
@@ -118,15 +143,25 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
         }
     }
 
+    // 러닝 실거리(Health Services)용 ACTIVITY_RECOGNITION — 거부되면 tracker.start()가 false로
+    // 떨어져 수동 랩 폴백이 쓰인다.
+    val activityLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { _ ->
+        scope.launch { tracker.start() }
+    }
+
     fun beginSlotTimer() {
         slotStartMs = System.currentTimeMillis()
         nowMs = slotStartMs
+        slotStartDist = tracker.distanceMeters
     }
 
     fun start() {
         startIso = Instant.now().toString()
         phase = AppPhase.RUNNING
         beginSlotTimer()
+        activityLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
     }
 
     fun recordCurrent() {
@@ -135,7 +170,12 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
         val erg = if (engine.current?.kind == "station" && isMachine) ble.snapshot() else emptyList()
         engine.record(elapsed, erg)
         version++
-        if (engine.isDone) phase = AppPhase.DONE else beginSlotTimer()
+        if (engine.isDone) {
+            phase = AppPhase.DONE
+            scope.launch { tracker.stop() }
+        } else {
+            beginSlotTimer()
+        }
     }
 
     fun sendSession() {
@@ -152,8 +192,11 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
 
     fun resetAll() {
         ble.stop()
+        scope.launch { tracker.stop() }
         pm5Connected = false
         pm5Latest = null
+        distNow = 0.0
+        slotStartDist = 0.0
         engineKey++
         phase = AppPhase.IDLE
     }
@@ -161,8 +204,17 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
     val elapsed = nowMs - slotStartMs
     val kind = engine.current?.kind
     val round = engine.current?.index ?: 0
+    val runDistM = distNow - slotStartDist
     val runProgress =
-        if (kind == "run") (elapsed.toFloat() / NOMINAL_RUN_MS).coerceIn(0f, 1f) else 0f
+        if (kind == "run") {
+            if (tracker.active) {
+                (runDistM / app.roxlogy.shared.sim.HyroxSim.RUN_METERS).coerceIn(0.0, 1.0).toFloat()
+            } else {
+                (elapsed.toFloat() / NOMINAL_RUN_MS).coerceIn(0f, 1f)
+            }
+        } else {
+            0f
+        }
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         SimRings(
@@ -189,7 +241,11 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
                     "run" -> {
                         Text("RUN $round", fontSize = 13.sp, color = MaterialTheme.colors.primary)
                         Text(fmt(elapsed), fontSize = 26.sp)
-                        Text("탭 = 1km 랩", fontSize = 11.sp)
+                        if (tracker.active) {
+                            Text("${runDistM.toInt()} m / 1km", fontSize = 11.sp)
+                        } else {
+                            Text("탭 = 1km 랩", fontSize = 11.sp)
+                        }
                         Button(onClick = { recordCurrent() }, colors = ButtonDefaults.primaryButtonColors()) {
                             Text("1km 완료")
                         }
