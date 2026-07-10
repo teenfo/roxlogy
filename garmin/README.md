@@ -23,12 +23,19 @@ Garmin Connect 모바일 앱 → 이 앱 설정에서 **Supabase access token**(
 Connect IQ는 SDK + 개발자 키가 필요해 로컬(VS Code)에서 빌드한다. 시뮬레이터는 실 PM5/
 트레드밀을 재현하지 못하므로 **실기기 검증 필수**.
 
-1. [Connect IQ SDK](https://developer.garmin.com/connect-iq/sdk/) + VS Code "Monkey C" 확장 설치.
-2. 개발자 키 생성: `openssl genrsa -out developer_key.pem 4096 && openssl pkcs8 -topk8 -inform PEM -outform DER -in developer_key.pem -out developer_key.der -nocrypt`
-3. 이 폴더를 열고 "Build for Device" 또는:
-   `monkeyc -d fenix7 -f monkey.jungle -o roxlogy.prg -y developer_key.der`
-4. 실기기에 사이드로드: `.prg`를 기기 `GARMIN/APPS`에 복사하거나 VS Code에서 실행.
-5. 설정에서 테스트 토큰 입력 → 시뮬 기록 → 웹 `/sessions`에서 소스=워치 세션 확인.
+1. [Connect IQ SDK](https://developer.garmin.com/connect-iq/sdk/) 설치 후 SDK의 `bin`을 PATH에 추가
+   (`monkeyc` 실행 가능해야 함). VS Code + "Monkey C" 확장도 권장.
+2. **한 방에 빌드**: `cd garmin && ./build.sh fenix7`
+   - 최초 실행 시 개발자 키(`developer_key.der`)를 자동 생성한다(커밋 금지 — `.gitignore` 처리).
+   - 결과: `roxlogy-fenix7.prg`. 다른 기기는 `./build.sh <device>` (manifest의 `<iq:product>` 참고).
+   - 수동으로는: `monkeyc -d fenix7 -f monkey.jungle -o roxlogy.prg -y developer_key.der`
+3. **사이드로드**: VS Code "Build for Device"로 실행하거나, `.prg`를 워치 `GARMIN/APPS`에 복사.
+4. **토큰**: Garmin Connect 모바일 앱 → Roxlogy 앱 설정 → Supabase access token(테스트 계정) 입력.
+5. 시뮬 기록 → 완료 → 웹 `/sessions`에서 소스=워치 세션 확인.
+
+> 이 저장소의 `garmin-ci`는 **구조 검증만** 한다(SDK 없이 monkeyc 컴파일 불가). 위 SDK 빌드에서
+> Monkey C API 시그니처 오류가 나오면(특히 `Pm5Ble`의 BLE·`SimView`의 ActivityRecording) 로그를
+> 공유하면 바로 수정한다. BLE/트레드밀/거리 동작은 **실기기 검증 필수**(시뮬레이터로 실 PM5 불가).
 
 ## CI
 `.github/workflows/garmin-ci.yml` — 매니페스트/리소스 XML 유효성 + 필수 소스 존재를 검증하는

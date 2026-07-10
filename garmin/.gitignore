@@ -1,0 +1,10 @@
+# 개발자 키(서명) — 절대 커밋 금지
+developer_key.pem
+developer_key.der
+*.der
+*.pem
+
+# 빌드 산출물
+*.prg
+*.iq
+bin/
