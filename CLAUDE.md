@@ -48,6 +48,9 @@ supabase/migrations/     # SQL 마이그레이션 (스키마+RLS)
 supabase/functions/      # Edge Functions (ingest-session 등)
 supabase/seed/           # 시드 데이터 (운동 DB 등)
 web/                     # Next.js 웹앱
+android/                 # Wear OS(워치)·폰 네이티브 (Kotlin) + :shared 순수로직
+                         #   워치 메인 = 하이록스 시뮬 레코더(두 링 UI), PM5는 부차 보강
+garmin/                  # 가민 Connect IQ(Monkey C) 시뮬 레코더 (두 링 UI)
 .github/workflows/       # CI/CD + 수동 프로브(probe, probe-browser)
 ```
 
