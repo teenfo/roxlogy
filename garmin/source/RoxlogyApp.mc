@@ -7,6 +7,11 @@ class RoxlogyApp extends App.AppBase {
         AppBase.initialize();
     }
 
+    function onStart(state) {
+        // 밀린 오프라인 큐 재시도.
+        (new Uploader()).flush();
+    }
+
     function getInitialView() {
         var view = new SimView();
         return [view, new SimDelegate(view)];

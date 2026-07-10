@@ -46,6 +46,10 @@ jobs:
               "source/SimView.mc",
               "source/SimDelegate.mc",
               "source/Uploader.mc",
+              "source/Config.mc",
+              "source/Store.mc",
+              "source/GoalClient.mc",
+              "source/Pm5Ble.mc",
           ]
           for rel in required:
               p = os.path.join(root, rel)

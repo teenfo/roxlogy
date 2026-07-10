@@ -1,35 +1,58 @@
 using Toybox.Communications as Comm;
-using Toybox.Application as App;
 using Toybox.Time;
 using Toybox.Time.Gregorian as Cal;
 using Toybox.Math;
 using Toybox.Lang;
 
-// 시뮬 세션을 ingest-session(S2 계약)으로 업로드. anon 키(공개) + 사용자 JWT(테스트 토큰, 설정 주입).
-// service role 키 금지. 오프라인 큐/재시도·목표 diff는 후속 커밋.
+// 시뮬 세션을 ingest-session(S2 계약)으로 업로드. anon 키(공개) + 사용자 JWT(설정 주입 테스트 토큰).
+// 실패·오프라인이면 Store 오프라인 큐에 보관 → 다음 실행에서 flush()로 재시도(멱등 업서트).
 class Uploader {
-    // 공개 anon 키 (JWT) — RLS로 보호되어 클라이언트 포함 안전. service role 아님.
-    const ANON_KEY =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
-        "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1bG94YnBmaHlxa3ZnbXBta3N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMTc0NzgsImV4cCI6MjA5ODc5MzQ3OH0." +
-        "WhmfRIZWBS88_Rf-e_p7tMpOLKEX9kKxC67KVrLZGjs";
-    const INGEST_URL = "https://vuloxbpfhyqkvgmpmkst.supabase.co/functions/v1/ingest-session";
+    var pending;
 
     function initialize() {
-    }
-
-    function token() {
-        var t = App.Properties.getValue("supabaseAccessToken");
-        return (t == null) ? "" : t;
+        pending = null;
     }
 
     function upload(engine) {
-        var tok = token();
-        if (tok.equals("")) {
-            // 토큰 없음 → 업로드 스킵 (오프라인 큐는 후속). 실기기에서 설정에 토큰 입력 필요.
+        doSend(buildBody(engine));
+    }
+
+    function doSend(body) {
+        if (Config.token().equals("")) {
+            Store.enqueue(body); // 토큰 없으면 큐 보관
             return;
         }
+        pending = body;
+        var opts = {
+            :method => Comm.HTTP_REQUEST_METHOD_POST,
+            :headers => {
+                "Content-Type" => Comm.REQUEST_CONTENT_TYPE_JSON,
+                "apikey" => Config.ANON_KEY,
+                "Authorization" => "Bearer " + Config.token()
+            },
+            :responseType => Comm.HTTP_RESPONSE_CONTENT_TYPE_JSON
+        };
+        Comm.makeWebRequest(Config.INGEST_URL, body, opts, method(:onResponse));
+    }
 
+    function onResponse(code, data) {
+        if ((code < 200 || code >= 300) && pending != null) {
+            Store.enqueue(pending); // 실패 → 재시도 큐
+        }
+        pending = null;
+    }
+
+    // 앱 시작 시 밀린 큐 재시도 (첫 항목 낙관적 제거, 실패 시 onResponse가 재큐).
+    function flush() {
+        if (Config.token().equals("")) { return; }
+        var q = Store.all();
+        if (q.size() == 0) { return; }
+        var first = q[0];
+        Store.dropFirst();
+        doSend(first);
+    }
+
+    function buildBody(engine) {
         var segs = [];
         for (var i = 0; i < engine.recordedKinds.size(); i++) {
             segs.add({
@@ -38,9 +61,8 @@ class Uploader {
                 "split_time_ms" => engine.recordedSplits[i]
             });
         }
-
         var iso = nowIso();
-        var body = {
+        return {
             "session" => {
                 "id" => makeUuid(),
                 "started_at" => iso,
@@ -50,22 +72,6 @@ class Uploader {
             },
             "segments" => segs
         };
-
-        var opts = {
-            :method => Comm.HTTP_REQUEST_METHOD_POST,
-            :headers => {
-                "Content-Type" => Comm.REQUEST_CONTENT_TYPE_JSON,
-                "apikey" => ANON_KEY,
-                "Authorization" => "Bearer " + tok
-            },
-            :responseType => Comm.HTTP_RESPONSE_CONTENT_TYPE_JSON
-        };
-
-        Comm.makeWebRequest(INGEST_URL, body, opts, method(:onResponse));
-    }
-
-    function onResponse(code, data) {
-        // 후속: applied 확인·재시도·오프라인 큐. 지금은 no-op.
     }
 
     function nowIso() {
