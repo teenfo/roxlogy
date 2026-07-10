@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.roxlogy.android.sync.AuthClient
+import app.roxlogy.android.sync.GoalSync
 import app.roxlogy.android.sync.GoogleSignInHelper
 import app.roxlogy.android.sync.TokenStore
 import kotlinx.coroutines.launch
@@ -51,6 +53,11 @@ fun PhoneApp() {
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var showWod by remember { mutableStateOf(false) }
+
+    // 로그인되면 최신 목표를 워치로 밀어넣어 시뮬 중 diff 표시가 가능하게 한다.
+    LaunchedEffect(loggedIn) {
+        if (loggedIn) GoalSync().fetchAndPush(context)
+    }
 
     if (loggedIn && showWod) {
         WodScreen(onBack = { showWod = false })

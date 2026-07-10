@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,10 +32,12 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import app.roxlogy.shared.ingest.ErgSample
 import app.roxlogy.shared.record.SessionAssembler
+import app.roxlogy.shared.sim.GoalPlan
 import app.roxlogy.shared.sim.SimEngine
 import app.roxlogy.wear.ble.Pm5BleClient
 import app.roxlogy.wear.run.RunDistanceTracker
 import app.roxlogy.wear.sync.WearDataSender
+import app.roxlogy.wear.sync.WearGoal
 import app.roxlogy.wear.ui.SimRings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -80,6 +83,22 @@ private fun fmt(ms: Long): String {
     return "%d:%02d".format(t / 60, t % 60)
 }
 
+// 목표 대비 diff: 음수=앞섬(−, 초록), 양수=뒤처짐(+, 빨강).
+private fun fmtDiff(ms: Long): String {
+    val a = Math.abs(ms) / 1000
+    return (if (ms <= 0) "-" else "+") + "%d:%02d".format(a / 60, a % 60)
+}
+
+@Composable
+private fun DiffBadge(diffMs: Long?) {
+    if (diffMs == null) return
+    Text(
+        "목표 " + fmtDiff(diffMs),
+        fontSize = 11.sp,
+        color = if (diffMs <= 0) Color(0xFF35C26B) else Color(0xFFFF6B6B),
+    )
+}
+
 private fun blePermissions(): Array<String> =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
@@ -105,6 +124,7 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
     val tracker = remember { RunDistanceTracker(context) }
     var distNow by remember { mutableStateOf(0.0) }
     var slotStartDist by remember { mutableStateOf(0.0) }
+    var goal by remember { mutableStateOf<GoalPlan?>(null) }
 
     version.let {} // read to subscribe
 
@@ -162,6 +182,7 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
         phase = AppPhase.RUNNING
         beginSlotTimer()
         activityLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+        scope.launch { goal = WearGoal.load(context) } // 폰이 밀어넣은 목표 로드
     }
 
     fun recordCurrent() {
@@ -215,6 +236,7 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
         } else {
             0f
         }
+    val diff = engine.checkpointDiffMs(goal)
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         SimRings(
@@ -246,6 +268,7 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
                         } else {
                             Text("탭 = 1km 랩", fontSize = 11.sp)
                         }
+                        DiffBadge(diff)
                         Button(onClick = { recordCurrent() }, colors = ButtonDefaults.primaryButtonColors()) {
                             Text("1km 완료")
                         }
@@ -273,6 +296,7 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
                                 ) { Text("PM5", fontSize = 12.sp) }
                             }
                         }
+                        DiffBadge(diff)
                         Button(onClick = { recordCurrent() }, colors = ButtonDefaults.primaryButtonColors()) {
                             Text("완료")
                         }
@@ -282,6 +306,7 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
                 AppPhase.DONE -> {
                     Text("시뮬 완료 ✓", color = MaterialTheme.colors.primary)
                     Text(fmt(engine.elapsedTotalMs()), fontSize = 24.sp)
+                    DiffBadge(diff)
                     Button(onClick = { sendSession() }, colors = ButtonDefaults.primaryButtonColors()) {
                         Text("전송")
                     }
