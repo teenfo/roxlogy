@@ -75,7 +75,7 @@ class AuthClient(
         val body = json.encodeToString(RefreshGrant.serializer(), RefreshGrant(rt))
         when (post("${SupabaseConfig.AUTH_TOKEN_URL}?grant_type=refresh_token", body)) {
             is Result.Ok -> TokenStore.accessToken()
-            is Result.Error -> null
+            else -> null
         }
     }
 
