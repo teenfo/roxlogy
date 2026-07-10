@@ -8,39 +8,42 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material.Chip
-import androidx.wear.compose.material.ChipDefaults
+import androidx.compose.ui.unit.sp
+import androidx.wear.compose.material.Button
+import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import app.roxlogy.shared.ingest.ErgSample
-import app.roxlogy.shared.model.MachineType
-import app.roxlogy.shared.model.Stations
-import app.roxlogy.shared.record.RecordedSegment
 import app.roxlogy.shared.record.SessionAssembler
+import app.roxlogy.shared.sim.SimEngine
 import app.roxlogy.wear.ble.Pm5BleClient
 import app.roxlogy.wear.sync.WearDataSender
+import app.roxlogy.wear.ui.SimRings
+import kotlinx.coroutines.delay
 import java.time.Instant
 import java.util.UUID
 
 /**
- * N2/N3 워치 레코더 — PM5 연결 후 에르그 1구간을 기록해 세션으로 조립,
- * Data Layer로 폰에 전송한다. BLE 런타임은 실기(워치+PM5)로 검증.
+ * 워치 하이록스 시뮬레이션 레코더 (재정의된 메인 기능).
+ * 러닝 8×1km + 스테이션 8 + 록스존을 24슬롯으로 기록 → 세션 조립 → Data Layer로 폰 전송.
+ * 배경 = 로고 두 링(바깥 8세그먼트=스테이션 완료, 안쪽 트랙=1km 러닝 진행).
+ * PM5(에르그)는 스키/로잉 스테이션에서 raw 보강(선택). BLE·트레드밀 거리는 실기 검증.
  */
 class MainActivity : ComponentActivity() {
-
     private lateinit var ble: Pm5BleClient
     private lateinit var sender: WearDataSender
 
@@ -48,7 +51,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         ble = Pm5BleClient(this)
         sender = WearDataSender(this)
-        setContent { RecorderApp(ble, sender) }
+        setContent { MaterialTheme { SimApp(ble, sender) } }
     }
 
     override fun onDestroy() {
@@ -57,15 +60,20 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Phase { IDLE, RECORDING, SENT }
+private enum class AppPhase { IDLE, RUNNING, DONE, SENT }
 
-/** /500m 페이스(초)를 mm:ss로. 값이 없으면 "—". */
-private fun formatPace(paceSec: Double?): String {
-    if (paceSec == null || paceSec <= 0) return "—"
-    val total = paceSec.toInt()
-    val m = total / 60
-    val s = total % 60
-    return "%d:%02d".format(m, s)
+// 1차 러닝 진행 시각 페이서(실거리 소스는 Health Services 후속 커밋). 5:00/km.
+private const val NOMINAL_RUN_MS = 300_000L
+
+private val STATION_LABEL = mapOf(
+    "ski" to "SkiErg", "sledpush" to "Sled Push", "sledpull" to "Sled Pull",
+    "burpee" to "Burpee BJ", "row" to "Rowing", "farmers" to "Farmers",
+    "lunges" to "Lunges", "wallballs" to "Wall Balls",
+)
+
+private fun fmt(ms: Long): String {
+    val t = (ms / 1000).coerceAtLeast(0)
+    return "%d:%02d".format(t / 60, t % 60)
 }
 
 private fun blePermissions(): Array<String> =
@@ -76,100 +84,157 @@ private fun blePermissions(): Array<String> =
     }
 
 @Composable
-fun RecorderApp(ble: Pm5BleClient, sender: WearDataSender) {
-    var connected by remember { mutableStateOf(false) }
-    var latest by remember { mutableStateOf<ErgSample?>(null) }
-    var machine by remember { mutableStateOf(MachineType.SKI) }
-    var phase by remember { mutableStateOf(Phase.IDLE) }
-    var startMs by remember { mutableStateOf(0L) }
+fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
+    var engineKey by remember { mutableStateOf(0) }
+    val engine = remember(engineKey) { SimEngine() }
+    var version by remember { mutableStateOf(0) } // engine 변경 후 recompose 트리거
+    var phase by remember { mutableStateOf(AppPhase.IDLE) }
+    var slotStartMs by remember { mutableStateOf(0L) }
+    var nowMs by remember { mutableStateOf(0L) }
+
+    var pm5Connected by remember { mutableStateOf(false) }
+    var pm5Latest by remember { mutableStateOf<ErgSample?>(null) }
     var startIso by remember { mutableStateOf("") }
 
-    val launcher = rememberLauncherForActivityResult(
+    version.let {} // read to subscribe
+
+    val active = phase == AppPhase.RUNNING && !engine.isDone
+    LaunchedEffect(active, slotStartMs) {
+        while (active) {
+            nowMs = System.currentTimeMillis()
+            delay(250)
+        }
+    }
+
+    val bleLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
         if (grants.values.all { it }) {
             ble.start(object : Pm5BleClient.Listener {
-                override fun onConnected() { connected = true }
-                override fun onDisconnected() { connected = false }
-                override fun onSamples(samples: List<ErgSample>) { latest = samples.lastOrNull() }
+                override fun onConnected() { pm5Connected = true }
+                override fun onDisconnected() { pm5Connected = false }
+                override fun onSamples(samples: List<ErgSample>) { pm5Latest = samples.lastOrNull() }
             })
         }
     }
 
-    fun startRecording() {
-        ble.resetSamples()
-        startMs = System.currentTimeMillis()
-        startIso = Instant.now().toString()
-        phase = Phase.RECORDING
+    fun beginSlotTimer() {
+        slotStartMs = System.currentTimeMillis()
+        nowMs = slotStartMs
     }
 
-    fun finishRecording() {
-        val elapsedMs = System.currentTimeMillis() - startMs
-        val station = if (machine == MachineType.SKI) Stations.byKey("ski")!! else Stations.byKey("row")!!
-        val segment = RecordedSegment(
-            kind = "station",
-            splitTimeMs = elapsedMs,
-            exerciseId = station.exerciseId,
-            machineType = machine.wire,
-            ergSamples = ble.snapshot(),
-        )
+    fun start() {
+        startIso = Instant.now().toString()
+        phase = AppPhase.RUNNING
+        beginSlotTimer()
+    }
+
+    fun recordCurrent() {
+        val elapsed = System.currentTimeMillis() - slotStartMs
+        val isMachine = SessionAssembler.isMachine(engine.current?.machineType)
+        val erg = if (engine.current?.kind == "station" && isMachine) ble.snapshot() else emptyList()
+        engine.record(elapsed, erg)
+        version++
+        if (engine.isDone) phase = AppPhase.DONE else beginSlotTimer()
+    }
+
+    fun sendSession() {
         val session = SessionAssembler.assemble(
             sessionId = UUID.randomUUID().toString(),
-            startedAtIso = startIso,
+            startedAtIso = startIso.ifEmpty { Instant.now().toString() },
             clientUpdatedAtIso = Instant.now().toString(),
             endedAtIso = Instant.now().toString(),
-            segments = listOf(segment),
+            segments = engine.recordedSegments(),
         )
         sender.sendSession(session)
-        phase = Phase.SENT
+        phase = AppPhase.SENT
     }
 
-    MaterialTheme {
+    fun resetAll() {
+        ble.stop()
+        pm5Connected = false
+        pm5Latest = null
+        engineKey++
+        phase = AppPhase.IDLE
+    }
+
+    val elapsed = nowMs - slotStartMs
+    val kind = engine.current?.kind
+    val round = engine.current?.index ?: 0
+    val runProgress =
+        if (kind == "run") (elapsed.toFloat() / NOMINAL_RUN_MS).coerceIn(0f, 1f) else 0f
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        SimRings(
+            stationDone = engine.stationDoneCount(),
+            activeStation = engine.activeStationOrdinal(),
+            runProgress = runProgress,
+            modifier = Modifier.fillMaxSize().padding(4.dp),
+        )
+
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+            modifier = Modifier.fillMaxSize().padding(38.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            when {
-                !connected -> {
-                    Text("PM5 검색 중…")
-                    Chip(
-                        onClick = { launcher.launch(blePermissions()) },
-                        label = { Text("연결") },
-                        colors = ChipDefaults.primaryChipColors(),
-                    )
+            when (phase) {
+                AppPhase.IDLE -> {
+                    Text("하이록스", textAlign = TextAlign.Center)
+                    Text("시뮬레이션", textAlign = TextAlign.Center)
+                    Button(onClick = { start() }, colors = ButtonDefaults.primaryButtonColors()) {
+                        Text("시작")
+                    }
                 }
-                phase == Phase.RECORDING -> {
-                    val s = latest
-                    Text("${s?.dist?.toInt() ?: 0} m")
-                    Text("${s?.watts ?: 0} W · spm ${s?.spm ?: 0}")
-                    Text("/500m ${formatPace(s?.pace)} · ${machine.wire}")
-                    Chip(
-                        onClick = { finishRecording() },
-                        label = { Text("종료·전송") },
-                        colors = ChipDefaults.primaryChipColors(),
-                    )
+                AppPhase.RUNNING -> when (kind) {
+                    "run" -> {
+                        Text("RUN $round", fontSize = 13.sp, color = MaterialTheme.colors.primary)
+                        Text(fmt(elapsed), fontSize = 26.sp)
+                        Text("탭 = 1km 랩", fontSize = 11.sp)
+                        Button(onClick = { recordCurrent() }, colors = ButtonDefaults.primaryButtonColors()) {
+                            Text("1km 완료")
+                        }
+                    }
+                    "roxzone" -> {
+                        Text("록스존 · 이동", fontSize = 13.sp)
+                        Text(fmt(elapsed), fontSize = 26.sp)
+                        Button(onClick = { recordCurrent() }, colors = ButtonDefaults.primaryButtonColors()) {
+                            Text("스테이션 시작")
+                        }
+                    }
+                    "station" -> {
+                        Text("STATION $round", fontSize = 12.sp, color = MaterialTheme.colors.primary)
+                        Text(STATION_LABEL[engine.current?.stationKey] ?: "스테이션", fontSize = 15.sp)
+                        Text(fmt(elapsed), fontSize = 24.sp)
+                        val machine = SessionAssembler.isMachine(engine.current?.machineType)
+                        if (machine) {
+                            if (pm5Connected) {
+                                val s = pm5Latest
+                                Text("${s?.watts ?: 0}W · spm ${s?.spm ?: 0}", fontSize = 11.sp)
+                            } else {
+                                Button(
+                                    onClick = { bleLauncher.launch(blePermissions()) },
+                                    colors = ButtonDefaults.secondaryButtonColors(),
+                                ) { Text("PM5", fontSize = 12.sp) }
+                            }
+                        }
+                        Button(onClick = { recordCurrent() }, colors = ButtonDefaults.primaryButtonColors()) {
+                            Text("완료")
+                        }
+                    }
+                    else -> Text("…")
                 }
-                phase == Phase.SENT -> {
+                AppPhase.DONE -> {
+                    Text("시뮬 완료 ✓", color = MaterialTheme.colors.primary)
+                    Text(fmt(engine.elapsedTotalMs()), fontSize = 24.sp)
+                    Button(onClick = { sendSession() }, colors = ButtonDefaults.primaryButtonColors()) {
+                        Text("전송")
+                    }
+                }
+                AppPhase.SENT -> {
                     Text("전송됨 ✓")
-                    Chip(
-                        onClick = { phase = Phase.IDLE },
-                        label = { Text("새 기록") },
-                        colors = ChipDefaults.secondaryChipColors(),
-                    )
-                }
-                else -> { // IDLE, connected
-                    Text("PM5 연결됨")
-                    Chip(
-                        onClick = { machine = if (machine == MachineType.SKI) MachineType.ROW else MachineType.SKI },
-                        label = { Text(if (machine == MachineType.SKI) "스키" else "로잉") },
-                        colors = ChipDefaults.secondaryChipColors(),
-                    )
-                    Chip(
-                        onClick = { startRecording() },
-                        label = { Text("시작") },
-                        colors = ChipDefaults.primaryChipColors(),
-                    )
+                    Button(onClick = { resetAll() }, colors = ButtonDefaults.secondaryButtonColors()) {
+                        Text("새 시뮬")
+                    }
                 }
             }
         }
