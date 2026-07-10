@@ -9,6 +9,7 @@ object SupabaseConfig {
     const val PROJECT_URL = "https://vuloxbpfhyqkvgmpmkst.supabase.co"
     const val INGEST_URL = "$PROJECT_URL/functions/v1/ingest-session"
     const val AUTH_TOKEN_URL = "$PROJECT_URL/auth/v1/token"
+    const val SIGNUP_URL = "$PROJECT_URL/auth/v1/signup"
     const val REST_URL = "$PROJECT_URL/rest/v1"
 
     // Google 로그인용 웹 클라이언트 ID (Google Cloud OAuth). Supabase Google 프로바이더에
@@ -39,4 +40,9 @@ object TokenStore {
     fun accessToken(): String? = access
     fun refreshToken(): String? = refresh
     fun isLoggedIn(): Boolean = access != null
+
+    fun clear() {
+        access = null
+        refresh = null
+    }
 }

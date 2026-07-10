@@ -22,6 +22,7 @@ class AuthClient(
 
     sealed interface Result {
         data object Ok : Result
+        data object NeedsConfirm : Result // 회원가입 후 이메일 확인 필요(세션 없음)
         data class Error(val message: String) : Result
     }
 
@@ -38,6 +39,34 @@ class AuthClient(
     suspend fun signInWithGoogle(idToken: String): Result = withContext(Dispatchers.IO) {
         val body = json.encodeToString(IdTokenGrant.serializer(), IdTokenGrant("google", idToken))
         post("${SupabaseConfig.AUTH_TOKEN_URL}?grant_type=id_token", body)
+    }
+
+    /** 이메일/비밀번호 회원가입. 세션이 오면 로그인 처리, 이메일 확인이 필요하면 NeedsConfirm. */
+    suspend fun signUp(email: String, password: String): Result = withContext(Dispatchers.IO) {
+        val body = json.encodeToString(PasswordGrant.serializer(), PasswordGrant(email.trim(), password))
+        val request = Request.Builder()
+            .url(SupabaseConfig.SIGNUP_URL)
+            .addHeader("apikey", SupabaseConfig.ANON_KEY)
+            .addHeader("Content-Type", "application/json")
+            .post(body.toByteArray().toRequestBody(JSON))
+            .build()
+        try {
+            client.newCall(request).execute().use { resp ->
+                val text = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) return@withContext Result.Error("HTTP ${resp.code}")
+                val r = json.decodeFromString(SignUpResponse.serializer(), text)
+                if (r.access_token != null && r.refresh_token != null) {
+                    TokenStore.set(r.access_token, r.refresh_token)
+                    Result.Ok
+                } else {
+                    Result.NeedsConfirm
+                }
+            }
+        } catch (e: IOException) {
+            Result.Error(e.message ?: "network error")
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "signup error")
+        }
     }
 
     /** 리프레시 토큰으로 새 액세스 토큰 발급. 성공 시 새 액세스 토큰 반환(널이면 실패). */
@@ -89,6 +118,12 @@ class AuthClient(
         val access_token: String,
         val refresh_token: String,
         val expires_in: Int? = null,
+    )
+
+    @Serializable
+    private data class SignUpResponse(
+        val access_token: String? = null,
+        val refresh_token: String? = null,
     )
 
     companion object {

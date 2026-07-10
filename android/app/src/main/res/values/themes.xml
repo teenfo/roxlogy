@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Roxlogy" parent="@android:style/Theme.DeviceDefault.NoActionBar" />
+    <!-- 다크 배경(#141414)으로 시작해 Compose 그리기 전 흰색 플래시 방지. -->
+    <style name="Theme.Roxlogy" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/rox_background</item>
+        <item name="android:statusBarColor">@color/rox_background</item>
+        <item name="android:navigationBarColor">@color/rox_background</item>
+    </style>
 </resources>
