@@ -1,0 +1,5 @@
+<settings>
+    <setting propertyKey="@Properties.supabaseAccessToken" title="@Strings.SettingToken">
+        <settingConfig type="alphaNumeric"/>
+    </setting>
+</settings>

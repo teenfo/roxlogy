@@ -1,0 +1,4 @@
+<properties>
+    <!-- 1차 인증: 테스트 계정 Supabase 액세스 토큰(설정에서 주입, 리포 커밋 금지). -->
+    <property id="supabaseAccessToken" type="string"></property>
+</properties>

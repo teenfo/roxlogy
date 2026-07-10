@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Roxlogy 워치 하이록스 시뮬레이션 레코더 (Connect IQ Device App).
+     BLE 지원·CIQ 3.1+ 기기 대상. 업로드는 Communications(폰 경유). -->
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application
+        entry="RoxlogyApp"
+        id="b6e2c1a04f5e4d3c8a7b9e0d1c2f3a4b"
+        launcherIcon="@Drawables.LauncherIcon"
+        name="@Strings.AppName"
+        minApiLevel="3.1.0"
+        type="watch-app">
+        <iq:products>
+            <iq:product id="fenix6"/>
+            <iq:product id="fenix7"/>
+            <iq:product id="fenix7x"/>
+            <iq:product id="epix2"/>
+            <iq:product id="fr745"/>
+            <iq:product id="fr945"/>
+            <iq:product id="fr955"/>
+            <iq:product id="venu2"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Communications"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+    </iq:application>
+</iq:manifest>

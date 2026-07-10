@@ -1,0 +1,2 @@
+# Connect IQ 빌드 설정. 리소스는 resources/ 에서 자동 수집.
+project.manifest = manifest.xml

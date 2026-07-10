@@ -1,0 +1,95 @@
+name: garmin-ci
+
+# 가민(Connect IQ) 프로젝트 구조 게이트.
+# 전체 monkeyc 컴파일은 Connect IQ SDK + 개발자 키가 필요해 VS Code(개발자 로컬)에서 수행한다
+# (BLE/실기기 검증도 시뮬레이터로 불가 — Garmin 표준 플로우). 여기서는 매니페스트/리소스
+# XML 유효성과 필수 소스 존재를 검증해 회귀를 막는다. SDK 컴파일 CI는 개발자 키 시크릿
+# (GARMIN_DEVELOPER_KEY) + SDK 버전 확정 후 추가 예정.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "garmin/**"
+      - ".github/workflows/garmin-ci.yml"
+  pull_request:
+    paths:
+      - "garmin/**"
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Connect IQ project structure
+        run: |
+          python3 - <<'PY'
+          import sys, os, xml.dom.minidom as X
+          root = "garmin"
+          errors = []
+
+          def parse(path):
+              try:
+                  X.parse(path)
+              except Exception as e:
+                  errors.append(f"XML invalid: {path}: {e}")
+
+          # 필수 파일 존재
+          required = [
+              "manifest.xml",
+              "monkey.jungle",
+              "resources/strings/strings.xml",
+              "resources/drawables/drawables.xml",
+              "resources/drawables/launcher_icon.png",
+              "resources/settings/properties.xml",
+              "source/RoxlogyApp.mc",
+              "source/SimModel.mc",
+              "source/SimView.mc",
+              "source/SimDelegate.mc",
+              "source/Uploader.mc",
+          ]
+          for rel in required:
+              p = os.path.join(root, rel)
+              if not os.path.isfile(p):
+                  errors.append(f"missing: {rel}")
+
+          # XML 유효성
+          for rel in [f for f in required if f.endswith(".xml")]:
+              p = os.path.join(root, rel)
+              if os.path.isfile(p):
+                  parse(p)
+          for extra in ["resources/settings/settings.xml"]:
+              p = os.path.join(root, extra)
+              if os.path.isfile(p):
+                  parse(p)
+
+          # manifest 기본 속성 확인
+          man = os.path.join(root, "manifest.xml")
+          if os.path.isfile(man):
+              doc = X.parse(man)
+              apps = doc.getElementsByTagName("iq:application")
+              if not apps:
+                  errors.append("manifest: <iq:application> not found")
+              else:
+                  a = apps[0]
+                  for attr in ["entry", "id", "type", "minApiLevel"]:
+                      if not a.getAttribute(attr):
+                          errors.append(f"manifest: missing @{attr}")
+                  prods = doc.getElementsByTagName("iq:product")
+                  if len(prods) == 0:
+                      errors.append("manifest: no <iq:product> targets")
+
+          # 소스에 service role 키가 섞여있지 않은지(보안) — anon만 허용
+          for dp, _, fs in os.walk(os.path.join(root, "source")):
+              for f in fs:
+                  if f.endswith(".mc"):
+                      txt = open(os.path.join(dp, f), encoding="utf-8").read()
+                      if "service_role" in txt or "\"role\":\"service_role\"" in txt:
+                          errors.append(f"security: service_role reference in {f}")
+
+          if errors:
+              print("STRUCTURE CHECK FAILED:")
+              for e in errors:
+                  print(" -", e)
+              sys.exit(1)
+          print("Connect IQ project structure OK")
+          PY
