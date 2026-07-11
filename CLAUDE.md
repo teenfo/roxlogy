@@ -10,6 +10,7 @@
 - 서비스명 **Roxlogy**, 패키지 `app.roxlogy.android` / `app.roxlogy.wear`, 도메인 **`roxlogy.com` (구입 확정, 2026-07-05)** — `roxlogy.app`은 추후 방어적 확보 검토
 - 톤: 정밀·테크 + 담백·미니멀. 데이터가 말하게 하고, 과장·허세·마초 클리셰 금지
 - 로고(확정): 옐로 8세그먼트 링(최외곽, 스테이션) + 블루 연속 트랙 링(안쪽, 러닝) + 인더스트리얼 R(중앙). 팔레트: Race Yellow #FFD500 / Black #141414 / Track Blue #2D7DFF / Chalk #F4F4F2. 규칙: 옐로 링은 항상 8조각, 블루 링은 절대 끊지 않음
+- **디자인 관련 작업(로고·아이콘·색·타이포·워드마크 등)은 반드시 `brand/` 폴더 지침을 먼저 확인**하고 그 에셋을 직접 사용/래스터화할 것. 손으로 다시 그리지 말 것. 소스: `brand/roxlogy-brand-guide.html`(v4, 최종 기준), `roxlogy-appicon.svg`(폰 아이콘), `roxlogy-watchface.svg`(워치 아이콘), `roxlogy-mark.svg`/`roxlogy-mark-inverse.svg`(마크). 타이포: 헤딩/워드마크=Archivo Black(대문자·타이트), 한글 본문=IBM Plex Sans KR.
 - **"HYROX" 상표를 앱 이름·서브타이틀·패키지명에 쓰지 말 것** (설명문 내 호환성 언급만 허용)
 
 ## 현재 Phase
