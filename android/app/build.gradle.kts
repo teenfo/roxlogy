@@ -16,12 +16,14 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        // Google 로그인용 웹 클라이언트 ID는 빌드시 주입(env 또는 gradle property).
-        // 소스/커밋에 넣지 않는다. 값이 없으면 빈 문자열 → 앱에서 Google 버튼 비활성.
+        // Google 로그인용 웹 클라이언트 ID. **공개 식별자**(APK에 포함·추출 가능)라
+        // 커밋해도 안전하다 — 비밀은 아니다. Supabase Google 프로바이더에 등록된 것과 동일.
+        // env(ROXLOGY_GOOGLE_WEB_CLIENT_ID)/gradle property로 오버라이드 가능.
+        // (참고: 클라이언트 secret(GOCSPX-…)은 서버(Supabase)에만, 절대 커밋 금지.)
         val googleWebClientId =
             System.getenv("ROXLOGY_GOOGLE_WEB_CLIENT_ID")
                 ?: (project.findProperty("roxlogyGoogleWebClientId") as String?)
-                ?: ""
+                ?: "265762211451-6f2krau47k8rnhdstf772c3fpqtkk17c.apps.googleusercontent.com"
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
