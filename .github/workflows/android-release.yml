@@ -58,10 +58,16 @@ jobs:
         run: ./gradlew :wear:assembleRelease :app:assembleRelease
 
       - name: Print phone APK signing SHA-1 (Google 콘솔에 등록할 값)
-        # 실제로 APK를 서명한 인증서의 SHA-1을 로그에 출력 → Google Cloud Android 클라이언트에 등록.
+        # 실제로 APK를 서명한 인증서의 SHA-1/SHA-256을 로그에 출력 → Google Cloud Android 클라이언트에 등록.
+        # apksigner 사용(v2/v3 서명 대응). keytool -printcert -jarfile은 v1 전용이라 minSdk>=24 앱에선 안 보임.
         run: |
-          keytool -printcert -jarfile app/build/outputs/apk/release/app-release.apk \
-            | grep -Ei "SHA1|SHA256" || echo "서명 인증서 정보를 읽지 못했습니다."
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk \
+              | grep -Ei "SHA-1|SHA-256" || echo "서명 인증서 정보를 읽지 못했습니다."
+          else
+            echo "::warning::apksigner를 찾지 못했습니다."
+          fi
 
       - name: Upload APKs to Supabase Storage (public)
         env:
