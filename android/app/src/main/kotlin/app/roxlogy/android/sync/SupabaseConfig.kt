@@ -1,5 +1,7 @@
 package app.roxlogy.android.sync
 
+import app.roxlogy.android.BuildConfig
+
 /**
  * Supabase 클라이언트 설정.
  * anon 키는 **공개(publishable) 키**라 클라이언트 포함이 안전하다 (웹앱도 동일 키 사용).
@@ -13,9 +15,10 @@ object SupabaseConfig {
     const val REST_URL = "$PROJECT_URL/rest/v1"
 
     // Google 로그인용 웹 클라이언트 ID (Google Cloud OAuth). Supabase Google 프로바이더에
-    // 등록된 것과 동일해야 한다. 값이 없으면 Google 버튼은 비활성.
-    // TODO(N5c): Google Cloud OAuth 웹 클라이언트 ID 주입.
-    const val GOOGLE_WEB_CLIENT_ID = ""
+    // 등록된 것과 동일해야 한다. 빌드시 env(ROXLOGY_GOOGLE_WEB_CLIENT_ID) 또는
+    // gradle property(roxlogyGoogleWebClientId)로 주입한다(소스/커밋 금지).
+    // 값이 없으면 빈 문자열 → 앱에서 Google 버튼 비활성.
+    val GOOGLE_WEB_CLIENT_ID: String = BuildConfig.GOOGLE_WEB_CLIENT_ID
 
     // 공개 anon 키 (JWT). 노출돼도 RLS로 보호되므로 안전.
     const val ANON_KEY =

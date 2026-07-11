@@ -15,6 +15,14 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+
+        // Google 로그인용 웹 클라이언트 ID는 빌드시 주입(env 또는 gradle property).
+        // 소스/커밋에 넣지 않는다. 값이 없으면 빈 문자열 → 앱에서 Google 버튼 비활성.
+        val googleWebClientId =
+            System.getenv("ROXLOGY_GOOGLE_WEB_CLIENT_ID")
+                ?: (project.findProperty("roxlogyGoogleWebClientId") as String?)
+                ?: ""
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
     signingConfigs {
@@ -40,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {

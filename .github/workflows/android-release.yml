@@ -28,6 +28,10 @@ jobs:
           packages: "platform-tools platforms;android-35 build-tools;34.0.0"
 
       - name: Build release APKs
+        # ROXLOGY_GOOGLE_WEB_CLIENT_ID(공개 OAuth 웹 클라이언트 ID)가 시크릿으로 주어지면
+        # 폰 앱의 Google 로그인 버튼이 활성화된다. 없으면 이메일 로그인만.
+        env:
+          ROXLOGY_GOOGLE_WEB_CLIENT_ID: ${{ secrets.ROXLOGY_GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew :wear:assembleRelease :app:assembleRelease
 
       - name: Upload APKs to Supabase Storage (public)
