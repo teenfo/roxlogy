@@ -1,5 +1,9 @@
 package app.roxlogy.android.sync
 
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import app.roxlogy.android.BuildConfig
 
 /**
@@ -27,7 +31,11 @@ object SupabaseConfig {
             "WhmfRIZWBS88_Rf-e_p7tMpOLKEX9kKxC67KVrLZGjs"
 }
 
-/** Supabase Auth 토큰 저장소 (액세스 + 리프레시). 프로세스 메모리 보관. */
+/**
+ * Supabase Auth 토큰 저장소 (액세스 + 리프레시).
+ * 메모리 캐시 + EncryptedSharedPreferences 영속(콜드스타트 후 로그인 복원, WebView 세션 주입 시드).
+ * 앱 시작 시 [init]을 한 번 호출해 디스크에서 복원한다.
+ */
 object TokenStore {
     @Volatile
     private var access: String? = null
@@ -35,9 +43,31 @@ object TokenStore {
     @Volatile
     private var refresh: String? = null
 
+    @Volatile
+    private var prefs: SharedPreferences? = null
+
+    /** 앱 시작 시 1회. 암호화 저장소를 열고 저장된 토큰을 메모리로 복원. */
+    fun init(context: Context) {
+        if (prefs != null) return
+        val p = runCatching {
+            val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+            EncryptedSharedPreferences.create(
+                "rox_tokens",
+                masterKeyAlias,
+                context.applicationContext,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+        }.getOrNull() ?: return
+        prefs = p
+        access = p.getString(KEY_ACCESS, null)
+        refresh = p.getString(KEY_REFRESH, null)
+    }
+
     fun set(accessToken: String?, refreshToken: String?) {
         access = accessToken
         refresh = refreshToken
+        prefs?.edit()?.putString(KEY_ACCESS, accessToken)?.putString(KEY_REFRESH, refreshToken)?.apply()
     }
 
     fun accessToken(): String? = access
@@ -47,5 +77,9 @@ object TokenStore {
     fun clear() {
         access = null
         refresh = null
+        prefs?.edit()?.remove(KEY_ACCESS)?.remove(KEY_REFRESH)?.apply()
     }
+
+    private const val KEY_ACCESS = "access"
+    private const val KEY_REFRESH = "refresh"
 }

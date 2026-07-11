@@ -20,7 +20,7 @@
 
 ## 기술 스택 (확정 — 임의 변경 금지)
 - **워치**: Kotlin + Wear Compose (네이티브). PM5 BLE 직결 때문에 네이티브 강제.
-- **폰**: Kotlin + Compose (네이티브). Wearable Data Layer 연동.
+- **폰**: Kotlin + Compose **하이브리드**(2026-07-11 확정). 네이티브 셸 = 로그인(이메일·Google)·워치연동(Wearable Data Layer)·세션 캡처/오프라인 큐. 웹 기능(대시보드·세션·레이스·프로그램·리더보드·커뮤니티·어드민 등 전체)은 **로그인 토큰을 주입한 WebView로 roxlogy.com 임베드**(`web/app/auth/native` 핸드셰이크). 워치 브리지·오프라인 캡처는 WebView로 불가하므로 네이티브 유지, 관리·분석 화면은 웹 재사용해 중복 구현 방지.
 - **공유 모듈** `:shared`: 평범한 Kotlin 모듈. (iOS 확장 시 KMP로 승격)
 - **웹**: Next.js (Vercel 배포)
 - **DB/Auth/Realtime/Storage**: Supabase Cloud

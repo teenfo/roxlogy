@@ -26,6 +26,13 @@ android {
                 ?: (project.findProperty("roxlogyGoogleWebClientId") as String?)?.takeIf { it.isNotBlank() }
                 ?: "265762211451-6f2krau47k8rnhdstf772c3fpqtkk17c.apps.googleusercontent.com"
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
+
+        // 임베드할 웹앱(roxlogy.com) URL. env/gradle property로 오버라이드(스테이징 등).
+        val webAppUrl =
+            System.getenv("ROXLOGY_WEB_APP_URL")?.takeIf { it.isNotBlank() }
+                ?: (project.findProperty("roxlogyWebAppUrl") as String?)?.takeIf { it.isNotBlank() }
+                ?: "https://roxlogy.com"
+        buildConfigField("String", "WEB_APP_URL", "\"$webAppUrl\"")
     }
 
     signingConfigs {
@@ -80,4 +87,5 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.google.id)
+    implementation(libs.androidx.security.crypto)
 }

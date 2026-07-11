@@ -35,10 +35,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.webkit.CookieManager
 import app.roxlogy.android.sync.AuthClient
 import app.roxlogy.android.sync.GoalSync
 import app.roxlogy.android.sync.GoogleSignInHelper
 import app.roxlogy.android.sync.TokenStore
+import app.roxlogy.android.web.WebAppScreen
 import app.roxlogy.android.ui.OrDivider
 import app.roxlogy.android.ui.RoxMark
 import app.roxlogy.android.ui.RoxOutlineButton
@@ -60,6 +62,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        TokenStore.init(applicationContext) // 저장된 세션 복원
         setContent { RoxlogyTheme { PhoneApp() } }
     }
 }
@@ -70,7 +73,6 @@ fun PhoneApp() {
     val auth = remember { AuthClient() }
     val google = remember { GoogleSignInHelper(context) }
     var loggedIn by remember { mutableStateOf(TokenStore.isLoggedIn()) }
-    var showWod by remember { mutableStateOf(false) }
 
     LaunchedEffect(loggedIn) {
         if (loggedIn) GoalSync().fetchAndPush(context) // 최신 목표를 워치로 밀어줌
@@ -80,13 +82,18 @@ fun PhoneApp() {
         modifier = Modifier.fillMaxSize(),
         color = androidx.compose.material3.MaterialTheme.colorScheme.background,
     ) {
-        when {
-            loggedIn && showWod -> WodScreen(onBack = { showWod = false })
-            loggedIn -> HomeScreen(
-                onOpenWod = { showWod = true },
-                onLogout = { TokenStore.clear(); loggedIn = false },
+        if (loggedIn) {
+            // 웹앱(roxlogy.com)을 로그인 상태로 임베드 — 웹의 모든 기능 제공.
+            // 워치연동(GoalSync/PhoneDataReceiver/IngestUploader)은 백그라운드로 계속 동작.
+            WebAppScreen(
+                onLoggedOut = {
+                    TokenStore.clear()
+                    CookieManager.getInstance().removeAllCookies(null)
+                    loggedIn = false
+                },
             )
-            else -> AuthScreen(auth = auth, google = google, onAuthed = { loggedIn = true })
+        } else {
+            AuthScreen(auth = auth, google = google, onAuthed = { loggedIn = true })
         }
     }
 }
