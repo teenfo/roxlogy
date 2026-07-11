@@ -20,9 +20,10 @@ android {
         // 커밋해도 안전하다 — 비밀은 아니다. Supabase Google 프로바이더에 등록된 것과 동일.
         // env(ROXLOGY_GOOGLE_WEB_CLIENT_ID)/gradle property로 오버라이드 가능.
         // (참고: 클라이언트 secret(GOCSPX-…)은 서버(Supabase)에만, 절대 커밋 금지.)
+        // 빈 문자열(시크릿 미설정 시 CI가 넘기는 값)은 "미설정"으로 취급해 기본값으로 폴백.
         val googleWebClientId =
-            System.getenv("ROXLOGY_GOOGLE_WEB_CLIENT_ID")
-                ?: (project.findProperty("roxlogyGoogleWebClientId") as String?)
+            System.getenv("ROXLOGY_GOOGLE_WEB_CLIENT_ID")?.takeIf { it.isNotBlank() }
+                ?: (project.findProperty("roxlogyGoogleWebClientId") as String?)?.takeIf { it.isNotBlank() }
                 ?: "265762211451-6f2krau47k8rnhdstf772c3fpqtkk17c.apps.googleusercontent.com"
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }

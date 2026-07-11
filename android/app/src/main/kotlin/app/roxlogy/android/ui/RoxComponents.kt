@@ -1,13 +1,11 @@
 package app.roxlogy.android.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -22,65 +20,30 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import app.roxlogy.android.R
 import app.roxlogy.android.ui.theme.RoxAccent
 import app.roxlogy.android.ui.theme.RoxBackground
 import app.roxlogy.android.ui.theme.RoxForeground
 import app.roxlogy.android.ui.theme.RoxMuted
 import app.roxlogy.android.ui.theme.RoxSurface
-import app.roxlogy.android.ui.theme.RoxTrack
 import androidx.compose.foundation.text.KeyboardOptions
 
-/** 로고 마크: 옐로 8세그먼트 링(스테이션) + 블루 트랙 링(러닝) + 중앙 R. */
+/**
+ * 로고 마크: 옐로 8세그먼트 링(스테이션) + 블루 트랙 링(러닝) + 인더스트리얼 R.
+ * 공식 브랜드 에셋(brand/roxlogy-mark.svg → drawable/ic_rox_mark)을 직접 사용한다. 손으로 다시 그리지 않는다.
+ */
 @Composable
 fun RoxMark(size: Dp = 64.dp) {
-    Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = this.size.minDimension
-            val cx = this.size.width / 2f
-            val cy = this.size.height / 2f
-            val outerStroke = w * 0.11f
-            val rO = w / 2f - outerStroke / 2f
-            val gap = 12f
-            for (i in 0 until 8) {
-                drawArc(
-                    color = RoxAccent,
-                    startAngle = -90f + i * 45f + gap / 2f,
-                    sweepAngle = 45f - gap,
-                    useCenter = false,
-                    topLeft = Offset(cx - rO, cy - rO),
-                    size = Size(rO * 2f, rO * 2f),
-                    style = Stroke(width = outerStroke, cap = StrokeCap.Butt),
-                )
-            }
-            val innerStroke = w * 0.075f
-            val rI = rO - outerStroke - innerStroke
-            drawArc(
-                color = RoxTrack,
-                startAngle = 0f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = Offset(cx - rI, cy - rI),
-                size = Size(rI * 2f, rI * 2f),
-                style = Stroke(width = innerStroke, cap = StrokeCap.Round),
-            )
-        }
-        Text(
-            "R",
-            color = RoxForeground,
-            fontWeight = FontWeight.Black,
-            fontSize = (size.value * 0.38f).sp,
-        )
-    }
+    Image(
+        painter = painterResource(R.drawable.ic_rox_mark),
+        contentDescription = "Roxlogy",
+        modifier = Modifier.size(size),
+    )
 }
 
 @Composable
