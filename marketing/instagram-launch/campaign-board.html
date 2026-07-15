@@ -1,0 +1,569 @@
+<title>Roxlogy — 인스타그램 런칭 캠페인 (10편)</title>
+<style>
+  :root{
+    --ink:#141414; --coal:#1e1e1e; --line:#2b2b2b; --line2:#383838;
+    --chalk:#f4f4f2; --grey:#9a9a96; --yellow:#ffd500; --blue:#2d7dff;
+    --green:#35c06a; --red:#ff6b6b; --yellow-dim:#3a3411; --blue-dim:#152a4d;
+    --display:"Archivo Black","Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+    --kr:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#0c0c0c;color:var(--chalk);font-family:var(--kr);
+       -webkit-font-smoothing:antialiased;line-height:1.5}
+  .wrap{max-width:1120px;margin:0 auto;padding:56px 20px 120px}
+
+  /* ---------- page header ---------- */
+  .masthead{border:1px solid var(--line);border-radius:16px;background:
+      radial-gradient(120% 140% at 90% -10%, rgba(45,125,255,.10), transparent 55%),
+      radial-gradient(90% 120% at 0% 0%, rgba(255,213,0,.08), transparent 50%), var(--ink);
+      padding:40px 34px;overflow:hidden;position:relative}
+  .eyebrow{font-family:var(--display);font-weight:900;text-transform:uppercase;
+      letter-spacing:.28em;font-size:12px;color:var(--yellow)}
+  .masthead h1{font-family:var(--display);font-weight:900;text-transform:uppercase;
+      letter-spacing:-.02em;line-height:.96;font-size:clamp(30px,5.4vw,52px);margin:14px 0 0;text-wrap:balance}
+  .masthead p{color:var(--grey);max-width:60ch;margin:16px 0 0;font-size:15px}
+  .how{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:22px;font-size:12.5px;color:var(--grey)}
+  .how b{color:var(--chalk);font-weight:600}
+  .palette{display:flex;gap:8px;margin-top:24px;flex-wrap:wrap}
+  .sw{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 8px;font-family:var(--mono);font-size:11px;color:var(--grey)}
+  .sw i{width:14px;height:14px;border-radius:50%;display:block}
+
+  /* ---------- post row ---------- */
+  .post{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px;align-items:start;margin-top:48px}
+  @media(max-width:760px){.post{grid-template-columns:1fr}}
+  .slotlabel{font-family:var(--mono);font-size:12px;color:var(--grey);letter-spacing:.04em;margin-bottom:10px;display:flex;gap:10px;align-items:baseline}
+  .slotlabel b{color:var(--yellow);font-weight:700}
+
+  /* ---------- the square post card ---------- */
+  .card{aspect-ratio:1/1;container-type:inline-size;background:var(--ink);
+        border:1px solid var(--line);border-radius:14px;position:relative;overflow:hidden}
+  .card .grid-bg{position:absolute;inset:0;opacity:.5;
+     background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+     background-size:8.333cqw 8.333cqw;mask-image:radial-gradient(120% 120% at 50% 40%,#000 30%,transparent 78%)}
+  .chrome-idx{position:absolute;top:5.5cqw;left:6cqw;font-family:var(--display);font-weight:900;
+     font-size:11cqw;line-height:1;color:transparent;-webkit-text-stroke:.35cqw var(--line2);letter-spacing:-.03em}
+  .chrome-mark{position:absolute;top:6cqw;right:6cqw;width:9cqw;height:9cqw}
+  .chrome-wm{position:absolute;left:6cqw;bottom:5.6cqw;font-family:var(--display);font-weight:900;
+     text-transform:uppercase;letter-spacing:.16em;font-size:2.7cqw;color:var(--chalk)}
+  .chrome-url{position:absolute;right:6cqw;bottom:5.6cqw;font-family:var(--mono);font-size:2.5cqw;color:var(--grey)}
+  .stage{position:absolute;inset:0;padding:15cqw 8cqw 12cqw;display:flex;flex-direction:column;justify-content:center;gap:3.2cqw}
+  .stage.center{align-items:center;text-align:center}
+  .kicker{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.26em;font-size:2.7cqw;color:var(--yellow)}
+  .head{font-family:var(--kr);font-weight:800;line-height:1.08;letter-spacing:-.02em;font-size:8.2cqw;color:var(--chalk);text-wrap:balance;margin:0}
+  .head .y{color:var(--yellow)} .head .b{color:var(--blue)}
+  .sub{font-size:3.3cqw;line-height:1.55;color:var(--grey);max-width:74cqw;margin:0}
+  .stage.center .sub{max-width:80cqw}
+
+  /* mark symbol sizing */
+  .mark{display:block}
+  .hero-ring{width:44cqw;height:44cqw;margin:1cqw auto}
+  .wordbig{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.02em;font-size:11cqw;line-height:.9}
+
+  /* splits list (02) */
+  .splits{width:100%;font-family:var(--mono);font-size:3.1cqw}
+  .splits .row{display:flex;justify-content:space-between;align-items:center;padding:1.9cqw 0;border-bottom:1px solid var(--line)}
+  .splits .row.loss{color:var(--red)} .splits .row.loss .t{color:var(--red);font-weight:700}
+  .splits .nm{color:var(--grey)} .splits .t{color:var(--chalk)}
+  .tag-loss{margin-left:2cqw;font-size:2.5cqw;color:var(--red)}
+
+  /* station legend (03) */
+  .legend{display:grid;grid-template-columns:repeat(4,1fr);gap:2cqw 2.4cqw;width:100%;margin-top:1cqw}
+  .legend div{display:flex;align-items:center;gap:1.6cqw;font-size:2.5cqw;color:var(--grey)}
+  .legend i{width:2.2cqw;height:2.2cqw;border-radius:.5cqw;background:var(--yellow);flex:none}
+  .legend b{color:var(--chalk);font-weight:600;font-family:var(--mono);font-size:2.3cqw}
+
+  /* watch (04) */
+  .watch{width:40cqw;height:40cqw;border-radius:26%;background:#000;border:1.2cqw solid #222;margin:0 auto;
+     display:flex;align-items:center;justify-content:center;box-shadow:0 2cqw 6cqw rgba(0,0,0,.5)}
+  .watch svg{width:82%;height:82%}
+
+  /* stat block (05) */
+  .statline{display:flex;align-items:baseline;gap:3cqw;font-family:var(--mono)}
+  .statline .big{font-size:12cqw;font-weight:700;color:var(--chalk);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+  .statline .unit{font-size:3cqw;color:var(--yellow);text-transform:uppercase;letter-spacing:.1em}
+  .statline .sec{font-size:3cqw;color:var(--grey)}
+
+  /* diff rows (06) */
+  .diffs{width:100%;display:flex;flex-direction:column;gap:1.6cqw}
+  .diffs .r{display:flex;align-items:center;justify-content:space-between;background:var(--coal);border:1px solid var(--line);border-radius:2cqw;padding:2.2cqw 3cqw}
+  .diffs .nm{color:var(--chalk);font-size:3cqw;font-weight:600}
+  .diffs .tg{font-family:var(--mono);color:var(--grey);font-size:2.8cqw;margin-left:auto;margin-right:3cqw}
+  .badge{font-family:var(--mono);font-weight:700;font-size:2.9cqw;padding:.8cqw 1.8cqw;border-radius:1.2cqw}
+  .badge.ahead{color:var(--green);background:rgba(53,192,106,.12)}
+  .badge.behind{color:var(--red);background:rgba(255,107,107,.12)}
+
+  /* percentile (08) */
+  .pctbig{font-family:var(--display);font-weight:900;font-size:14cqw;color:var(--yellow);line-height:.9;letter-spacing:-.02em}
+  .pctbar{position:relative;height:4.4cqw;border-radius:999px;width:100%;margin-top:1cqw;
+     background:linear-gradient(90deg,#2d7dff,#7db0e6 35%,#ffd500 62%,#ff6b6b)}
+  .pctbar .mk{position:absolute;top:50%;left:19%;width:5cqw;height:5cqw;border-radius:50%;background:#fff;border:.7cqw solid #141414;transform:translate(-50%,-50%);box-shadow:0 0 0 .5cqw rgba(255,255,255,.15)}
+  .pctends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:2.4cqw;color:var(--grey);margin-top:1.4cqw}
+
+  /* WOD checklist (09) */
+  .wod{width:100%;background:var(--coal);border:1px solid var(--line);border-radius:3cqw;padding:3.4cqw}
+  .wod h4{margin:0 0 2.4cqw;font-size:3cqw;color:var(--chalk);font-weight:800;display:flex;justify-content:space-between}
+  .wod h4 span{color:var(--yellow);font-family:var(--mono);font-weight:700;font-size:2.6cqw}
+  .wod .it{display:flex;align-items:center;gap:2.2cqw;padding:1.5cqw 0;font-size:2.9cqw;color:var(--grey)}
+  .wod .it .ck{width:3.2cqw;height:3.2cqw;border-radius:.8cqw;border:.4cqw solid var(--line2);flex:none;display:flex;align-items:center;justify-content:center}
+  .wod .it.done .ck{background:var(--yellow);border-color:var(--yellow)}
+  .wod .it.done .ck::after{content:"";width:1.4cqw;height:.7cqw;border-left:.5cqw solid #141414;border-bottom:.5cqw solid #141414;transform:rotate(-45deg) translateY(-.2cqw)}
+  .wod .it.done{color:var(--chalk);text-decoration:line-through;text-decoration-color:var(--line2)}
+  .wod .bar{height:2cqw;background:var(--ink);border-radius:999px;margin-top:2.6cqw;overflow:hidden}
+  .wod .bar i{display:block;height:100%;width:75%;background:var(--yellow);border-radius:999px}
+
+  /* CTA pill (10) */
+  .pill{display:inline-flex;align-items:center;gap:2cqw;background:var(--yellow);color:#141414;
+     font-family:var(--display);font-weight:900;text-transform:lowercase;letter-spacing:.02em;
+     font-size:4.2cqw;padding:2.6cqw 5cqw;border-radius:999px}
+  .surfaces{font-family:var(--mono);font-size:2.7cqw;color:var(--grey);letter-spacing:.05em}
+
+  /* ---------- caption panel ---------- */
+  .cap{background:var(--coal);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px;display:flex;flex-direction:column;gap:14px;position:sticky;top:20px}
+  @media(max-width:760px){.cap{position:static}}
+  .cap h3{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .cap .role{font-family:var(--mono);font-size:11px;color:var(--yellow);text-transform:uppercase;letter-spacing:.18em}
+  .cap .body{font-size:14px;color:#d7d7d3;line-height:1.62;white-space:pre-wrap}
+  .cap .tags{font-size:12.5px;color:var(--blue);line-height:1.7;word-break:keep-all}
+  .cap .visnote{font-size:11.5px;color:var(--grey);border-top:1px dashed var(--line2);padding-top:12px}
+  .cap .visnote b{color:var(--grey);font-weight:700}
+  .copybtn{align-self:flex-start;font-family:var(--mono);font-size:12px;color:var(--chalk);background:var(--ink);
+     border:1px solid var(--line2);border-radius:8px;padding:8px 14px;cursor:pointer;transition:.15s}
+  .copybtn:hover{border-color:var(--yellow);color:var(--yellow)}
+  .copybtn:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+
+  footer{margin-top:80px;border-top:1px solid var(--line);padding-top:24px;color:var(--grey);font-size:12.5px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+  footer b{color:var(--chalk)}
+
+  @media(prefers-reduced-motion:no-preference){
+    .post,.masthead{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+    .post.in,.masthead.in{opacity:1;transform:none}
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mark" viewBox="0 0 512 512">
+      <circle cx="256" cy="256" r="210" fill="none" stroke="#FFD500" stroke-width="44" stroke-dasharray="144 20.94" transform="rotate(-90 256 256)"/>
+      <circle cx="256" cy="256" r="152" fill="none" stroke="#2D7DFF" stroke-width="13"/>
+      <g fill="none" stroke="#F4F4F2" stroke-width="58" transform="translate(256 256) scale(0.76) translate(-256 -256)">
+        <path d="M196 172 V340"/>
+        <path d="M196 172 H268 a56 56 0 0 1 0 112 H196"/>
+        <path d="M240 282 L312 356"/>
+      </g>
+    </symbol>
+    <!-- progress ring: 3 stations lit, running head on track -->
+    <symbol id="markprog" viewBox="0 0 512 512">
+      <g transform="rotate(-90 256 256)">
+        <circle cx="256" cy="256" r="210" fill="none" stroke="#3a3411" stroke-width="44" stroke-dasharray="144 20.94"/>
+        <circle cx="256" cy="256" r="210" fill="none" stroke="#FFD500" stroke-width="44" stroke-dasharray="144 20.94 144 20.94 144 1000"/>
+      </g>
+      <circle cx="256" cy="256" r="152" fill="none" stroke="#152a4d" stroke-width="13"/>
+      <path d="M256 104 A152 152 0 0 1 393 190" fill="none" stroke="#2D7DFF" stroke-width="13"/>
+      <circle cx="393" cy="190" r="12" fill="#fff"/>
+      <g fill="none" stroke="#F4F4F2" stroke-width="58" transform="translate(256 256) scale(0.6) translate(-256 -256)">
+        <path d="M196 172 V340"/>
+        <path d="M196 172 H268 a56 56 0 0 1 0 112 H196"/>
+        <path d="M240 282 L312 356"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <header class="masthead reveal">
+    <div class="eyebrow">Instagram Launch · 10 Part Series</div>
+    <h1>Roxlogy 런칭 캠페인<br>10편 피드 시리즈</h1>
+    <p>하이록스를 데이터로 다시 보는 앱 <b>Roxlogy(록솔로지)</b>의 인스타그램 런칭용 10편입니다. 각 카드는 1:1 정사각(피드 규격) 디자인이고, 아래 카피는 그대로 게시글에 붙여 쓰도록 작성했습니다. 브랜드 가이드(옐로 8세그먼트 링·블루 트랙·인더스트리얼 R, 팔레트·톤) 기준.</p>
+    <div class="how">
+      <span><b>사용법 ·</b> 카드를 1:1로 캡처해 이미지로 업로드</span>
+      <span><b>카피 ·</b> 오른쪽 패널의 “캡션 복사”로 본문+해시태그 복사</span>
+      <span><b>순서 ·</b> 01 → 10 순차 게시(런칭 내러티브)</span>
+    </div>
+    <div class="palette">
+      <span class="sw"><i style="background:#FFD500"></i>Race Yellow · #FFD500</span>
+      <span class="sw"><i style="background:#2D7DFF"></i>Track Blue · #2D7DFF</span>
+      <span class="sw"><i style="background:#141414;border:1px solid #333"></i>Black · #141414</span>
+      <span class="sw"><i style="background:#F4F4F2"></i>Chalk · #F4F4F2</span>
+    </div>
+  </header>
+
+  <!-- 01 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 01</b> · 후크 / 브랜드 공개</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">01</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage center">
+          <div class="kicker">Introducing Roxlogy</div>
+          <svg class="mark hero-ring"><use href="#mark"/></svg>
+          <div class="wordbig">ROXLOGY</div>
+          <p class="head" style="font-size:5.4cqw">하이록스를 <span class="y">감</span>이 아니라 <span class="y">데이터</span>로.</p>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · 후크</div>
+      <h3>록솔로지, 곧 시작합니다</h3>
+      <div class="body">하이록스를 위한 훈련·기록·분석 앱, Roxlogy(록솔로지).
+
+러닝 8km와 8개 스테이션. 어디서 이기고 어디서 잃는지, 이제 기록이 말해줍니다. 감으로 훈련하던 시간을 데이터로 바꾸세요.
+
+한국어 우선. 웹·폰·워치. 곧 만나요.
+→ roxlogy.com</div>
+      <div class="tags">#Roxlogy #록솔로지 #HYROX #하이록스 #하이록스코리아 #기능성운동 #훈련기록 #스포츠데이터 #러닝 #크로스핏</div>
+      <div class="visnote"><b>비주얼 ·</b> 두 링 마크 + ROXLOGY 워드마크 중앙 배치, 블랙 그라운드. 첫 인상은 로고 하나로.</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <!-- 02 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 02</b> · 문제 제기</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">02</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage">
+          <div class="kicker">The Problem</div>
+          <p class="head">“오늘 좀 힘들었어”로는<br>다음이 <span class="y">빨라지지</span> 않는다.</p>
+          <div class="splits">
+            <div class="row"><span class="nm">RUN 3</span><span class="t">4:38</span></div>
+            <div class="row loss"><span class="nm">SLED PUSH</span><span class="t">2:41 <span class="tag-loss">+0:12 늦음</span></span></div>
+            <div class="row"><span class="nm">ROW 1000m</span><span class="t">3:52</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · 문제</div>
+      <h3>감은 흐리지만, 스플릿은 정확하다</h3>
+      <div class="body">레이스가 끝나면 “썰매에서 말렸다” 정도만 기억에 남습니다. 그런데 정확히 몇 초를, 어느 구간에서 잃었을까요?
+
+Roxlogy는 8개 스테이션과 러닝 구간의 스플릿을 하나하나 기록합니다. 흐릿한 감 대신, 어디를 고쳐야 하는지 숫자로 보여줍니다.
+
+측정하지 않으면, 나아지지 않습니다.</div>
+      <div class="tags">#하이록스훈련 #HYROXtraining #스플릿 #페이싱 #Roxlogy #록솔로지 #하이록스코리아 #러닝기록 #기록분석 #운동데이터</div>
+      <div class="visnote"><b>비주얼 ·</b> 스플릿 리스트, 손실 구간만 레드로 강조(+0:12). 데이터가 말하게.</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <!-- 03 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 03</b> · 로고 = 경기 도면</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">03</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage center">
+          <div class="kicker">The Mark</div>
+          <p class="head" style="font-size:6cqw">두 개의 링이 곧<br>당신의 <span class="y">레이스 도면</span>.</p>
+          <svg class="mark" style="width:34cqw;height:34cqw"><use href="#mark"/></svg>
+          <div class="legend">
+            <div><i></i><b>01</b> Ski</div><div><i></i><b>02</b> Sled Push</div>
+            <div><i></i><b>03</b> Sled Pull</div><div><i></i><b>04</b> Burpee</div>
+            <div><i></i><b>05</b> Row</div><div><i></i><b>06</b> Farmers</div>
+            <div><i></i><b>07</b> Lunge</div><div><i></i><b>08</b> Wall Balls</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · 브랜드</div>
+      <h3>바깥은 스테이션, 안쪽은 러닝</h3>
+      <div class="body">로고를 자세히 보세요. 바깥의 옐로 링은 정확히 8조각 — 하이록스의 8개 스테이션입니다. 안쪽의 블루 링은 절대 끊기지 않는 트랙 — 8km의 러닝이죠.
+
+선수(가운데 R)는 그 트랙 위를 달립니다. 로고가 곧 경기의 구조이자, 앱이 기록하는 방식입니다.</div>
+      <div class="tags">#Roxlogy #록솔로지 #브랜드 #로고 #HYROX #하이록스 #8스테이션 #러닝 #디자인 #스포츠브랜드</div>
+      <div class="visnote"><b>비주얼 ·</b> 두 링 + 8스테이션 레전드. 옐로 링은 항상 8조각, 블루는 끊지 않음(브랜드 규칙).</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <!-- 04 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 04</b> · 워치 시뮬 레코더</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">04</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage center">
+          <div class="kicker">Watch · Sim Recorder</div>
+          <p class="head" style="font-size:5.6cqw">스테이션을 끝낼 때마다<br><span class="y">링</span>이 하나씩 켜진다.</p>
+          <div class="watch"><svg class="mark"><use href="#markprog"/></svg></div>
+          <p class="sub">러닝 1km는 트랙 한 바퀴, 스테이션 완료는 옐로 점등. 트레드밀 위에서도 한눈에.</p>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · 워치</div>
+      <h3>손목에서 진행되는 레이스</h3>
+      <div class="body">가민과 Wear OS 워치에서, 하이록스 시뮬레이션을 그대로 기록합니다.
+
+러닝 1km를 돌 때마다 안쪽 트랙이 한 바퀴 채워지고, 스테이션을 끝낼 때마다 바깥 링이 하나씩 켜집니다. 화면을 오래 볼 수 없는 트레드밀 위에서도, 지금 어디쯤인지 한눈에 들어옵니다.</div>
+      <div class="tags">#워치앱 #가민 #WearOS #Garmin #Roxlogy #록솔로지 #HYROX #하이록스 #트레드밀 #러닝워치</div>
+      <div class="visnote"><b>비주얼 ·</b> 워치 목업 + 진행형 링(3스테이션 점등, 러닝 헤드 점). 두 링이 살아 움직이는 UI.</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <!-- 05 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 05</b> · 에르그 실시간 (차별점)</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">05</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage">
+          <div class="kicker">Live Erg · Concept2 PM5</div>
+          <p class="head">스키·로잉은<br><span class="b">실시간 raw</span>로.</p>
+          <svg viewBox="0 0 300 120" width="100%" style="max-width:78cqw" aria-hidden="true">
+            <defs><linearGradient id="pc" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#2D7DFF" stop-opacity=".35"/><stop offset="1" stop-color="#2D7DFF" stop-opacity="0"/>
+            </linearGradient></defs>
+            <g stroke="#2b2b2b" stroke-width="1"><line x1="0" y1="30" x2="300" y2="30"/><line x1="0" y1="60" x2="300" y2="60"/><line x1="0" y1="90" x2="300" y2="90"/></g>
+            <path d="M0 100 C40 96 60 40 95 44 S150 84 190 40 250 30 300 26 L300 120 L0 120 Z" fill="url(#pc)"/>
+            <path d="M0 100 C40 96 60 40 95 44 S150 84 190 40 250 30 300 26" fill="none" stroke="#2D7DFF" stroke-width="2.6"/>
+            <circle cx="300" cy="26" r="4.5" fill="#fff"/>
+          </svg>
+          <div class="statline"><span class="big">247</span><span class="unit">watts</span><span class="sec">· 2:04.3 /500m · 34 s/m</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · 에르그</div>
+      <h3>스키에르그·로잉을 그대로</h3>
+      <div class="body">SkiErg와 Rower의 Concept2 PM5에 직접 연결합니다. 와트, 스트로크 레이트, 500m 페이스를 실시간으로 읽고, 파워 커브까지 원본 그대로 남깁니다.
+
+요약된 숫자가 아니라, 그 구간에서 실제로 무슨 일이 있었는지 — 곡선이 보여줍니다. 하이록스 앱 중 흔치 않은 연동입니다.</div>
+      <div class="tags">#Concept2 #PM5 #SkiErg #Rowing #에르그 #로잉 #Roxlogy #록솔로지 #HYROX #파워데이터</div>
+      <div class="visnote"><b>비주얼 ·</b> 블루 파워 커브(면 채움) + 실시간 와트. 트랙 블루는 러닝/데이터 컬러.</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <!-- 06 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 06</b> · 목표 스플릿 & diff</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">06</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage">
+          <div class="kicker">Goal · Predict</div>
+          <p class="head">목표를 정하면,<br>매 구간 <span class="y">앞섰는지</span> 뒤처졌는지.</p>
+          <div class="diffs">
+            <div class="r"><span class="nm">Ski 1000m</span><span class="tg">목표 4:10</span><span class="badge ahead">−0:03</span></div>
+            <div class="r"><span class="nm">Sled Push</span><span class="tg">목표 2:30</span><span class="badge behind">+0:08</span></div>
+            <div class="r"><span class="nm">Row 1000m</span><span class="tg">목표 3:55</span><span class="badge ahead">−0:06</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · 목표</div>
+      <h3>리허설이 실전이 되도록</h3>
+      <div class="body">목표 완주 타임을 넣으면, 구간별 목표 스플릿을 계산해 줍니다. 그리고 실제 기록과 비교해 매 구간 앞섰는지(초록) 뒤처졌는지(빨강)를 바로 보여주죠.
+
+막연한 “서브 90분”이 아니라, 스키에서 3초 벌고 썰매에서 8초 잃는 구체적인 지도. 훈련이 곧 레이스 리허설이 됩니다.</div>
+      <div class="tags">#목표스플릿 #페이싱전략 #predict #Roxlogy #록솔로지 #HYROX #하이록스 #서브90 #레이스전략 #기록단축</div>
+      <div class="visnote"><b>비주얼 ·</b> 구간별 목표 대비 diff 배지(−초록/+빨강). 세만틱 컬러는 액센트와 분리.</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <!-- 07 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 07</b> · 훈련 × 레이스 상관</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">07</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage">
+          <div class="kicker">Analysis</div>
+          <p class="head">훈련이<br><span class="y">결과</span>로 이어졌는가.</p>
+          <svg viewBox="0 0 300 130" width="100%" style="max-width:80cqw" aria-hidden="true">
+            <g stroke="#2b2b2b" stroke-width="1"><line x1="30" y1="10" x2="30" y2="115"/><line x1="30" y1="115" x2="295" y2="115"/></g>
+            <line x1="40" y1="104" x2="285" y2="30" stroke="#2D7DFF" stroke-width="2.4" stroke-dasharray="5 5" opacity=".8"/>
+            <g fill="#F4F4F2">
+              <circle cx="60" cy="98" r="4"/><circle cx="100" cy="88" r="4"/><circle cx="140" cy="74" r="4"/>
+              <circle cx="180" cy="66" r="4"/><circle cx="220" cy="48" r="4"/><circle cx="262" cy="38" r="4" fill="#FFD500"/>
+            </g>
+            <text x="36" y="18" fill="#9a9a96" font-size="9" font-family="monospace">레이스 기록</text>
+            <text x="210" y="126" fill="#9a9a96" font-size="9" font-family="monospace">주간 훈련량</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · 분석</div>
+      <h3>무엇이 통했는지, 데이터로</h3>
+      <div class="body">열심히 한 것과 빨라진 것은 다릅니다. Roxlogy는 당신의 훈련 시계열과 레이스·리허설 기록의 관계를 분석해, 무엇이 실제로 기록으로 이어졌는지 보여줍니다.
+
+“이만큼 하면 이 정도 나온다”는 감을, 당신만의 데이터로 바꿉니다.</div>
+      <div class="tags">#훈련분석 #데이터분석 #상관분석 #Roxlogy #록솔로지 #HYROX #하이록스 #퍼포먼스 #스포츠사이언스 #기록관리</div>
+      <div class="visnote"><b>비주얼 ·</b> 훈련량 vs 레이스기록 산점도 + 추세선(블루 점선), 최근점 옐로 강조.</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <!-- 08 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 08</b> · 백분위 & 리더보드</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">08</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage">
+          <div class="kicker">Where You Stand</div>
+          <p class="head">지금 나는<br>상위 <span class="y">몇 %</span>인가.</p>
+          <div style="width:100%">
+            <div class="pctbig">TOP 17%</div>
+            <div class="pctbar"><span class="mk"></span></div>
+            <div class="pctends"><span>◂ Faster</span><span>Slower ▸</span></div>
+          </div>
+          <p class="sub">공개 분포 기반 백분위 · 스테이션별 리더보드. 디비전·성별로 내 위치를.</p>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · 순위</div>
+      <h3>내 위치를 숫자로</h3>
+      <div class="body">기록은 혼자 보면 그냥 숫자입니다. Roxlogy는 공개 분포를 기준으로 당신이 상위 몇 %인지, 스테이션별로는 어디가 강점이고 약점인지 보여줍니다.
+
+같은 디비전·성별과 비교한 리더보드에서, 다음에 넘어설 목표가 분명해집니다.</div>
+      <div class="tags">#백분위 #리더보드 #랭킹 #Roxlogy #록솔로지 #HYROX #하이록스 #하이록스코리아 #기록비교 #퍼센타일</div>
+      <div class="visnote"><b>비주얼 ·</b> Faster→Slower 그라데이션 바 + 마커, 큰 “TOP 17%”. 옐로는 액션/성취에만.</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <!-- 09 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 09</b> · 프로그램 · 커뮤니티 · WOD</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">09</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage">
+          <div class="kicker">Routine</div>
+          <p class="head">오늘의 <span class="y">WOD</span>부터<br>프로그램·커뮤니티까지.</p>
+          <div class="wod">
+            <h4>오늘의 WOD <span>3/4</span></h4>
+            <div class="it done"><span class="ck"></span>SkiErg 1000m</div>
+            <div class="it done"><span class="ck"></span>Sled Push 4×12.5m</div>
+            <div class="it done"><span class="ck"></span>Wall Balls 100</div>
+            <div class="it"><span class="ck"></span>Run 2km 마무리</div>
+            <div class="bar"><i></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · 루틴</div>
+      <h3>훈련은 혼자가 아니다</h3>
+      <div class="body">프로그램을 짜고, 오늘 할 운동(WOD)을 체크하고, 수행 무게까지 기록하세요. 진행률이 채워지는 걸 보는 것만으로 하루가 완성됩니다.
+
+같은 목표를 향해 달리는 사람들의 피드와 리더보드에서, 꾸준함을 이어갈 이유를 찾으세요.</div>
+      <div class="tags">#WOD #오늘의운동 #훈련프로그램 #커뮤니티 #Roxlogy #록솔로지 #HYROX #하이록스 #운동루틴 #운동기록</div>
+      <div class="visnote"><b>비주얼 ·</b> 오늘의 WOD 체크리스트 + 진행바(3/4). 완료 체크는 옐로.</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <!-- 10 ============================================================= -->
+  <section class="post reveal">
+    <div>
+      <div class="slotlabel"><b>POST 10</b> · 런칭 / CTA</div>
+      <div class="card">
+        <div class="grid-bg"></div>
+        <div class="chrome-idx">10</div>
+        <svg class="mark chrome-mark"><use href="#mark"/></svg>
+        <div class="chrome-wm">Roxlogy</div>
+        <div class="chrome-url">roxlogy.com</div>
+        <div class="stage center">
+          <div class="kicker">Start Now</div>
+          <svg class="mark" style="width:22cqw;height:22cqw"><use href="#mark"/></svg>
+          <p class="head" style="font-size:7.4cqw">지금, <span class="y">데이터</span>로<br>달릴 시간.</p>
+          <div class="pill">roxlogy.com</div>
+          <div class="surfaces">웹 · 폰 · 워치 &nbsp;|&nbsp; 한국어 우선</div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">
+      <div class="role">Caption · CTA</div>
+      <h3>지금 시작하세요</h3>
+      <div class="body">웹에서 바로, 폰과 워치로 이어서. Roxlogy는 당신의 하이록스를 기록하고, 목표와 비교하고, 어디까지 왔는지 보여줍니다.
+
+감으로 달리던 훈련을, 오늘부터 데이터로.
+→ roxlogy.com
+
+프로필 링크에서 시작할 수 있어요. 🟡🔵</div>
+      <div class="tags">#Roxlogy #록솔로지 #HYROX #하이록스 #하이록스코리아 #기능성운동 #러닝 #크로스핏 #훈련앱 #출시</div>
+      <div class="visnote"><b>비주얼 ·</b> 마크 + 워드마크 + roxlogy.com 옐로 CTA 필. 마지막은 행동 유도 하나로.</div>
+      <button class="copybtn" type="button">캡션 복사</button>
+    </div>
+  </section>
+
+  <footer>
+    <span><b>Roxlogy</b> · 인스타 런칭 10편</span>
+    <span>규격 1080×1080(1:1)</span>
+    <span>팔레트 Yellow #FFD500 · Blue #2D7DFF · Black #141414 · Chalk #F4F4F2</span>
+    <span>톤: 정밀·테크·담백 — 데이터가 말하게</span>
+  </footer>
+</div>
+
+<script>
+  // caption copy
+  document.querySelectorAll('.copybtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var cap = btn.closest('.cap');
+      var body = cap.querySelector('.body').innerText.trim();
+      var tags = cap.querySelector('.tags').innerText.trim();
+      var text = body + "\n\n" + tags;
+      navigator.clipboard.writeText(text).then(function(){
+        var old = btn.textContent; btn.textContent = '복사됨 ✓';
+        setTimeout(function(){ btn.textContent = old; }, 1600);
+      }).catch(function(){ btn.textContent = '복사 실패 — 길게 눌러 선택'; });
+    });
+  });
+  // scroll reveal
+  if (matchMedia('(prefers-reduced-motion: no-preference)').matches){
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }});
+    }, {threshold:.12});
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
+  }
+</script>
