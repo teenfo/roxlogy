@@ -40,7 +40,7 @@ export default async function AppLayout({
 
   return (
     <>
-      <header className="border-b border-surface">
+      <header className="sticky top-0 z-40 border-b border-surface bg-background">
         <nav className="mx-auto flex max-w-4xl items-center gap-6 px-6 py-4">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} />
