@@ -42,9 +42,10 @@
 - `follows` **AFTER INSERT** 트리거 → `pg_net`으로 `push-send` 호출(또는 Supabase Database Webhook).
 - 대상 = `followee_id`, payload = 팔로워 `display_name`, `url=/u/<follower_id>`, `type_key='new_follower'`.
 
-### ② 오늘의 WOD 리마인더 (스케줄 기반)
-- `profiles`(또는 `notification_prefs`)에 **`timezone`, `wod_reminder_time`** 추가.
-- **pg_cron** 매시 정각 실행 → 각 사용자 로컬시각이 리마인더 시각과 일치하고, 활성 프로그램의 **오늘 워크아웃이 있으며(휴식일 아님)**, 오늘 미발송인 사용자 선별 → `push-send`(`type_key='wod_reminder'`, `url=/schedule`).
+### ② 오늘의 WOD 리마인더 (스케줄 기반, **시각은 사용자 입력**)
+- `profiles`(또는 `notification_prefs`)에 **`timezone`, `wod_reminder_time`(time, nullable)** 추가.
+- **사용자가 설정에서 리마인더 시각을 직접 입력**(시:분 선택). **미설정(null) = 리마인더 없음**(옵트인). 타임존은 브라우저에서 자동 감지(`Intl…timeZone`)해 저장하되 사용자가 수정 가능.
+- **분(minute) 단위 정확도**를 위해 pg_cron을 **매 5분(또는 매분)** 실행 → 각 사용자 로컬시각이 `wod_reminder_time`에 도달하고, 활성 프로그램의 **오늘 워크아웃이 있으며(휴식일 아님)**, 오늘 미발송인 사용자 선별 → `push-send`(`type_key='wod_reminder'`, `url=/schedule`).
 - "오늘의 WOD" 판정은 웹 대시보드/`schedule` 로직 재사용(같은 enrollment·program_days 계산).
 
 > 확장 예시(추후): 레이스 D-day(cron), 새 피드(follows 팔로잉 기반 이벤트), 리더보드 변동(cron) — **각각 프로듀서 1개 + `notification_types` 행 1개**만 추가, 발송기·구독·클라이언트는 그대로.
@@ -73,8 +74,8 @@
 ## 롤아웃 단계
 1. **인프라 코어**: 마이그레이션(4테이블+RLS+시드), Edge `push-send`(web-push+FCM), VAPID 생성·시크릿 설정, **수동 테스트 발송** 경로. + 웹 구독/네이티브 토큰 등록.
 2. **트리거 ①**: `follows` AFTER INSERT → `push-send`(new_follower). pg_net 활성.
-3. **트리거 ②**: `profiles`에 timezone/reminder_time, pg_cron 스캔 → `push-send`(wod_reminder).
-4. **설정 UI**: 종류별 토글(`notification_prefs`) + 문서화.
+3. **트리거 ②**: `profiles`에 timezone/`wod_reminder_time`(사용자 입력), pg_cron(5분 간격) 스캔 → `push-send`(wod_reminder).
+4. **설정 UI**: 종류별 토글(`notification_prefs`) + **WOD 리마인더 시각 입력(시:분, 미설정=끔)** + 타임존 표시/수정 + 문서화.
 
 ## 사용자(콘솔) 선행 작업 — 제가 만들 수 없는 것
 - **Firebase 프로젝트**: 기존 GCP 프로젝트(`gen-lang-client-0855612550`)에 Firebase 추가 또는 신규 → Android 앱 `app.roxlogy.android` 등록 → `google-services.json` 다운로드 → **서비스계정 키(HTTP v1)** 발급.
@@ -89,6 +90,6 @@
 
 ## 리스크
 - iOS PWA 푸시는 설치형 한정 → UI 안내로 완화.
-- 타임존/리마인더 데이터 신규 → 기본값(예: Asia/Seoul, 07:00)·온보딩 안내.
+- 타임존/리마인더 데이터 신규 → **리마인더 시각은 사용자 입력(미설정=발송 안 함, 옵트인)**, 타임존은 브라우저 자동 감지 + 수정 가능. 서머타임/타임존 변경은 저장된 IANA 타임존 기준으로 매 스캔 재계산.
 - FCM/web-push 시크릿 관리 → Edge secrets, 절대 커밋 금지.
 - cron 중복 발송 → `notifications`에 당일 발송기록으로 idempotency 가드.
