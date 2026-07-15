@@ -13,6 +13,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +39,8 @@ fun WebAppScreen(onLoggedOut: () -> Unit) {
     BackHandler(enabled = canGoBack) { webView?.goBack() }
 
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        // 상태바/네비바/키보드 인셋만큼 여백 — 웹 콘텐츠가 상단 시간표시줄과 겹치지 않게.
+        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
         factory = { ctx ->
             WebView(ctx).apply {
                 layoutParams = ViewGroup.LayoutParams(
