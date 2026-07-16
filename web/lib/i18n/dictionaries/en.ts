@@ -685,6 +685,22 @@ const en = {
   "meta.download": "Get the app — Roxlogy",
   "meta.exercises": "Exercise database — Roxlogy",
   "meta.profile": "Profile settings — Roxlogy",
+  "notif.title": "Notifications",
+  "notif.desc": "Push alerts on this device.",
+  "notif.enablePush": "Enable push on this device",
+  "notif.enabled": "Push is on for this device",
+  "notif.disable": "Turn off",
+  "notif.test": "Send a test",
+  "notif.testSent": "Sent — check your device",
+  "notif.unsupported": "This browser doesn't support push notifications.",
+  "notif.denied": "Notifications are blocked in your browser settings.",
+  "notif.iosHint": "On iPhone, add Roxlogy to your Home Screen first (iOS 16.4+).",
+  "notif.types": "What to notify",
+  "notif.type.wod_reminder": "Today's WOD reminder",
+  "notif.type.new_follower": "New follower",
+  "notif.wodTime": "WOD reminder time",
+  "notif.wodTimeHint": "Leave empty to turn the reminder off.",
+  "notif.err": "Couldn't update notifications.",
 } as const;
 
 export type DictKey = keyof typeof en;

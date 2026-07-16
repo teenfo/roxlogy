@@ -673,6 +673,22 @@ const es: Record<DictKey, string> = {
   "meta.download": "Descargar la app — Roxlogy",
   "meta.exercises": "Base de ejercicios — Roxlogy",
   "meta.profile": "Ajustes de perfil — Roxlogy",
+  "notif.title": "Notificaciones",
+  "notif.desc": "Alertas push en este dispositivo.",
+  "notif.enablePush": "Activar push en este dispositivo",
+  "notif.enabled": "Push activado en este dispositivo",
+  "notif.disable": "Desactivar",
+  "notif.test": "Enviar una prueba",
+  "notif.testSent": "Enviado — revisa tu dispositivo",
+  "notif.unsupported": "Este navegador no admite notificaciones push.",
+  "notif.denied": "Las notificaciones están bloqueadas en el navegador.",
+  "notif.iosHint": "En iPhone, añade Roxlogy a la pantalla de inicio primero (iOS 16.4+).",
+  "notif.types": "Qué notificar",
+  "notif.type.wod_reminder": "Recordatorio del WOD de hoy",
+  "notif.type.new_follower": "Nuevo seguidor",
+  "notif.wodTime": "Hora del recordatorio del WOD",
+  "notif.wodTimeHint": "Déjalo vacío para desactivar el recordatorio.",
+  "notif.err": "No se pudo actualizar las notificaciones.",
 };
 
 export default es;

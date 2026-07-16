@@ -665,6 +665,22 @@ const ko: Record<DictKey, string> = {
   "meta.download": "앱 다운로드 — Roxlogy",
   "meta.exercises": "운동 DB — Roxlogy",
   "meta.profile": "프로필 설정 — Roxlogy",
+  "notif.title": "알림",
+  "notif.desc": "이 기기로 받는 푸시 알림.",
+  "notif.enablePush": "이 기기에서 푸시 켜기",
+  "notif.enabled": "이 기기 푸시가 켜져 있습니다",
+  "notif.disable": "끄기",
+  "notif.test": "테스트 알림 보내기",
+  "notif.testSent": "발송됨 — 기기를 확인하세요",
+  "notif.unsupported": "이 브라우저는 푸시 알림을 지원하지 않습니다.",
+  "notif.denied": "브라우저 설정에서 알림이 차단되어 있습니다.",
+  "notif.iosHint": "아이폰은 먼저 홈 화면에 Roxlogy를 추가하세요(iOS 16.4+).",
+  "notif.types": "받을 알림",
+  "notif.type.wod_reminder": "오늘의 WOD 리마인더",
+  "notif.type.new_follower": "새 팔로워",
+  "notif.wodTime": "WOD 리마인더 시각",
+  "notif.wodTimeHint": "비우면 리마인더를 보내지 않습니다.",
+  "notif.err": "알림 설정을 변경하지 못했습니다.",
 };
 
 export default ko;
