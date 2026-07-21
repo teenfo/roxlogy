@@ -28,8 +28,8 @@ export function NotificationSettings() {
   const [wodTime, setWodTime] = useState("");
 
   useEffect(() => {
-    setSupported(pushSupported());
     (async () => {
+      setSupported(pushSupported());
       const sub = await currentSubscription();
       setSubscribed(!!sub);
       const supabase = createClient();
