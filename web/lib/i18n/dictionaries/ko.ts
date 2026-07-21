@@ -681,6 +681,10 @@ const ko: Record<DictKey, string> = {
   "notif.wodTime": "WOD 리마인더 시각",
   "notif.wodTimeHint": "비우면 리마인더를 보내지 않습니다.",
   "notif.err": "알림 설정을 변경하지 못했습니다.",
+  "notif.native.enable": "앱 알림 켜기",
+  "notif.native.enabled": "앱 알림 켜짐",
+  "notif.native.requested": "권한을 요청했습니다. 허용하면 이 기기로 알림이 옵니다.",
+  "notif.native.preparing": "앱 알림은 곧 지원됩니다 (설정 준비 중).",
 };
 
 export default ko;

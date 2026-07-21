@@ -2,4 +2,5 @@
 <resources>
     <color name="rox_background">#141414</color>
     <color name="ic_launcher_background">#141414</color>
+    <color name="rox_notif_accent">#FFD500</color>
 </resources>

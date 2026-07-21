@@ -1,8 +1,12 @@
 package app.roxlogy.android
 
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,6 +40,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.webkit.CookieManager
+import app.roxlogy.android.push.PushController
+import app.roxlogy.android.push.PushRegistration
+import app.roxlogy.android.push.RoxMessagingService
 import app.roxlogy.android.sync.AuthClient
 import app.roxlogy.android.sync.GoalSync
 import app.roxlogy.android.sync.GoogleSignInHelper
@@ -60,22 +67,58 @@ import kotlinx.coroutines.launch
  * 로그인 후 오늘의 WOD 기록 + 최신 목표를 워치로 전달. 워치 시뮬 세션은 자동 업로드.
  */
 class MainActivity : ComponentActivity() {
+    private var startPath by mutableStateOf("/dashboard")
+    private lateinit var notifPermLauncher: ActivityResultLauncher<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         TokenStore.init(applicationContext) // 저장된 세션 복원
-        setContent { RoxlogyTheme { PhoneApp() } }
+        RoxMessagingService.ensureChannel(this)
+
+        // 알림 권한 요청 결과 — 허용 시 FCM 토큰 등록(허용 안 해도 no-op)
+        notifPermLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { PushRegistration.register(applicationContext) }
+
+        // 웹 브리지(RoxNative.enable)가 부르는 "앱 알림 켜기" 트리거
+        PushController.requestEnable = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                notifPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                PushRegistration.register(applicationContext)
+            }
+        }
+
+        readDeepLink(intent)
+        setContent { RoxlogyTheme { PhoneApp(startPath) } }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        readDeepLink(intent)
+    }
+
+    private fun readDeepLink(intent: Intent?) {
+        intent?.getStringExtra(RoxMessagingService.EXTRA_URL)?.let { startPath = it }
     }
 }
 
 @Composable
-fun PhoneApp() {
+fun PhoneApp(startPath: String = "/dashboard") {
     val context = LocalContext.current
     val auth = remember { AuthClient() }
     val google = remember { GoogleSignInHelper(context) }
     var loggedIn by remember { mutableStateOf(TokenStore.isLoggedIn()) }
 
     LaunchedEffect(loggedIn) {
-        if (loggedIn) GoalSync().fetchAndPush(context) // 최신 목표를 워치로 밀어줌
+        if (loggedIn) {
+            GoalSync().fetchAndPush(context) // 최신 목표를 워치로 밀어줌
+            // 이미 알림 권한이 있으면 FCM 토큰을 조용히 (재)등록 — 서버 발송 대상 최신화.
+            if (PushRegistration.isConfigured(context) && PushRegistration.notificationsEnabled(context)) {
+                PushRegistration.register(context)
+            }
+        }
     }
 
     Surface(
@@ -91,6 +134,7 @@ fun PhoneApp() {
                     CookieManager.getInstance().removeAllCookies(null)
                     loggedIn = false
                 },
+                startPath = startPath,
             )
         } else {
             AuthScreen(auth = auth, google = google, onAuthed = { loggedIn = true })

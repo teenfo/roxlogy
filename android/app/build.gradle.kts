@@ -5,6 +5,14 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+// FCM(google-services.json)이 있을 때만 플러그인 적용 — 파일이 없어도 빌드는 그린.
+// 파일을 app/google-services.json 에 두면 Firebase 리소스가 생성돼 푸시가 활성화된다.
+// (google-services.json 은 비밀 아님 — API 키는 패키지명·SHA-1로 제한되고 APK에 어차피 포함됨.)
+val hasGoogleServices = file("google-services.json").exists()
+if (hasGoogleServices) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "app.roxlogy.android"
     compileSdk = 35
@@ -88,4 +96,6 @@ dependencies {
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.google.id)
     implementation(libs.androidx.security.crypto)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 }

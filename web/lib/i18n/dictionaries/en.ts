@@ -701,6 +701,10 @@ const en = {
   "notif.wodTime": "WOD reminder time",
   "notif.wodTimeHint": "Leave empty to turn the reminder off.",
   "notif.err": "Couldn't update notifications.",
+  "notif.native.enable": "Enable app notifications",
+  "notif.native.enabled": "App notifications are on",
+  "notif.native.requested": "Requested — allow it and alerts will arrive on this device.",
+  "notif.native.preparing": "App notifications are coming soon (setup in progress).",
 } as const;
 
 export type DictKey = keyof typeof en;

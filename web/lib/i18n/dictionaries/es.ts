@@ -689,6 +689,10 @@ const es: Record<DictKey, string> = {
   "notif.wodTime": "Hora del recordatorio del WOD",
   "notif.wodTimeHint": "Déjalo vacío para desactivar el recordatorio.",
   "notif.err": "No se pudo actualizar las notificaciones.",
+  "notif.native.enable": "Activar notificaciones de la app",
+  "notif.native.enabled": "Notificaciones de la app activadas",
+  "notif.native.requested": "Solicitado: permítelo y las alertas llegarán a este dispositivo.",
+  "notif.native.preparing": "Las notificaciones de la app llegarán pronto (configuración en curso).",
 };
 
 export default es;

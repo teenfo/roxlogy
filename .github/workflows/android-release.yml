@@ -47,6 +47,22 @@ jobs:
             echo "::warning::ROXLOGY_KEYSTORE_BASE64 미설정 — release APK가 debug 서명으로 폴백됩니다(Google 로그인 실패). docs/GOOGLE_SIGNIN_SETUP.md 참고."
           fi
 
+      - name: Write google-services.json (if configured)
+        # FCM(푸시) 활성화용. base64 시크릿이 있으면 app/google-services.json 으로 복원 →
+        # 조건부 google-services 플러그인이 적용돼 릴리스 APK에 FCM이 포함된다.
+        # 미설정 시 스킵(앱은 정상 빌드, 앱 알림은 "준비 중"으로 표시). 파일을 리포에 커밋해도 동작.
+        env:
+          GS_B64: ${{ secrets.ROXLOGY_GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GS_B64" ]; then
+            echo "$GS_B64" | base64 -d > app/google-services.json
+            echo "google-services.json written ($(wc -c < app/google-services.json) bytes) — FCM 활성화"
+          elif [ -f app/google-services.json ]; then
+            echo "google-services.json 커밋본 사용 — FCM 활성화"
+          else
+            echo "::warning::google-services.json 미설정 — 앱 푸시 없이 빌드됩니다. docs/FCM_SETUP.md 참고."
+          fi
+
       - name: Build release APKs
         # 고정 keystore가 있으면 그 키로 서명(:app·:wear 모두). ROXLOGY_KEYSTORE_FILE은 위 스텝이 설정.
         # ROXLOGY_GOOGLE_WEB_CLIENT_ID는 미설정 시 소스 기본값(공개 웹 클라이언트 ID)이 쓰인다.

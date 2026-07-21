@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 푸시 알림 표시 (Android 13+ 런타임 권한) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- WebView CSV 등 다운로드(DownloadManager) — Android 9 이하에서만 필요 -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -24,6 +26,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- FCM 수신 서비스 (google-services.json 있을 때만 실제 동작) -->
+        <service
+            android:name=".push.RoxMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <!-- 기본 알림 채널·아이콘 -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="rox_push" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/rox_notif_accent" />
 
         <!-- 워치 → 폰 세션 수신 (Data Layer) -->
         <service

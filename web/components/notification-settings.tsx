@@ -14,6 +14,20 @@ import {
 const TYPES = ["wod_reminder", "new_follower"] as const;
 type TypeKey = (typeof TYPES)[number];
 
+// 안드로이드 앱(WebView)이 주입하는 네이티브 FCM 브리지. Web Push 미지원 환경의 대체 경로.
+type RoxNative = {
+  isAvailable?: () => boolean;
+  isConfigured?: () => boolean;
+  hasPermission?: () => boolean;
+  enable?: () => void;
+  disable?: () => void;
+};
+function roxNative(): RoxNative | null {
+  if (typeof window === "undefined") return null;
+  const rn = (window as unknown as { RoxNative?: RoxNative }).RoxNative;
+  return rn && rn.isAvailable?.() ? rn : null;
+}
+
 export function NotificationSettings() {
   const { t } = useI18n();
   const [supported, setSupported] = useState(true);
@@ -26,10 +40,20 @@ export function NotificationSettings() {
     new_follower: true,
   });
   const [wodTime, setWodTime] = useState("");
+  // 네이티브(앱) 푸시 상태
+  const [native, setNative] = useState(false);
+  const [nativeConfigured, setNativeConfigured] = useState(false);
+  const [nativeOn, setNativeOn] = useState(false);
 
   useEffect(() => {
     (async () => {
       setSupported(pushSupported());
+      const rn = roxNative();
+      if (rn) {
+        setNative(true);
+        setNativeConfigured(!!rn.isConfigured?.());
+        setNativeOn(!!rn.hasPermission?.());
+      }
       const sub = await currentSubscription();
       setSubscribed(!!sub);
       const supabase = createClient();
@@ -90,6 +114,30 @@ export function NotificationSettings() {
     setNote(ok ? t("notif.testSent") : t("notif.err"));
   }
 
+  function nativeEnable() {
+    const rn = roxNative();
+    if (!rn) return;
+    rn.enable?.();
+    setNote(t("notif.native.requested"));
+    // 권한 다이얼로그는 비동기 — 잠시 폴링해 상태 반영.
+    let n = 0;
+    const iv = setInterval(() => {
+      n += 1;
+      if (rn.hasPermission?.()) {
+        setNativeOn(true);
+        setNote(null);
+        clearInterval(iv);
+      } else if (n > 12) {
+        clearInterval(iv);
+      }
+    }, 800);
+  }
+
+  function nativeDisable() {
+    roxNative()?.disable?.();
+    setNativeOn(false);
+  }
+
   async function setPref(key: TypeKey, enabled: boolean) {
     setPrefs((p) => ({ ...p, [key]: enabled }));
     const supabase = createClient();
@@ -122,38 +170,59 @@ export function NotificationSettings() {
       <h2 className="text-lg font-bold">{t("notif.title")}</h2>
       <p className="mt-1 text-sm text-muted">{t("notif.desc")}</p>
 
-      {!supported ? (
-        <p className="mt-3 rounded-md bg-surface px-4 py-3 text-sm text-muted">
-          {t("notif.unsupported")}
-          <span className="mt-1 block text-xs">{t("notif.iosHint")}</span>
-        </p>
-      ) : (
+      {supported || native ? (
         <div className="mt-3 grid gap-3">
-          <div className="flex items-center justify-between gap-4 rounded-md bg-surface px-4 py-3 text-sm">
-            <span>{subscribed ? t("notif.enabled") : t("notif.enablePush")}</span>
-            <button
-              type="button"
-              onClick={toggleSubscribe}
-              disabled={busy}
-              className={
-                subscribed
-                  ? "rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-40"
-                  : "rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
-              }
-            >
-              {subscribed ? t("notif.disable") : t("notif.enablePush")}
-            </button>
-          </div>
+          {native ? (
+            // 앱(WebView) — 네이티브 FCM. Firebase 설정 전이면 "준비 중" 안내.
+            !nativeConfigured ? (
+              <p className="rounded-md bg-surface px-4 py-3 text-sm text-muted">
+                {t("notif.native.preparing")}
+              </p>
+            ) : (
+              <div className="flex items-center justify-between gap-4 rounded-md bg-surface px-4 py-3 text-sm">
+                <span>{nativeOn ? t("notif.native.enabled") : t("notif.native.enable")}</span>
+                <button
+                  type="button"
+                  onClick={nativeOn ? nativeDisable : nativeEnable}
+                  className={
+                    nativeOn
+                      ? "rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:text-foreground"
+                      : "rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
+                  }
+                >
+                  {nativeOn ? t("notif.disable") : t("notif.native.enable")}
+                </button>
+              </div>
+            )
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-4 rounded-md bg-surface px-4 py-3 text-sm">
+                <span>{subscribed ? t("notif.enabled") : t("notif.enablePush")}</span>
+                <button
+                  type="button"
+                  onClick={toggleSubscribe}
+                  disabled={busy}
+                  className={
+                    subscribed
+                      ? "rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-40"
+                      : "rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
+                  }
+                >
+                  {subscribed ? t("notif.disable") : t("notif.enablePush")}
+                </button>
+              </div>
 
-          {subscribed && (
-            <button
-              type="button"
-              onClick={test}
-              disabled={busy}
-              className="justify-self-start rounded-md border border-muted/30 px-3 py-1.5 text-xs text-foreground hover:border-accent disabled:opacity-40"
-            >
-              {t("notif.test")}
-            </button>
+              {subscribed && (
+                <button
+                  type="button"
+                  onClick={test}
+                  disabled={busy}
+                  className="justify-self-start rounded-md border border-muted/30 px-3 py-1.5 text-xs text-foreground hover:border-accent disabled:opacity-40"
+                >
+                  {t("notif.test")}
+                </button>
+              )}
+            </>
           )}
 
           {/* 종류별 선호 */}
@@ -193,6 +262,11 @@ export function NotificationSettings() {
           {err && <p className="text-sm text-red-400">{err}</p>}
           {note && <p className="text-sm text-track">{note}</p>}
         </div>
+      ) : (
+        <p className="mt-3 rounded-md bg-surface px-4 py-3 text-sm text-muted">
+          {t("notif.unsupported")}
+          <span className="mt-1 block text-xs">{t("notif.iosHint")}</span>
+        </p>
       )}
     </section>
   );

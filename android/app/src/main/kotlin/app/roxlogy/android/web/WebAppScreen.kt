@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import app.roxlogy.android.push.RoxNativeBridge
 
 /**
  * 웹앱(roxlogy.com)을 임베드하는 메인 서피스.
@@ -29,9 +30,12 @@ import androidx.compose.ui.viewinterop.AndroidView
  * - 웹 도메인 내는 앱 내 유지, 외부 링크는 시스템 브라우저.
  * - CSV 등 다운로드는 DownloadManager로.
  * - 웹에서 로그아웃(→ `/login` 이동) 감지 시 [onLoggedOut] 호출.
+ * - `RoxNative` JS 브리지로 네이티브 FCM 알림 제어(WebView는 Web Push 미지원).
+ *
+ * @param startPath 최초 진입 경로(알림 탭 딥링크 등). 기본 /dashboard.
  */
 @Composable
-fun WebAppScreen(onLoggedOut: () -> Unit) {
+fun WebAppScreen(onLoggedOut: () -> Unit, startPath: String = "/dashboard") {
     val context = LocalContext.current
     var webView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
@@ -57,6 +61,8 @@ fun WebAppScreen(onLoggedOut: () -> Unit) {
                 }
                 CookieManager.getInstance().setAcceptCookie(true)
                 CookieManager.getInstance().setAcceptThirdPartyCookies(this, true) // this = WebView
+                // 네이티브 FCM 제어용 브리지(roxlogy.com 페이지만 로드됨).
+                addJavascriptInterface(RoxNativeBridge(ctx.applicationContext), "RoxNative")
 
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(
@@ -100,7 +106,7 @@ fun WebAppScreen(onLoggedOut: () -> Unit) {
                 }
 
                 webView = this
-                loadUrl(WebConfig.startUrl())
+                loadUrl(WebConfig.startUrl(startPath))
             }
         },
     )
