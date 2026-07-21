@@ -33,10 +33,21 @@ async function fcmAccessToken(saJson: string): Promise<string | null> {
   }
 }
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 const json = (o: unknown, status = 200) =>
-  new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
+  new Response(JSON.stringify(o), {
+    status,
+    headers: { "Content-Type": "application/json", ...CORS },
+  });
 
 Deno.serve(async (req) => {
+  // CORS 프리플라이트 — 브라우저가 POST 전에 보냄
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method" }, 405);
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
