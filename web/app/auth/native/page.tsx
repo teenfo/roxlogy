@@ -20,7 +20,9 @@ export default function NativeAuthPage() {
     const access_token = params.get("access_token");
     const refresh_token = params.get("refresh_token");
     const nextRaw = params.get("next") || "/dashboard";
-    const next = nextRaw.startsWith("/") ? nextRaw : "/dashboard";
+    // 앱 내 상대경로만 허용 — "//evil.com"(프로토콜 상대)·백슬래시 우회로 오픈 리다이렉트 방지
+    const next =
+      /^\/(?!\/)/.test(nextRaw) && !nextRaw.includes("\\") ? nextRaw : "/dashboard";
 
     // 토큰 노출 최소화: 해시 즉시 제거
     history.replaceState(null, "", window.location.pathname);

@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import app.roxlogy.android.MainActivity
 import app.roxlogy.android.R
+import app.roxlogy.android.sync.TokenStore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -20,10 +21,16 @@ import com.google.firebase.messaging.RemoteMessage
 class RoxMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
-        PushRegistration.uploadToken(token)
+        // FCM이 프로세스를 콜드스타트할 수 있음 — MainActivity를 안 거쳤으면 TokenStore가
+        // 비어 있어 새 토큰이 서버에 못 올라간다. 여기서 영속 저장소를 복원.
+        TokenStore.init(applicationContext)
+        PushRegistration.uploadToken(applicationContext, token)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
+        TokenStore.init(applicationContext)
+        // 로그아웃 상태면 표시하지 않음 — 서버 행 삭제가 누락된 경우의 마지막 방어선
+        if (TokenStore.accessToken() == null) return
         val data = message.data
         val title = message.notification?.title ?: data["title"] ?: "Roxlogy"
         val body = message.notification?.body ?: data["body"] ?: ""
@@ -61,7 +68,9 @@ class RoxMessagingService : FirebaseMessagingService() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             val notif = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                // 상태바 아이콘은 흰색+알파 실루엣이어야 함 — 런처(적응형) 아이콘을 쓰면
+                // 기기에 따라 단색 사각형으로 뭉개진다. 브랜드 마크에서 생성(ic_stat_rox).
+                .setSmallIcon(R.drawable.ic_stat_rox)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))

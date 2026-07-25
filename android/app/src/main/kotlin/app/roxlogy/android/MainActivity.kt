@@ -68,29 +68,41 @@ import kotlinx.coroutines.launch
  */
 class MainActivity : ComponentActivity() {
     private var startPath by mutableStateOf("/dashboard")
+    private var navTick by mutableStateOf(0) // 실행 중 알림 탭 → WebView 재이동 신호
     private lateinit var notifPermLauncher: ActivityResultLauncher<String>
+    private var enableTrigger: (() -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         TokenStore.init(applicationContext) // 저장된 세션 복원
         RoxMessagingService.ensureChannel(this)
 
-        // 알림 권한 요청 결과 — 허용 시 FCM 토큰 등록(허용 안 해도 no-op)
+        // 알림 권한 요청 결과 — 허용 시 FCM 토큰 등록(사용자 '켜기' → 옵트아웃 해제)
         notifPermLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission(),
-        ) { PushRegistration.register(applicationContext) }
+        ) { PushRegistration.register(applicationContext, fromUser = true) }
 
         // 웹 브리지(RoxNative.enable)가 부르는 "앱 알림 켜기" 트리거
-        PushController.requestEnable = {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val trigger: () -> Unit = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                !PushRegistration.notificationsEnabled(this)
+            ) {
                 notifPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             } else {
-                PushRegistration.register(applicationContext)
+                PushRegistration.register(applicationContext, fromUser = true)
             }
         }
+        enableTrigger = trigger
+        PushController.requestEnable = trigger
 
         readDeepLink(intent)
-        setContent { RoxlogyTheme { PhoneApp(startPath) } }
+        setContent { RoxlogyTheme { PhoneApp(startPath, navTick) } }
+    }
+
+    override fun onDestroy() {
+        // 정적 컨트롤러가 파괴된 액티비티(런처)를 잡고 있지 않게 — 우리 람다일 때만 해제
+        if (PushController.requestEnable === enableTrigger) PushController.requestEnable = null
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -100,12 +112,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun readDeepLink(intent: Intent?) {
-        intent?.getStringExtra(RoxMessagingService.EXTRA_URL)?.let { startPath = it }
+        // 포그라운드 수신 알림은 EXTRA_URL, 백그라운드(시스템 트레이) 알림은 FCM data 키 "url"로 도착.
+        val raw = intent?.getStringExtra(RoxMessagingService.EXTRA_URL)
+            ?: intent?.getStringExtra("url")
+            ?: return
+        // 앱 내 상대경로만 신뢰(외부 URL 주입 방지)
+        if (raw.startsWith("/") && !raw.startsWith("//")) {
+            startPath = raw
+            navTick++ // 이미 실행 중이면 WebView에 재이동 신호
+        }
     }
 }
 
 @Composable
-fun PhoneApp(startPath: String = "/dashboard") {
+fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
     val context = LocalContext.current
     val auth = remember { AuthClient() }
     val google = remember { GoogleSignInHelper(context) }
@@ -115,6 +135,7 @@ fun PhoneApp(startPath: String = "/dashboard") {
         if (loggedIn) {
             GoalSync().fetchAndPush(context) // 최신 목표를 워치로 밀어줌
             // 이미 알림 권한이 있으면 FCM 토큰을 조용히 (재)등록 — 서버 발송 대상 최신화.
+            // (사용자가 설정에서 '끄기'를 눌렀다면 register 내부의 옵트아웃 체크가 스킵)
             if (PushRegistration.isConfigured(context) && PushRegistration.notificationsEnabled(context)) {
                 PushRegistration.register(context)
             }
@@ -130,11 +151,15 @@ fun PhoneApp(startPath: String = "/dashboard") {
             // 워치연동(GoalSync/PhoneDataReceiver/IngestUploader)은 백그라운드로 계속 동작.
             WebAppScreen(
                 onLoggedOut = {
+                    // 순서 중요: 구독 해제(delete + 토큰 폐기)는 아직 유효한 액세스 토큰이 필요.
+                    // 지우지 않으면 이 기기의 다음 사용자에게 이전 계정 알림이 계속 온다.
+                    PushRegistration.unregister(context)
                     TokenStore.clear()
                     CookieManager.getInstance().removeAllCookies(null)
                     loggedIn = false
                 },
                 startPath = startPath,
+                navTick = navTick,
             )
         } else {
             AuthScreen(auth = auth, google = google, onAuthed = { loggedIn = true })

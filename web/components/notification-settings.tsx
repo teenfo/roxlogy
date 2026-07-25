@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import {
@@ -19,6 +19,7 @@ type RoxNative = {
   isAvailable?: () => boolean;
   isConfigured?: () => boolean;
   hasPermission?: () => boolean;
+  isEnabled?: () => boolean; // 권한 + 옵트아웃 아님 (구버전 앱엔 없을 수 있음)
   enable?: () => void;
   disable?: () => void;
 };
@@ -44,6 +45,12 @@ export function NotificationSettings() {
   const [native, setNative] = useState(false);
   const [nativeConfigured, setNativeConfigured] = useState(false);
   const [nativeOn, setNativeOn] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 권한 다이얼로그 폴링 정리 (언마운트 시)
+  useEffect(() => () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -52,7 +59,8 @@ export function NotificationSettings() {
       if (rn) {
         setNative(true);
         setNativeConfigured(!!rn.isConfigured?.());
-        setNativeOn(!!rn.hasPermission?.());
+        // isEnabled(권한+옵트아웃 반영)가 있으면 우선, 없으면(구버전) 권한만
+        setNativeOn(rn.isEnabled ? !!rn.isEnabled() : !!rn.hasPermission?.());
       }
       const sub = await currentSubscription();
       setSubscribed(!!sub);
@@ -109,9 +117,9 @@ export function NotificationSettings() {
   async function test() {
     setBusy(true);
     setNote(null);
-    const ok = await sendTest();
+    const r = await sendTest();
     setBusy(false);
-    setNote(ok ? t("notif.testSent") : t("notif.err"));
+    setNote(r === "sent" ? t("notif.testSent") : r === "none" ? t("notif.testNone") : t("notif.err"));
   }
 
   function nativeEnable() {
@@ -121,14 +129,18 @@ export function NotificationSettings() {
     setNote(t("notif.native.requested"));
     // 권한 다이얼로그는 비동기 — 잠시 폴링해 상태 반영.
     let n = 0;
-    const iv = setInterval(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => {
       n += 1;
-      if (rn.hasPermission?.()) {
+      const on = rn.isEnabled ? rn.isEnabled() : rn.hasPermission?.();
+      if (on) {
         setNativeOn(true);
         setNote(null);
-        clearInterval(iv);
+        if (pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = null;
       } else if (n > 12) {
-        clearInterval(iv);
+        if (pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = null;
       }
     }, 800);
   }
@@ -179,20 +191,32 @@ export function NotificationSettings() {
                 {t("notif.native.preparing")}
               </p>
             ) : (
-              <div className="flex items-center justify-between gap-4 rounded-md bg-surface px-4 py-3 text-sm">
-                <span>{nativeOn ? t("notif.native.enabled") : t("notif.native.enable")}</span>
-                <button
-                  type="button"
-                  onClick={nativeOn ? nativeDisable : nativeEnable}
-                  className={
-                    nativeOn
-                      ? "rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:text-foreground"
-                      : "rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
-                  }
-                >
-                  {nativeOn ? t("notif.disable") : t("notif.native.enable")}
-                </button>
-              </div>
+              <>
+                <div className="flex items-center justify-between gap-4 rounded-md bg-surface px-4 py-3 text-sm">
+                  <span>{nativeOn ? t("notif.native.enabled") : t("notif.native.enable")}</span>
+                  <button
+                    type="button"
+                    onClick={nativeOn ? nativeDisable : nativeEnable}
+                    className={
+                      nativeOn
+                        ? "rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:text-foreground"
+                        : "rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
+                    }
+                  >
+                    {nativeOn ? t("notif.disable") : t("notif.native.enable")}
+                  </button>
+                </div>
+                {nativeOn && (
+                  <button
+                    type="button"
+                    onClick={test}
+                    disabled={busy}
+                    className="justify-self-start rounded-md border border-muted/30 px-3 py-1.5 text-xs text-foreground hover:border-accent disabled:opacity-40"
+                  >
+                    {t("notif.test")}
+                  </button>
+                )}
+              </>
             )
           ) : (
             <>

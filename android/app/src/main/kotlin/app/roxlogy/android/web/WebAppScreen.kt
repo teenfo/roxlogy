@@ -15,6 +15,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,14 +34,21 @@ import app.roxlogy.android.push.RoxNativeBridge
  * - `RoxNative` JS 브리지로 네이티브 FCM 알림 제어(WebView는 Web Push 미지원).
  *
  * @param startPath 최초 진입 경로(알림 탭 딥링크 등). 기본 /dashboard.
+ * @param navTick 실행 중 알림 탭 신호 — 증가할 때마다 WebView를 startPath로 이동.
+ *   (AndroidView factory는 최초 1회만 실행되므로 상태 변경만으로는 이동하지 않는다.)
  */
 @Composable
-fun WebAppScreen(onLoggedOut: () -> Unit, startPath: String = "/dashboard") {
+fun WebAppScreen(onLoggedOut: () -> Unit, startPath: String = "/dashboard", navTick: Int = 0) {
     val context = LocalContext.current
     var webView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
 
     BackHandler(enabled = canGoBack) { webView?.goBack() }
+
+    // 앱이 이미 떠 있는 상태에서 알림을 탭하면 onNewIntent → navTick 증가 → 해당 화면으로 이동
+    LaunchedEffect(navTick) {
+        if (navTick > 0) webView?.loadUrl(WebConfig.BASE_URL + startPath)
+    }
 
     AndroidView(
         // 상태바/네비바/키보드 인셋만큼 여백 — 웹 콘텐츠가 상단 시간표시줄과 겹치지 않게.

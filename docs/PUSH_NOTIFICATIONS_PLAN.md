@@ -72,14 +72,17 @@
 - 옵트아웃·권한상태 항상 존중. 죽은 토큰 즉시 정리.
 
 ## 롤아웃 단계
-1. **인프라 코어**: 마이그레이션(4테이블+RLS+시드), Edge `push-send`(web-push+FCM), VAPID 생성·시크릿 설정, **수동 테스트 발송** 경로. + 웹 구독/네이티브 토큰 등록.
-2. **트리거 ①**: `follows` AFTER INSERT → `push-send`(new_follower). pg_net 활성.
-3. **트리거 ②**: `profiles`에 timezone/`wod_reminder_time`(사용자 입력), pg_cron(5분 간격) 스캔 → `push-send`(wod_reminder).
-4. **설정 UI**: 종류별 토글(`notification_prefs`) + **WOD 리마인더 시각 입력(시:분, 미설정=끔)** + 타임존 표시/수정 + 문서화.
+1. ✅ **인프라 코어**: 마이그레이션(4테이블+RLS+시드), Edge `push-send`(web-push+FCM), VAPID 시크릿, **수동 테스트 발송**. + 웹 구독/네이티브 토큰 등록(RPC `register_fcm_token`).
+2. ✅ **트리거 ①**: `follows` AFTER INSERT 트리거 → 아웃박스 인큐(new_follower). *(HTTP 아님 — SQL로 `notifications` 삽입, 옵트아웃은 인큐 시점에 존중)*
+3. ✅ **트리거 ②**: pg_cron 5분 간격 `enqueue_wod_reminders()` — 사용자 타임존 지역시각 창 판정 + 당일 1회 dedup → 아웃박스 인큐.
+   발송은 **Edge `push-dispatch`** 가 담당: pg_cron 1분 간격, 미발송 행 원자적 클레임 → web-push/FCM 팬아웃. (service role 키는 SQL에 두지 않음 — 크론은 공개 anon 키로 호출, 발송 권한은 함수 내부 env)
+4. ✅ **설정 UI**: 종류별 토글(`notification_prefs`) + **WOD 리마인더 시각 입력(시:분, 미설정=끔)** + 타임존 자동 감지 + 네이티브(FCM) 토글 브리지.
+
+남은 것: Firebase 콘솔 설정(google-services.json + `FCM_SERVICE_ACCOUNT`) — 아래 사용자 선행 작업.
 
 ## 사용자(콘솔) 선행 작업 — 제가 만들 수 없는 것
 - **Firebase 프로젝트**: 기존 GCP 프로젝트(`gen-lang-client-0855612550`)에 Firebase 추가 또는 신규 → Android 앱 `app.roxlogy.android` 등록 → `google-services.json` 다운로드 → **서비스계정 키(HTTP v1)** 발급.
-- Supabase: `pg_cron`·`pg_net` 확장 활성(대시보드/SQL), Edge Function 시크릿(`VAPID_PRIVATE`, `FCM_SERVICE_ACCOUNT`) 등록.
+- Supabase: Edge Function 시크릿 등록 — 정확한 이름: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`(mailto:), `FCM_SERVICE_ACCOUNT`(서비스계정 JSON 전체). *(pg_cron·pg_net 확장은 마이그레이션으로 활성화 완료.)*
 - VAPID 키쌍은 제가 생성해 공개키는 클라이언트, 개인키는 시크릿으로 안내.
 
 ## 검증

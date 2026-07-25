@@ -38,9 +38,18 @@
 - S17: 리허설 리포트 — 최신 목표 vs 최신 시뮬 세션 스테이션별 대비(대시보드)
 - S6: 워커 곡선 기반 파워/페이스 차트(ErgCurve) — 세션 상세
 
-> 다음: **M6 워치 앱** (상표 정밀검색 게이트 + 네이티브 빌드 환경 필요).
 > **S13 백분위**는 v1(공개 분포) 완료 — 공식 결과 대량 수집(정밀 분포)의 검토는
 > **컷오버 이후**로 미룸. 웹으로 완결 가능한 Phase 2(S8·S9·S10)는 완료.
+
+### M9 — 푸시 알림 (2026-07 완료, Firebase 콘솔만 대기)
+- Phase 1 ✅ 웹 Web Push — VAPID + sw.js + 구독/설정 UI(/settings/profile) + Edge `push-send`(테스트 발송)
+- Phase 1b ✅ 안드로이드 네이티브 FCM 배선 — RoxMessagingService·RPC `register_fcm_token`(공유기기 정리)·
+  RoxNative 브리지(WebView 설정 토글)·옵트아웃 영속·로그아웃 시 구독 해제·알림 딥링크(포그라운드/트레이)
+- Phase 2 ✅ 새 팔로워 — `follows` AFTER INSERT 트리거 → 아웃박스 인큐(옵트아웃 SQL 존중)
+- Phase 3 ✅ WOD 리마인더 — pg_cron 5분 `enqueue_wod_reminders()`(타임존 지역시각·당일 dedup)
+- 발송 ✅ Edge `push-dispatch` — pg_cron 1분, 미발송 원자적 클레임 → web-push/FCM 팬아웃(400 오판 프루닝 방지)
+- ⏳ **사용자 대기**: Firebase 프로젝트 + `google-services.json` + Edge 시크릿 `FCM_SERVICE_ACCOUNT` (docs/FCM_SETUP.md)
+- 확장 지점: 새 종류 = `notification_types` 행 + 프로듀서(트리거/크론) 1개
 
 ### M6/M7 — 네이티브 앱 (착수됨) — 상표·법무 게이트 클리어(2026-07-08)
 `android/` 모노레포(`:shared`/`:wear`/`:app`). 단계 계획:

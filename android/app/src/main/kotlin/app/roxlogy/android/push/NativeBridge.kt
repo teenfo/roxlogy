@@ -8,6 +8,7 @@ import android.webkit.JavascriptInterface
 /**
  * Activity ↔ 네이티브 푸시 연결점. Activity가 권한 요청 트리거를 등록하면
  * WebView JS 브리지가 이를 호출한다(메인 스레드).
+ * 정적 참조 누수 방지: Activity는 onDestroy에서 자신의 람다일 때만 해제한다.
  */
 object PushController {
     /** POST_NOTIFICATIONS 권한 요청(허용 시 등록)을 트리거. Activity가 onCreate에서 설정. */
@@ -34,15 +35,19 @@ class RoxNativeBridge(private val context: Context) {
     @JavascriptInterface
     fun hasPermission(): Boolean = PushRegistration.notificationsEnabled(context)
 
-    /** 앱 알림 켜기 — 권한 요청 후 FCM 토큰 등록(메인 스레드에서 실행). */
+    /** 설정 토글 상태: 권한 허용 + 사용자가 끄지 않음. (hasPermission만 보면 '끄기'가 안 보임) */
+    @JavascriptInterface
+    fun isEnabled(): Boolean = PushRegistration.isEnabled(context)
+
+    /** 앱 알림 켜기 — 옵트아웃 해제 + 권한 요청 후 FCM 토큰 등록(메인 스레드에서 실행). */
     @JavascriptInterface
     fun enable() {
         Handler(Looper.getMainLooper()).post { PushController.requestEnable?.invoke() }
     }
 
-    /** 앱 알림 끄기 — 구독 해제 + 토큰 폐기. */
+    /** 앱 알림 끄기 — 옵트아웃 영속 + 구독 해제 + 토큰 폐기. */
     @JavascriptInterface
     fun disable() {
-        PushRegistration.unregister(context)
+        PushRegistration.unregister(context, fromUser = true)
     }
 }

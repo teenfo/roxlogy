@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
+import { SignOutForm } from "@/components/sign-out-form";
 
 export default async function AppLayout({
   children,
@@ -29,11 +30,11 @@ export default async function AppLayout({
       <main className="mx-auto max-w-md px-6 py-24 text-center">
         <h1 className="text-xl font-bold">{t("suspended.title")}</h1>
         <p className="mt-2 text-sm text-muted">{t("suspended.body")}</p>
-        <form action="/auth/signout" method="post" className="mt-6">
-          <button type="submit" className="text-sm text-accent hover:underline">
-            {t("common.logout")}
-          </button>
-        </form>
+        <SignOutForm
+          className="mt-6"
+          buttonClassName="text-sm text-accent hover:underline"
+          label={t("common.logout")}
+        />
       </main>
     );
   }
@@ -66,14 +67,10 @@ export default async function AppLayout({
             >
               {t("nav.profile")}
             </Link>
-            <form action="/auth/signout" method="post">
-              <button
-                type="submit"
-                className="text-sm text-muted hover:text-foreground"
-              >
-                {t("common.logout")}
-              </button>
-            </form>
+            <SignOutForm
+              buttonClassName="text-sm text-muted hover:text-foreground"
+              label={t("common.logout")}
+            />
           </div>
 
           {/* 모바일 햄버거 메뉴 */}

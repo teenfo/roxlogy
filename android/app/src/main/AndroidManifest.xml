@@ -35,10 +35,13 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-        <!-- 기본 알림 채널·아이콘 -->
+        <!-- 기본 알림 채널·아이콘 (백그라운드 notification 메시지를 시스템 트레이가 표시할 때 사용) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="rox_push" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_rox" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/rox_notif_accent" />

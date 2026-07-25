@@ -14,9 +14,10 @@
 - **"HYROX" 상표를 앱 이름·서브타이틀·패키지명에 쓰지 말 것** (설명문 내 호환성 언급만 허용)
 
 ## 현재 Phase
-**Phase 1 잔여 — 데이터 토대 완성.** 로드맵은 `docs/ROADMAP.md` (2026-07-08 확정).
-①스키마+RLS ✅ ③세션/레이스 웹 ✅ → 지금: **M3 세션 수신 API(S2, Edge Function)** → M4 hosub 워커(S5), 웹 고도화(M5)는 병행.
-워치/폰 네이티브 앱(M6/M7)은 M3 배포·계약 확정 후 착수. Phase 2 순서: S8→S13→S9→S10. 카카오 OAuth는 도입하지 않음.
+**코어 완성 — 운영 준비 단계.** 로드맵은 `docs/ROADMAP.md`.
+- ✅ 완료: 스키마+RLS, 웹 전 기능(세션·레이스·프로그램·리더보드·커뮤니티·백분위·어드민, en/ko/es), M3 수신 API, M4 hosub 워커 코드, Wear OS 시뮬 레코더, 가민 Connect IQ 앱, 폰 하이브리드 앱(Google 로그인+WebView), 사이드로드 릴리스(CI→Supabase Storage), **푸시 알림 전 구간**(웹 Web Push + 네이티브 FCM 배선 + 새팔로워 트리거 + WOD 크론 + push-dispatch 큐 발송).
+- ⏳ 사용자 대기: Firebase 콘솔 설정(`google-services.json`+`FCM_SERVICE_ACCOUNT`, docs/FCM_SETUP.md), 상표 정밀검색(M6/M7 스토어 게이트).
+- 다음 후보: hosub 워커 실배포, 스토어 출시 준비, 알림 종류 확장. 카카오 OAuth는 도입하지 않음.
 
 ## 기술 스택 (확정 — 임의 변경 금지)
 - **워치**: Kotlin + Wear Compose (네이티브). PM5 BLE 직결 때문에 네이티브 강제.

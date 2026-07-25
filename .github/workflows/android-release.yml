@@ -53,12 +53,17 @@ jobs:
         # 미설정 시 스킵(앱은 정상 빌드, 앱 알림은 "준비 중"으로 표시). 파일을 리포에 커밋해도 동작.
         env:
           GS_B64: ${{ secrets.ROXLOGY_GOOGLE_SERVICES_JSON }}
+          REQUIRE_FCM: ${{ vars.ROXLOGY_REQUIRE_FCM }}
         run: |
           if [ -n "$GS_B64" ]; then
             echo "$GS_B64" | base64 -d > app/google-services.json
             echo "google-services.json written ($(wc -c < app/google-services.json) bytes) — FCM 활성화"
           elif [ -f app/google-services.json ]; then
             echo "google-services.json 커밋본 사용 — FCM 활성화"
+          elif [ "$REQUIRE_FCM" = "true" ]; then
+            # Firebase 프로비저닝 후에는 FCM 없는 APK가 'latest'로 조용히 게시되지 않게 실패시킨다.
+            echo "::error::ROXLOGY_REQUIRE_FCM=true 인데 google-services.json 이 없습니다. docs/FCM_SETUP.md 참고."
+            exit 1
           else
             echo "::warning::google-services.json 미설정 — 앱 푸시 없이 빌드됩니다. docs/FCM_SETUP.md 참고."
           fi
