@@ -198,6 +198,9 @@ function sessionPrompt(
 }
 
 // ---------------------------------------------------------------- 게이트웨이
+// 마지막 제출 실패 사유 — 응답 진단용 (민감정보 없음: 상태코드/에러 클래스만)
+let lastGwError: string | null = null;
+
 async function gwSubmit(prompt: string, metadata: Record<string, unknown>): Promise<string | null> {
   try {
     const r = await fetch(`${LLMGW_URL}/v1/generate`, {
@@ -205,10 +208,17 @@ async function gwSubmit(prompt: string, metadata: Record<string, unknown>): Prom
       headers: GW_HEADERS,
       body: JSON.stringify({ role: AI_ROLE, prompt, system: SYSTEM_PROMPT, wait: 0, metadata }),
     });
-    if (!r.ok) { console.error(`gw submit ${r.status}`); return null; }
+    if (!r.ok) {
+      const bodyHead = (await r.text().catch(() => "")).slice(0, 120);
+      lastGwError = `HTTP ${r.status}: ${bodyHead}`;
+      console.error(`gw submit ${lastGwError}`);
+      return null;
+    }
     const j = await r.json();
+    lastGwError = j.job_id ? null : `no job_id in response`;
     return j.job_id ?? null;
   } catch (e) {
+    lastGwError = `fetch: ${String(e).slice(0, 160)}`;
     console.error("gw submit error:", e);
     return null;
   }
@@ -410,5 +420,5 @@ Deno.serve(async (req) => {
     out.submitted++;
   }
 
-  return json({ ok: true, ...out });
+  return json({ ok: true, ...out, ...(lastGwError ? { gw_error: lastGwError } : {}) });
 });
