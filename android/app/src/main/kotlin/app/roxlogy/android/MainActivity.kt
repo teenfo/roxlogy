@@ -182,6 +182,7 @@ fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
     LaunchedEffect(loggedIn) {
         if (loggedIn) {
             GoalSync().fetchAndPush(context) // 최신 목표를 워치로 밀어줌
+            app.roxlogy.android.sync.WodSync().fetchAndPush(context) // 오늘의 WOD 도 워치로
             // 이미 알림 권한이 있으면 FCM 토큰을 조용히 (재)등록 — 서버 발송 대상 최신화.
             // (사용자가 설정에서 '끄기'를 눌렀다면 register 내부의 옵트아웃 체크가 스킵)
             if (PushRegistration.isConfigured(context) && PushRegistration.notificationsEnabled(context)) {

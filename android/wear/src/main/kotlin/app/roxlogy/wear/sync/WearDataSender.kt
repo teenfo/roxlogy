@@ -19,6 +19,15 @@ class WearDataSender(context: Context) {
         sendRaw(request.session.id, IngestJson.encode(request), request.session.client_updated_at)
     }
 
+    /** WOD 항목 완료 역동기화 — 폰(PhoneDataReceiver)이 completion 을 서버에 기록. */
+    fun sendWodDone(itemId: String, elapsedMs: Long) {
+        val put = PutDataMapRequest.create("${WearPaths.WOD_DONE_PREFIX}$itemId").apply {
+            dataMap.putLong(WearPaths.KEY_WOD_ELAPSED_MS, elapsedMs)
+            dataMap.putLong("ts", System.currentTimeMillis())
+        }.asPutDataRequest().setUrgent()
+        dataClient.putDataItem(put)
+    }
+
     /** 보관함 재전송용 — 저장된 인코딩 원문을 그대로 다시 밀어넣는다.
      *  resent_at 으로 DataItem 내용을 바꿔, 동일 페이로드도 재동기화되게 강제. */
     fun sendRaw(sessionId: String, payloadJson: String, clientUpdatedAt: String) {

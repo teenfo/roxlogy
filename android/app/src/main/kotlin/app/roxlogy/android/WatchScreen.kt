@@ -177,6 +177,7 @@ fun WatchScreen(onOpenWeb: (String) -> Unit, onBack: () -> Unit) {
                     goalBusy = true; goalNote = null
                     scope.launch {
                         val ok = GoalSync().fetchAndPush(context)
+                        app.roxlogy.android.sync.WodSync().fetchAndPush(context) // WOD 동반 푸시
                         goalBusy = false
                         goalNote = if (ok) "전송 완료 — 워치에서 목표가 갱신됩니다."
                         else "전송 실패 — 저장된 목표가 없거나 워치가 연결되지 않았습니다."

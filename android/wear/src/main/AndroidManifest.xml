@@ -20,6 +20,11 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- 세그먼트별 심박 기록 (Health Services HEART_RATE_BPM) -->
     <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <!-- 시뮬 진행 중 포그라운드 서비스 + Ongoing Activity (화면 꺼짐에도 세션 유지) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Ongoing Activity 는 헬스 타입 FGS 로 선언 (BODY_SENSORS 권한 보유) -->
     <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
 
     <application
@@ -43,5 +48,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 시뮬 진행 중 유지 + Ongoing Activity 표시 -->
+        <service
+            android:name=".service.SimSessionService"
+            android:exported="false"
+            android:foregroundServiceType="health" />
     </application>
 </manifest>

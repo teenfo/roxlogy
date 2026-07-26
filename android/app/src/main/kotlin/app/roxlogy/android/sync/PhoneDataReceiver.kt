@@ -20,22 +20,44 @@ class PhoneDataReceiver : WearableListenerService() {
     private val auth = AuthClient()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    private val wodClient = WodClient()
+
     override fun onDataChanged(events: DataEventBuffer) {
         for (event in events) {
             if (event.type != DataEvent.TYPE_CHANGED) continue
             val item = event.dataItem
-            if (item.uri.path?.startsWith(WearPaths.SESSION_PATH_PREFIX) != true) continue
+            val path = item.uri.path ?: continue
 
-            val map = DataMapItem.fromDataItem(item).dataMap
-            val json = map.getByteArray(WearPaths.KEY_PAYLOAD)?.decodeToString() ?: continue
-            val token = TokenStore.accessToken() ?: continue // 로그인 전이면 보류
-
-            scope.launch {
-                uploader.upload(
-                    json = json,
-                    initialToken = token,
-                    tokenRefresh = { auth.refreshAccessToken() },
-                )
+            when {
+                path.startsWith(WearPaths.SESSION_PATH_PREFIX) -> {
+                    val map = DataMapItem.fromDataItem(item).dataMap
+                    val json = map.getByteArray(WearPaths.KEY_PAYLOAD)?.decodeToString() ?: continue
+                    val token = TokenStore.accessToken() ?: continue // 로그인 전이면 보류
+                    scope.launch {
+                        uploader.upload(
+                            json = json,
+                            initialToken = token,
+                            tokenRefresh = { auth.refreshAccessToken() },
+                        )
+                    }
+                }
+                // 워치 WOD 완료 역동기화 — 소요시간은 note "⌚ m:ss" 로 저장 (스키마 무변경)
+                path.startsWith(WearPaths.WOD_DONE_PREFIX) -> {
+                    val itemId = path.removePrefix(WearPaths.WOD_DONE_PREFIX)
+                    if (itemId.isBlank()) continue
+                    val map = DataMapItem.fromDataItem(item).dataMap
+                    val elapsedMs = map.getLong(WearPaths.KEY_WOD_ELAPSED_MS, 0L)
+                    val sec = (elapsedMs / 1000).coerceAtLeast(0)
+                    val note = "⌚ %d:%02d".format(sec / 60, sec % 60)
+                    scope.launch {
+                        var token = TokenStore.accessToken() ?: return@launch
+                        var ok = wodClient.saveLog(itemId, null, null, note, token)
+                        if (!ok) {
+                            token = auth.refreshAccessToken() ?: return@launch
+                            ok = wodClient.saveLog(itemId, null, null, note, token)
+                        }
+                    }
+                }
             }
         }
     }

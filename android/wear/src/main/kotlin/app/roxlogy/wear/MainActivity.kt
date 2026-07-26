@@ -50,6 +50,7 @@ import androidx.wear.compose.material.CompactChip
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.dialog.Alert
 import androidx.wear.compose.material.dialog.Dialog
+import androidx.wear.ambient.AmbientLifecycleObserver
 import app.roxlogy.shared.ingest.ErgSample
 import app.roxlogy.shared.ingest.IngestJson
 import app.roxlogy.shared.record.SessionAssembler
@@ -62,6 +63,7 @@ import app.roxlogy.shared.sim.HyroxSim
 import app.roxlogy.shared.sim.SimEngine
 import app.roxlogy.wear.ble.Pm5BleClient
 import app.roxlogy.wear.run.RunDistanceTracker
+import app.roxlogy.wear.service.SimSessionService
 import app.roxlogy.wear.store.WearStore
 import app.roxlogy.wear.sync.WearDataSender
 import app.roxlogy.wear.sync.WearGoal
@@ -71,6 +73,7 @@ import app.roxlogy.wear.ui.GoalScreen
 import app.roxlogy.wear.ui.MenuScreen
 import app.roxlogy.wear.ui.SettingsScreen
 import app.roxlogy.wear.ui.SimRings
+import app.roxlogy.wear.ui.WodPlayerScreen
 import app.roxlogy.wear.ui.theme.Bad
 import app.roxlogy.wear.ui.theme.Chalk
 import app.roxlogy.wear.ui.theme.Good
@@ -98,10 +101,19 @@ class MainActivity : ComponentActivity() {
     private lateinit var ble: Pm5BleClient
     private lateinit var sender: WearDataSender
 
+    private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+        override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+            if (WearStore.ambientEnabled(this@MainActivity)) AmbientState.ambient = true
+        }
+        override fun onExitAmbient() { AmbientState.ambient = false }
+        override fun onUpdateAmbient() { AmbientState.tick++ }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ble = Pm5BleClient(this)
         sender = WearDataSender(this)
+        lifecycle.addObserver(AmbientLifecycleObserver(this, ambientCallback))
         setContent { RoxWearTheme { RootApp(ble, sender) } }
     }
 
@@ -127,6 +139,12 @@ object QuickButton {
     @Volatile
     var handler: (() -> Boolean)? = null
     fun press(): Boolean = handler?.invoke() ?: false
+}
+
+/** 앰비언트(AOD) 상태 — MainActivity 옵저버가 갱신, 시뮬 화면이 구독. */
+object AmbientState {
+    var ambient by mutableStateOf(false)
+    var tick by mutableStateOf(0) // 앰비언트 중 분 단위 갱신 트리거
 }
 
 private enum class AppPhase { IDLE, RUNNING, DONE, SENT }
@@ -188,7 +206,14 @@ fun RootApp(ble: Pm5BleClient, sender: WearDataSender) {
     var resume by remember { mutableStateOf<SimSnapshot?>(null) }
     var simKey by remember { mutableStateOf(0) }
     var goal by remember { mutableStateOf<GoalPlan?>(null) }
+    var hasWod by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(screen) {
+        if (screen == Screen.MENU) {
+            hasWod = app.roxlogy.wear.sync.WearWod.load(context)?.items?.isNotEmpty() == true
+        }
+    }
 
     // 메뉴 외 화면에서 뒤로가기 → 메뉴 (시뮬은 SimApp 내부 BackHandler 가 우선)
     BackHandler(enabled = screen != Screen.MENU && screen != Screen.SIM) { screen = Screen.MENU }
@@ -196,7 +221,7 @@ fun RootApp(ble: Pm5BleClient, sender: WearDataSender) {
     when (screen) {
         Screen.MENU -> MenuScreen(
             hasResume = WearStore.loadProgress(context) != null,
-            hasWod = false,
+            hasWod = hasWod,
             onStart = { withResume ->
                 resume = if (withResume) WearStore.loadProgress(context) else null
                 if (!withResume) WearStore.clearProgress(context)
@@ -217,21 +242,7 @@ fun RootApp(ble: Pm5BleClient, sender: WearDataSender) {
         Screen.ARCHIVE -> ArchiveScreen(sender)
         Screen.SETTINGS -> SettingsScreen()
         Screen.GOAL -> GoalScreen(goal, STATION_LABEL)
-        Screen.WOD -> WodStub()
-    }
-}
-
-@Composable
-private fun WodStub() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            BrandHeader()
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "오늘의 WOD 는\n다음 업데이트에서\n워치 수행을 지원합니다",
-                fontSize = 11.sp, color = MutedText, textAlign = TextAlign.Center,
-            )
-        }
+        Screen.WOD -> WodPlayerScreen(sender)
     }
 }
 
@@ -305,6 +316,12 @@ fun SimApp(
         )
     }
 
+    // 이어서 기록으로 재진입한 경우에도 진행 서비스 유지
+    LaunchedEffect(phase) {
+        if (phase == AppPhase.RUNNING) SimSessionService.start(context)
+        if (phase == AppPhase.SENT || phase == AppPhase.IDLE) SimSessionService.stop(context)
+    }
+
     val active = phase == AppPhase.RUNNING && !engine.isDone && pausedAt == null
     LaunchedEffect(active, slotStartMs) {
         while (active) {
@@ -366,9 +383,12 @@ fun SimApp(
         phase = AppPhase.RUNNING
         beginSlotTimer()
         persist()
-        activityLauncher.launch(
-            arrayOf(Manifest.permission.ACTIVITY_RECOGNITION, Manifest.permission.BODY_SENSORS),
+        SimSessionService.start(context) // 화면 꺼짐에도 세션 유지 + 워치페이스 복귀 아이콘
+        val perms = mutableListOf(
+            Manifest.permission.ACTIVITY_RECOGNITION, Manifest.permission.BODY_SENSORS,
         )
+        if (Build.VERSION.SDK_INT >= 33) perms.add(Manifest.permission.POST_NOTIFICATIONS)
+        activityLauncher.launch(perms.toTypedArray())
         scope.launch { goal = WearGoal.load(context) }
     }
 
@@ -458,6 +478,28 @@ fun SimApp(
             true
         }
         onDispose { QuickButton.handler = null }
+    }
+
+    // 앰비언트(AOD): 진행 중이면 저전력 간소 화면 (검정 배경·타이머·종목만)
+    if (AmbientState.ambient && phase == AppPhase.RUNNING) {
+        AmbientState.tick.let {} // 분 단위 갱신 구독
+        val ambElapsed = if (pausedAt != null) pausedAt!! - slotStartMs
+        else System.currentTimeMillis() - slotStartMs
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    when (engine.current?.kind) {
+                        "run" -> "RUN ${engine.current?.index ?: 0}"
+                        "station" -> STATION_LABEL[engine.current?.stationKey] ?: "STATION"
+                        else -> "록스존"
+                    },
+                    fontSize = 13.sp, color = MutedText,
+                )
+                Text(fmt(ambElapsed), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Chalk)
+                if (pausedAt != null) Text("일시정지됨", fontSize = 11.sp, color = MutedText)
+            }
+        }
+        return
     }
 
     val elapsed = nowMs - slotStartMs
@@ -573,6 +615,7 @@ fun SimApp(
                     onClick = {
                         showExit = false
                         persist()
+                        SimSessionService.stop(context)
                         onExit()
                     },
                     colors = ChipDefaults.primaryChipColors(),
