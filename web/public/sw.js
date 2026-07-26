@@ -30,7 +30,9 @@ self.addEventListener("push", (event) => {
   const options = {
     body: d.body || "",
     icon: "/notif-icon.png",
-    badge: "/notif-icon.png",
+    // badge 는 Android 상태바용 알파 마스크 — 컬러 이미지를 주면 흰색 박스로 뭉개진다.
+    // 브랜드 마크 흰색 실루엣(96px) 전용 파일 사용.
+    badge: "/notif-badge.png",
     data: { url: safeUrl(d.url) },
     tag: d.tag || undefined,
   };

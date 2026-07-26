@@ -690,6 +690,7 @@ const es: Record<DictKey, string> = {
   "notif.wodTimeHint": "Déjalo vacío para desactivar el recordatorio.",
   "notif.err": "No se pudo actualizar las notificaciones.",
   "notif.testNone": "La solicitud tuvo éxito pero no se entregó nada; revisa suscripciones/claves del servidor.",
+  "notif.multiDevice": "Cada dispositivo/navegador con push activado recibe su propia notificación. Si este teléfono tiene la app de Roxlogy instalada, desactiva el push de este navegador (PWA) para evitar duplicados.",
   "notif.native.enable": "Activar notificaciones de la app",
   "notif.native.enabled": "Notificaciones de la app activadas",
   "notif.native.requested": "Solicitado: permítelo y las alertas llegarán a este dispositivo.",

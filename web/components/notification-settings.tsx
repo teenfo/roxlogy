@@ -237,14 +237,18 @@ export function NotificationSettings() {
               </div>
 
               {subscribed && (
-                <button
-                  type="button"
-                  onClick={test}
-                  disabled={busy}
-                  className="justify-self-start rounded-md border border-muted/30 px-3 py-1.5 text-xs text-foreground hover:border-accent disabled:opacity-40"
-                >
-                  {t("notif.test")}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={test}
+                    disabled={busy}
+                    className="justify-self-start rounded-md border border-muted/30 px-3 py-1.5 text-xs text-foreground hover:border-accent disabled:opacity-40"
+                  >
+                    {t("notif.test")}
+                  </button>
+                  {/* 앱+PWA 동시 구독 시 같은 기기에서 알림이 중복 수신되는 안내 */}
+                  <p className="text-xs text-muted">{t("notif.multiDevice")}</p>
+                </>
               )}
             </>
           )}

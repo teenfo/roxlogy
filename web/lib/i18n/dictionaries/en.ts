@@ -693,6 +693,7 @@ const en = {
   "notif.test": "Send a test",
   "notif.testSent": "Sent — check your device",
   "notif.testNone": "Request succeeded but nothing was delivered — check subscriptions/server keys.",
+  "notif.multiDevice": "Each device/browser with push enabled gets its own notification. If this phone has the Roxlogy app installed, turn off this browser (PWA) push to avoid duplicates.",
   "notif.unsupported": "This browser doesn't support push notifications.",
   "notif.denied": "Notifications are blocked in your browser settings.",
   "notif.iosHint": "On iPhone, add Roxlogy to your Home Screen first (iOS 16.4+).",
