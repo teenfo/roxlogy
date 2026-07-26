@@ -25,17 +25,18 @@ object HyroxSim {
     const val RUN_METERS = 1000.0
     const val ROUNDS = 8
 
-    /** (런 → 록스존 → 스테이션) × 8 = 24슬롯. */
+    /** (런 → 록스존IN → 스테이션 → 록스존OUT) × 8 = 32슬롯. */
     fun slots(): List<SegmentSlot> = SessionAssembler.raceSimSlots()
 
     /** 트레드밀 러닝 진행(0..1): 현재 런 세그먼트의 누적 거리 / 1km. */
     fun runProgress(runDistanceM: Double): Double =
         (runDistanceM / RUN_METERS).coerceIn(0.0, 1.0)
 
-    /** 각 슬롯의 목표 스플릿(ms). run/roxzone는 총합/8 균등, station은 키별 목표(없으면 총합/8). */
+    /** 각 슬롯의 목표 스플릿(ms). run은 총합/8, roxzone은 라운드당 IN/OUT 2회라 총합/16,
+     *  station은 키별 목표(없으면 총합/8). */
     fun perSlotTargetMs(slots: List<SegmentSlot>, goal: GoalPlan): List<Long> {
         val runEach = goal.runTotalMs / ROUNDS
-        val roxEach = goal.roxzoneTotalMs / ROUNDS
+        val roxEach = goal.roxzoneTotalMs / (ROUNDS * 2)
         val stEach = goal.stationTotalMs / ROUNDS
         return slots.map { s ->
             when (s.kind) {

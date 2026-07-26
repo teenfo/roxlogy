@@ -65,4 +65,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.play.services.wearable)
     implementation(libs.androidx.health.services)
+    // 앰비언트(AOD) + 진행 중 활동(워치페이스 복귀 아이콘)
+    implementation(libs.androidx.wear)
+    implementation(libs.androidx.wear.ongoing)
 }

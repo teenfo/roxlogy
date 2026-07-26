@@ -42,4 +42,10 @@ object WearStore {
 
     fun hapticEnabled(c: Context): Boolean = p(c).getBoolean(KEY_HAPTIC, true)
     fun setHaptic(c: Context, on: Boolean) = p(c).edit().putBoolean(KEY_HAPTIC, on).apply()
+
+    // AOD 설정 — 화면 항상 켜기(KEEP_SCREEN_ON) / 앰비언트 간소 화면
+    fun screenOnEnabled(c: Context): Boolean = p(c).getBoolean("screen_on", false)
+    fun setScreenOn(c: Context, on: Boolean) = p(c).edit().putBoolean("screen_on", on).apply()
+    fun ambientEnabled(c: Context): Boolean = p(c).getBoolean("ambient", true)
+    fun setAmbient(c: Context, on: Boolean) = p(c).edit().putBoolean("ambient", on).apply()
 }

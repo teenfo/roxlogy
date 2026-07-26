@@ -14,6 +14,8 @@ coroutines = "1.8.1"
 credentials = "1.3.0"
 googleid = "1.1.1"
 healthServices = "1.1.0-alpha05"
+wearCore = "1.3.0"
+wearOngoing = "1.0.0"
 securityCrypto = "1.0.0"
 firebaseBom = "33.7.0"
 googleServices = "4.4.2"
@@ -24,6 +26,8 @@ play-services-wearable = { module = "com.google.android.gms:play-services-wearab
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-guava = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-guava", version.ref = "coroutines" }
 androidx-health-services = { module = "androidx.health:health-services-client", version.ref = "healthServices" }
+androidx-wear = { module = "androidx.wear:wear", version.ref = "wearCore" }
+androidx-wear-ongoing = { module = "androidx.wear:wear-ongoing", version.ref = "wearOngoing" }
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }

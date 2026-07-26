@@ -15,7 +15,6 @@ private val YellowDim = Color(0xFF2B2A12)
 private val YellowActive = Color(0xFF8A7A1E)
 private val Blue = Color(0xFF2D7DFF)
 private val BlueDim = Color(0xFF14213F)
-private val BlueHead = Color(0xFF7FB0FF)
 
 /**
  * 두 링 배경. stationDone=점등된 바깥 세그먼트 수(0..8), activeStation=현재 진행 스테이션 서수
@@ -57,9 +56,9 @@ fun SimRings(
             )
         }
 
-        // 안쪽 트랙 링
-        val innerStroke = w * 0.03f
-        val rI = rO - outerStroke * 0.6f - innerStroke * 1.8f
+        // 안쪽 트랙 링 — 실기기에서 너무 얇아 바깥 링과 비슷한 두께로 (0.03 → 0.05)
+        val innerStroke = w * 0.05f
+        val rI = rO - outerStroke * 0.6f - innerStroke * 1.4f
         drawArc(
             color = BlueDim,
             startAngle = 0f,

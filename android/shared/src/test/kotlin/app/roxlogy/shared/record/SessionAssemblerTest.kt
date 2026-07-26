@@ -93,14 +93,18 @@ class SessionAssemblerTest {
     }
 
     @Test
-    fun `race sim slots produce 24 in run-roxzone-station order`() {
+    fun `race sim slots produce 32 in run-roxin-station-roxout order`() {
         val slots = SessionAssembler.raceSimSlots()
-        assertEquals(24, slots.size)
+        assertEquals(32, slots.size)
         assertEquals("run", slots[0].kind)
-        assertEquals("roxzone", slots[1].kind)
+        assertEquals("roxzone", slots[1].kind)  // IN
         assertEquals("station", slots[2].kind)
+        assertEquals("roxzone", slots[3].kind)  // OUT
+        assertEquals("run", slots[4].kind)      // 다음 라운드
         assertEquals("ski", slots[2].stationKey)
-        assertEquals("wallballs", slots[23].stationKey)
+        assertEquals("wallballs", slots[30].stationKey)
+        assertEquals("roxzone", slots[31].kind) // 피니시 이동
         assertTrue(slots.count { it.kind == "station" } == 8)
+        assertTrue(slots.count { it.kind == "roxzone" } == 16)
     }
 }

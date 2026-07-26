@@ -75,12 +75,14 @@ object SessionAssembler {
         )
     }
 
-    /** 레이스 시뮬 골격: (런 → 록스존 → 스테이션) × 8 = 24슬롯. */
+    /** 레이스 시뮬 골격: (런 → 록스존IN → 스테이션 → 록스존OUT) × 8 = 32슬롯.
+     *  실제 하이록스처럼 스테이션 진입·이탈 이동을 모두 록스존으로 계측한다.
+     *  kind 는 둘 다 "roxzone"(서버 스키마·웹 분석 호환), index 는 라운드 번호 공유. */
     fun raceSimSlots(): List<SegmentSlot> = Stations.ALL.flatMapIndexed { i, station ->
         val n = i + 1
         listOf(
             SegmentSlot("run", Stations.RUN_EXERCISE_ID, null, null, n),
-            SegmentSlot("roxzone", null, null, null, n),
+            SegmentSlot("roxzone", null, null, null, n), // IN — 런 → 스테이션 이동
             SegmentSlot(
                 kind = "station",
                 exerciseId = station.exerciseId,
@@ -88,6 +90,7 @@ object SessionAssembler {
                 stationKey = station.key,
                 index = n,
             ),
+            SegmentSlot("roxzone", null, null, null, n), // OUT — 스테이션 → 런/피니시 이동
         )
     }
 

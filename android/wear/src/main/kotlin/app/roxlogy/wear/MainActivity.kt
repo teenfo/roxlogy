@@ -5,7 +5,10 @@ import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.view.KeyEvent
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,13 +16,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -32,41 +40,59 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.CompactChip
-import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import androidx.wear.compose.material.dialog.Alert
+import androidx.wear.compose.material.dialog.Dialog
 import app.roxlogy.shared.ingest.ErgSample
 import app.roxlogy.shared.ingest.IngestJson
 import app.roxlogy.shared.record.SessionAssembler
 import app.roxlogy.shared.record.SimSnapshot
 import app.roxlogy.shared.record.StoredSession
+import app.roxlogy.shared.model.Stations
 import app.roxlogy.shared.record.WearStoreCodec
 import app.roxlogy.shared.sim.GoalPlan
+import app.roxlogy.shared.sim.HyroxSim
 import app.roxlogy.shared.sim.SimEngine
 import app.roxlogy.wear.ble.Pm5BleClient
 import app.roxlogy.wear.run.RunDistanceTracker
 import app.roxlogy.wear.store.WearStore
 import app.roxlogy.wear.sync.WearDataSender
 import app.roxlogy.wear.sync.WearGoal
+import app.roxlogy.wear.ui.ArchiveScreen
+import app.roxlogy.wear.ui.BrandHeader
+import app.roxlogy.wear.ui.GoalScreen
+import app.roxlogy.wear.ui.MenuScreen
+import app.roxlogy.wear.ui.SettingsScreen
 import app.roxlogy.wear.ui.SimRings
+import app.roxlogy.wear.ui.theme.Bad
+import app.roxlogy.wear.ui.theme.Chalk
+import app.roxlogy.wear.ui.theme.Good
+import app.roxlogy.wear.ui.theme.MutedText
+import app.roxlogy.wear.ui.theme.RaceYellow
+import app.roxlogy.wear.ui.theme.RoxWearTheme
+import app.roxlogy.wear.ui.theme.RoxzoneBg
+import app.roxlogy.wear.ui.theme.RunBg
+import app.roxlogy.wear.ui.theme.StationBg
+import app.roxlogy.wear.ui.theme.SurfaceHi
+import app.roxlogy.wear.ui.theme.TrackBlue
+import app.roxlogy.wear.ui.theme.hrZoneColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.time.Instant
-import java.util.Date
-import java.util.Locale
 import java.util.UUID
 
 /**
- * 워치 하이록스 시뮬레이션 레코더.
- * 메뉴(시뮬·보관함·설정) → 레이스 시뮬 24슬롯 기록 → 세션 조립 → Data Layer 폰 전송.
- * 기록 안정성: 일시정지/재개·랩 취소·진행 스냅샷 영속화(크래시 복구)·보관함 재전송.
- * 배경 = 로고 두 링(바깥 8세그먼트=스테이션 완료, 안쪽 트랙=1km 러닝 진행).
- * PM5(에르그)는 스키/로잉 스테이션에서 raw 보강(선택).
+ * 워치 하이록스 시뮬레이션 레코더 — M10-R 재설계.
+ * 메뉴/보관함/목표/설정 = ScalingLazyColumn 표준 Wear 화면, 시뮬 = 두 링(서클) 컨셉 유지.
+ * 시뮬: 좌 스와이프 = 컨트롤(일시정지·랩취소·종료), 상하 스와이프 = 데이터 뷰(삼성헬스 패턴),
+ * 뒤로가기 = 종료 확인, 퀵버튼(STEM) = 랩. 32슬롯(록스존 IN/OUT), PM5 는 종목명 칩으로 연결.
  */
 class MainActivity : ComponentActivity() {
     private lateinit var ble: Pm5BleClient
@@ -76,7 +102,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         ble = Pm5BleClient(this)
         sender = WearDataSender(this)
-        setContent { MaterialTheme { RootApp(ble, sender) } }
+        setContent { RoxWearTheme { RootApp(ble, sender) } }
+    }
+
+    // 워치 물리 퀵버튼(멀티펑션/STEM) → 시뮬 랩. 홈(전원)·뒤로가기는 시스템 예약.
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_STEM_1 ||
+            keyCode == KeyEvent.KEYCODE_STEM_2 ||
+            keyCode == KeyEvent.KEYCODE_STEM_PRIMARY
+        ) {
+            if (QuickButton.press()) return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onDestroy() {
@@ -85,10 +122,17 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class AppPhase { IDLE, RUNNING, DONE, SENT }
-private enum class Screen { MENU, SIM, ARCHIVE, SETTINGS }
+/** 물리 퀵버튼 → 현재 시뮬 화면으로 전달하는 버스. */
+object QuickButton {
+    @Volatile
+    var handler: (() -> Boolean)? = null
+    fun press(): Boolean = handler?.invoke() ?: false
+}
 
-// 1차 러닝 진행 시각 페이서(실거리 소스는 Health Services 후속 커밋). 5:00/km.
+private enum class AppPhase { IDLE, RUNNING, DONE, SENT }
+private enum class Screen { MENU, SIM, ARCHIVE, SETTINGS, GOAL, WOD }
+
+// 1차 러닝 진행 시각 페이서(실거리 미지원 시). 5:00/km.
 private const val NOMINAL_RUN_MS = 300_000L
 
 private val STATION_LABEL = mapOf(
@@ -99,42 +143,33 @@ private val STATION_LABEL = mapOf(
 
 private fun fmt(ms: Long): String {
     val t = (ms / 1000).coerceAtLeast(0)
-    return "%d:%02d".format(t / 60, t % 60)
+    val h = t / 3600
+    return if (h > 0) "%d:%02d:%02d".format(h, (t % 3600) / 60, t % 60)
+    else "%d:%02d".format(t / 60, t % 60)
 }
 
-// 단계 색 — 브랜드: 러닝=트랙 블루, 스테이션=레이스 옐로, 록스존=초크(회백).
-// 중앙 배경·헤더·버튼을 단계별로 다르게 칠해 "지금 뭘 하는 중인지" 즉시 인지되게 한다.
-private val RunBlue = Color(0xFF2D7DFF)
-private val RaceYellow = Color(0xFFFFD500)
-private val Chalk = Color(0xFFF4F4F2)
-private val RunBg = Color(0xFF0D1E3C)      // 러닝: 짙은 블루
-private val StationBg = Color(0xFF2E2700)  // 스테이션: 짙은 옐로
-private val RoxzoneBg = Color(0xFF33332E)  // 록스존: 차콜 그레이
-private val NeutralChip = Color(0xFF3A3A3A)
-
-/** 알약형 액션 버튼 — 원형 Button은 한글 라벨이 잘려서 CompactChip 사용. */
-@Composable
-private fun ActionChip(text: String, bg: Color, fg: Color, onClick: () -> Unit) {
-    CompactChip(
-        onClick = onClick,
-        colors = ChipDefaults.chipColors(backgroundColor = bg, contentColor = fg),
-        label = { Text(text, fontSize = 13.sp) },
-    )
-}
-
-// 목표 대비 diff: 음수=앞섬(−, 초록), 양수=뒤처짐(+, 빨강).
 private fun fmtDiff(ms: Long): String {
     val a = Math.abs(ms) / 1000
     return (if (ms <= 0) "-" else "+") + "%d:%02d".format(a / 60, a % 60)
 }
 
 @Composable
-private fun DiffBadge(diffMs: Long?) {
+private fun DiffBadge(diffMs: Long?, fontSize: Int = 11) {
     if (diffMs == null) return
     Text(
         "목표 " + fmtDiff(diffMs),
-        fontSize = 11.sp,
-        color = if (diffMs <= 0) Color(0xFF35C26B) else Color(0xFFFF6B6B),
+        fontSize = fontSize.sp,
+        color = if (diffMs <= 0) Good else Bad,
+    )
+}
+
+/** 알약형 액션 버튼. */
+@Composable
+private fun ActionChip(text: String, bg: Color, fg: Color, onClick: () -> Unit) {
+    CompactChip(
+        onClick = onClick,
+        colors = ChipDefaults.chipColors(backgroundColor = bg, contentColor = fg),
+        label = { Text(text, fontSize = 13.sp) },
     )
 }
 
@@ -151,16 +186,27 @@ fun RootApp(ble: Pm5BleClient, sender: WearDataSender) {
     val context = LocalContext.current
     var screen by remember { mutableStateOf(Screen.MENU) }
     var resume by remember { mutableStateOf<SimSnapshot?>(null) }
-    var simKey by remember { mutableStateOf(0) } // 새 시뮬 진입마다 SimApp 상태 초기화
+    var simKey by remember { mutableStateOf(0) }
+    var goal by remember { mutableStateOf<GoalPlan?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // 메뉴 외 화면에서 뒤로가기 → 메뉴 (시뮬은 SimApp 내부 BackHandler 가 우선)
+    BackHandler(enabled = screen != Screen.MENU && screen != Screen.SIM) { screen = Screen.MENU }
 
     when (screen) {
         Screen.MENU -> MenuScreen(
             hasResume = WearStore.loadProgress(context) != null,
+            hasWod = false,
             onStart = { withResume ->
                 resume = if (withResume) WearStore.loadProgress(context) else null
                 if (!withResume) WearStore.clearProgress(context)
                 simKey++
                 screen = Screen.SIM
+            },
+            onWod = { screen = Screen.WOD },
+            onGoal = {
+                scope.launch { goal = WearGoal.load(context) }
+                screen = Screen.GOAL
             },
             onArchive = { screen = Screen.ARCHIVE },
             onSettings = { screen = Screen.SETTINGS },
@@ -168,89 +214,23 @@ fun RootApp(ble: Pm5BleClient, sender: WearDataSender) {
         Screen.SIM -> key(simKey) {
             SimApp(ble, sender, resume) { screen = Screen.MENU }
         }
-        Screen.ARCHIVE -> ArchiveScreen(sender) { screen = Screen.MENU }
-        Screen.SETTINGS -> SettingsScreen { screen = Screen.MENU }
+        Screen.ARCHIVE -> ArchiveScreen(sender)
+        Screen.SETTINGS -> SettingsScreen()
+        Screen.GOAL -> GoalScreen(goal, STATION_LABEL)
+        Screen.WOD -> WodStub()
     }
 }
 
 @Composable
-private fun MenuScreen(
-    hasResume: Boolean,
-    onStart: (Boolean) -> Unit,
-    onArchive: () -> Unit,
-    onSettings: () -> Unit,
-) {
+private fun WodStub() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text("ROXLOGY", fontSize = 13.sp, color = RaceYellow)
-            if (hasResume) {
-                ActionChip("이어서 기록", RaceYellow, Color.Black) { onStart(true) }
-                ActionChip("새 레이스 시뮬", NeutralChip, Color.White) { onStart(false) }
-            } else {
-                ActionChip("레이스 시뮬", RaceYellow, Color.Black) { onStart(false) }
-            }
-            ActionChip("보관함", NeutralChip, Color.White, onArchive)
-            ActionChip("설정", NeutralChip, Color.White, onSettings)
-        }
-    }
-}
-
-// ---------------------------------------------------------------- 보관함 (재전송)
-@Composable
-private fun ArchiveScreen(sender: WearDataSender, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val items = remember { WearStore.sessions(context).sortedByDescending { it.createdAtMs } }
-    var note by remember { mutableStateOf<String?>(null) }
-    val dateFmt = remember { SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 30.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text("보관함", fontSize = 13.sp, color = RaceYellow)
-        if (items.isEmpty()) Text("저장된 세션 없음", fontSize = 11.sp)
-        items.forEach { s ->
-            ActionChip(
-                "${dateFmt.format(Date(s.createdAtMs))} · ${fmt(s.totalMs)}",
-                NeutralChip, Color.White,
-            ) {
-                sender.sendRaw(s.id, s.payloadJson, s.clientUpdatedAt)
-                note = "재전송함 — 폰 연결 시 업로드"
-            }
-        }
-        note?.let { Text(it, fontSize = 10.sp, color = Chalk, textAlign = TextAlign.Center) }
-        Text("최근 20세션 · 72시간 보관", fontSize = 9.sp, color = Color(0xFF8A8A8A))
-        ActionChip("뒤로", NeutralChip, Color.White, onBack)
-    }
-}
-
-// ---------------------------------------------------------------- 설정
-@Composable
-private fun SettingsScreen(onBack: () -> Unit) {
-    val context = LocalContext.current
-    var haptic by remember { mutableStateOf(WearStore.hapticEnabled(context)) }
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text("설정", fontSize = 13.sp, color = RaceYellow)
-            ActionChip(
-                if (haptic) "햅틱 켜짐" else "햅틱 꺼짐",
-                if (haptic) RaceYellow else NeutralChip,
-                if (haptic) Color.Black else Color.White,
-            ) {
-                haptic = !haptic
-                WearStore.setHaptic(context, haptic)
-            }
-            ActionChip("뒤로", NeutralChip, Color.White, onBack)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            BrandHeader()
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "오늘의 WOD 는\n다음 업데이트에서\n워치 수행을 지원합니다",
+                fontSize = 11.sp, color = MutedText, textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -269,15 +249,17 @@ fun SimApp(
             if (engineKey == 0 && resume != null) it.restore(WearStoreCodec.toRecorded(resume))
         }
     }
-    var version by remember { mutableStateOf(0) } // engine 변경 후 recompose 트리거
+    var version by remember { mutableStateOf(0) }
     var phase by remember {
         mutableStateOf(if (resume != null) AppPhase.RUNNING else AppPhase.IDLE)
     }
     var slotStartMs by remember { mutableStateOf(resume?.slotStartEpochMs ?: 0L) }
     var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
     var pausedAt by remember { mutableStateOf<Long?>(null) }
+    var showExit by remember { mutableStateOf(false) }
 
     var pm5Connected by remember { mutableStateOf(false) }
+    var pm5Scanning by remember { mutableStateOf(false) }
     var pm5Latest by remember { mutableStateOf<ErgSample?>(null) }
     var startIso by remember { mutableStateOf(resume?.startIso ?: "") }
 
@@ -289,7 +271,7 @@ fun SimApp(
     var goal by remember { mutableStateOf<GoalPlan?>(null) }
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
 
-    // 슬롯별 심박 집계 (250ms 루프에서 샘플링 → record 시 평균/최대로 확정)
+    // 슬롯별 심박 집계
     var hrSum by remember { mutableStateOf(0.0) }
     var hrN by remember { mutableStateOf(0) }
     var hrMax by remember { mutableStateOf(0.0) }
@@ -298,14 +280,24 @@ fun SimApp(
     fun slotMaxHr(): Int? = if (hrN > 0) hrMax.toInt() else null
     fun resetSlotHr() { hrSum = 0.0; hrN = 0; hrMax = 0.0 }
 
-    version.let {} // read to subscribe
+    version.let {}
+
+    // 설정: 화면 항상 켜기 (시뮬 화면에 있는 동안)
+    val activity = context as? ComponentActivity
+    DisposableEffect(Unit) {
+        if (WearStore.screenOnEnabled(context)) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     fun buzz(ms: Long = 40L) {
         if (!WearStore.hapticEnabled(context)) return
         vibrator?.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
-    // 진행 스냅샷 영속화 — 크래시/이탈 후 "이어서 기록" 복구용 (erg raw는 미보존)
     fun persist() {
         WearStore.saveProgress(
             context,
@@ -320,9 +312,8 @@ fun SimApp(
             distNow = tracker.distanceMeters
             hrNow = tracker.heartRateBpm
             if (hrNow > 30.0) { hrSum += hrNow; hrN++; if (hrNow > hrMax) hrMax = hrNow }
-            // 트레드밀 실거리 1km 도달 시 자동 랩 (수동 랩 버튼도 상시)
             if (engine.current?.kind == "run" && tracker.active &&
-                (distNow - slotStartDist) >= app.roxlogy.shared.sim.HyroxSim.RUN_METERS
+                (distNow - slotStartDist) >= HyroxSim.RUN_METERS
             ) {
                 engine.record(
                     System.currentTimeMillis() - slotStartMs,
@@ -337,6 +328,7 @@ fun SimApp(
                 } else {
                     slotStartMs = System.currentTimeMillis()
                     slotStartDist = tracker.distanceMeters
+                    resetSlotHr()
                 }
             }
             delay(250)
@@ -347,16 +339,15 @@ fun SimApp(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
         if (grants.values.all { it }) {
+            pm5Scanning = true
             ble.start(object : Pm5BleClient.Listener {
-                override fun onConnected() { pm5Connected = true }
+                override fun onConnected() { pm5Connected = true; pm5Scanning = false }
                 override fun onDisconnected() { pm5Connected = false }
                 override fun onSamples(samples: List<ErgSample>) { pm5Latest = samples.lastOrNull() }
             })
         }
     }
 
-    // 러닝 실거리 + 심박(Health Services) — ACTIVITY_RECOGNITION 거부 시 수동 랩 폴백,
-    // BODY_SENSORS 거부 시 심박만 빠진 채 기록된다.
     val activityLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { _ ->
@@ -378,7 +369,7 @@ fun SimApp(
         activityLauncher.launch(
             arrayOf(Manifest.permission.ACTIVITY_RECOGNITION, Manifest.permission.BODY_SENSORS),
         )
-        scope.launch { goal = WearGoal.load(context) } // 폰이 밀어넣은 목표 로드
+        scope.launch { goal = WearGoal.load(context) }
     }
 
     fun recordCurrent() {
@@ -386,7 +377,7 @@ fun SimApp(
         val isMachine = SessionAssembler.isMachine(engine.current?.machineType)
         val erg = if (engine.current?.kind == "station" && isMachine) ble.snapshot() else emptyList()
         engine.record(elapsed, erg, slotAvgHr(), slotMaxHr())
-        if (isMachine) ble.resetSamples() // 기록 즉시 비움 — 다음 세그먼트로 새지 않게
+        if (isMachine) ble.resetSamples()
         version++
         buzz()
         persist()
@@ -396,18 +387,14 @@ fun SimApp(
             scope.launch { tracker.stop() }
         } else {
             beginSlotTimer()
-            // 머신 스테이션(스키/로잉) 진입: 이전 스테이션 잔여 샘플 제거 + 재스캔.
-            // 스키와 로잉은 다른 PM5라 기존 연결을 유지하면 엉뚱한 머신의 샘플이 붙는다.
-            // 같은 머신 재사용(훈련)이어도 재스캔은 1~2초면 같은 기기에 다시 붙는다.
             val next = engine.current
             if (next?.kind == "station" && SessionAssembler.isMachine(next.machineType)) {
                 ble.resetSamples()
-                if (ble.restartIfStarted()) pm5Connected = false // 재연결까지 표시 끔
+                if (ble.restartIfStarted()) pm5Connected = false
             }
         }
     }
 
-    // 잘못 누른 랩 되돌리기 — 이전 슬롯으로 돌아가 그 기록 시점부터 타이머가 이어진다
     fun undoLap() {
         val undone = engine.undoLast() ?: return
         version++
@@ -426,7 +413,7 @@ fun SimApp(
 
     fun resumeRun() {
         val p = pausedAt ?: return
-        slotStartMs += System.currentTimeMillis() - p // 정지 시간만큼 슬롯 시작을 밀어 경과 보정
+        slotStartMs += System.currentTimeMillis() - p
         pausedAt = null
         persist()
         buzz(60)
@@ -458,17 +445,19 @@ fun SimApp(
         buzz(120)
     }
 
-    fun resetAll() {
-        ble.stop()
-        scope.launch { tracker.stop() }
-        WearStore.clearProgress(context)
-        pm5Connected = false
-        pm5Latest = null
-        distNow = 0.0
-        slotStartDist = 0.0
-        pausedAt = null
-        engineKey++
-        phase = AppPhase.IDLE
+    // 뒤로가기: 진행 중이면 종료 확인, 아니면 즉시 메뉴
+    BackHandler {
+        if (phase == AppPhase.RUNNING) showExit = true else onExit()
+    }
+
+    // 물리 퀵버튼 = 현재 단계 완료 (진행 중에만)
+    DisposableEffect(Unit) {
+        QuickButton.handler = handler@{
+            if (phase != AppPhase.RUNNING || pausedAt != null || engine.isDone) return@handler false
+            recordCurrent()
+            true
+        }
+        onDispose { QuickButton.handler = null }
     }
 
     val elapsed = nowMs - slotStartMs
@@ -478,15 +467,197 @@ fun SimApp(
     val runProgress =
         if (kind == "run") {
             if (tracker.active) {
-                (runDistM / app.roxlogy.shared.sim.HyroxSim.RUN_METERS).coerceIn(0.0, 1.0).toFloat()
+                (runDistM / HyroxSim.RUN_METERS).coerceIn(0.0, 1.0).toFloat()
             } else {
                 (elapsed.toFloat() / NOMINAL_RUN_MS).coerceIn(0f, 1f)
             }
-        } else {
-            0f
-        }
+        } else 0f
     val diff = engine.checkpointDiffMs(goal)
+    val slots = engine.slots
+    val nextSlot = slots.getOrNull(engine.index + 1)
+    val slotTarget = HyroxSim.slotTargetMs(engine.index, goal, slots)
 
+    // 좌 스와이프 컨트롤 페이지 (진행 중에만 2페이지)
+    val hasControls = phase == AppPhase.RUNNING
+    val hPager = rememberPagerState { if (hasControls) 2 else 1 }
+
+    HorizontalPager(state = hPager, modifier = Modifier.fillMaxSize()) { page ->
+        if (page == 0) {
+            SimMainPage(
+                engine = engine, phase = phase, kind = kind, round = round,
+                elapsed = elapsed, runDistM = runDistM, runProgress = runProgress,
+                trackerActive = tracker.active, diff = diff, hrNow = hrNow,
+                pm5Connected = pm5Connected, pm5Scanning = pm5Scanning, pm5Latest = pm5Latest,
+                slotTarget = slotTarget, nextKind = nextSlot?.kind,
+                nextLabel = nextSlot?.let { s ->
+                    when (s.kind) {
+                        "run" -> "RUN ${s.index}"
+                        "station" -> STATION_LABEL[s.stationKey] ?: "스테이션"
+                        else -> "록스존"
+                    }
+                },
+                paused = pausedAt != null,
+                onStart = { start() },
+                onRecord = { recordCurrent() },
+                onResume = { resumeRun() },
+                onConnectPm5 = { bleLauncher.launch(blePermissions()) },
+                onSend = { sendSession() },
+                onUndo = { undoLap() },
+                onReset = {
+                    ble.stop()
+                    scope.launch { tracker.stop() }
+                    WearStore.clearProgress(context)
+                    pm5Connected = false
+                    pm5Latest = null
+                    distNow = 0.0
+                    slotStartDist = 0.0
+                    pausedAt = null
+                    engineKey++
+                    phase = AppPhase.IDLE
+                },
+                onExit = onExit,
+            )
+        } else {
+            // 컨트롤 페이지 — 일시정지/재개 · 랩 취소 · 종료 (삼성헬스 패턴)
+            Column(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 30.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Chip(
+                    onClick = {
+                        if (pausedAt == null) pause() else resumeRun()
+                        scope.launch { hPager.animateScrollToPage(0) }
+                    },
+                    colors = ChipDefaults.primaryChipColors(),
+                    label = { Text(if (pausedAt == null) "⏸ 일시정지" else "▶ 재개", fontSize = 14.sp) },
+                )
+                Chip(
+                    onClick = {
+                        undoLap()
+                        scope.launch { hPager.animateScrollToPage(0) }
+                    },
+                    enabled = engine.index > 0,
+                    colors = ChipDefaults.secondaryChipColors(backgroundColor = SurfaceHi),
+                    label = { Text("↩ 랩 되돌리기", fontSize = 14.sp) },
+                )
+                Chip(
+                    onClick = { showExit = true },
+                    colors = ChipDefaults.secondaryChipColors(backgroundColor = SurfaceHi),
+                    label = { Text("✕ 시뮬 종료", fontSize = 14.sp, color = Bad) },
+                )
+                Text("● ○", fontSize = 9.sp, color = MutedText)
+            }
+        }
+    }
+
+    // 종료 확인 다이얼로그
+    Dialog(showDialog = showExit, onDismissRequest = { showExit = false }) {
+        Alert(
+            title = { Text("시뮬을 종료할까요?", fontSize = 14.sp, textAlign = TextAlign.Center) },
+            message = {
+                Text(
+                    "진행 기록은 저장되어\n'이어서 기록'으로 복귀할 수 있습니다",
+                    fontSize = 11.sp, color = MutedText, textAlign = TextAlign.Center,
+                )
+            },
+            negativeButton = {
+                Chip(
+                    onClick = { showExit = false },
+                    colors = ChipDefaults.secondaryChipColors(backgroundColor = SurfaceHi),
+                    label = { Text("계속", fontSize = 12.sp) },
+                )
+            },
+            positiveButton = {
+                Chip(
+                    onClick = {
+                        showExit = false
+                        persist()
+                        onExit()
+                    },
+                    colors = ChipDefaults.primaryChipColors(),
+                    label = { Text("종료", fontSize = 12.sp) },
+                )
+            },
+        )
+    }
+}
+
+// ---------------------------------------------------------------- 시뮬 메인 페이지 (상하 뷰)
+@Composable
+private fun SimMainPage(
+    engine: SimEngine,
+    phase: AppPhase,
+    kind: String?,
+    round: Int,
+    elapsed: Long,
+    runDistM: Double,
+    runProgress: Float,
+    trackerActive: Boolean,
+    diff: Long?,
+    hrNow: Double,
+    pm5Connected: Boolean,
+    pm5Scanning: Boolean,
+    pm5Latest: ErgSample?,
+    slotTarget: Long?,
+    nextKind: String?,
+    nextLabel: String?,
+    paused: Boolean,
+    onStart: () -> Unit,
+    onRecord: () -> Unit,
+    onResume: () -> Unit,
+    onConnectPm5: () -> Unit,
+    onSend: () -> Unit,
+    onUndo: () -> Unit,
+    onReset: () -> Unit,
+    onExit: () -> Unit,
+) {
+    // 상하 스와이프 데이터 뷰: 진행 중에만 3뷰(기본/상세/스플릿)
+    val views = if (phase == AppPhase.RUNNING && !paused) 3 else 1
+    val vPager = rememberPagerState { views }
+
+    VerticalPager(state = vPager, modifier = Modifier.fillMaxSize()) { v ->
+        when (v) {
+            0 -> RingView(
+                engine, phase, kind, round, elapsed, runDistM, runProgress, trackerActive,
+                diff, hrNow, pm5Connected, pm5Scanning, pm5Latest, slotTarget, nextKind, nextLabel,
+                paused, onStart, onRecord, onResume, onConnectPm5, onSend, onUndo, onReset, onExit,
+            )
+            1 -> DetailView(elapsed, hrNow, pm5Connected, pm5Latest, slotTarget, nextLabel, diff)
+            else -> SplitsView(engine)
+        }
+    }
+}
+
+/** 뷰1 — 두 링 + 타이머 + 고정 위치 액션 (메인 컨셉 유지). */
+@Composable
+private fun RingView(
+    engine: SimEngine,
+    phase: AppPhase,
+    kind: String?,
+    round: Int,
+    elapsed: Long,
+    runDistM: Double,
+    runProgress: Float,
+    trackerActive: Boolean,
+    diff: Long?,
+    hrNow: Double,
+    pm5Connected: Boolean,
+    pm5Scanning: Boolean,
+    pm5Latest: ErgSample?,
+    slotTarget: Long?,
+    nextKind: String?,
+    nextLabel: String?,
+    paused: Boolean,
+    onStart: () -> Unit,
+    onRecord: () -> Unit,
+    onResume: () -> Unit,
+    onConnectPm5: () -> Unit,
+    onSend: () -> Unit,
+    onUndo: () -> Unit,
+    onReset: () -> Unit,
+    onExit: () -> Unit,
+) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         SimRings(
             stationDone = engine.stationDoneCount(),
@@ -495,8 +666,7 @@ fun SimApp(
             modifier = Modifier.fillMaxSize().padding(4.dp),
         )
 
-        // 단계 인지용 중앙 배경 — 링 안쪽 원을 단계 색으로 칠한다
-        val phaseBg = if (phase == AppPhase.RUNNING) {
+        val phaseBg = if (phase == AppPhase.RUNNING && !paused) {
             when (kind) {
                 "run" -> RunBg
                 "station" -> StationBg
@@ -505,83 +675,225 @@ fun SimApp(
         } else Color.Transparent
         Box(Modifier.fillMaxSize(0.70f).clip(CircleShape).background(phaseBg))
 
+        // 고정 3영역: 헤더(상) / 타이머·정보(중) / 액션(하) — 버튼 위치 항상 동일
         Column(
-            modifier = Modifier.fillMaxSize().padding(38.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = 34.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            when (phase) {
-                AppPhase.IDLE -> {
-                    Text("하이록스", textAlign = TextAlign.Center)
-                    Text("시뮬레이션", textAlign = TextAlign.Center)
-                    ActionChip("시작", RaceYellow, Color.Black) { start() }
-                    ActionChip("메뉴", NeutralChip, Color.White, onExit)
-                }
-                AppPhase.RUNNING -> if (pausedAt != null) {
-                    Text("일시정지됨", fontSize = 13.sp, color = Chalk)
-                    Text(fmt(elapsed), fontSize = 26.sp)
-                    ActionChip("재개", RaceYellow, Color.Black) { resumeRun() }
-                    ActionChip("메뉴 (기록 유지)", NeutralChip, Color.White, onExit)
-                } else {
-                    when (kind) {
-                        "run" -> {
-                            Text("RUN $round", fontSize = 13.sp, color = RunBlue)
-                            Text(fmt(elapsed), fontSize = 26.sp)
-                            if (tracker.active) {
-                                Text("${runDistM.toInt()} m / 1km", fontSize = 11.sp)
-                            } else {
-                                Text("탭 = 1km 랩", fontSize = 11.sp)
-                            }
-                            if (hrNow > 30.0) {
-                                Text("♥ ${hrNow.toInt()}", fontSize = 11.sp, color = Color(0xFFFF6B6B))
-                            }
-                            DiffBadge(diff)
-                            ActionChip("1km 완료", RunBlue, Color.White) { recordCurrent() }
-                        }
-                        "roxzone" -> {
-                            Text("록스존 · 이동", fontSize = 13.sp, color = Chalk)
-                            Text(fmt(elapsed), fontSize = 26.sp)
-                            ActionChip("스테이션 시작", Chalk, Color.Black) { recordCurrent() }
-                        }
-                        "station" -> {
-                            Text("STATION $round", fontSize = 12.sp, color = RaceYellow)
-                            Text(STATION_LABEL[engine.current?.stationKey] ?: "스테이션", fontSize = 15.sp)
-                            Text(fmt(elapsed), fontSize = 24.sp)
-                            val machine = SessionAssembler.isMachine(engine.current?.machineType)
-                            if (machine) {
-                                if (pm5Connected) {
-                                    val s = pm5Latest
-                                    Text("${s?.watts ?: 0}W · spm ${s?.spm ?: 0}", fontSize = 11.sp)
-                                } else {
-                                    ActionChip("PM5 연결", NeutralChip, Color.White) {
-                                        bleLauncher.launch(blePermissions())
-                                    }
-                                }
-                            }
-                            DiffBadge(diff)
-                            ActionChip("완료", RaceYellow, Color.Black) { recordCurrent() }
-                        }
-                        else -> Text("…")
+            // ── 헤더 영역 (고정 높이)
+            Column(
+                modifier = Modifier.weight(1.1f),
+                verticalArrangement = Arrangement.Bottom,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                when {
+                    phase == AppPhase.IDLE -> BrandHeader(sub = "레이스 시뮬")
+                    phase == AppPhase.DONE || phase == AppPhase.SENT ->
+                        Text(
+                            if (phase == AppPhase.DONE) "시뮬 완료 ✓" else "전송됨 ✓",
+                            fontSize = 14.sp, color = RaceYellow, fontWeight = FontWeight.Bold,
+                        )
+                    paused -> Text("일시정지됨", fontSize = 14.sp, color = Chalk, fontWeight = FontWeight.Bold)
+                    kind == "run" -> Text("RUN $round", fontSize = 14.sp, color = TrackBlue, fontWeight = FontWeight.Bold)
+                    kind == "station" -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("STATION $round", fontSize = 11.sp, color = RaceYellow)
+                        Text(
+                            STATION_LABEL[engine.current?.stationKey] ?: "스테이션",
+                            fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                        )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ActionChip("⏸", NeutralChip, Color.White) { pause() }
-                        if (engine.index > 0) {
-                            ActionChip("↩ 랩", NeutralChip, Color.White) { undoLap() }
+                    else -> Text("록스존 · 이동", fontSize = 14.sp, color = Chalk, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // ── 타이머·정보 영역
+            Column(
+                modifier = Modifier.weight(1.6f),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                when (phase) {
+                    AppPhase.IDLE -> Text("8×1km + 8 스테이션\n32구간 기록", fontSize = 11.sp, color = MutedText, textAlign = TextAlign.Center)
+                    AppPhase.DONE, AppPhase.SENT -> {
+                        Text(fmt(engine.elapsedTotalMs()), fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                        DiffBadge(diff)
+                        SummaryLine(engine)
+                    }
+                    AppPhase.RUNNING -> {
+                        Text(fmt(elapsed), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                        if (!paused) {
+                            if (kind == "run") {
+                                Text(
+                                    if (trackerActive) "${runDistM.toInt()} m / 1km" else "탭 = 1km 랩",
+                                    fontSize = 10.sp, color = MutedText,
+                                )
+                            }
+                            if (slotTarget != null) {
+                                Text("구간 목표 ${fmt(slotTarget)}", fontSize = 10.sp, color = MutedText)
+                            }
+                            DiffBadge(diff, fontSize = 10)
+                            if (hrNow > 30) {
+                                Text("♥ ${hrNow.toInt()}", fontSize = 11.sp, color = hrZoneColor(hrNow.toInt()))
+                            }
+                            if (nextLabel != null && kind != "run") {
+                                Text("다음: $nextLabel", fontSize = 9.sp, color = MutedText)
+                            }
                         }
                     }
                 }
-                AppPhase.DONE -> {
-                    Text("시뮬 완료 ✓", color = RaceYellow)
-                    Text(fmt(engine.elapsedTotalMs()), fontSize = 24.sp)
-                    DiffBadge(diff)
-                    ActionChip("전송", RaceYellow, Color.Black) { sendSession() }
-                    ActionChip("↩ 랩 취소", NeutralChip, Color.White) { undoLap() }
+            }
+
+            // ── 액션 영역 (고정 위치)
+            Column(
+                modifier = Modifier.weight(1.2f),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                when {
+                    phase == AppPhase.IDLE -> {
+                        ActionChip("시작", RaceYellow, Color.Black, onStart)
+                        Spacer(Modifier.height(2.dp))
+                        ActionChip("메뉴", SurfaceHi, Color.White, onExit)
+                    }
+                    phase == AppPhase.DONE -> {
+                        ActionChip("전송", RaceYellow, Color.Black, onSend)
+                        Spacer(Modifier.height(2.dp))
+                        ActionChip("↩ 랩 취소", SurfaceHi, Color.White, onUndo)
+                    }
+                    phase == AppPhase.SENT -> {
+                        ActionChip("새 시뮬", RaceYellow, Color.Black, onReset)
+                        Spacer(Modifier.height(2.dp))
+                        ActionChip("메뉴", SurfaceHi, Color.White, onExit)
+                    }
+                    paused -> ActionChip("▶ 재개", RaceYellow, Color.Black, onResume)
+                    kind == "run" -> ActionChip("1km 완료", TrackBlue, Color.White, onRecord)
+                    kind == "roxzone" -> ActionChip(
+                        when (nextKind) {
+                            "station" -> "스테이션 시작"
+                            "run" -> "런 시작"
+                            else -> "피니시"
+                        },
+                        Chalk, Color.Black, onRecord,
+                    )
+                    kind == "station" -> {
+                        val machine = SessionAssembler.isMachine(engine.current?.machineType)
+                        if (machine) {
+                            // PM5 = 종목명 칩: 탭하면 연결, 연결되면 라이브 상태 표시
+                            val label = STATION_LABEL[engine.current?.stationKey] ?: "Erg"
+                            CompactChip(
+                                onClick = { if (!pm5Connected && !pm5Scanning) onConnectPm5() },
+                                colors = ChipDefaults.chipColors(
+                                    backgroundColor = if (pm5Connected) StationBg else SurfaceHi,
+                                    contentColor = if (pm5Connected) RaceYellow else Color.White,
+                                ),
+                                label = {
+                                    Text(
+                                        when {
+                                            pm5Connected -> "$label ✓ ${pm5Latest?.watts ?: 0}W·${pm5Latest?.spm ?: 0}spm"
+                                            pm5Scanning -> "$label 연결 중…"
+                                            else -> "$label 연결"
+                                        },
+                                        fontSize = 10.sp,
+                                    )
+                                },
+                            )
+                            Spacer(Modifier.height(2.dp))
+                        }
+                        ActionChip("완료", RaceYellow, Color.Black, onRecord)
+                    }
                 }
-                AppPhase.SENT -> {
-                    Text("전송됨 ✓")
-                    ActionChip("새 시뮬", NeutralChip, Color.White) { resetAll() }
-                    ActionChip("메뉴", NeutralChip, Color.White, onExit)
-                }
+            }
+        }
+    }
+}
+
+/** DONE/SENT 요약 한 줄 — 합계·평균/최대 심박 (Roxfit 요약 스타일 축약). */
+@Composable
+private fun SummaryLine(engine: SimEngine) {
+    val segs = engine.recordedSegments()
+    val runSum = segs.filter { it.kind == "run" }.sumOf { it.splitTimeMs }
+    val stSum = segs.filter { it.kind == "station" }.sumOf { it.splitTimeMs }
+    val roxSum = segs.filter { it.kind == "roxzone" }.sumOf { it.splitTimeMs }
+    val hrSegs = segs.mapNotNull { s -> s.avgHr?.let { it.toLong() * s.splitTimeMs } }
+    val hrDur = segs.filter { it.avgHr != null }.sumOf { it.splitTimeMs }
+    val avgHr = if (hrDur > 0) (hrSegs.sum() / hrDur).toInt() else null
+    val maxHr = segs.mapNotNull { it.maxHr }.maxOrNull()
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            "런 ${fmt(runSum)} · 스테이션 ${fmt(stSum)}",
+            fontSize = 9.sp, color = MutedText,
+        )
+        Text(
+            "록스존 ${fmt(roxSum)}" +
+                (avgHr?.let { " · ♥$it" + (maxHr?.let { m -> "/$m" } ?: "") } ?: ""),
+            fontSize = 9.sp, color = MutedText,
+        )
+    }
+}
+
+/** 뷰2 — 상세 데이터 (심박 존·PM5 라이브·구간 목표·다음 종목). */
+@Composable
+private fun DetailView(
+    elapsed: Long,
+    hrNow: Double,
+    pm5Connected: Boolean,
+    pm5Latest: ErgSample?,
+    slotTarget: Long?,
+    nextLabel: String?,
+    diff: Long?,
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 34.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("상세", fontSize = 10.sp, color = MutedText)
+        Text(fmt(elapsed), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        if (hrNow > 30) {
+            Text("♥ ${hrNow.toInt()} bpm", fontSize = 16.sp, color = hrZoneColor(hrNow.toInt()), fontWeight = FontWeight.Bold)
+        } else {
+            Text("♥ --", fontSize = 14.sp, color = MutedText)
+        }
+        if (pm5Connected && pm5Latest != null) {
+            Text(
+                "${pm5Latest.watts ?: 0}W · ${pm5Latest.spm ?: 0}spm" +
+                    (pm5Latest.pace?.let { " · ${fmt((it * 1000).toLong())}/500m" } ?: ""),
+                fontSize = 12.sp, color = RaceYellow,
+            )
+        }
+        if (slotTarget != null) Text("구간 목표 ${fmt(slotTarget)}", fontSize = 11.sp, color = MutedText)
+        DiffBadge(diff)
+        if (nextLabel != null) Text("다음: $nextLabel", fontSize = 11.sp, color = Chalk)
+    }
+}
+
+/** 뷰3 — 완료 구간 스플릿 리스트. */
+@Composable
+private fun SplitsView(engine: SimEngine) {
+    val segs = engine.recordedSegments()
+    val exLabel = remember {
+        Stations.ALL.associate { it.exerciseId to (STATION_LABEL[it.key] ?: it.key) }
+    }
+    var runN = 0
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 40.dp, vertical = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text("스플릿", fontSize = 10.sp, color = MutedText)
+        if (segs.isEmpty()) Text("완료 구간 없음", fontSize = 11.sp, color = MutedText)
+        segs.forEach { s ->
+            val label = when (s.kind) {
+                "run" -> { runN++; "런$runN" }
+                "station" -> exLabel[s.exerciseId] ?: "스테이션"
+                else -> "록스존"
+            }
+            androidx.compose.foundation.layout.Row {
+                Text(label, fontSize = 11.sp, color = MutedText, modifier = Modifier.weight(1f))
+                Text(fmt(s.splitTimeMs), fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
