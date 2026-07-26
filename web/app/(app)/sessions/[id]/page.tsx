@@ -33,6 +33,8 @@ type Segment = {
   kind: "run" | "station" | "roxzone";
   machine_type: string | null;
   split_time_ms: number | null;
+  avg_hr: number | null;
+  max_hr: number | null;
   exercises: { name_ko: string; name_en: string } | null;
   segment_metrics: {
     avg_power: number | null;
@@ -83,7 +85,7 @@ export default async function SessionDetailPage({
        workout_templates ( id, title, program_days ( day_index, programs ( id, title ) ) ),
        session_metrics ( run_lap_deviation_ms, roxzone_total_ms, pacing_grade ),
        session_segments (
-         id, seq, kind, machine_type, split_time_ms,
+         id, seq, kind, machine_type, split_time_ms, avg_hr, max_hr,
          exercises ( name_ko, name_en ),
          segment_metrics ( avg_power, avg_spm, avg_pace_500, pace_curve, power_curve ),
          erg_samples ( sample_count )
@@ -374,6 +376,12 @@ export default async function SessionDetailPage({
                 {seg.segment_metrics?.avg_power != null && (
                   <span className="font-mono text-xs text-muted">
                     {Math.round(Number(seg.segment_metrics.avg_power))}W
+                  </span>
+                )}
+                {seg.avg_hr != null && (
+                  <span className="font-mono text-xs text-red-400">
+                    ♥{seg.avg_hr}
+                    {seg.max_hr != null && `/${seg.max_hr}`}
                   </span>
                 )}
                 <span className="w-16 text-right font-mono text-sm font-semibold">

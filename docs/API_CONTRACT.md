@@ -37,6 +37,8 @@ Content-Type: application/json
       "exercise_id": "uuid | null",  // 시드 01의 고정 UUID (web/lib/hyrox.ts와 일치)
       "machine_type": "ski|row|null",
       "split_time_ms": 267000,
+      "avg_hr": 152,          // 선택 — 세그먼트 평균 심박 bpm (워치 센서)
+      "max_hr": 171,          // 선택 — 세그먼트 최대 심박 bpm
       "started_at": "ISO8601 | null",
       "ended_at": "ISO8601 | null",
       "erg": {                       // 선택 — PM5 raw (세그먼트당 한 덩어리)

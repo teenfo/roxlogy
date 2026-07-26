@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <!-- 랩 기록·목표 이탈 햅틱 피드백 -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 세그먼트별 심박 기록 (Health Services HEART_RATE_BPM) -->
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
 
     <application

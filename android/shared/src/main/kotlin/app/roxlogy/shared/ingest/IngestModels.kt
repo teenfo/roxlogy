@@ -36,6 +36,8 @@ data class SegmentPayload(
     val started_at: String? = null,     // ISO8601
     val ended_at: String? = null,
     val erg: ErgBlock? = null,          // PM5 raw (세그먼트당 한 덩어리)
+    val avg_hr: Int? = null,            // 세그먼트 평균 심박 bpm (워치 센서, 선택)
+    val max_hr: Int? = null,
 )
 
 @Serializable

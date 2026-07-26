@@ -110,7 +110,12 @@ class SimEngine(
         if (current?.kind == "run") HyroxSim.runProgress(runDistanceM) else 0.0
 
     /** 현재 슬롯 기록 후 다음으로 전진. 스테이션 슬롯에만 erg raw를 첨부한다. */
-    fun record(splitMs: Long, ergSamples: List<ErgSample> = emptyList()) {
+    fun record(
+        splitMs: Long,
+        ergSamples: List<ErgSample> = emptyList(),
+        avgHr: Int? = null,
+        maxHr: Int? = null,
+    ) {
         val c = current ?: return
         recorded.add(
             RecordedSegment(
@@ -119,6 +124,8 @@ class SimEngine(
                 exerciseId = c.exerciseId,
                 machineType = c.machineType,
                 ergSamples = if (c.kind == "station") ergSamples else emptyList(),
+                avgHr = avgHr,
+                maxHr = maxHr,
             ),
         )
         index++

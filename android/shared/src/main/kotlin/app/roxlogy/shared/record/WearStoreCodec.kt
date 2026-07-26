@@ -17,6 +17,8 @@ data class SnapSeg(
     val splitTimeMs: Long,
     val exerciseId: String? = null,
     val machineType: String? = null,
+    val avgHr: Int? = null,
+    val maxHr: Int? = null,
 )
 
 @Serializable
@@ -55,11 +57,12 @@ object WearStoreCodec {
         RecordedSegment(
             kind = it.kind, splitTimeMs = it.splitTimeMs,
             exerciseId = it.exerciseId, machineType = it.machineType,
+            avgHr = it.avgHr, maxHr = it.maxHr,
         )
     }
 
     fun fromRecorded(segments: List<RecordedSegment>): List<SnapSeg> = segments.map {
-        SnapSeg(it.kind, it.splitTimeMs, it.exerciseId, it.machineType)
+        SnapSeg(it.kind, it.splitTimeMs, it.exerciseId, it.machineType, it.avgHr, it.maxHr)
     }
 
     /** 보관 정책 적용: 최신순 20개, 72시간 이내만 유지. */

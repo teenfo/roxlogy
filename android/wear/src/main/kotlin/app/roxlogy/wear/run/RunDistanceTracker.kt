@@ -24,18 +24,25 @@ class RunDistanceTracker(context: Context) {
     var distanceMeters: Double = 0.0
         private set
 
+    /** 최신 심박 bpm (BODY_SENSORS 허용 + 기기 지원 시, 아니면 0). */
+    @Volatile
+    var heartRateBpm: Double = 0.0
+        private set
+
     @Volatile
     var active: Boolean = false
         private set
 
     private var callback: ExerciseUpdateCallback? = null
 
-    /** RUNNING_TREADMILL + DISTANCE_TOTAL 지원 시 운동 시작. 성공하면 true. */
+    /** RUNNING_TREADMILL + DISTANCE_TOTAL 지원 시 운동 시작. 성공하면 true.
+     *  HEART_RATE_BPM은 지원 기기에서만 함께 구독(세그먼트 평균/최대 집계용). */
     suspend fun start(): Boolean {
         return try {
             val caps = client.getCapabilitiesAsync().await()
             val t = caps.getExerciseTypeCapabilities(ExerciseType.RUNNING_TREADMILL)
             if (!t.supportedDataTypes.contains(DataType.DISTANCE_TOTAL)) return false
+            val withHr = t.supportedDataTypes.contains(DataType.HEART_RATE_BPM)
 
             val cb = object : ExerciseUpdateCallback {
                 override fun onRegistered() {}
@@ -43,6 +50,8 @@ class RunDistanceTracker(context: Context) {
                 override fun onExerciseUpdateReceived(update: ExerciseUpdate) {
                     val d = update.latestMetrics.getData(DataType.DISTANCE_TOTAL)
                     if (d != null) distanceMeters = d.total
+                    val hr = update.latestMetrics.getData(DataType.HEART_RATE_BPM)
+                    hr?.lastOrNull()?.let { heartRateBpm = it.value }
                 }
                 override fun onLapSummaryReceived(lapSummary: ExerciseLapSummary) {}
                 override fun onAvailabilityChanged(
@@ -54,7 +63,10 @@ class RunDistanceTracker(context: Context) {
             client.setUpdateCallback(cb)
 
             val config = ExerciseConfig.builder(ExerciseType.RUNNING_TREADMILL)
-                .setDataTypes(setOf(DataType.DISTANCE_TOTAL))
+                .setDataTypes(
+                    if (withHr) setOf(DataType.DISTANCE_TOTAL, DataType.HEART_RATE_BPM)
+                    else setOf(DataType.DISTANCE_TOTAL),
+                )
                 .setIsGpsEnabled(false)
                 .build()
             client.startExerciseAsync(config).await()

@@ -289,6 +289,15 @@ fun SimApp(
     var goal by remember { mutableStateOf<GoalPlan?>(null) }
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
 
+    // 슬롯별 심박 집계 (250ms 루프에서 샘플링 → record 시 평균/최대로 확정)
+    var hrSum by remember { mutableStateOf(0.0) }
+    var hrN by remember { mutableStateOf(0) }
+    var hrMax by remember { mutableStateOf(0.0) }
+    var hrNow by remember { mutableStateOf(0.0) }
+    fun slotAvgHr(): Int? = if (hrN > 0) (hrSum / hrN).toInt() else null
+    fun slotMaxHr(): Int? = if (hrN > 0) hrMax.toInt() else null
+    fun resetSlotHr() { hrSum = 0.0; hrN = 0; hrMax = 0.0 }
+
     version.let {} // read to subscribe
 
     fun buzz(ms: Long = 40L) {
@@ -309,11 +318,16 @@ fun SimApp(
         while (active) {
             nowMs = System.currentTimeMillis()
             distNow = tracker.distanceMeters
+            hrNow = tracker.heartRateBpm
+            if (hrNow > 30.0) { hrSum += hrNow; hrN++; if (hrNow > hrMax) hrMax = hrNow }
             // 트레드밀 실거리 1km 도달 시 자동 랩 (수동 랩 버튼도 상시)
             if (engine.current?.kind == "run" && tracker.active &&
                 (distNow - slotStartDist) >= app.roxlogy.shared.sim.HyroxSim.RUN_METERS
             ) {
-                engine.record(System.currentTimeMillis() - slotStartMs)
+                engine.record(
+                    System.currentTimeMillis() - slotStartMs,
+                    avgHr = slotAvgHr(), maxHr = slotMaxHr(),
+                )
                 version++
                 buzz()
                 persist()
@@ -341,10 +355,10 @@ fun SimApp(
         }
     }
 
-    // 러닝 실거리(Health Services)용 ACTIVITY_RECOGNITION — 거부되면 tracker.start()가 false로
-    // 떨어져 수동 랩 폴백이 쓰인다.
+    // 러닝 실거리 + 심박(Health Services) — ACTIVITY_RECOGNITION 거부 시 수동 랩 폴백,
+    // BODY_SENSORS 거부 시 심박만 빠진 채 기록된다.
     val activityLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
+        ActivityResultContracts.RequestMultiplePermissions(),
     ) { _ ->
         scope.launch { tracker.start() }
     }
@@ -353,6 +367,7 @@ fun SimApp(
         slotStartMs = System.currentTimeMillis()
         nowMs = slotStartMs
         slotStartDist = tracker.distanceMeters
+        resetSlotHr()
     }
 
     fun start() {
@@ -360,7 +375,9 @@ fun SimApp(
         phase = AppPhase.RUNNING
         beginSlotTimer()
         persist()
-        activityLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+        activityLauncher.launch(
+            arrayOf(Manifest.permission.ACTIVITY_RECOGNITION, Manifest.permission.BODY_SENSORS),
+        )
         scope.launch { goal = WearGoal.load(context) } // 폰이 밀어넣은 목표 로드
     }
 
@@ -368,7 +385,7 @@ fun SimApp(
         val elapsed = System.currentTimeMillis() - slotStartMs
         val isMachine = SessionAssembler.isMachine(engine.current?.machineType)
         val erg = if (engine.current?.kind == "station" && isMachine) ble.snapshot() else emptyList()
-        engine.record(elapsed, erg)
+        engine.record(elapsed, erg, slotAvgHr(), slotMaxHr())
         if (isMachine) ble.resetSamples() // 기록 즉시 비움 — 다음 세그먼트로 새지 않게
         version++
         buzz()
@@ -514,6 +531,9 @@ fun SimApp(
                                 Text("${runDistM.toInt()} m / 1km", fontSize = 11.sp)
                             } else {
                                 Text("탭 = 1km 랩", fontSize = 11.sp)
+                            }
+                            if (hrNow > 30.0) {
+                                Text("♥ ${hrNow.toInt()}", fontSize = 11.sp, color = Color(0xFFFF6B6B))
                             }
                             DiffBadge(diff)
                             ActionChip("1km 완료", RunBlue, Color.White) { recordCurrent() }

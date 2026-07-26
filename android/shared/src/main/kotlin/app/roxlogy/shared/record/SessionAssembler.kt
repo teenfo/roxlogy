@@ -16,6 +16,8 @@ data class RecordedSegment(
     val machineType: String? = null,     // "ski" | "row" | null
     val id: String? = null,              // 클라이언트 생성 세그먼트 id (선택)
     val ergSamples: List<ErgSample> = emptyList(),
+    val avgHr: Int? = null,              // 세그먼트 평균/최대 심박 bpm (선택)
+    val maxHr: Int? = null,
 )
 
 /** 레이스 시뮬 24슬롯의 한 칸(런/록스존/스테이션). UI가 이 뼈대를 채운다. */
@@ -54,6 +56,8 @@ object SessionAssembler {
                 machine_type = s.machineType,
                 split_time_ms = s.splitTimeMs,
                 erg = erg,
+                avg_hr = s.avgHr,
+                max_hr = s.maxHr,
             )
         }
         val total = segments.sumOf { it.splitTimeMs }

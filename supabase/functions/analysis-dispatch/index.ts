@@ -49,6 +49,8 @@ type Seg = {
   kind: string;
   seq: number;
   split_time_ms: number | null;
+  avg_hr?: number | null;
+  max_hr?: number | null;
   erg_samples?: { samples: Record<string, number>[] }[] | { samples: Record<string, number>[] } | null;
   exercises?: { name_ko: string } | null;
 };
@@ -170,16 +172,17 @@ function sessionPrompt(
   ];
   let runN = 0, runSum = 0, stationSum = 0, roxSum = 0;
   const runs: number[] = [];
+  const hr = (g: Seg) => g.avg_hr != null ? ` (심박 평균 ${g.avg_hr}${g.max_hr != null ? `·최대 ${g.max_hr}` : ""})` : "";
   for (const seg of segments) {
     const ms = seg.split_time_ms ?? 0;
     const split = fmtMs(seg.split_time_ms);
     if (seg.kind === "run") {
       runN++; runSum += ms; runs.push(ms);
-      lines.push(`- 런${runN}: ${split}`);
+      lines.push(`- 런${runN}: ${split}${hr(seg)}`);
     } else if (seg.kind === "station") {
       const name = seg.exercises?.name_ko ?? "스테이션";
       stationSum += ms;
-      lines.push(`- ${name}: ${split}`);
+      lines.push(`- ${name}: ${split}${hr(seg)}`);
     } else if (seg.kind === "roxzone") {
       roxSum += ms;
       lines.push(`- 록스존: ${split}`);
@@ -481,7 +484,7 @@ Deno.serve(async (req) => {
       .insert({ kind: "session", user_id: s.user_id, ref_id: s.id }).select("id").single();
     if (claimErr || !claim) continue;
     const { data: segs } = await db.from("session_segments")
-      .select("id,seq,kind,split_time_ms,exercises(name_ko)")
+      .select("id,seq,kind,split_time_ms,avg_hr,max_hr,exercises(name_ko)")
       .eq("session_id", s.id).order("seq", { ascending: true });
     const segments = (segs ?? []) as unknown as Seg[];
     if (segments.length === 0) {
