@@ -15,9 +15,9 @@
 
 ## 현재 Phase
 **코어 완성 — 운영 준비 단계.** 로드맵은 `docs/ROADMAP.md`.
-- ✅ 완료: 스키마+RLS, 웹 전 기능(세션·레이스·프로그램·리더보드·커뮤니티·백분위·어드민, en/ko/es), M3 수신 API, M4 hosub 워커 코드, Wear OS 시뮬 레코더, 가민 Connect IQ 앱, 폰 하이브리드 앱(Google 로그인+WebView), 사이드로드 릴리스(CI→Supabase Storage), **푸시 알림 전 구간**(웹 Web Push + 네이티브 FCM 배선 + 새팔로워 트리거 + WOD 크론 + push-dispatch 큐 발송).
+- ✅ 완료: 스키마+RLS, 웹 전 기능(세션·레이스·프로그램·리더보드·커뮤니티·백분위·어드민, en/ko/es), M3 수신 API, **분석 파이프라인**(Edge analysis-dispatch: 지표+AI 인사이트, hosub llm-gateway+Mac LLM), Wear OS 시뮬 레코더, 가민 Connect IQ 앱, 폰 하이브리드 앱(Google 로그인+WebView), 사이드로드 릴리스(CI→Supabase Storage), **푸시 알림 전 구간**(웹 Web Push + 네이티브 FCM 배선 + 새팔로워 트리거 + WOD 크론 + push-dispatch 큐 발송).
 - ⏳ 사용자 대기: Firebase 콘솔 설정(`google-services.json`+`FCM_SERVICE_ACCOUNT`, docs/FCM_SETUP.md), 상표 정밀검색(M6/M7 스토어 게이트).
-- 다음 후보: hosub 워커 실배포, 스토어 출시 준비, 알림 종류 확장. 카카오 OAuth는 도입하지 않음.
+- 다음 후보: 스토어 출시 준비, 알림 종류 확장, AI 인사이트 다국어. 카카오 OAuth는 도입하지 않음.
 
 ## 기술 스택 (확정 — 임의 변경 금지)
 - **워치**: Kotlin + Wear Compose (네이티브). PM5 BLE 직결 때문에 네이티브 강제.
@@ -26,7 +26,7 @@
 - **웹**: Next.js (Vercel 배포)
 - **DB/Auth/Realtime/Storage**: Supabase Cloud
 - **공개 API**: Supabase Edge Functions 우선. 복잡한 분석만 FastAPI 추가 검토.
-- **분석 워커**: hosub 서버(i7, Ubuntu, Docker). Phase 1은 CPU. GPU/AI 코칭은 Phase 2.
+- **분석**: **워커리스** (2026-07-26 확정 — hosub 워커 제거). 지표+AI 오케스트레이션은 Supabase Edge `analysis-dispatch`(pg_cron 1분), LLM 추론은 **hosub llm-gateway**(공개 URL·토큰 인증·잡 영속화) → **Mac(Ollama)**. 프롬프트는 이 레포 소유, 모델 정책은 게이트웨이 roles.yaml. docs/AI_WORKER_SETUP.md.
 
 ## 데이터 모델 핵심 규칙
 - 세션·세그먼트 `id`는 **클라이언트(워치)가 생성한 UUID**. 충돌 키: `sessions(id)` / `session_segments(session_id, seq)` / `erg_samples(segment_id)` — **멱등 업서트** (재전송 안전).
@@ -37,8 +37,8 @@
 - 모든 사용자 데이터 테이블은 **RLS 필수**. 세그먼트·raw는 session을 경유한 조인 정책으로 소유권 판정.
 
 ## 보안 규칙 (엄수)
-- Supabase **service role 키**는 서버/워커(hosub) 내부 시크릿으로만. **클라이언트에 절대 노출 금지.**
-- hosub 워커는 **outbound pull**만 (Supabase에 먼저 접속). 인바운드 포트 개방 금지.
+- Supabase **service role 키**는 서버(Edge env·CI) 내부 시크릿으로만. **클라이언트에 절대 노출 금지.** hosub·Mac은 Supabase 키를 갖지 않는다.
+- hosub 인바운드는 **llm-gateway(Caddy TLS + Bearer 토큰 + 소비자별 rate limit) 하나만** 예외적으로 허용. LLMGW 토큰은 Edge 시크릿/게이트웨이 .env 전용(커밋 금지).
 - 클라이언트는 anon 키 + RLS로만 접근.
 
 ## 디렉토리 구조
