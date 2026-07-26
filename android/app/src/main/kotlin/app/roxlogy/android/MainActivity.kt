@@ -7,32 +7,46 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -55,7 +69,6 @@ import app.roxlogy.android.ui.RoxPrimaryButton
 import app.roxlogy.android.ui.RoxTextField
 import app.roxlogy.android.ui.theme.RoxAccent
 import app.roxlogy.android.ui.theme.RoxError
-import app.roxlogy.android.ui.theme.RoxForeground
 import app.roxlogy.android.ui.theme.RoxMuted
 import app.roxlogy.android.ui.theme.RoxSurface
 import app.roxlogy.android.ui.theme.RoxTrack
@@ -64,7 +77,8 @@ import kotlinx.coroutines.launch
 
 /**
  * 폰 앱 — Supabase 로그인/회원가입 → JWT 확보. 웹과 동일한 브랜드 디자인 시스템(다크·팔레트).
- * 로그인 후 오늘의 WOD 기록 + 최신 목표를 워치로 전달. 워치 시뮬 세션은 자동 업로드.
+ * 로그인 후: 네이티브 하단 5탭(홈·세션·워치·피드·더보기) + WebView(roxlogy.com) 하이브리드.
+ * 워치 탭만 네이티브(연결·목표전송·WOD), 나머지는 웹 화면. 워치연동은 백그라운드 상시 동작.
  */
 class MainActivity : ComponentActivity() {
     private var startPath by mutableStateOf("/dashboard")
@@ -124,12 +138,46 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** 하단 탭. route=null 은 네이티브 화면(워치). */
+private enum class RoxTab(val label: String, val route: String?, val icon: ImageVector?) {
+    HOME("홈", "/dashboard", Icons.Filled.Home),
+    SESSIONS("세션", "/sessions", Icons.AutoMirrored.Filled.List),
+    WATCH("워치", null, null), // 브랜드 마크 아이콘 사용
+    FEED("피드", "/feed", Icons.Filled.Person),
+    MORE("더보기", "/settings/profile", Icons.Filled.Menu),
+}
+
+/** 웹 경로 → 하이라이트할 탭 (웹 안에서 링크로 이동해도 하단 탭 동기화). */
+private fun tabForPath(path: String): RoxTab? = when {
+    path == "/" || path.startsWith("/dashboard") -> RoxTab.HOME
+    path.startsWith("/sessions") || path.startsWith("/workouts") -> RoxTab.SESSIONS
+    path.startsWith("/feed") || path.startsWith("/members") || path.startsWith("/u/") ||
+        path.startsWith("/leaderboard") -> RoxTab.FEED
+    path.startsWith("/settings") || path.startsWith("/goals") || path.startsWith("/programs") ||
+        path.startsWith("/races") || path.startsWith("/predict") -> RoxTab.MORE
+    else -> null
+}
+
 @Composable
 fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
     val context = LocalContext.current
     val auth = remember { AuthClient() }
     val google = remember { GoogleSignInHelper(context) }
     var loggedIn by remember { mutableStateOf(TokenStore.isLoggedIn()) }
+
+    // WebView 이동 상태(하단 탭·알림 딥링크 공용) + 활성 탭
+    var tab by remember { mutableStateOf(tabForPath(startPath) ?: RoxTab.HOME) }
+    var webPath by remember { mutableStateOf(startPath) }
+    var webTick by remember { mutableIntStateOf(0) }
+
+    // 알림 딥링크(Activity → props): 실행 중 탭하면 해당 화면으로
+    LaunchedEffect(navTick) {
+        if (navTick > 0) {
+            webPath = startPath
+            webTick++
+            tab = tabForPath(startPath) ?: tab.takeIf { it != RoxTab.WATCH } ?: RoxTab.HOME
+        }
+    }
 
     LaunchedEffect(loggedIn) {
         if (loggedIn) {
@@ -144,25 +192,94 @@ fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = androidx.compose.material3.MaterialTheme.colorScheme.background,
+        color = MaterialTheme.colorScheme.background,
     ) {
-        if (loggedIn) {
-            // 웹앱(roxlogy.com)을 로그인 상태로 임베드 — 웹의 모든 기능 제공.
-            // 워치연동(GoalSync/PhoneDataReceiver/IngestUploader)은 백그라운드로 계속 동작.
-            WebAppScreen(
-                onLoggedOut = {
-                    // 순서 중요: 구독 해제(delete + 토큰 폐기)는 아직 유효한 액세스 토큰이 필요.
-                    // 지우지 않으면 이 기기의 다음 사용자에게 이전 계정 알림이 계속 온다.
-                    PushRegistration.unregister(context)
-                    TokenStore.clear()
-                    CookieManager.getInstance().removeAllCookies(null)
-                    loggedIn = false
-                },
-                startPath = startPath,
-                navTick = navTick,
-            )
-        } else {
+        if (!loggedIn) {
             AuthScreen(auth = auth, google = google, onAuthed = { loggedIn = true })
+            return@Surface
+        }
+
+        fun openWeb(path: String) {
+            webPath = path
+            webTick++
+            tab = tabForPath(path) ?: RoxTab.HOME
+        }
+
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = {
+                RoxBottomBar(current = tab, onSelect = { t ->
+                    if (t == RoxTab.WATCH) tab = RoxTab.WATCH
+                    else t.route?.let { openWeb(it) }
+                })
+            },
+        ) { pad ->
+            Box(Modifier.fillMaxSize().padding(pad)) {
+                // WebView 는 항상 컴포지션 유지(탭 전환에도 세션·스크롤 보존) — 워치 탭은 위에 오버레이.
+                WebAppScreen(
+                    onLoggedOut = {
+                        // 순서 중요: 구독 해제(delete + 토큰 폐기)는 아직 유효한 액세스 토큰이 필요.
+                        // 지우지 않으면 이 기기의 다음 사용자에게 이전 계정 알림이 계속 온다.
+                        PushRegistration.unregister(context)
+                        TokenStore.clear()
+                        CookieManager.getInstance().removeAllCookies(null)
+                        loggedIn = false
+                    },
+                    startPath = webPath,
+                    navTick = webTick,
+                    onPathChanged = { p -> if (tab != RoxTab.WATCH) tabForPath(p)?.let { tab = it } },
+                    modifier = Modifier.fillMaxSize().imePadding(),
+                )
+                if (tab == RoxTab.WATCH) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .imePadding(),
+                    ) {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background,
+                        ) {
+                            WatchScreen(
+                                onOpenWeb = { p -> openWeb(p) },
+                                onBack = { tab = RoxTab.HOME },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoxBottomBar(current: RoxTab, onSelect: (RoxTab) -> Unit) {
+    NavigationBar(containerColor = RoxSurface) {
+        RoxTab.entries.forEach { t ->
+            NavigationBarItem(
+                selected = current == t,
+                onClick = { onSelect(t) },
+                icon = {
+                    if (t.icon != null) {
+                        Icon(t.icon, contentDescription = t.label)
+                    } else {
+                        // 워치 탭(중앙) — 브랜드 마크로 앱 고유 가치를 강조
+                        Image(
+                            painter = painterResource(R.drawable.ic_rox_mark),
+                            contentDescription = t.label,
+                            modifier = Modifier.size(26.dp),
+                        )
+                    }
+                },
+                label = { Text(t.label, fontSize = 11.sp) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = RoxAccent,
+                    selectedTextColor = RoxAccent,
+                    unselectedIconColor = RoxMuted,
+                    unselectedTextColor = RoxMuted,
+                    indicatorColor = RoxAccent.copy(alpha = 0.14f),
+                ),
+            )
         }
     }
 }
@@ -212,7 +329,7 @@ private fun AuthScreen(
         Text(
             if (isSignup) "계정 만들기" else "로그인",
             color = RoxMuted,
-            style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium,
         )
 
         Spacer(Modifier.height(28.dp))
@@ -288,72 +405,6 @@ private fun AuthScreen(
             TextButton(onClick = { isSignup = !isSignup; error = null; notice = null }) {
                 Text(if (isSignup) "로그인" else "회원가입", color = RoxAccent, fontSize = 13.sp)
             }
-        }
-    }
-}
-
-@Composable
-private fun HomeScreen(onOpenWod: () -> Unit, onLogout: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-    ) {
-        // 헤더
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RoxMark(size = 30.dp)
-            Spacer(Modifier.width(10.dp))
-            Text("ROXLOGY", fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 3.sp)
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = onLogout) {
-                Text("로그아웃", color = RoxMuted, fontSize = 13.sp)
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        // 오늘의 WOD 카드
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(RoxSurface, androidx.compose.material3.MaterialTheme.shapes.large)
-                .padding(20.dp),
-        ) {
-            Text("오늘의 WOD", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "활성 프로그램의 오늘 워크아웃을 기록하고 무게·횟수를 남겨보세요.",
-                color = RoxMuted,
-                fontSize = 13.sp,
-            )
-            Spacer(Modifier.height(16.dp))
-            RoxPrimaryButton(text = "오늘의 WOD 열기", onClick = onOpenWod)
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        // 워치 동기화 안내
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(RoxSurface, androidx.compose.material3.MaterialTheme.shapes.large)
-                .padding(20.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Spacer(Modifier.size(8.dp).background(RoxTrack, androidx.compose.foundation.shape.CircleShape))
-                Spacer(Modifier.width(8.dp))
-                Text("워치 연동", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "워치 하이록스 시뮬 세션은 자동 업로드됩니다. 최신 목표도 워치로 전달돼 진행 중 diff가 표시됩니다.",
-                color = RoxMuted,
-                fontSize = 13.sp,
-            )
         }
     }
 }

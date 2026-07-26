@@ -13,7 +13,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,25 +33,32 @@ import app.roxlogy.android.push.RoxNativeBridge
  * - `RoxNative` JS 브리지로 네이티브 FCM 알림 제어(WebView는 Web Push 미지원).
  *
  * @param startPath 최초 진입 경로(알림 탭 딥링크 등). 기본 /dashboard.
- * @param navTick 실행 중 알림 탭 신호 — 증가할 때마다 WebView를 startPath로 이동.
+ * @param navTick 이동 신호(알림 탭·하단 탭) — 증가할 때마다 WebView를 startPath로 이동.
  *   (AndroidView factory는 최초 1회만 실행되므로 상태 변경만으로는 이동하지 않는다.)
+ * @param onPathChanged 웹 내 경로 변경 통지 — 하단 탭 활성 상태 동기화용.
+ * @param modifier 셸(Scaffold)이 인셋/패딩을 관리 — 기본은 전체 채움 + 키보드 인셋.
  */
 @Composable
-fun WebAppScreen(onLoggedOut: () -> Unit, startPath: String = "/dashboard", navTick: Int = 0) {
+fun WebAppScreen(
+    onLoggedOut: () -> Unit,
+    startPath: String = "/dashboard",
+    navTick: Int = 0,
+    onPathChanged: (String) -> Unit = {},
+    modifier: Modifier = Modifier.fillMaxSize(),
+) {
     val context = LocalContext.current
     var webView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
 
     BackHandler(enabled = canGoBack) { webView?.goBack() }
 
-    // 앱이 이미 떠 있는 상태에서 알림을 탭하면 onNewIntent → navTick 증가 → 해당 화면으로 이동
+    // 알림 탭(딥링크)·하단 탭 → navTick 증가 → 해당 화면으로 이동
     LaunchedEffect(navTick) {
         if (navTick > 0) webView?.loadUrl(WebConfig.BASE_URL + startPath)
     }
 
     AndroidView(
-        // 상태바/네비바/키보드 인셋만큼 여백 — 웹 콘텐츠가 상단 시간표시줄과 겹치지 않게.
-        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+        modifier = modifier,
         factory = { ctx ->
             WebView(ctx).apply {
                 layoutParams = ViewGroup.LayoutParams(
@@ -91,10 +97,11 @@ fun WebAppScreen(onLoggedOut: () -> Unit, startPath: String = "/dashboard", navT
 
                     override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
                         canGoBack = view.canGoBack()
-                        // 웹 세션 종료(로그아웃/주입 실패) → 네이티브 로그인으로 복귀
                         val path = url?.let { Uri.parse(it).path }.orEmpty()
-                        if (WebConfig.isInApp(url?.let { Uri.parse(it).host }) && path.startsWith("/login")) {
-                            onLoggedOut()
+                        if (WebConfig.isInApp(url?.let { Uri.parse(it).host })) {
+                            // 웹 세션 종료(로그아웃/주입 실패) → 네이티브 로그인으로 복귀
+                            if (path.startsWith("/login")) onLoggedOut()
+                            else onPathChanged(path)
                         }
                     }
                 }
