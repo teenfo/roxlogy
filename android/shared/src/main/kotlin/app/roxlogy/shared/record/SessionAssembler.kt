@@ -44,7 +44,7 @@ object SessionAssembler {
     ): IngestRequest {
         val payloads = segments.mapIndexed { i, s ->
             val erg = if (s.ergSamples.isNotEmpty() && s.machineType != null) {
-                ErgBlock(machine_type = s.machineType, samples = s.ergSamples)
+                ErgBlock(machine_type = s.machineType, samples = rebase(s.ergSamples))
             } else null
             SegmentPayload(
                 seq = i + 1,
@@ -90,4 +90,22 @@ object SessionAssembler {
     /** erg raw를 붙일 수 있는 머신 스테이션인지. */
     fun isMachine(machineType: String?): Boolean =
         machineType == MachineType.SKI.wire || machineType == MachineType.ROW.wire
+
+    /**
+     * PM5 샘플을 세그먼트 상대값으로 재베이스 — 계약: t=세그먼트 시작 후 경과 초.
+     * PM5 status의 t/dist/cal은 머신 자체 타이머·누적치라, 머신이 미리 돌고 있었다면
+     * 0이 아닌 값부터 시작한다. 첫 샘플 기준으로 t·dist·cal을 0 기점으로 이동한다.
+     * (pace/spm/watts는 순간값이라 그대로 둔다)
+     */
+    fun rebase(samples: List<ErgSample>): List<ErgSample> {
+        val first = samples.firstOrNull() ?: return samples
+        if (first.t == 0 && first.dist == 0.0 && (first.cal ?: 0.0) == 0.0) return samples
+        return samples.map { s ->
+            s.copy(
+                t = s.t - first.t,
+                dist = s.dist - first.dist,
+                cal = if (s.cal != null && first.cal != null) s.cal - first.cal else s.cal,
+            )
+        }
+    }
 }

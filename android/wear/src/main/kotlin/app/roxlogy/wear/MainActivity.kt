@@ -190,12 +190,21 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
         val isMachine = SessionAssembler.isMachine(engine.current?.machineType)
         val erg = if (engine.current?.kind == "station" && isMachine) ble.snapshot() else emptyList()
         engine.record(elapsed, erg)
+        if (isMachine) ble.resetSamples() // 기록 즉시 비움 — 다음 세그먼트로 새지 않게
         version++
         if (engine.isDone) {
             phase = AppPhase.DONE
             scope.launch { tracker.stop() }
         } else {
             beginSlotTimer()
+            // 머신 스테이션(스키/로잉) 진입: 이전 스테이션 잔여 샘플 제거 + 재스캔.
+            // 스키와 로잉은 다른 PM5라 기존 연결을 유지하면 엉뚱한 머신의 샘플이 붙는다.
+            // 같은 머신 재사용(훈련)이어도 재스캔은 1~2초면 같은 기기에 다시 붙는다.
+            val next = engine.current
+            if (next?.kind == "station" && SessionAssembler.isMachine(next.machineType)) {
+                ble.resetSamples()
+                if (ble.restartIfStarted()) pm5Connected = false // 재연결까지 표시 끔
+            }
         }
     }
 

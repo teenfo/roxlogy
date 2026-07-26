@@ -13,6 +13,8 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelUuid
 import app.roxlogy.shared.ble.C2ErgAccumulator
 import app.roxlogy.shared.ble.C2Pm
@@ -51,11 +53,19 @@ class Pm5BleClient(private val context: Context) {
     private val accumulator = C2ErgAccumulator()
     private var gatt: BluetoothGatt? = null
     private var listener: Listener? = null
+    private val handler = Handler(Looper.getMainLooper())
 
     // CCCD 쓰기는 직렬화 필요 — 큐로 하나씩 처리
     private val subscribeQueue = ArrayDeque<BluetoothGattCharacteristic>()
 
+    // 스캔 결과를 잠시 모아 RSSI 최강 기기에 연결 (짐에 PM5가 여러 대일 때 가장
+    // 가까운 — 사용자가 앉아 있는 — 머신을 고르기 위함)
+    private val candidates = HashMap<String, Pair<BluetoothDevice, Int>>()
+    private var picking = false
+
+    /** 스캔·연결 시작. 기존 연결이 있으면 정리 후 새로 스캔 (기기 전환 안전). */
     fun start(listener: Listener) {
+        stop()
         this.listener = listener
         accumulator.clear()
         val scanner = manager.adapter?.bluetoothLeScanner ?: return
@@ -68,7 +78,20 @@ class Pm5BleClient(private val context: Context) {
         scanner.startScan(listOf(filter), settings, scanCallback)
     }
 
+    /** 이미 연결/스캔 중일 때만 재스캔 — 머신 스테이션 전환(스키↔로잉) 시 호출.
+     *  아직 한 번도 연결 안 했으면 아무것도 안 함 (권한 요청은 사용자 탭으로만).
+     *  재스캔을 시작했으면 true (호출측이 연결 표시를 끌 수 있게). */
+    fun restartIfStarted(): Boolean {
+        val l = listener ?: return false
+        if (gatt == null && !picking) return false
+        start(l)
+        return true
+    }
+
     fun stop() {
+        handler.removeCallbacksAndMessages(null)
+        picking = false
+        candidates.clear()
         manager.adapter?.bluetoothLeScanner?.stopScan(scanCallback)
         gatt?.disconnect()
         gatt?.close()
@@ -77,9 +100,23 @@ class Pm5BleClient(private val context: Context) {
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            manager.adapter?.bluetoothLeScanner?.stopScan(this)
-            connect(result.device)
+            val prev = candidates[result.device.address]
+            if (prev == null || result.rssi > prev.second) {
+                candidates[result.device.address] = result.device to result.rssi
+            }
+            if (!picking) {
+                picking = true
+                handler.postDelayed({ pickBest() }, PICK_WINDOW_MS)
+            }
         }
+    }
+
+    private fun pickBest() {
+        picking = false
+        manager.adapter?.bluetoothLeScanner?.stopScan(scanCallback)
+        val best = candidates.values.maxByOrNull { it.second }?.first
+        candidates.clear()
+        best?.let { connect(it) }
     }
 
     private fun connect(device: BluetoothDevice) {
@@ -147,9 +184,13 @@ class Pm5BleClient(private val context: Context) {
         g.writeDescriptor(descriptor)
     }
 
-    /** 현재까지 누적된 세션 샘플 (세그먼트 종료 시 조립에 사용). */
+    /** 현재까지 누적된 세그먼트 샘플 (세그먼트 종료 시 조립에 사용). */
     fun snapshot(): List<ErgSample> = accumulator.snapshot()
 
-    /** 세그먼트 기록 시작 시 누적 초기화. */
+    /** 세그먼트 기록 시작 시 누적 초기화 — 이전 스테이션/워밍업 샘플 유입 방지. */
     fun resetSamples() = accumulator.clear()
+
+    private companion object {
+        const val PICK_WINDOW_MS = 1500L
+    }
 }
