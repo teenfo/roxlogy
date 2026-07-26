@@ -30,6 +30,19 @@ const SYSTEM_PROMPT =
   "마크다운 헤딩 없이 평문으로. 숫자는 주어진 데이터만 사용하고 직접 계산하지 않는다 " +
   "(합계·차이는 이미 계산돼 제공된다).";
 
+// AI 프로그램 생성용 — 엄격 JSON 출력 강제
+const PROGRAM_SYSTEM =
+  "너는 Roxlogy의 하이록스(HYROX) 트레이닝 프로그램 설계자다. 사용자의 코칭 인사이트" +
+  "(약점·페이싱·목표 격차)를 근거로 7일 훈련 프로그램을 설계한다. " +
+  "출력은 반드시 아래 스키마의 JSON 하나만 — 설명·마크다운·코드펜스 금지. " +
+  '{"title":"...", "description":"...", "level":"beginner|intermediate|advanced|elite", ' +
+  '"days":[{"day_index":1, "focus":"...", "title":"...", ' +
+  '"items":[{"exercise":"운동이름", "note":"세트·횟수·강도 등 수행 지시"}]}]} ' +
+  "규칙: days 는 정확히 7개(day_index 1~7), 주 1~2일은 휴식/회복(items 빈 배열, focus '휴식'), " +
+  "훈련일은 items 4~8개. exercise 값은 반드시 제공된 운동 목록의 이름을 그대로 사용. " +
+  "note 는 한국어로 구체적으로(예: '4세트 × 12회, 세트간 90초 휴식'). " +
+  "인사이트에서 드러난 약점 구간을 우선 보강하고, title/description/focus 는 한국어.";
+
 // ---------------------------------------------------------------- 지표 (analyze.py 이식)
 type Seg = {
   id: string;
@@ -201,12 +214,16 @@ function sessionPrompt(
 // 마지막 제출 실패 사유 — 응답 진단용 (민감정보 없음: 상태코드/에러 클래스만)
 let lastGwError: string | null = null;
 
-async function gwSubmit(prompt: string, metadata: Record<string, unknown>): Promise<string | null> {
+async function gwSubmit(
+  prompt: string,
+  metadata: Record<string, unknown>,
+  system: string = SYSTEM_PROMPT,
+): Promise<string | null> {
   try {
     const r = await fetch(`${LLMGW_URL}/v1/generate`, {
       method: "POST",
       headers: GW_HEADERS,
-      body: JSON.stringify({ role: AI_ROLE, prompt, system: SYSTEM_PROMPT, wait: 0, metadata }),
+      body: JSON.stringify({ role: AI_ROLE, prompt, system, wait: 0, metadata }),
     });
     if (!r.ok) {
       const bodyHead = (await r.text().catch(() => "")).slice(0, 120);
@@ -232,6 +249,68 @@ async function gwPoll(jobId: string): Promise<{ status: string; response?: strin
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------- AI 프로그램 실체화
+// deno-lint-ignore no-explicit-any
+async function notify(db: any, userId: string, title: string, body: string, url: string) {
+  // enqueue_notification(옵트아웃 존중) → push-dispatch 크론이 발송
+  await db.rpc("enqueue_notification", {
+    p_user_id: userId, p_type_key: "ai_program", p_title: title, p_body: body, p_url: url,
+  });
+}
+
+/** 32b 가 출력한 프로그램 JSON 을 programs/일자/워크아웃/아이템으로 생성. 성공 시 program id. */
+// deno-lint-ignore no-explicit-any
+async function materializeProgram(db: any, userId: string, raw: string): Promise<string | null> {
+  // 코드펜스·앞뒤 잡문 방어: 첫 '{' ~ 마지막 '}' 만 취함
+  const s = raw.indexOf("{"), e = raw.lastIndexOf("}");
+  if (s < 0 || e <= s) return null;
+  let plan: {
+    title?: string; description?: string; level?: string;
+    days?: { day_index?: number; focus?: string; title?: string;
+      items?: { exercise?: string; note?: string }[] }[];
+  };
+  try { plan = JSON.parse(raw.slice(s, e + 1)); } catch { return null; }
+  if (!plan.title || !Array.isArray(plan.days) || plan.days.length === 0) return null;
+
+  // 운동 이름 → id 매핑 (미매칭은 exercise_id null + note 에 이름 보존)
+  const { data: exs } = await db.from("exercises").select("id,name_ko");
+  const exMap = new Map<string, string>((exs ?? []).map((x: { id: string; name_ko: string }) => [x.name_ko, x.id]));
+
+  const level = ["beginner", "intermediate", "advanced", "elite"].includes(plan.level ?? "")
+    ? plan.level : null;
+  const { data: prog, error: progErr } = await db.from("programs").insert({
+    owner_id: userId,
+    title: String(plan.title).slice(0, 80),
+    description: `${String(plan.description ?? "").slice(0, 500)}\n\n(AI 생성 — 최근 코칭 인사이트 기반)`.trim(),
+    weeks: 1, level, is_public: false,
+  }).select("id").single();
+  if (progErr || !prog) return null;
+
+  for (const day of plan.days.slice(0, 7)) {
+    const idx = Number(day.day_index);
+    if (!Number.isInteger(idx) || idx < 1 || idx > 7) continue;
+    const { data: d } = await db.from("program_days").insert({
+      program_id: prog.id, day_index: idx, focus: day.focus?.slice(0, 60) ?? null,
+    }).select("id").single();
+    if (!d) continue;
+    const items = Array.isArray(day.items) ? day.items.slice(0, 10) : [];
+    if (items.length === 0) continue; // 휴식일
+    const { data: tmpl } = await db.from("workout_templates").insert({
+      program_day_id: d.id,
+      title: day.title?.slice(0, 80) || day.focus?.slice(0, 80) || `Day ${idx}`,
+      type: "wod", structure: {},
+    }).select("id").single();
+    if (!tmpl) continue;
+    const rows = items.map((it, i) => {
+      const exId = it.exercise ? exMap.get(it.exercise) ?? null : null;
+      const note = [exId ? null : it.exercise, it.note].filter(Boolean).join(" — ").slice(0, 300);
+      return { template_id: tmpl.id, seq: i + 1, exercise_id: exId, target: note ? { note } : null };
+    });
+    if (rows.length) await db.from("workout_template_items").insert(rows);
+  }
+  return prog.id;
 }
 
 // ---------------------------------------------------------------- 메인
@@ -295,6 +374,21 @@ Deno.serve(async (req) => {
     const jr = await gwPoll(jb.job_id!);
     if (!jr) continue; // 게이트웨이 일시 불가 — 다음 크론에
     if (jr.status === "ok" && jr.response) {
+      if (jb.kind === "program") {
+        // 프로그램 JSON → 실체화 + 완료/실패 알림
+        const progId = await materializeProgram(db, jb.user_id, jr.response);
+        if (progId) {
+          await notify(db, jb.user_id, "AI 훈련 프로그램 도착",
+            "코칭 인사이트 기반 7일 프로그램이 준비됐습니다.", `/programs/${progId}`);
+        } else {
+          console.error(`program materialize 실패 ${jb.job_id}`);
+          await notify(db, jb.user_id, "AI 프로그램 생성 실패",
+            "프로그램 생성에 실패했습니다. 다시 시도해 주세요.", "/programs");
+        }
+        await db.from("ai_jobs").delete().eq("id", jb.id);
+        out.collected++;
+        continue;
+      }
       // delete + insert 재생성 (부분 유니크 인덱스라 upsert 불가)
       let del = db.from("ai_insights").delete().eq("user_id", jb.user_id).eq("kind", jb.kind);
       if (jb.ref_id) del = del.eq("ref_id", jb.ref_id);
@@ -312,15 +406,57 @@ Deno.serve(async (req) => {
       console.error(`gw job failed ${jb.job_id}: ${jr.error}`);
       if (jb.kind === "session") await db.from("sessions").update({ ai_status: "failed" }).eq("id", jb.ref_id);
       if (jb.kind === "race") await db.from("race_results").update({ ai_status: "failed" }).eq("id", jb.ref_id);
+      if (jb.kind === "program") {
+        await notify(db, jb.user_id, "AI 프로그램 생성 실패",
+          "프로그램 생성에 실패했습니다. 다시 시도해 주세요.", "/programs");
+      }
       await db.from("ai_jobs").delete().eq("id", jb.id);
       out.failed++;
     }
     // pending → 그대로 둠
   }
 
-  // 제출 중 크래시 잔재(10분 넘게 job_id 없는 클레임) 회수
+  // 제출 중 크래시 잔재(10분 넘게 job_id 없는 클레임) 회수.
+  // program 은 사용자 요청 큐라 제외 — 게이트웨이가 오래 죽어 있어도 요청이 사라지면 안 됨.
   const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  await db.from("ai_jobs").delete().is("job_id", null).lt("created_at", cutoff);
+  await db.from("ai_jobs").delete().is("job_id", null).lt("created_at", cutoff).neq("kind", "program");
+
+  // ---------- 2.5) AI 프로그램 요청 제출 (사용자 버튼 → ai-program-request 가 큐잉)
+  const { data: progReqs } = await db.from("ai_jobs")
+    .select("id,user_id").eq("kind", "program").is("job_id", null).limit(2);
+  for (const pr of progReqs ?? []) {
+    // 최근 코칭 인사이트(최신 3건) — 약점·격차의 근거
+    const { data: insights } = await db.from("ai_insights")
+      .select("kind,content").eq("user_id", pr.user_id)
+      .neq("kind", "program").order("created_at", { ascending: false }).limit(3);
+    const { data: goal } = await db.from("goal_plans")
+      .select("target_total_ms,run_total_ms,station_total_ms,roxzone_total_ms")
+      .eq("user_id", pr.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    // 허용 운동 목록: 하이록스 스테이션 전부 + 보조 카테고리 (이름 그대로 매칭)
+    const { data: exs } = await db.from("exercises")
+      .select("name_ko,station_type,category")
+      .or("station_type.not.is.null,category.in.(running,conditioning,strength)")
+      .limit(140);
+    const exNames = (exs ?? []).map((x: { name_ko: string }) => x.name_ko);
+
+    const lines = [
+      "아래 정보를 바탕으로 이 사용자를 위한 7일 하이록스 훈련 프로그램 JSON 을 작성하라.",
+      "",
+      "## 최근 코칭 인사이트",
+      ...(insights?.length
+        ? insights.map((i: { kind: string; content: string }) => `[${i.kind}] ${i.content.slice(0, 500)}`)
+        : ["(인사이트 없음 — 균형 잡힌 입문 프로그램을 작성)"]),
+    ];
+    if (goal) {
+      lines.push("", "## 목표", `총시간 ${fmtMs(goal.target_total_ms)}, 런 합계 ${fmtMs(goal.run_total_ms)}, 스테이션 합계 ${fmtMs(goal.station_total_ms)}, 록스존 ${fmtMs(goal.roxzone_total_ms)}`);
+    }
+    lines.push("", "## 사용 가능한 운동 목록 (exercise 값은 이 중에서 그대로)", exNames.join(", "));
+
+    const jobId = await gwSubmit(lines.join("\n"), { kind: "program", ref: pr.user_id }, PROGRAM_SYSTEM);
+    if (!jobId) continue; // 게이트웨이 불가 — 요청은 큐에 유지, 다음 크론 재시도
+    await db.from("ai_jobs").update({ job_id: jobId }).eq("id", pr.id);
+    out.submitted++;
+  }
 
   // ---------- 3) 신규 제출 — 세션
   const { data: sess } = await db.from("sessions")

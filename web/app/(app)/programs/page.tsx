@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AiProgramButton } from "@/components/ai-program-button";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 
@@ -65,14 +66,17 @@ export default async function ProgramsPage() {
 
   return (
     <main>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t("programs.title")}</h1>
-        <Link
-          href="/programs/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
-        >
-          {t("programs.create")}
-        </Link>
+        <div className="flex items-start gap-2">
+          <AiProgramButton />
+          <Link
+            href="/programs/new"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          >
+            {t("programs.create")}
+          </Link>
+        </div>
       </div>
       <p className="mt-1 text-sm text-muted">{t("programs.desc")}</p>
 
