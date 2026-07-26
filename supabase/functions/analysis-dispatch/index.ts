@@ -270,7 +270,13 @@ Deno.serve(async (req) => {
     }
   }
 
-  if (!AI_ON) return json({ ok: true, ...out, ai: "disabled(no LLMGW secrets)" });
+  if (!AI_ON) {
+    // 진단: 어떤 이름의 env 가 보이는지 (이름만 — 값은 절대 노출하지 않음)
+    const envNames = Object.keys(Deno.env.toObject()).filter(
+      (k) => k.includes("LLM") || k.includes("GW") || k === "AI_ROLE",
+    );
+    return json({ ok: true, ...out, ai: "disabled(no LLMGW secrets)", env_seen: envNames });
+  }
 
   // ---------- 2) 제출된 잡 수령
   const { data: jobs } = await db.from("ai_jobs")
