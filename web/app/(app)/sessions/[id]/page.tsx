@@ -53,7 +53,7 @@ export async function generateMetadata({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
   const { data } = await supabase
     .from("sessions")
     .select("started_at")
@@ -61,7 +61,7 @@ export async function generateMetadata({
     .maybeSingle();
   return {
     title: data
-      ? t("meta.sessionDetail", { date: formatDate(data.started_at, tag) })
+      ? t("meta.sessionDetail", { date: formatDate(data.started_at, tag, tz) })
       : "Roxlogy",
   };
 }
@@ -73,7 +73,7 @@ export default async function SessionDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, tag, locale } = await getT();
+  const { t, tag, locale, tz } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -193,7 +193,7 @@ export default async function SessionDetailPage({
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-2xl font-bold">
-          {formatDate(session.started_at, tag)}
+          {formatDate(session.started_at, tag, tz)}
         </h1>
         <span className="font-mono text-3xl font-bold text-accent">
           {formatMs(session.total_time_ms)}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { getDict, getT } from "@/lib/i18n";
 import { I18nProvider } from "@/components/i18n-provider";
+import { TzSync } from "@/components/tz-sync";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default async function RootLayout({
     <html lang={locale} className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <I18nProvider locale={locale} dict={getDict(locale)}>
+          <TzSync />
           {children}
         </I18nProvider>
       </body>

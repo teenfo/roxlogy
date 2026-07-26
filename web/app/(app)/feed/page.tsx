@@ -24,7 +24,7 @@ export default async function FeedPage({
   const { tab } = await searchParams;
   const following = tab === "following";
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
 
   const { data: rows } = await supabase.rpc("community_feed", {
     p_following: following,
@@ -76,7 +76,7 @@ export default async function FeedPage({
                   {r.author_name}
                 </Link>
                 <span className="text-xs text-muted">
-                  {formatDate(r.started_at, tag)}
+                  {formatDate(r.started_at, tag, tz)}
                 </span>
               </div>
               <Link

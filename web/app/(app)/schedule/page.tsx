@@ -36,7 +36,7 @@ export default async function SchedulePage({
   const { week } = await searchParams;
   const weekOffset = Number(week) || 0;
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -223,7 +223,7 @@ export default async function SchedulePage({
                     ✓
                   </Link>
                 )}
-                {formatDateShort(d.date.toISOString(), tag)}
+                {formatDateShort(d.date.toISOString(), tag, tz)}
                 {d.isToday && (
                   <span className="ml-1 text-xs text-accent">
                     {t("schedule.today")}

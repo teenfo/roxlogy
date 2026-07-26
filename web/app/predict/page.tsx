@@ -31,7 +31,7 @@ export default async function PredictPage({
   }>;
 }) {
   const sp = await searchParams;
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
   const supabase = await createClient();
   const {
     data: { user },
@@ -87,7 +87,7 @@ export default async function PredictPage({
         }
         return {
           id: s.id,
-          label: formatDateShort(s.started_at, tag),
+          label: formatDateShort(s.started_at, tag, tz),
           total: s.total_time_ms ?? 0,
           stations,
           runTotalMs,

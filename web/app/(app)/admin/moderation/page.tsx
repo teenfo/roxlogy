@@ -10,7 +10,7 @@ export async function generateMetadata() {
 
 export default async function AdminModerationPage() {
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
 
   // 관리자 RLS로 전체 세션 조회 — 최근 50개
   const { data: rows } = await supabase
@@ -66,7 +66,7 @@ export default async function AdminModerationPage() {
             {sessions.map((s) => (
               <tr key={s.id} className="border-b border-surface/60">
                 <td className="py-2.5 pr-4 text-muted">
-                  {formatDate(s.started_at, tag)}
+                  {formatDate(s.started_at, tag, tz)}
                 </td>
                 <td className="py-2.5 pr-4">
                   {nameMap.get(s.user_id) ?? (

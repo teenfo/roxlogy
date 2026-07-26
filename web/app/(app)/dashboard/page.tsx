@@ -16,7 +16,7 @@ export async function generateMetadata() {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -188,7 +188,7 @@ export default async function DashboardPage() {
     .slice(0, 8)
     .reverse()
     .map((s) => ({
-      name: formatDateShortYear(s.started_at, tag),
+      name: formatDateShortYear(s.started_at, tag, tz),
       ms: s.total_time_ms ?? 0,
     }));
 
@@ -209,7 +209,7 @@ export default async function DashboardPage() {
   >();
   const put = (iso: string, key: "sim" | "race", ms: number | null) => {
     if (ms == null) return;
-    const date = formatDateShortYear(iso, tag);
+    const date = formatDateShortYear(iso, tag, tz);
     const cur = corrMap.get(date) ?? {
       date,
       ts: new Date(iso).getTime(),
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
       }
       return {
         id: s.id,
-        label: formatDateShortYear(s.started_at, tag),
+        label: formatDateShortYear(s.started_at, tag, tz),
         total: s.total_time_ms,
         stations,
       };
@@ -443,7 +443,7 @@ export default async function DashboardPage() {
                   href={`/sessions/${s.id}`}
                   className="flex items-center justify-between rounded-md bg-surface px-4 py-3 hover:bg-surface/70"
                 >
-                  <span className="text-sm">{formatDate(s.started_at, tag)}</span>
+                  <span className="text-sm">{formatDate(s.started_at, tag, tz)}</span>
                   <span className="flex items-center gap-3 text-sm">
                     <span className="text-muted">
                       {t(`source.${s.source_device}` as Parameters<typeof t>[0])}

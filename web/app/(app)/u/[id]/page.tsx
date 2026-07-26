@@ -31,7 +31,7 @@ export default async function PublicProfilePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -93,7 +93,7 @@ export default async function PublicProfilePage({
                   href={`/sessions/${s.id}`}
                   className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
                 >
-                  <span className="text-sm">{formatDate(s.started_at, tag)}</span>
+                  <span className="text-sm">{formatDate(s.started_at, tag, tz)}</span>
                   <span className="font-mono text-lg font-semibold text-accent">
                     {formatMs(s.total_time_ms)}
                   </span>

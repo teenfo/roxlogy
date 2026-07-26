@@ -38,7 +38,7 @@ export default async function RaceDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
 
   const { data: race } = await supabase
     .from("race_results")
@@ -139,7 +139,7 @@ export default async function RaceDetailPage({
           {t("races.compareTitle")}
           {sim && (
             <span className="ml-2 text-sm font-normal text-muted">
-              {t("races.compareVs", { date: formatDate(sim.started_at, tag) })}
+              {t("races.compareVs", { date: formatDate(sim.started_at, tag, tz) })}
             </span>
           )}
         </h2>

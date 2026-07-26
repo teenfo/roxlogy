@@ -26,7 +26,7 @@ export default async function AdminUsersPage({
 }) {
   const { q } = await searchParams;
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
 
   const { data } = await supabase.rpc("admin_users", { p_search: q ?? null });
   const users = (data ?? []) as AdminUser[];
@@ -70,7 +70,7 @@ export default async function AdminUsersPage({
                   </span>
                 </td>
                 <td className="py-2.5 pr-4 text-muted">
-                  {formatDateShort(u.created_at, tag)}
+                  {formatDateShort(u.created_at, tag, tz)}
                 </td>
                 <td className="py-2.5 pr-4 text-right tabular-nums">
                   {u.session_count}

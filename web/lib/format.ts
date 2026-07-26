@@ -14,6 +14,7 @@ export function formatMs(ms: number | null | undefined): string {
 export function formatDate(
   iso: string | null | undefined,
   tag: string = "en-US",
+  tz?: string, // IANA 시간대 — 미지정 시 실행 환경 기본(서버=UTC)
 ): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString(tag, {
@@ -22,17 +23,20 @@ export function formatDate(
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: tz,
   });
 }
 
 export function formatDateShort(
   iso: string | null | undefined,
   tag: string = "en-US",
+  tz?: string,
 ): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString(tag, {
     month: "short",
     day: "numeric",
+    timeZone: tz,
   });
 }
 
@@ -40,12 +44,14 @@ export function formatDateShort(
 export function formatDateShortYear(
   iso: string | null | undefined,
   tag: string = "en-US",
+  tz?: string,
 ): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString(tag, {
     year: "2-digit",
     month: "short",
     day: "numeric",
+    timeZone: tz,
   });
 }
 

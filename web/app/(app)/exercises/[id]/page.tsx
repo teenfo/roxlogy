@@ -30,7 +30,7 @@ export default async function ExerciseDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, tag, locale } = await getT();
+  const { t, tag, locale, tz } = await getT();
 
   const { data: ex } = await supabase
     .from("exercises")
@@ -59,7 +59,7 @@ export default async function ExerciseDetailPage({
     )
     .slice(-15);
   const trend = splits.map((r) => ({
-    name: formatDateShort(r.sessions!.started_at, tag),
+    name: formatDateShort(r.sessions!.started_at, tag, tz),
     ms: r.split_time_ms,
   }));
   const best = splits.length

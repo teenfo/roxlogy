@@ -25,7 +25,7 @@ type Goal = {
 
 export default async function GoalsPage() {
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
 
   const { data } = await supabase
     .from("goal_plans")
@@ -79,7 +79,7 @@ export default async function GoalsPage() {
                     {g.event_name && g.event_date ? ` · ${g.event_date}` : ""}
                     {" · "}
                     {t("goals.savedOn", {
-                      date: formatDateShort(g.created_at, tag),
+                      date: formatDateShort(g.created_at, tag, tz),
                     })}
                   </p>
                 </div>

@@ -48,7 +48,7 @@ export default async function SessionsPage({
   const from = (page - 1) * PAGE_SIZE;
 
   const supabase = await createClient();
-  const { t, tag } = await getT();
+  const { t, tag, tz } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -210,8 +210,8 @@ export default async function SessionsPage({
                         </span>
                         <span className="text-xs text-muted">
                           {race?.event_date
-                            ? formatDate(race.event_date, tag)
-                            : formatDate(s.started_at, tag)}
+                            ? formatDate(race.event_date, tag, tz)
+                            : formatDate(s.started_at, tag, tz)}
                           {race?.season ? ` · ${race.season}` : ""}
                           {divLabel ? ` · ${divLabel}` : ""}
                         </span>
@@ -219,7 +219,7 @@ export default async function SessionsPage({
                     ) : (
                       <>
                         <span className="text-sm">
-                          {formatDate(s.started_at, tag)}
+                          {formatDate(s.started_at, tag, tz)}
                         </span>
                         <span className="text-xs text-muted">
                           {t(`source.${s.source_device}` as Parameters<typeof t>[0])}

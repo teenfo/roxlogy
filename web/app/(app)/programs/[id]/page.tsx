@@ -31,7 +31,7 @@ export default async function ProgramDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, tag, locale } = await getT();
+  const { t, tag, locale, tz } = await getT();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -124,8 +124,8 @@ export default async function ProgramDetailPage({
       </p>
       {(program.start_date || program.end_date) && (
         <p className="mt-1 text-sm font-medium text-track">
-          {formatDateShort(program.start_date, tag)} –{" "}
-          {formatDateShort(program.end_date, tag)}
+          {formatDateShort(program.start_date, tag, tz)} –{" "}
+          {formatDateShort(program.end_date, tag, tz)}
         </p>
       )}
       {program.description && (
