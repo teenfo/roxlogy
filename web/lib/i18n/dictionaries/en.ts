@@ -698,6 +698,7 @@ const en = {
   "ai.program.queued": "Building your 7-day program — you'll get a notification when it's ready.",
   "ai.program.exists": "A program is already being generated. Please wait for the notification.",
   "ai.program.err": "Couldn't request the AI program.",
+  "notif.type.ai_insight": "AI coaching comment",
   "notif.type.ai_program": "AI program ready",
   "ai.session.title": "AI Coaching",
   "ai.race.title": "AI Race Analysis",

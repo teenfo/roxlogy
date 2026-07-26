@@ -687,6 +687,7 @@ const ko: Record<DictKey, string> = {
   "ai.program.queued": "7일 프로그램을 생성하고 있습니다 — 완료되면 알림으로 알려드립니다.",
   "ai.program.exists": "이미 생성 중인 프로그램이 있습니다. 알림을 기다려 주세요.",
   "ai.program.err": "AI 프로그램 요청에 실패했습니다.",
+  "notif.type.ai_insight": "AI 코칭 코멘트",
   "notif.type.ai_program": "AI 프로그램 완성",
   "ai.session.title": "AI 코칭",
   "ai.race.title": "AI 레이스 분석",

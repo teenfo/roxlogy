@@ -695,6 +695,7 @@ const es: Record<DictKey, string> = {
   "ai.program.queued": "Creando tu programa de 7 días; recibirás una notificación cuando esté listo.",
   "ai.program.exists": "Ya hay un programa en generación. Espera la notificación.",
   "ai.program.err": "No se pudo solicitar el programa IA.",
+  "notif.type.ai_insight": "Comentario de coaching IA",
   "notif.type.ai_program": "Programa IA listo",
   "ai.session.title": "Coaching IA",
   "ai.race.title": "Análisis IA de carrera",

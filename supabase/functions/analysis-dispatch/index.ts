@@ -251,13 +251,22 @@ async function gwPoll(jobId: string): Promise<{ status: string; response?: strin
   }
 }
 
-// ---------------------------------------------------------------- AI 프로그램 실체화
+// ---------------------------------------------------------------- 알림
 // deno-lint-ignore no-explicit-any
-async function notify(db: any, userId: string, title: string, body: string, url: string) {
+async function notify(db: any, userId: string, typeKey: string, title: string, body: string, url: string) {
   // enqueue_notification(옵트아웃 존중) → push-dispatch 크론이 발송
   await db.rpc("enqueue_notification", {
-    p_user_id: userId, p_type_key: "ai_program", p_title: title, p_body: body, p_url: url,
+    p_user_id: userId, p_type_key: typeKey, p_title: title, p_body: body, p_url: url,
   });
+}
+
+/** 인사이트 종류별 완료 알림 문구·이동 경로 */
+function insightNotice(kind: string, refId: string | null): [string, string, string] {
+  if (kind === "session")
+    return ["AI 코칭 코멘트 등록", "세션 분석 코멘트가 준비됐습니다.", `/sessions/${refId}`];
+  if (kind === "race")
+    return ["AI 레이스 리포트 등록", "레이스 분석 리포트가 준비됐습니다.", `/races/${refId}`];
+  return ["AI 주간 리포트 등록", "지난주 훈련 리포트가 준비됐습니다.", "/dashboard"];
 }
 
 /** 32b 가 출력한 프로그램 JSON 을 programs/일자/워크아웃/아이템으로 생성. 성공 시 program id. */
@@ -378,11 +387,11 @@ Deno.serve(async (req) => {
         // 프로그램 JSON → 실체화 + 완료/실패 알림
         const progId = await materializeProgram(db, jb.user_id, jr.response);
         if (progId) {
-          await notify(db, jb.user_id, "AI 훈련 프로그램 도착",
+          await notify(db, jb.user_id, "ai_program", "AI 훈련 프로그램 도착",
             "코칭 인사이트 기반 7일 프로그램이 준비됐습니다.", `/programs/${progId}`);
         } else {
           console.error(`program materialize 실패 ${jb.job_id}`);
-          await notify(db, jb.user_id, "AI 프로그램 생성 실패",
+          await notify(db, jb.user_id, "ai_program", "AI 프로그램 생성 실패",
             "프로그램 생성에 실패했습니다. 다시 시도해 주세요.", "/programs");
         }
         await db.from("ai_jobs").delete().eq("id", jb.id);
@@ -400,6 +409,9 @@ Deno.serve(async (req) => {
       });
       if (jb.kind === "session") await db.from("sessions").update({ ai_status: "done" }).eq("id", jb.ref_id);
       if (jb.kind === "race") await db.from("race_results").update({ ai_status: "done" }).eq("id", jb.ref_id);
+      // 인사이트 등록 완료 알림 (옵트아웃은 enqueue_notification 이 처리)
+      const [nTitle, nBody, nUrl] = insightNotice(jb.kind, jb.ref_id);
+      await notify(db, jb.user_id, "ai_insight", nTitle, nBody, nUrl);
       await db.from("ai_jobs").delete().eq("id", jb.id);
       out.collected++;
     } else if (jr.status === "failed") {
@@ -407,7 +419,7 @@ Deno.serve(async (req) => {
       if (jb.kind === "session") await db.from("sessions").update({ ai_status: "failed" }).eq("id", jb.ref_id);
       if (jb.kind === "race") await db.from("race_results").update({ ai_status: "failed" }).eq("id", jb.ref_id);
       if (jb.kind === "program") {
-        await notify(db, jb.user_id, "AI 프로그램 생성 실패",
+        await notify(db, jb.user_id, "ai_program", "AI 프로그램 생성 실패",
           "프로그램 생성에 실패했습니다. 다시 시도해 주세요.", "/programs");
       }
       await db.from("ai_jobs").delete().eq("id", jb.id);
