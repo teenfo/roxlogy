@@ -1,9 +1,13 @@
-"""AI 인사이트 생성기 — hosub(브릿지) → Mac(Ollama, LAN) 위임.
+"""AI 인사이트 생성기 — hosub llm-gateway 경유 (Mac Ollama 백엔드).
 
-hosub 은 성능이 낮아 LLM 추론을 같은 네트워크의 Mac(Ollama)으로 보낸다.
-- Mac 은 Supabase 키를 갖지 않는다(순수 추론 서버, LAN 전용).
-- Mac 이 꺼져 있으면 조용히 스킵 — 큐(ai_status='pending')에 남아 다음 폴링에 재시도.
-- 산출물은 ai_insights 에 저장(사용자는 RLS 로 본인 것만 조회).
+hosub 은 성능이 낮아 LLM 추론을 같은 네트워크의 Mac 이 담당한다. 이 워커는
+Supabase 큐(ai_status)를 폴링해 LLM 작업을 **llm-gateway** (/opt/hosub-mcp/llm-gateway,
+기본 http://127.0.0.1:8603)로 위임한다. 게이트웨이가 역할→모델 매핑·레인 큐·재시도·
+모델 설치 승인 흐름을 담당하므로 여기서는 HTTP 호출만 한다.
+
+- 프롬프트는 이 레포 소유 (게이트웨이 roles.yaml 은 모델 정책만).
+- 게이트웨이/Mac 이 죽어 있으면 조용히 보류 — 큐에 남아 다음 폴링에 재시도.
+- 토큰(LLMGW_TOKEN)은 hosub .env 에만. 커밋 금지.
 
 종류:
 - session : 시뮬 세션 종료 후 구간·목표 대비 코칭 코멘트
@@ -15,23 +19,30 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import time
 from zoneinfo import ZoneInfo
 
 import httpx
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:32b")
-AI_ENABLED = os.environ.get("AI_ENABLED", "1") == "1"
+LLMGW_URL = os.environ.get("LLMGW_URL", "http://127.0.0.1:8603").rstrip("/")
+LLMGW_TOKEN = os.environ.get("LLMGW_TOKEN", "")
+# 게이트웨이 역할(roles.yaml): coach_feedback=qwen2.5:32b(고품질) / analyze_workout=14b(빠름)
+AI_ROLE = os.environ.get("AI_ROLE", "coach_feedback")
+AI_ENABLED = os.environ.get("AI_ENABLED", "1") == "1" and bool(LLMGW_TOKEN)
 AI_BATCH = int(os.environ.get("AI_BATCH", "3"))
-# LLM 응답 길이 상한(토큰) — 코멘트는 짧고 담백하게
-NUM_PREDICT = int(os.environ.get("AI_NUM_PREDICT", "700"))
+# generate 동기 대기(초) + pending 시 잡 폴링 추가 대기(초)
+AI_WAIT_S = int(os.environ.get("AI_WAIT_S", "240"))
+AI_JOB_POLL_S = int(os.environ.get("AI_JOB_POLL_S", "600"))
 
 SYSTEM_PROMPT = (
     "너는 Roxlogy의 하이록스(HYROX) 트레이닝 코치다. 데이터를 근거로 담백하고 "
     "정확하게 말한다. 과장·허세·감탄사·이모지 금지. 한국어로 답한다. "
     "형식: 3~6문장의 분석 + 마지막에 '다음 훈련 제안: '으로 시작하는 실행 가능한 제안 1개. "
-    "마크다운 헤딩 없이 평문으로. 숫자는 주어진 데이터만 사용하고 지어내지 않는다."
+    "마크다운 헤딩 없이 평문으로. 숫자는 주어진 데이터만 사용하고 직접 계산하지 않는다 "
+    "(합계·차이는 이미 계산돼 제공된다)."
 )
+
+_GW_HEADERS = {"Authorization": f"Bearer {LLMGW_TOKEN}"}
 
 
 def log(msg: str) -> None:
@@ -41,42 +52,71 @@ def log(msg: str) -> None:
 def fmt_ms(ms) -> str:
     if ms is None:
         return "-"
-    s = int(ms) // 1000
+    neg = int(ms) < 0
+    s = abs(int(ms)) // 1000
     h, rem = divmod(s, 3600)
     m, sec = divmod(rem, 60)
-    return f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}"
+    body = f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}"
+    return f"-{body}" if neg else body
 
 
-# ---------------------------------------------------------------- Ollama
-def ollama_available(client: httpx.Client) -> bool:
+# ---------------------------------------------------------------- 게이트웨이
+def gateway_available(client: httpx.Client) -> bool:
     try:
-        r = client.get(f"{OLLAMA_URL}/api/tags", timeout=3.0)
+        r = client.get(f"{LLMGW_URL}/healthz", timeout=3.0)
         return r.status_code == 200
     except httpx.HTTPError:
         return False
 
 
-def ollama_chat(client: httpx.Client, user_prompt: str) -> str | None:
+def gw_generate(client: httpx.Client, prompt: str, metadata: dict | None = None) -> str | None:
+    """게이트웨이 /v1/generate — 동기 대기 후 pending 이면 잡 폴링. 실패/보류 시 None."""
     try:
         r = client.post(
-            f"{OLLAMA_URL}/api/chat",
-            timeout=300.0,  # 32B 모델 첫 로드가 느릴 수 있음
+            f"{LLMGW_URL}/v1/generate",
+            headers=_GW_HEADERS,
+            timeout=AI_WAIT_S + 30,
             json={
-                "model": OLLAMA_MODEL,
-                "stream": False,
-                "options": {"temperature": 0.4, "num_predict": NUM_PREDICT},
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
+                "role": AI_ROLE,
+                "prompt": prompt,
+                "system": SYSTEM_PROMPT,
+                "wait": AI_WAIT_S,
+                "metadata": metadata or {},
             },
         )
+        if r.status_code == 429:
+            log("게이트웨이 rate limit — 다음 사이클로 미룸")
+            return None
         r.raise_for_status()
-        content = (r.json().get("message") or {}).get("content", "").strip()
-        return content or None
+        j = r.json()
     except httpx.HTTPError as e:
-        log(f"ollama 호출 실패: {e}")
+        log(f"게이트웨이 호출 실패: {e}")
         return None
+
+    if j.get("status") == "ok":
+        return (j.get("response") or "").strip() or None
+    if j.get("status") == "failed":
+        log(f"잡 실패: {j.get('error')}")
+        return None
+
+    # pending — 모델 설치 대기·레인 정체 등. 잡은 게이트웨이에 영속되므로 폴링해 수령.
+    job_id = j.get("job_id")
+    if not job_id:
+        return None
+    deadline = time.monotonic() + AI_JOB_POLL_S
+    while time.monotonic() < deadline:
+        time.sleep(10)
+        try:
+            jr = client.get(f"{LLMGW_URL}/v1/jobs/{job_id}", headers=_GW_HEADERS, timeout=15.0).json()
+        except httpx.HTTPError:
+            continue
+        if jr.get("status") == "ok":
+            return (jr.get("response") or "").strip() or None
+        if jr.get("status") == "failed":
+            log(f"잡 실패 {job_id}: {jr.get('error')}")
+            return None
+    log(f"잡 {job_id} 장기 대기(모델 설치 승인 대기 가능성) — 이번 사이클은 보류")
+    return None
 
 
 # ---------------------------------------------------------------- 저장
@@ -94,7 +134,7 @@ def save_insight(
     client.delete(f"{rest}/ai_insights", params=params, headers=headers)
     row = {
         "user_id": user_id, "kind": kind, "content": content,
-        "model": OLLAMA_MODEL, "ref_id": ref_id, "period_start": period_start,
+        "model": f"llmgw/{AI_ROLE}", "ref_id": ref_id, "period_start": period_start,
     }
     r = client.post(f"{rest}/ai_insights", headers=headers, json=row)
     r.raise_for_status()
@@ -132,32 +172,57 @@ def _session_prompt(session: dict, segments: list[dict], metrics: dict | None, g
         "구간 기록:",
     ]
     run_n = 0
+    run_sum = 0
+    station_sum = 0
+    rox_sum = 0
+    runs: list[int] = []
     for seg in segments:
         kind = seg.get("kind")
+        ms = seg.get("split_time_ms") or 0
         split = fmt_ms(seg.get("split_time_ms"))
         if kind == "run":
             run_n += 1
+            run_sum += ms
+            runs.append(ms)
             lines.append(f"- 런{run_n}: {split}")
         elif kind == "station":
             ex = (seg.get("exercises") or {})
             name = ex.get("name_ko") or seg.get("machine_type") or "스테이션"
+            station_sum += ms
             lines.append(f"- {name}: {split}")
         elif kind == "roxzone":
+            rox_sum += ms
             lines.append(f"- 록스존: {split}")
+    # 합계·최저/최고 런은 모델이 계산하지 않도록 미리 산출 (소형 모델 산술 오류 방지)
+    lines += [
+        "",
+        f"합계(계산됨): 런 {fmt_ms(run_sum)}, 스테이션 {fmt_ms(station_sum)}, 록스존 {fmt_ms(rox_sum)}",
+    ]
+    if runs:
+        fastest = min(runs)
+        slowest = max(runs)
+        lines.append(
+            f"런 최속 {fmt_ms(fastest)}(런{runs.index(fastest) + 1}) / "
+            f"최저 {fmt_ms(slowest)}(런{runs.index(slowest) + 1})"
+        )
     if metrics:
         lines += [
-            "",
             f"런 랩 편차: {fmt_ms(metrics.get('run_lap_deviation_ms'))} "
             f"(페이싱 등급: {metrics.get('pacing_grade') or '-'})",
-            f"록스존 합계: {fmt_ms(metrics.get('roxzone_total_ms'))}",
         ]
     if goal:
-        lines += [
-            "",
-            "목표(사용자 설정) 대비:",
-            f"- 목표 총시간 {fmt_ms(goal.get('target_total_ms'))} / 이번 세션 {fmt_ms(session.get('total_time_ms'))}",
-            f"- 목표 런 합계 {fmt_ms(goal.get('run_total_ms'))}, 스테이션 합계 {fmt_ms(goal.get('station_total_ms'))}, 록스존 {fmt_ms(goal.get('roxzone_total_ms'))}",
-        ]
+        total = session.get("total_time_ms")
+        lines += ["", "목표(사용자 설정) 대비 — 격차(계산됨, +는 목표보다 느림):"]
+        for label, g, actual in [
+            ("총시간", goal.get("target_total_ms"), total),
+            ("런 합계", goal.get("run_total_ms"), run_sum),
+            ("스테이션 합계", goal.get("station_total_ms"), station_sum),
+            ("록스존", goal.get("roxzone_total_ms"), rox_sum),
+        ]:
+            if g is not None and actual is not None:
+                lines.append(
+                    f"- {label}: 목표 {fmt_ms(g)} / 실제 {fmt_ms(actual)} / 격차 {fmt_ms(actual - g)}"
+                )
     return "\n".join(lines)
 
 
@@ -196,9 +261,13 @@ def generate_session_insights(client: httpx.Client, rest: str, headers: dict) ->
             headers=headers,
         ).json()
         goal = _latest_goal(client, rest, headers, uid)
-        content = ollama_chat(client, _session_prompt(session, segs, mrows[0] if mrows else None, goal))
+        content = gw_generate(
+            client,
+            _session_prompt(session, segs, mrows[0] if mrows else None, goal),
+            metadata={"kind": "session", "ref": sid},
+        )
         if content is None:
-            return done  # Mac 불가 상태 — pending 유지, 다음 사이클 재시도
+            return done  # 게이트웨이/Mac 불가·대기 — pending 유지, 다음 사이클 재시도
         save_insight(client, rest, headers, uid, "session", content, ref_id=sid)
         set_ai_status(client, rest, headers, "sessions", sid, "done")
         log(f"session insight {sid}")
@@ -262,9 +331,12 @@ def generate_weekly_reports(client: httpx.Client, rest: str, headers: dict) -> i
         ).json()
         if not sessions:
             continue
+        totals = [s.get("total_time_ms") for s in sessions if s.get("total_time_ms")]
         lines = [
             f"다음은 한 사용자의 지난주({start} ~ {end}) 하이록스 훈련 세션 목록이다. "
             "주간 훈련 리포트를 작성하라 (세션 수·페이스 추세·일관성 중심).",
+            f"세션 수(계산됨): {len(sessions)}"
+            + (f", 최고 기록(계산됨): {fmt_ms(min(totals))}" if totals else ""),
             "",
         ]
         for s in sessions:
@@ -276,7 +348,7 @@ def generate_weekly_reports(client: httpx.Client, rest: str, headers: dict) -> i
                 f"런 편차 {fmt_ms(m.get('run_lap_deviation_ms'))}, "
                 f"등급 {m.get('pacing_grade') or '-'}"
             )
-        content = ollama_chat(client, "\n".join(lines))
+        content = gw_generate(client, "\n".join(lines), metadata={"kind": "weekly", "ref": start})
         if content is None:
             return done
         save_insight(client, rest, headers, uid, "weekly", content, period_start=start)
@@ -310,9 +382,9 @@ def generate_race_insights(client: httpx.Client, rest: str, headers: dict) -> in
             f"대회: {race.get('event') or '-'} ({race.get('event_date') or '-'}), "
             f"디비전: {race.get('division') or '-'}",
             f"총 시간: {fmt_ms(race.get('total_time_ms'))}",
-            f"스플릿 데이터(JSON): {splits_json}",
+            f"스플릿 데이터(JSON, ms 단위): {splits_json}",
         ])
-        content = ollama_chat(client, prompt)
+        content = gw_generate(client, prompt, metadata={"kind": "race", "ref": rid})
         if content is None:
             return done
         save_insight(client, rest, headers, uid, "race", content, ref_id=rid)
@@ -327,17 +399,17 @@ _last_unavailable_logged = False
 
 
 def run_ai_cycle(client: httpx.Client, rest: str, headers: dict) -> None:
-    """메인 루프에서 매 폴링마다 호출. Mac 불가 시 조용히 스킵(상태 변화만 로그)."""
+    """메인 루프에서 매 폴링마다 호출. 게이트웨이 불가 시 조용히 스킵(상태 변화만 로그)."""
     global _last_unavailable_logged
     if not AI_ENABLED:
         return
-    if not ollama_available(client):
+    if not gateway_available(client):
         if not _last_unavailable_logged:
-            log(f"ollama 미응답({OLLAMA_URL}) — LLM 작업 보류 (지표 계산은 계속)")
+            log(f"llm-gateway 미응답({LLMGW_URL}) — LLM 작업 보류 (지표 계산은 계속)")
             _last_unavailable_logged = True
         return
     if _last_unavailable_logged:
-        log("ollama 복구 — 보류된 LLM 작업 재개")
+        log("llm-gateway 복구 — 보류된 LLM 작업 재개")
         _last_unavailable_logged = False
     try:
         generate_session_insights(client, rest, headers)
