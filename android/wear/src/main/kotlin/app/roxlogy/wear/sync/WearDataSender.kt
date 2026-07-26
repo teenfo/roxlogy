@@ -16,12 +16,18 @@ class WearDataSender(context: Context) {
     private val dataClient = Wearable.getDataClient(context)
 
     fun sendSession(request: IngestRequest) {
-        val json = IngestJson.encode(request)
+        sendRaw(request.session.id, IngestJson.encode(request), request.session.client_updated_at)
+    }
+
+    /** 보관함 재전송용 — 저장된 인코딩 원문을 그대로 다시 밀어넣는다.
+     *  resent_at 으로 DataItem 내용을 바꿔, 동일 페이로드도 재동기화되게 강제. */
+    fun sendRaw(sessionId: String, payloadJson: String, clientUpdatedAt: String) {
         val put = PutDataMapRequest.create(
-            "${WearPaths.SESSION_PATH_PREFIX}${request.session.id}",
+            "${WearPaths.SESSION_PATH_PREFIX}$sessionId",
         ).apply {
-            dataMap.putByteArray(WearPaths.KEY_PAYLOAD, json.encodeToByteArray())
-            dataMap.putString(WearPaths.KEY_UPDATED, request.session.client_updated_at)
+            dataMap.putByteArray(WearPaths.KEY_PAYLOAD, payloadJson.encodeToByteArray())
+            dataMap.putString(WearPaths.KEY_UPDATED, clientUpdatedAt)
+            dataMap.putLong("resent_at", System.currentTimeMillis())
         }.asPutDataRequest().setUrgent()
         dataClient.putDataItem(put)
     }

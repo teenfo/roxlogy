@@ -124,6 +124,21 @@ class SimEngine(
         index++
     }
 
+    /** 마지막 기록 취소(잘못 누른 랩 되돌리기). 취소된 스플릿 ms 반환, 기록 없으면 null. */
+    fun undoLast(): Long? {
+        if (recorded.isEmpty()) return null
+        val last = recorded.removeAt(recorded.size - 1)
+        index--
+        return last.splitTimeMs
+    }
+
+    /** 크래시 복구 — 저장된 스냅샷 기록으로 진행 상태 복원 (index = 기록 수). */
+    fun restore(segments: List<RecordedSegment>) {
+        recorded.clear()
+        recorded.addAll(segments)
+        index = segments.size.coerceAtMost(slots.size)
+    }
+
     fun recordedSegments(): List<RecordedSegment> = recorded.toList()
 
     fun elapsedTotalMs(): Long = recorded.sumOf { it.splitTimeMs }

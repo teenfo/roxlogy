@@ -16,6 +16,8 @@
 
     <!-- Health Services 트레드밀 러닝 거리(걸음/가속도 기반) -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <!-- 랩 기록·목표 이탈 햅틱 피드백 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
 
     <application
