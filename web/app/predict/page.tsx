@@ -63,6 +63,7 @@ export default async function PredictPage({
       .select(
         "id, started_at, total_time_ms, session_segments ( kind, exercise_id, split_time_ms )",
       )
+      .eq("user_id", user.id)
       .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(30);

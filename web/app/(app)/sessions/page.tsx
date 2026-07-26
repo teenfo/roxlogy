@@ -49,6 +49,9 @@ export default async function SessionsPage({
 
   const supabase = await createClient();
   const { t, tag } = await getT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // 시뮬만: 스테이션 세그먼트가 있는 세션 id를 선별해 일반 id 필터로 적용
   // (count/range와 호환되도록 일반 WHERE 절로 들어감)
@@ -68,6 +71,8 @@ export default async function SessionsPage({
        race_results ( event, event_date, season, division )`,
       { count: "exact" },
     )
+    // 관리자는 RLS 로 전체 세션이 보이므로, "내 세션" 화면은 명시적으로 본인 것만
+    .eq("user_id", user!.id)
     .is("deleted_at", null);
 
   if (source !== "all") query = query.eq("source_device", source);

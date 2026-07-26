@@ -18,13 +18,18 @@ export default async function SessionEditPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  // 수정은 소유자만 — 관리자는 RLS 로 남의 세션도 조회되므로 명시 필터
   const { data: session } = await supabase
     .from("sessions")
     .select(
       "id, started_at, notes, rpe, template_id, division, race_result_id, leaderboard_excluded, session_segments ( id, seq, kind, exercise_id, split_time_ms )",
     )
     .eq("id", id)
+    .eq("user_id", user!.id)
     .is("deleted_at", null)
     .maybeSingle();
   if (!session) notFound();

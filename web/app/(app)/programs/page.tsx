@@ -53,10 +53,11 @@ export default async function ProgramsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // RLS: 공용(is_public) 또는 본인 소유만 조회됨
+  // 공용(is_public) 또는 본인 소유만 — 관리자는 RLS 로 전체가 보이므로 명시 필터
   const { data: programs } = await supabase
     .from("programs")
     .select("id, owner_id, title, description, weeks, level, is_public")
+    .or(`is_public.eq.true,owner_id.eq.${user!.id}`)
     .order("created_at", { ascending: false });
 
   const mine = (programs ?? []).filter((p) => p.owner_id === user!.id);

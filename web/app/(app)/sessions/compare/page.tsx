@@ -14,13 +14,17 @@ const EX_TO_KEY = new Map(STATIONS.map((s) => [s.exerciseId, s.key]));
 export default async function SessionComparePage() {
   const supabase = await createClient();
   const { t } = await getT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // 레이스 시뮬 세션(스테이션 세그먼트 보유) — 최근 40개, RLS로 본인 것만
+  // 레이스 시뮬 세션(스테이션 세그먼트 보유) — 최근 40개, 본인 것만
   const { data: rows } = await supabase
     .from("sessions")
     .select(
       "id, started_at, total_time_ms, session_segments ( kind, exercise_id, split_time_ms )",
     )
+    .eq("user_id", user!.id)
     .is("deleted_at", null)
     .order("started_at", { ascending: false })
     .limit(40);

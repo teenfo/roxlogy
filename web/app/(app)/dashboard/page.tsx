@@ -35,6 +35,7 @@ export default async function DashboardPage() {
     supabase
       .from("sessions")
       .select("id, started_at, total_time_ms, source_device, template_id")
+      .eq("user_id", user!.id)
       .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(60),
@@ -52,6 +53,7 @@ export default async function DashboardPage() {
       .select(
         "id, started_at, total_time_ms, session_segments!inner ( kind, exercise_id, split_time_ms )",
       )
+      .eq("user_id", user!.id)
       .is("deleted_at", null)
       .eq("session_segments.kind", "station")
       .order("started_at", { ascending: false })
@@ -59,6 +61,7 @@ export default async function DashboardPage() {
     supabase
       .from("race_results")
       .select("id, event, event_date, division, total_time_ms")
+      .eq("user_id", user!.id)
       .order("event_date", { ascending: true })
       .limit(30),
     supabase

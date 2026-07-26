@@ -13,13 +13,17 @@ export async function generateMetadata() {
 export default async function RacesPage() {
   const supabase = await createClient();
   const { t } = await getT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const [{ data: races }, { data: profile }, { data: benchmarks }] =
     await Promise.all([
       supabase
         .from("race_results")
         .select("id, event, event_date, division, total_time_ms")
+        .eq("user_id", user!.id)
         .order("event_date", { ascending: false }),
-      supabase.from("profiles").select("gender").maybeSingle(),
+      supabase.from("profiles").select("gender").eq("id", user!.id).maybeSingle(),
       supabase
         .from("race_benchmarks")
         .select("division, gender, scope, percentiles"),

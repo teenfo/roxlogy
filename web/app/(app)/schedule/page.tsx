@@ -37,6 +37,9 @@ export default async function SchedulePage({
   const weekOffset = Number(week) || 0;
   const supabase = await createClient();
   const { t, tag } = await getT();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: enrollment } = await supabase
     .from("program_enrollments")
@@ -77,6 +80,7 @@ export default async function SchedulePage({
     ? await supabase
         .from("sessions")
         .select("id, template_id")
+        .eq("user_id", user!.id)
         .is("deleted_at", null)
         .in("template_id", allTemplateIds)
     : { data: [] };
