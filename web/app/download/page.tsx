@@ -2,11 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getT } from "@/lib/i18n";
 import { LocaleSwitcher } from "@/components/locale-switcher";
-import {
-  ANDROID_PHONE_APK_URL,
-  ANDROID_WEAR_APK_URL,
-  PLAY_STORE_URL,
-} from "@/lib/app-links";
+import { getAppDownloads, PLAY_STORE_URL } from "@/lib/app-links";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -15,7 +11,8 @@ export async function generateMetadata() {
 
 export default async function DownloadPage() {
   const { t } = await getT();
-  const hasApk = !!(ANDROID_WEAR_APK_URL || ANDROID_PHONE_APK_URL);
+  const dl = await getAppDownloads();
+  const hasApk = !!(dl.wearUrl || dl.phoneUrl);
   const androidReady = !!PLAY_STORE_URL || hasApk;
 
   const apkBtn =
@@ -61,14 +58,14 @@ export default async function DownloadPage() {
           ) : hasApk ? (
             <>
               <div className="mt-4 flex flex-wrap gap-2">
-                {ANDROID_WEAR_APK_URL && (
-                  <a href={ANDROID_WEAR_APK_URL} download className={apkBtn}>
+                {dl.wearUrl && (
+                  <a href={dl.wearUrl} download className={apkBtn}>
                     {t("download.wearApk")}
                   </a>
                 )}
-                {ANDROID_PHONE_APK_URL && (
+                {dl.phoneUrl && (
                   <a
-                    href={ANDROID_PHONE_APK_URL}
+                    href={dl.phoneUrl}
                     download
                     className="rounded-md border border-accent px-5 py-2.5 text-sm font-semibold text-accent hover:bg-accent/10"
                   >
@@ -76,6 +73,12 @@ export default async function DownloadPage() {
                   </a>
                 )}
               </div>
+              {dl.version && (
+                <p className="mt-2 font-mono text-xs text-muted">
+                  v{dl.version}
+                  {dl.build != null && ` · build ${dl.build}`}
+                </p>
+              )}
               <p className="mt-3 text-xs leading-relaxed text-muted">
                 {t("download.sideloadNote")}
               </p>

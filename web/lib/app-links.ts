@@ -9,13 +9,48 @@
 // 채운다 — 그러면 다운로드 페이지가 배지 링크로 전환된다.
 // iOS는 직접 설치가 불가하므로 App Store 등록 전에는 노출하지 않는다.
 
-// android-release 워크플로가 이 버킷에 APK를 게시(roxlogy-*-latest.apk)한다.
-// 이후 릴리스 실행마다 x-upsert로 같은 경로를 덮어써 "최신" APK가 유지된다.
+// android-release 워크플로가 이 버킷에 버전 파일명(roxlogy-*-v{버전}-{빌드}.apk)으로
+// 게시하고 latest.json 매니페스트를 갱신한다. 구링크 호환용 roxlogy-*-latest.apk 도 유지.
 const STORAGE_PUBLIC =
   "https://vuloxbpfhyqkvgmpmkst.supabase.co/storage/v1/object/public/app-downloads";
 
 export const ANDROID_WEAR_APK_URL: string | null = `${STORAGE_PUBLIC}/roxlogy-wear-latest.apk`;
 export const ANDROID_PHONE_APK_URL: string | null = `${STORAGE_PUBLIC}/roxlogy-phone-latest.apk`;
+
+export type AppDownloads = {
+  phoneUrl: string | null;
+  wearUrl: string | null;
+  version: string | null; // 예: "0.2.0"
+  build: number | null;   // CI run number
+};
+
+/** 최신 릴리스 매니페스트 조회 — 실패 시 -latest.apk 고정 링크로 폴백 (서버 컴포넌트용). */
+export async function getAppDownloads(): Promise<AppDownloads> {
+  try {
+    const r = await fetch(`${STORAGE_PUBLIC}/latest.json`, { next: { revalidate: 300 } });
+    if (r.ok) {
+      const m = (await r.json()) as {
+        version?: string; build?: number; phone?: string; wear?: string;
+      };
+      if (m?.phone && m?.wear) {
+        return {
+          phoneUrl: `${STORAGE_PUBLIC}/${m.phone}`,
+          wearUrl: `${STORAGE_PUBLIC}/${m.wear}`,
+          version: m.version ?? null,
+          build: m.build ?? null,
+        };
+      }
+    }
+  } catch {
+    // 스토리지 일시 불가 — 아래 폴백
+  }
+  return {
+    phoneUrl: ANDROID_PHONE_APK_URL,
+    wearUrl: ANDROID_WEAR_APK_URL,
+    version: null,
+    build: null,
+  };
+}
 
 export const PLAY_STORE_URL: string | null = null;
 export const APP_STORE_URL: string | null = null;

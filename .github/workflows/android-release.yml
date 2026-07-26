@@ -91,28 +91,41 @@ jobs:
           fi
 
       - name: Upload APKs to Supabase Storage (public)
+        # 버전 파일명(roxlogy-*-v{versionName}-{run}.apk)으로 게시하고, 다운로드
+        # 페이지가 읽는 latest.json 매니페스트를 갱신한다. 구링크 호환용
+        # roxlogy-*-latest.apk 도 함께 덮어쓴다.
         env:
           SR: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BASE: https://vuloxbpfhyqkvgmpmkst.supabase.co/storage/v1/object/app-downloads
+          RUN_NO: ${{ github.run_number }}
         run: |
           if [ -z "$SR" ]; then
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY not set — skipping public publish; APKs still available as workflow artifacts."
             exit 0
           fi
           upload() {
-            local file="$1" name="$2"
+            local file="$1" name="$2" ctype="${3:-application/vnd.android.package-archive}"
             echo "Uploading $name…"
             curl -sSf -X POST \
               -H "Authorization: Bearer $SR" \
               -H "apikey: $SR" \
               -H "x-upsert: true" \
-              -H "Content-Type: application/vnd.android.package-archive" \
+              -H "Content-Type: $ctype" \
               --data-binary "@$file" \
               "$BASE/$name" > /dev/null
           }
+          VER="$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts | head -1)"
+          PHONE="roxlogy-phone-v${VER}-${RUN_NO}.apk"
+          WEAR="roxlogy-wear-v${VER}-${RUN_NO}.apk"
+          upload wear/build/outputs/apk/release/wear-release.apk "$WEAR"
+          upload app/build/outputs/apk/release/app-release.apk "$PHONE"
+          # 구링크 호환 (문서·기설치 안내에서 참조)
           upload wear/build/outputs/apk/release/wear-release.apk roxlogy-wear-latest.apk
           upload app/build/outputs/apk/release/app-release.apk roxlogy-phone-latest.apk
-          echo "Published to https://vuloxbpfhyqkvgmpmkst.supabase.co/storage/v1/object/public/app-downloads/"
+          printf '{"version":"%s","build":%s,"phone":"%s","wear":"%s","published_at":"%s"}\n' \
+            "$VER" "$RUN_NO" "$PHONE" "$WEAR" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$RUNNER_TEMP/latest.json"
+          upload "$RUNNER_TEMP/latest.json" latest.json application/json
+          echo "Published $PHONE / $WEAR (+latest.json) to $BASE/public/"
 
       - name: Upload APKs as workflow artifacts
         uses: actions/upload-artifact@v4
