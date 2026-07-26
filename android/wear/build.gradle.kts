@@ -9,7 +9,9 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "app.roxlogy.wear"
+        // Wearable Data Layer는 폰·워치 앱의 applicationId(+서명)가 같아야 데이터가
+        // 전달된다 — 폰(:app)과 동일하게 맞춘다. 코드 네임스페이스는 app.roxlogy.wear 유지.
+        applicationId = "app.roxlogy.android"
         minSdk = 30            // Wear OS 3
         targetSdk = 34
         versionCode = 1

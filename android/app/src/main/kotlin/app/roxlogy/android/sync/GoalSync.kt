@@ -27,7 +27,13 @@ class GoalSync(
 
     suspend fun fetchAndPush(context: Context): Boolean = withContext(Dispatchers.IO) {
         val access = TokenStore.accessToken() ?: return@withContext false
-        val row = fetchLatest(access) ?: return@withContext false
+        // 액세스 토큰은 1시간 만료 — 조회 실패 시 리프레시 후 1회 재시도
+        var fetched = fetchLatest(access)
+        if (fetched == null) {
+            val fresh = AuthClient().refreshAccessToken()
+            if (fresh != null) fetched = fetchLatest(fresh)
+        }
+        val row = fetched ?: return@withContext false
 
         val req = PutDataMapRequest.create(goalPath)
         val m = req.dataMap

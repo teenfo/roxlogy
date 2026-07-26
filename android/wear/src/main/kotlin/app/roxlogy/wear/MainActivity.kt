@@ -7,11 +7,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,13 +23,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.material.Button
-import androidx.wear.compose.material.ButtonDefaults
+import androidx.wear.compose.material.ChipDefaults
+import androidx.wear.compose.material.CompactChip
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import app.roxlogy.shared.ingest.ErgSample
@@ -81,6 +84,26 @@ private val STATION_LABEL = mapOf(
 private fun fmt(ms: Long): String {
     val t = (ms / 1000).coerceAtLeast(0)
     return "%d:%02d".format(t / 60, t % 60)
+}
+
+// 단계 색 — 브랜드: 러닝=트랙 블루, 스테이션=레이스 옐로, 록스존=초크(회백).
+// 중앙 배경·헤더·버튼을 단계별로 다르게 칠해 "지금 뭘 하는 중인지" 즉시 인지되게 한다.
+private val RunBlue = Color(0xFF2D7DFF)
+private val RaceYellow = Color(0xFFFFD500)
+private val Chalk = Color(0xFFF4F4F2)
+private val RunBg = Color(0xFF0D1E3C)      // 러닝: 짙은 블루
+private val StationBg = Color(0xFF2E2700)  // 스테이션: 짙은 옐로
+private val RoxzoneBg = Color(0xFF33332E)  // 록스존: 차콜 그레이
+private val NeutralChip = Color(0xFF3A3A3A)
+
+/** 알약형 액션 버튼 — 원형 Button은 한글 라벨이 잘려서 CompactChip 사용. */
+@Composable
+private fun ActionChip(text: String, bg: Color, fg: Color, onClick: () -> Unit) {
+    CompactChip(
+        onClick = onClick,
+        colors = ChipDefaults.chipColors(backgroundColor = bg, contentColor = fg),
+        label = { Text(text, fontSize = 13.sp) },
+    )
 }
 
 // 목표 대비 diff: 음수=앞섬(−, 초록), 양수=뒤처짐(+, 빨강).
@@ -255,6 +278,16 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
             modifier = Modifier.fillMaxSize().padding(4.dp),
         )
 
+        // 단계 인지용 중앙 배경 — 링 안쪽 원을 단계 색으로 칠한다
+        val phaseBg = if (phase == AppPhase.RUNNING) {
+            when (kind) {
+                "run" -> RunBg
+                "station" -> StationBg
+                else -> RoxzoneBg
+            }
+        } else Color.Transparent
+        Box(Modifier.fillMaxSize(0.70f).clip(CircleShape).background(phaseBg))
+
         Column(
             modifier = Modifier.fillMaxSize().padding(38.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
@@ -264,13 +297,11 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
                 AppPhase.IDLE -> {
                     Text("하이록스", textAlign = TextAlign.Center)
                     Text("시뮬레이션", textAlign = TextAlign.Center)
-                    Button(onClick = { start() }, colors = ButtonDefaults.primaryButtonColors()) {
-                        Text("시작")
-                    }
+                    ActionChip("시작", RaceYellow, Color.Black) { start() }
                 }
                 AppPhase.RUNNING -> when (kind) {
                     "run" -> {
-                        Text("RUN $round", fontSize = 13.sp, color = MaterialTheme.colors.primary)
+                        Text("RUN $round", fontSize = 13.sp, color = RunBlue)
                         Text(fmt(elapsed), fontSize = 26.sp)
                         if (tracker.active) {
                             Text("${runDistM.toInt()} m / 1km", fontSize = 11.sp)
@@ -278,19 +309,15 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
                             Text("탭 = 1km 랩", fontSize = 11.sp)
                         }
                         DiffBadge(diff)
-                        Button(onClick = { recordCurrent() }, colors = ButtonDefaults.primaryButtonColors()) {
-                            Text("1km 완료")
-                        }
+                        ActionChip("1km 완료", RunBlue, Color.White) { recordCurrent() }
                     }
                     "roxzone" -> {
-                        Text("록스존 · 이동", fontSize = 13.sp)
+                        Text("록스존 · 이동", fontSize = 13.sp, color = Chalk)
                         Text(fmt(elapsed), fontSize = 26.sp)
-                        Button(onClick = { recordCurrent() }, colors = ButtonDefaults.primaryButtonColors()) {
-                            Text("스테이션 시작")
-                        }
+                        ActionChip("스테이션 시작", Chalk, Color.Black) { recordCurrent() }
                     }
                     "station" -> {
-                        Text("STATION $round", fontSize = 12.sp, color = MaterialTheme.colors.primary)
+                        Text("STATION $round", fontSize = 12.sp, color = RaceYellow)
                         Text(STATION_LABEL[engine.current?.stationKey] ?: "스테이션", fontSize = 15.sp)
                         Text(fmt(elapsed), fontSize = 24.sp)
                         val machine = SessionAssembler.isMachine(engine.current?.machineType)
@@ -299,32 +326,25 @@ fun SimApp(ble: Pm5BleClient, sender: WearDataSender) {
                                 val s = pm5Latest
                                 Text("${s?.watts ?: 0}W · spm ${s?.spm ?: 0}", fontSize = 11.sp)
                             } else {
-                                Button(
-                                    onClick = { bleLauncher.launch(blePermissions()) },
-                                    colors = ButtonDefaults.secondaryButtonColors(),
-                                ) { Text("PM5", fontSize = 12.sp) }
+                                ActionChip("PM5 연결", NeutralChip, Color.White) {
+                                    bleLauncher.launch(blePermissions())
+                                }
                             }
                         }
                         DiffBadge(diff)
-                        Button(onClick = { recordCurrent() }, colors = ButtonDefaults.primaryButtonColors()) {
-                            Text("완료")
-                        }
+                        ActionChip("완료", RaceYellow, Color.Black) { recordCurrent() }
                     }
                     else -> Text("…")
                 }
                 AppPhase.DONE -> {
-                    Text("시뮬 완료 ✓", color = MaterialTheme.colors.primary)
+                    Text("시뮬 완료 ✓", color = RaceYellow)
                     Text(fmt(engine.elapsedTotalMs()), fontSize = 24.sp)
                     DiffBadge(diff)
-                    Button(onClick = { sendSession() }, colors = ButtonDefaults.primaryButtonColors()) {
-                        Text("전송")
-                    }
+                    ActionChip("전송", RaceYellow, Color.Black) { sendSession() }
                 }
                 AppPhase.SENT -> {
                     Text("전송됨 ✓")
-                    Button(onClick = { resetAll() }, colors = ButtonDefaults.secondaryButtonColors()) {
-                        Text("새 시뮬")
-                    }
+                    ActionChip("새 시뮬", NeutralChip, Color.White) { resetAll() }
                 }
             }
         }
