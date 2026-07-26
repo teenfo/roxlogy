@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "380211551991",
+    "project_id": "roxlogy-f316b",
+    "storage_bucket": "roxlogy-f316b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:380211551991:android:132a630052530a16f6fdf2",
+        "android_client_info": {
+          "package_name": "app.roxlogy.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrP7_yZmFKMS_yVasdlib87xCPMD883cw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
