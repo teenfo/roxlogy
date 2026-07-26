@@ -325,7 +325,7 @@ function LogEditor({
   return (
     <form onSubmit={submit} className="mt-2 grid gap-2 pl-9">
       <div className="flex gap-2">
-        <label className="flex-1 text-xs text-muted">
+        <label className="min-w-0 flex-1 text-xs text-muted">
           {t("workouts.weightKg")}
           <input
             type="number"
@@ -337,7 +337,7 @@ function LogEditor({
             className="mt-1 w-full rounded-md border border-muted/30 bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-accent"
           />
         </label>
-        <label className="flex-1 text-xs text-muted">
+        <label className="min-w-0 flex-1 text-xs text-muted">
           {t("workouts.reps")}
           <input
             type="number"

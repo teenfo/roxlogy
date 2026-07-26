@@ -108,18 +108,18 @@ export function ProfileForm({
           <input
             value={fields.display_name}
             onChange={(e) => set("display_name", e.target.value)}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+            className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
           />
         </label>
 
         <div className="flex gap-4">
           {/* 디비전은 세션·레이스 단위로 관리 (여러 디비전 출전 가능) — 프로필에서 제거 */}
-          <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
+          <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-muted">
             {t("profile.gender")}
             <select
               value={fields.gender}
               onChange={(e) => set("gender", e.target.value)}
-              className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+              className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
             >
               <option value="">{t("dash.unset")}</option>
               {GENDERS.map((g) => (
@@ -132,7 +132,9 @@ export function ProfileForm({
         </div>
 
         <div className="flex gap-4">
-          <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
+          {/* 숫자 입력은 고유 폭(약 200px)이 있어 min-w-0 없이는 모바일에서
+              한 줄 최소 폭이 컨테이너를 넘어 페이지 가로 오버플로를 일으킨다 */}
+          <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-muted">
             {t("profile.height")}
             <input
               type="number"
@@ -140,10 +142,10 @@ export function ProfileForm({
               step="0.1"
               value={fields.height_cm}
               onChange={(e) => set("height_cm", e.target.value)}
-              className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+              className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
             />
           </label>
-          <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
+          <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-muted">
             {t("profile.weight")}
             <input
               type="number"
@@ -151,7 +153,7 @@ export function ProfileForm({
               step="0.1"
               value={fields.weight_kg}
               onChange={(e) => set("weight_kg", e.target.value)}
-              className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+              className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
             />
           </label>
         </div>
