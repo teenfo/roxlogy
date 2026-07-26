@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AiInsight } from "@/components/ai-insight";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
@@ -383,6 +384,8 @@ export default async function SessionDetailPage({
           </ol>
         )}
       </section>
+
+      <AiInsight kind="session" refId={id} />
     </main>
   );
 }

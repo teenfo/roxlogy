@@ -18,6 +18,7 @@ import time
 
 import httpx
 
+from ai import run_ai_cycle
 from analyze import segment_metrics, session_metrics
 
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
@@ -173,6 +174,8 @@ def loop() -> None:
                             pass
             except Exception as e:  # noqa: BLE001
                 log(f"poll error: {e}")
+            # LLM 인사이트(세션 코칭·레이스·주간) — Mac(Ollama) 불가 시 조용히 보류
+            run_ai_cycle(client, REST, HEADERS)
             time.sleep(POLL_INTERVAL_S)
 
 

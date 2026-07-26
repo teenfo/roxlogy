@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AiInsight } from "@/components/ai-insight";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatDateShortYear, formatMs } from "@/lib/format";
@@ -454,6 +455,8 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
+
+      <AiInsight kind="weekly" />
     </main>
   );
 }
