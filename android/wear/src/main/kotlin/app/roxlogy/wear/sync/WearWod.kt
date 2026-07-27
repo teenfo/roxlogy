@@ -1,6 +1,7 @@
 package app.roxlogy.wear.sync
 
 import android.content.Context
+import app.roxlogy.shared.model.Stations
 import app.roxlogy.shared.sync.WearPaths
 import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.DataMapItem
@@ -13,7 +14,13 @@ import kotlinx.coroutines.withContext
  */
 object WearWod {
 
-    data class Item(val id: String, val name: String, val note: String?, val done: Boolean)
+    data class Item(
+        val id: String,
+        val name: String,
+        val note: String?,
+        val done: Boolean,
+        val machineType: String? = null, // "ski" | "row" — 에르그 운동이면 PM5 수집 가능
+    )
     data class Wod(val title: String, val day: Int, val items: List<Item>)
 
     suspend fun load(context: Context): Wod? = withContext(Dispatchers.IO) {
@@ -28,6 +35,11 @@ object WearWod {
                     val names = m.getStringArray("names") ?: arrayOf()
                     val notes = m.getStringArray("notes") ?: arrayOf()
                     val done = m.getLongArray("done") ?: longArrayOf()
+                    val exIds = m.getStringArray("exIds") ?: arrayOf()
+                    // 운동 id → 머신 종류 (스키/로잉 에르그만 해당)
+                    val machineByEx = Stations.ALL
+                        .filter { it.machine != null }
+                        .associate { it.exerciseId to it.machine!!.wire }
                     val n = minOf(ids.size, names.size)
                     result = Wod(
                         title = m.getString("title") ?: "오늘의 WOD",
@@ -38,6 +50,7 @@ object WearWod {
                                 name = names[i],
                                 note = notes.getOrNull(i)?.takeIf { it.isNotBlank() },
                                 done = done.getOrNull(i) == 1L,
+                                machineType = exIds.getOrNull(i)?.let { machineByEx[it] },
                             )
                         },
                     )

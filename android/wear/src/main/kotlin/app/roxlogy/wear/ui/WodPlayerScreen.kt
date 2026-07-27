@@ -51,14 +51,70 @@ private fun fmtSec(ms: Long): String {
  * 현재 항목 타이머 + [완료] = 체크·소요시간 확정·역동기화(⌚ note) 후 다음 항목.
  */
 @Composable
-fun WodPlayerScreen(sender: WearDataSender) {
+fun WodPlayerScreen(
+    sender: WearDataSender,
+    ble: app.roxlogy.wear.ble.Pm5BleClient,
+    ensureBle: ((() -> Unit) -> Unit),
+) {
     val context = LocalContext.current
     var wod by remember { mutableStateOf<WearWod.Wod?>(null) }
     var loaded by remember { mutableStateOf(false) }
     var doneIds by remember { mutableStateOf(setOf<String>()) }
     var itemStartMs by remember { mutableStateOf(System.currentTimeMillis()) }
     var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    var pm5Connected by remember { mutableStateOf(false) }
+    var pm5Scanning by remember { mutableStateOf(false) }
+    var pm5Live by remember { mutableStateOf("") }
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { ble.stop() } }
+
+    fun connectPm5() {
+        ensureBle {
+            pm5Scanning = true
+            ble.start(object : app.roxlogy.wear.ble.Pm5BleClient.Listener {
+                override fun onConnected() { pm5Connected = true; pm5Scanning = false }
+                override fun onDisconnected() { pm5Connected = false }
+                override fun onSamples(samples: List<app.roxlogy.shared.ingest.ErgSample>) {
+                    samples.lastOrNull()?.let {
+                        pm5Live = "${it.watts ?: 0}W · ${it.spm ?: 0}spm"
+                    }
+                }
+            })
+        }
+    }
+
+    // 에르그 WOD 항목의 PM5 raw 를 단일 스테이션 세션으로 서버에 남긴다
+    // (세션 파이프라인 재사용 — 웹 세션 상세 곡선·PR·AI 코칭에 그대로 반영)
+    fun sendErgSession(machine: String, elapsedMs: Long) {
+        val samples = ble.snapshot()
+        if (samples.isEmpty()) return
+        val station = app.roxlogy.shared.model.Stations.byKey(machine) ?: return
+        val seg = app.roxlogy.shared.record.RecordedSegment(
+            kind = "station",
+            splitTimeMs = elapsedMs,
+            exerciseId = station.exerciseId,
+            machineType = machine,
+            ergSamples = samples,
+        )
+        val req = app.roxlogy.shared.record.SessionAssembler.assemble(
+            sessionId = java.util.UUID.randomUUID().toString(),
+            startedAtIso = java.time.Instant.ofEpochMilli(itemStartMs).toString(),
+            clientUpdatedAtIso = java.time.Instant.now().toString(),
+            endedAtIso = java.time.Instant.now().toString(),
+            segments = listOf(seg),
+        )
+        val payload = app.roxlogy.shared.ingest.IngestJson.encode(req)
+        sender.sendRaw(req.session.id, payload, req.session.client_updated_at)
+        app.roxlogy.wear.store.WearStore.addSession(
+            context,
+            app.roxlogy.shared.record.StoredSession(
+                id = req.session.id, createdAtMs = System.currentTimeMillis(),
+                totalMs = elapsedMs, clientUpdatedAt = req.session.client_updated_at,
+                payloadJson = payload, sent = true,
+            ),
+        )
+        ble.resetSamples()
+    }
 
     LaunchedEffect(Unit) {
         val w = WearWod.load(context)
@@ -127,11 +183,32 @@ fun WodPlayerScreen(sender: WearDataSender) {
                             )
                         }
                     }
+                    if (current!!.machineType != null) {
+                        item {
+                            Chip(
+                                onClick = { if (!pm5Connected && !pm5Scanning) connectPm5() },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ChipDefaults.secondaryChipColors(backgroundColor = SurfaceHi),
+                                label = {
+                                    Text(
+                                        when {
+                                            pm5Connected -> "PM5 ✓ $pm5Live"
+                                            pm5Scanning -> "PM5 연결 중…"
+                                            else -> "${if (current.machineType == "ski") "SkiErg" else "RowErg"} 연결"
+                                        },
+                                        fontSize = 11.sp,
+                                    )
+                                },
+                            )
+                        }
+                    }
                     item {
                         Chip(
                             onClick = {
                                 val elapsed = System.currentTimeMillis() - itemStartMs
                                 sender.sendWodDone(current!!.id, elapsed)
+                                // 에르그 항목이면 PM5 raw 를 세션으로도 전송
+                                current.machineType?.let { m -> sendErgSession(m, elapsed) }
                                 doneIds = doneIds + current.id
                                 itemStartMs = System.currentTimeMillis()
                                 buzz(60)

@@ -148,7 +148,7 @@ object AmbientState {
 }
 
 private enum class AppPhase { IDLE, RUNNING, DONE, SENT }
-private enum class Screen { MENU, SIM, ARCHIVE, SETTINGS, GOAL, WOD }
+private enum class Screen { MENU, SIM, ARCHIVE, SETTINGS, GOAL, WOD, ERG }
 
 // 1차 러닝 진행 시각 페이서(실거리 미지원 시). 5:00/km.
 private const val NOMINAL_RUN_MS = 300_000L
@@ -209,6 +209,19 @@ fun RootApp(ble: Pm5BleClient, sender: WearDataSender) {
     var hasWod by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    // BLE 권한 보장 헬퍼 — 승인되면 대기 중인 동작 실행 (에르그/WOD/설정 테스트 공용)
+    var pendingBleGrant by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val bleGrantLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        if (grants.values.all { it }) pendingBleGrant?.invoke()
+        pendingBleGrant = null
+    }
+    val ensureBle: ((() -> Unit) -> Unit) = { onGranted ->
+        pendingBleGrant = onGranted
+        bleGrantLauncher.launch(blePermissions())
+    }
+
     LaunchedEffect(screen) {
         if (screen == Screen.MENU) {
             hasWod = app.roxlogy.wear.sync.WearWod.load(context)?.items?.isNotEmpty() == true
@@ -229,6 +242,7 @@ fun RootApp(ble: Pm5BleClient, sender: WearDataSender) {
                 screen = Screen.SIM
             },
             onWod = { screen = Screen.WOD },
+            onErg = { screen = Screen.ERG },
             onGoal = {
                 scope.launch { goal = WearGoal.load(context) }
                 screen = Screen.GOAL
@@ -240,9 +254,10 @@ fun RootApp(ble: Pm5BleClient, sender: WearDataSender) {
             SimApp(ble, sender, resume) { screen = Screen.MENU }
         }
         Screen.ARCHIVE -> ArchiveScreen(sender)
-        Screen.SETTINGS -> SettingsScreen()
+        Screen.SETTINGS -> SettingsScreen(ble, ensureBle)
         Screen.GOAL -> GoalScreen(goal, STATION_LABEL)
-        Screen.WOD -> WodPlayerScreen(sender)
+        Screen.WOD -> WodPlayerScreen(sender, ble, ensureBle)
+        Screen.ERG -> app.roxlogy.wear.ui.ErgScreen(ble, sender, ensureBle)
     }
 }
 

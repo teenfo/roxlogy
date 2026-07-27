@@ -32,6 +32,8 @@ class WodSync(private val wod: WodClient = WodClient()) {
         m.putStringArray("names", w.items.map { it.name }.toTypedArray())
         m.putStringArray("notes", w.items.map { it.targetNote ?: "" }.toTypedArray())
         m.putLongArray("done", w.items.map { if (it.done) 1L else 0L }.toLongArray())
+        // 운동 id — 워치가 스키/로잉(에르그) 여부를 판별해 PM5 수집을 붙인다
+        m.putStringArray("exIds", w.items.map { it.exerciseId ?: "" }.toTypedArray())
         m.putLong("ts", System.currentTimeMillis())
 
         return@withContext try {

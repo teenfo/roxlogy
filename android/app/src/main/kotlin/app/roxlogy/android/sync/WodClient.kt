@@ -30,6 +30,7 @@ class WodClient(
 
     data class WodItem(
         val itemId: String,
+        val exerciseId: String? = null,
         val name: String,
         val targetNote: String?,
         val done: Boolean,
@@ -72,6 +73,7 @@ class WodClient(
                 val c = byItem[it.id]
                 WodItem(
                     itemId = it.id,
+                    exerciseId = it.exercises?.id,
                     name = it.exercises?.let { ex -> if (koreanNames) ex.name_ko else ex.name_en }
                         ?: "—",
                     targetNote = (it.target as? JsonObject)?.get("note")?.jsonPrimitive?.contentOrNull,

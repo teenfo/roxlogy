@@ -103,6 +103,7 @@ fun MenuScreen(
     hasWod: Boolean,
     onStart: (Boolean) -> Unit,
     onWod: () -> Unit,
+    onErg: () -> Unit,
     onGoal: () -> Unit,
     onArchive: () -> Unit,
     onSettings: () -> Unit,
@@ -124,6 +125,7 @@ fun MenuScreen(
             item {
                 MenuChip("✓", "오늘의 WOD", if (hasWod) "프로그램 워크아웃" else "폰에서 동기화 필요") { onWod() }
             }
+            item { MenuChip("⚡", "에르그", "PM5 단독 기록") { onErg() } }
             item { MenuChip("◎", "목표", "목표 스플릿 확인") { onGoal() } }
             item { MenuChip("▤", "보관함", "최근 세션 · 재전송") { onArchive() } }
             item { MenuChip("⚙", "설정") { onSettings() } }
@@ -179,11 +181,18 @@ fun ArchiveScreen(sender: WearDataSender) {
 
 // ---------------------------------------------------------------- 설정
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    ble: app.roxlogy.wear.ble.Pm5BleClient,
+    ensureBle: ((() -> Unit) -> Unit),
+) {
     val context = LocalContext.current
     var haptic by remember { mutableStateOf(WearStore.hapticEnabled(context)) }
     var screenOn by remember { mutableStateOf(WearStore.screenOnEnabled(context)) }
     var ambient by remember { mutableStateOf(WearStore.ambientEnabled(context)) }
+    // PM5 연결 테스트 — 화면을 나가면 연결 해제
+    var pm5State by remember { mutableStateOf("idle") } // idle | scanning | ok
+    var pm5Live by remember { mutableStateOf("") }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { ble.stop() } }
 
     @Composable
     fun toggle(label: String, sub: String, checked: Boolean, onChange: (Boolean) -> Unit) {
@@ -219,6 +228,38 @@ fun SettingsScreen() {
                 toggle("앰비언트 모드", "꺼짐 시 저전력 간소 화면", ambient) {
                     ambient = it; WearStore.setAmbient(context, it)
                 }
+            }
+            item { ListHeader { Text("PM5", fontSize = 11.sp, color = MutedText) } }
+            item {
+                Chip(
+                    onClick = {
+                        ensureBle {
+                            pm5State = "scanning"
+                            ble.start(object : app.roxlogy.wear.ble.Pm5BleClient.Listener {
+                                override fun onConnected() { pm5State = "ok" }
+                                override fun onDisconnected() { pm5State = "idle"; pm5Live = "" }
+                                override fun onSamples(samples: List<app.roxlogy.shared.ingest.ErgSample>) {
+                                    samples.lastOrNull()?.let {
+                                        pm5Live = "${it.watts ?: 0}W · ${it.spm ?: 0}spm"
+                                    }
+                                }
+                            })
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ChipDefaults.secondaryChipColors(backgroundColor = SurfaceHi),
+                    label = {
+                        Text(
+                            when (pm5State) {
+                                "ok" -> "PM5 연결됨 ✓" + (if (pm5Live.isNotEmpty()) " $pm5Live" else "")
+                                "scanning" -> "PM5 검색 중…"
+                                else -> "PM5 연결 테스트"
+                            },
+                            fontSize = 12.sp,
+                        )
+                    },
+                    secondaryLabel = { Text("PM5 화면을 깨운 뒤 탭", fontSize = 9.sp) },
+                )
             }
             item { Text("v0.3", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
