@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
+import { getRaceBenchmarks } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
 import { formatMs } from "@/lib/format";
 import { percentileOf, type Benchmark } from "@/lib/percentile";
@@ -13,21 +15,16 @@ export async function generateMetadata() {
 export default async function RacesPage() {
   const supabase = await createClient();
   const { t } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const [{ data: races }, { data: profile }, { data: benchmarks }] =
-    await Promise.all([
-      supabase
-        .from("race_results")
-        .select("id, event, event_date, division, total_time_ms")
-        .eq("user_id", user!.id)
-        .order("event_date", { ascending: false }),
-      supabase.from("profiles").select("gender").eq("id", user!.id).maybeSingle(),
-      supabase
-        .from("race_benchmarks")
-        .select("division, gender, scope, percentiles"),
-    ]);
+  const user = await getCachedUser();
+  const [{ data: races }, profile, benchmarks] = await Promise.all([
+    supabase
+      .from("race_results")
+      .select("id, event, event_date, division, total_time_ms")
+      .eq("user_id", user!.id)
+      .order("event_date", { ascending: false }),
+    getCachedProfile(), // 레이아웃과 공유
+    getRaceBenchmarks(), // 전역 캐시
+  ]);
   const bms = (benchmarks ?? []) as Benchmark[];
   const gender = profile?.gender ?? null;
 

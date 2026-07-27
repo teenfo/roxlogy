@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { ProfileForm } from "@/components/profile-form";
 import { NotificationSettings } from "@/components/notification-settings";
@@ -10,9 +11,7 @@ export async function generateMetadata() {
 
 export default async function ProfileSettingsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")

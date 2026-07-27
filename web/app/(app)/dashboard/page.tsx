@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { AiInsight } from "@/components/ai-insight";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
+import { getRaceBenchmarks } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatDateShortYear, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
@@ -17,21 +19,20 @@ export async function generateMetadata() {
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { t, tag, tz } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   const [
-    { data: profile },
+    profile,
     { data: sessions },
     { data: stationSegs },
     { data: simSessions },
     { data: races },
     { data: goals },
-    { data: benchmarks },
+    benchmarks,
     { data: enrollment },
   ] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user!.id).single(),
+    getCachedProfile(), // 레이아웃과 공유 — 요청당 1회만 조회
+
     supabase
       .from("sessions")
       .select("id, started_at, total_time_ms, source_device, template_id")
@@ -69,7 +70,7 @@ export default async function DashboardPage() {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(20),
-    supabase.from("race_benchmarks").select("division, gender, scope, percentiles"),
+    getRaceBenchmarks(),
     supabase
       .from("program_enrollments")
       .select(

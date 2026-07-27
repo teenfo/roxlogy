@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AiInsight } from "@/components/ai-insight";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
 import {
@@ -74,9 +75,7 @@ export default async function SessionDetailPage({
   const { id } = await params;
   const supabase = await createClient();
   const { t, tag, locale, tz } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   const { data: session } = await supabase
     .from("sessions")

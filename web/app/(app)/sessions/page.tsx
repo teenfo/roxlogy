@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
 import { ExportButton } from "@/components/export-button";
@@ -49,9 +50,7 @@ export default async function SessionsPage({
 
   const supabase = await createClient();
   const { t, tag, tz } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   // 시뮬만: 스테이션 세그먼트가 있는 세션 id를 선별해 일반 id 필터로 적용
   // (count/range와 호환되도록 일반 WHERE 절로 들어감)

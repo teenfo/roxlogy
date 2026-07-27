@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getRaceEvents } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 
@@ -44,24 +44,23 @@ export default async function EventsPage({
   searchParams: Promise<{ q?: string; region?: string }>;
 }) {
   const { q, region } = await searchParams;
-  const supabase = await createClient();
   const { t, tag } = await getT();
 
-  let query = supabase
-    .from("race_events")
-    .select("*")
-    .order("start_date", { ascending: true, nullsFirst: false });
-  if (q?.trim()) {
-    const term = `%${q.trim()}%`;
-    query = query.or(`name.ilike.${term},city.ilike.${term},country.ilike.${term}`);
-  }
-  if (region && (REGIONS as readonly string[]).includes(region))
-    query = query.eq("region", region);
+  // 공개 대회 일정은 전역 캐시(1시간) — 검색·지역 필터는 메모리에서 처리
+  const all = await getRaceEvents();
+  const term = q?.trim().toLowerCase();
+  const events = all.filter((e) => {
+    if (region && (REGIONS as readonly string[]).includes(region) && e.region !== region)
+      return false;
+    if (!term) return true;
+    return [e.name, e.city, e.country].some((v) =>
+      (v ?? "").toLowerCase().includes(term),
+    );
+  });
 
-  const { data: events } = await query;
   const today = new Date().toISOString().slice(0, 10);
-  const upcoming = (events ?? []).filter((e) => !e.end_date || e.end_date >= today);
-  const past = (events ?? []).filter((e) => e.end_date && e.end_date < today);
+  const upcoming = events.filter((e) => !e.end_date || e.end_date >= today);
+  const past = events.filter((e) => e.end_date && e.end_date < today);
 
   return (
     <>

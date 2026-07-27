@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getT } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { STATIONS } from "@/lib/hyrox";
 import { formatDateShort } from "@/lib/format";
 import {
@@ -33,9 +34,7 @@ export default async function PredictPage({
   const sp = await searchParams;
   const { t, tag, tz } = await getT();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   // 로그인 시: 최근 레이스 시뮬 세션을 목표 계산용으로 불러온다.
   let sessions: PredictSession[] = [];

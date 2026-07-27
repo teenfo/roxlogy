@@ -33,10 +33,11 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // getUser()는 토큰을 검증하며 만료 세션을 리프레시한다 — getSession() 사용 금지
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims()는 비대칭 서명키가 켜져 있으면 JWT 를 로컬 검증하고(네트워크 0회),
+  // 아니면 getUser() 와 동일하게 Auth 서버로 폴백한다 — 만료 세션 리프레시도 그대로.
+  // getSession() 은 검증 없이 쿠키를 믿으므로 사용 금지.
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims?.claims ? { id: claims.claims.sub } : null;
 
   const { pathname } = request.nextUrl;
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
@@ -61,8 +62,10 @@ export async function proxy(request: NextRequest) {
   return supabaseResponse;
 }
 
+// 인증 판정이 필요한 문서 요청에만 실행한다. api·auth 콜백 라우트는 자체적으로
+// 세션을 검증하므로 여기서 한 번 더 왕복하지 않는다(요청당 왕복 1회 절감).
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api|auth|_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|txt)$).*)",
   ],
 };

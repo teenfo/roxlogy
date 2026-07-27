@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
 import { FollowButton } from "@/components/follow-button";
@@ -32,9 +33,7 @@ export default async function PublicProfilePage({
   const { id } = await params;
   const supabase = await createClient();
   const { t, tag, tz } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   const { data: profRows } = await supabase.rpc("public_profile", {
     p_user: id,

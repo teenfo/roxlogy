@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { STATIONS } from "@/lib/hyrox";
 import { SessionCompare, type CompareSession } from "@/components/session-compare";
@@ -14,9 +15,7 @@ const EX_TO_KEY = new Map(STATIONS.map((s) => [s.exerciseId, s.key]));
 export default async function SessionComparePage() {
   const supabase = await createClient();
   const { t } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   // 레이스 시뮬 세션(스테이션 세그먼트 보유) — 최근 40개, 본인 것만
   const { data: rows } = await supabase

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
 
@@ -37,9 +38,7 @@ export default async function SchedulePage({
   const weekOffset = Number(week) || 0;
   const supabase = await createClient();
   const { t, tag, tz } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   const { data: enrollment } = await supabase
     .from("program_enrollments")

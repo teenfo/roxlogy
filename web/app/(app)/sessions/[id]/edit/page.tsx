@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import {
   SessionNewForm,
@@ -18,9 +19,7 @@ export default async function SessionEditPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   // 수정은 소유자만 — 관리자는 RLS 로 남의 세션도 조회되므로 명시 필터
   const { data: session } = await supabase

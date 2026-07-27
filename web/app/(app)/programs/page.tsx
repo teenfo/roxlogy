@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AiProgramButton } from "@/components/ai-program-button";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 
 export async function generateMetadata() {
@@ -49,9 +50,7 @@ function ProgramCard({
 export default async function ProgramsPage() {
   const supabase = await createClient();
   const { t } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   // 공용(is_public) 또는 본인 소유만 — 관리자는 RLS 로 전체가 보이므로 명시 필터
   const { data: programs } = await supabase

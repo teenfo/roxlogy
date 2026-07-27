@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getExercises } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
 
 export async function generateMetadata() {
@@ -22,23 +22,25 @@ export default async function ExercisesPage({
   searchParams: Promise<{ q?: string; category?: string; equipment?: string }>;
 }) {
   const { q, category, equipment } = await searchParams;
-  const supabase = await createClient();
   const { t, locale } = await getT();
 
-  let query = supabase.from("exercises").select("*").order("station_type", {
-    ascending: true,
-    nullsFirst: false,
+  // 운동 DB 는 전역 참조 데이터 — 전역 캐시(1시간) 후 필터는 메모리에서
+  const allExercises = await getExercises();
+  const term = q?.trim().toLowerCase();
+  const exercises = allExercises.filter((e) => {
+    if (category && (CATEGORIES as readonly string[]).includes(category) && e.category !== category)
+      return false;
+    if (
+      equipment &&
+      (EQUIPMENT as readonly string[]).includes(equipment) &&
+      !(e.equipment ?? []).includes(equipment)
+    )
+      return false;
+    if (!term) return true;
+    return [e.name_ko, e.name_en].some((v) =>
+      (v ?? "").toLowerCase().includes(term),
+    );
   });
-  if (q?.trim()) {
-    const term = `%${q.trim()}%`;
-    query = query.or(`name_ko.ilike.${term},name_en.ilike.${term}`);
-  }
-  if (category && (CATEGORIES as readonly string[]).includes(category))
-    query = query.eq("category", category);
-  if (equipment && (EQUIPMENT as readonly string[]).includes(equipment))
-    query = query.contains("equipment", [equipment]);
-
-  const { data: exercises } = await query;
 
   return (
     <main>

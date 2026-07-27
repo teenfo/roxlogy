@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDateShort, programDayDate } from "@/lib/format";
 import { ProgramBuilder } from "@/components/program-builder";
@@ -32,9 +33,7 @@ export default async function ProgramDetailPage({
   const { id } = await params;
   const supabase = await createClient();
   const { t, tag, locale, tz } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   // RLS: 공용 또는 본인 소유만 조회됨. 트리 전체를 한 번에.
   const { data: program } = await supabase

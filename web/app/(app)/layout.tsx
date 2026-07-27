@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
@@ -10,18 +10,10 @@ import { SignOutForm } from "@/components/sign-out-form";
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
   if (!user) redirect("/login");
-  const { t } = await getT();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_admin, disabled")
-    .eq("id", user.id)
-    .maybeSingle();
+  // 프로필은 대시보드·설정 등 페이지와 같은 요청 안에서 공유된다 (왕복 1회)
+  const [{ t }, profile] = await Promise.all([getT(), getCachedProfile()]);
   const isAdmin = profile?.is_admin === true;
 
   // 비활성(정지) 계정: 앱 접근 차단

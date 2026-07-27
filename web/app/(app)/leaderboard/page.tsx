@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
@@ -25,9 +26,7 @@ export default async function LeaderboardPage({
   const { division, station } = await searchParams;
   const supabase = await createClient();
   const { t } = await getT();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   const div =
     division && (DIVISIONS as readonly string[]).includes(division)
