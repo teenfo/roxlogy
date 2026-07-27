@@ -612,7 +612,7 @@ fun SimApp(
     Dialog(showDialog = showExit, onDismissRequest = { showExit = false }) {
         Alert(
             title = { Text("시뮬을 종료할까요?", fontSize = 14.sp, textAlign = TextAlign.Center) },
-            message = {
+            content = {
                 Text(
                     "진행 기록은 저장되어\n'이어서 기록'으로 복귀할 수 있습니다",
                     fontSize = 11.sp, color = MutedText, textAlign = TextAlign.Center,
