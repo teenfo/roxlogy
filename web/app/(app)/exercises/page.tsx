@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getExercises } from "@/lib/cache";
+import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 
 export async function generateMetadata() {
@@ -24,10 +24,15 @@ export default async function ExercisesPage({
   const { q, category, equipment } = await searchParams;
   const { t, locale } = await getT();
 
-  // 운동 DB 는 전역 참조 데이터 — 전역 캐시(1시간) 후 필터는 메모리에서
-  const allExercises = await getExercises();
+  // 운동 DB 는 authenticated 전용 RLS 라 전역 캐시(무세션 클라이언트) 대상이 아니다.
+  // 한 번에 받아 필터는 메모리에서 처리 — 조건이 바뀌어도 왕복은 1회.
+  const supabase = await createClient();
+  const { data: allExercises } = await supabase
+    .from("exercises")
+    .select("*")
+    .order("station_type", { ascending: true, nullsFirst: false });
   const term = q?.trim().toLowerCase();
-  const exercises = allExercises.filter((e) => {
+  const exercises = (allExercises ?? []).filter((e) => {
     if (category && (CATEGORIES as readonly string[]).includes(category) && e.category !== category)
       return false;
     if (
