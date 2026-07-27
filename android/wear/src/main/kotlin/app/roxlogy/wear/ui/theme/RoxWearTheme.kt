@@ -2,8 +2,13 @@ package app.roxlogy.wear.ui.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.wear.compose.material.Colors
 import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material.Typography
+import app.roxlogy.wear.R
 
 // 브랜드 팔레트 (brand/roxlogy-brand-guide.html v4)
 val RaceYellow = Color(0xFFFFD500)
@@ -37,10 +42,18 @@ private val RoxColors = Colors(
     onError = Color.Black,
 )
 
-/** 워치 전역 테마 — 브랜드 컬러를 Wear MaterialTheme 에 주입. */
+// 브랜드 한글 본문 고딕체 — IBM Plex Sans KR (OFL, res/font 번들)
+val PlexSansKr = FontFamily(
+    Font(R.font.ibm_plex_sans_kr_regular, FontWeight.Normal),
+    Font(R.font.ibm_plex_sans_kr_bold, FontWeight.Bold),
+)
+
+private val RoxTypography = Typography(defaultFontFamily = PlexSansKr)
+
+/** 워치 전역 테마 — 브랜드 컬러·고딕체 타이포를 Wear MaterialTheme 에 주입. */
 @Composable
 fun RoxWearTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colors = RoxColors, content = content)
+    MaterialTheme(colors = RoxColors, typography = RoxTypography, content = content)
 }
 
 /** 심박 존 컬러: <120 회색, <140 파랑, <160 초록, <175 주황, ≥175 빨강. */

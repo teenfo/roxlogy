@@ -21,8 +21,8 @@ android {
         applicationId = "app.roxlogy.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.3.1"
 
         // Google 로그인용 웹 클라이언트 ID. **공개 식별자**(APK에 포함·추출 가능)라
         // 커밋해도 안전하다 — 비밀은 아니다. Supabase Google 프로바이더에 등록된 것과 동일.

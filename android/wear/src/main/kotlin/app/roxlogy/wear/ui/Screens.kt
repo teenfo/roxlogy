@@ -55,6 +55,31 @@ private fun fmtTotal(ms: Long): String {
     else "%d:%02d".format(t / 60, t % 60)
 }
 
+/** 주 액션 버튼 — 전폭·15sp Bold (전 화면 공통 규격). */
+@Composable
+fun PrimaryActionChip(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Chip(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(0.85f).height(40.dp),
+        colors = ChipDefaults.primaryChipColors(),
+        label = {
+            Text(
+                text, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+            )
+        },
+    )
+}
+
+/** T자 분할 하단 칸 — 값(16sp Bold) + 서브라벨(9sp). */
+@Composable
+fun MetricCell(value: String, valueColor: Color, sub: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = valueColor)
+        Text(sub, fontSize = 9.sp, color = MutedText)
+    }
+}
+
 /** 브랜드 워드마크 헤더 — Archivo Black 스타일(볼드·대문자·타이트 자간). */
 @Composable
 fun BrandHeader(sub: String? = null) {
@@ -88,7 +113,7 @@ private fun MenuChip(
             Text(glyph, fontSize = 15.sp, color = if (primary) Color.Black else RaceYellow)
         },
         label = {
-            Text(label, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(label, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         secondaryLabel = secondary?.let {
             { Text(it, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
@@ -261,7 +286,7 @@ fun SettingsScreen(
                     secondaryLabel = { Text("PM5 화면을 깨운 뒤 탭", fontSize = 9.sp) },
                 )
             }
-            item { Text("v0.3", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("v0.3.1", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }

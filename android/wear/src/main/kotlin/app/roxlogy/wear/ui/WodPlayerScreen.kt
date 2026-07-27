@@ -179,7 +179,7 @@ fun WodPlayerScreen(
                             current.note?.let { Text(it, fontSize = 10.sp, color = MutedText, maxLines = 2) }
                             Text(
                                 fmtSec(nowMs - itemStartMs),
-                                fontSize = 20.sp, fontWeight = FontWeight.Bold, color = RaceYellow,
+                                fontSize = 22.sp, fontWeight = FontWeight.Bold, color = RaceYellow,
                             )
                         }
                     }
@@ -203,23 +203,16 @@ fun WodPlayerScreen(
                         }
                     }
                     item {
-                        Chip(
-                            onClick = {
-                                val elapsed = System.currentTimeMillis() - itemStartMs
-                                sender.sendWodDone(current!!.id, elapsed)
-                                // 에르그 항목이면 PM5 raw 를 세션으로도 전송
-                                current.machineType?.let { m -> sendErgSession(m, elapsed) }
-                                doneIds = doneIds + current.id
-                                itemStartMs = System.currentTimeMillis()
-                                buzz(60)
-                                if (w.items.all { it.id in doneIds }) buzz(200)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ChipDefaults.primaryChipColors(),
-                            label = {
-                                Text("완료", fontSize = 14.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                            },
-                        )
+                        PrimaryActionChip("완료", modifier = Modifier.fillMaxWidth()) {
+                            val elapsed = System.currentTimeMillis() - itemStartMs
+                            sender.sendWodDone(current!!.id, elapsed)
+                            // 에르그 항목이면 PM5 raw 를 세션으로도 전송
+                            current.machineType?.let { m -> sendErgSession(m, elapsed) }
+                            doneIds = doneIds + current.id
+                            itemStartMs = System.currentTimeMillis()
+                            buzz(60)
+                            if (w.items.all { it.id in doneIds }) buzz(200)
+                        }
                     }
                     item { ListHeader { Text("전체 목록", fontSize = 10.sp, color = MutedText) } }
                     items(w.items) { it ->

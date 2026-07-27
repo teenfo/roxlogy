@@ -16,10 +16,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -71,6 +76,7 @@ import app.roxlogy.wear.ui.ArchiveScreen
 import app.roxlogy.wear.ui.BrandHeader
 import app.roxlogy.wear.ui.GoalScreen
 import app.roxlogy.wear.ui.MenuScreen
+import app.roxlogy.wear.ui.MetricCell
 import app.roxlogy.wear.ui.SettingsScreen
 import app.roxlogy.wear.ui.SimRings
 import app.roxlogy.wear.ui.WodPlayerScreen
@@ -181,13 +187,29 @@ private fun DiffBadge(diffMs: Long?, fontSize: Int = 11) {
     )
 }
 
-/** 알약형 액션 버튼. */
+/** 주 액션 버튼 — 전폭·15sp Bold (전 화면 공통 규격). */
 @Composable
 private fun ActionChip(text: String, bg: Color, fg: Color, onClick: () -> Unit) {
+    Chip(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(0.9f).height(40.dp),
+        colors = ChipDefaults.chipColors(backgroundColor = bg, contentColor = fg),
+        label = {
+            Text(
+                text, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+            )
+        },
+    )
+}
+
+/** 보조 액션 버튼 — 주 액션과 시각 위계 분리. */
+@Composable
+private fun SubActionChip(text: String, onClick: () -> Unit) {
     CompactChip(
         onClick = onClick,
-        colors = ChipDefaults.chipColors(backgroundColor = bg, contentColor = fg),
-        label = { Text(text, fontSize = 13.sp) },
+        colors = ChipDefaults.chipColors(backgroundColor = SurfaceHi, contentColor = Color.White),
+        label = { Text(text, fontSize = 12.sp) },
     )
 }
 
@@ -755,10 +777,30 @@ private fun RingView(
                     kind == "run" -> Text("RUN $round", fontSize = 14.sp, color = TrackBlue, fontWeight = FontWeight.Bold)
                     kind == "station" -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("STATION $round", fontSize = 11.sp, color = RaceYellow)
-                        Text(
-                            STATION_LABEL[engine.current?.stationKey] ?: "스테이션",
-                            fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                        )
+                        val label = STATION_LABEL[engine.current?.stationKey] ?: "스테이션"
+                        if (SessionAssembler.isMachine(engine.current?.machineType)) {
+                            // 종목명 자체가 PM5 연결 버튼 — 탭 = 연결, 연결되면 ✓
+                            CompactChip(
+                                onClick = { if (!pm5Connected && !pm5Scanning) onConnectPm5() },
+                                modifier = Modifier.height(30.dp),
+                                colors = ChipDefaults.chipColors(
+                                    backgroundColor = if (pm5Connected) StationBg else SurfaceHi,
+                                    contentColor = if (pm5Connected) RaceYellow else Color.White,
+                                ),
+                                label = {
+                                    Text(
+                                        when {
+                                            pm5Connected -> "$label ✓"
+                                            pm5Scanning -> "연결 중…"
+                                            else -> label
+                                        },
+                                        fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                                    )
+                                },
+                            )
+                        } else {
+                            Text(label, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                     else -> Text("록스존 · 이동", fontSize = 14.sp, color = Chalk, fontWeight = FontWeight.Bold)
                 }
@@ -778,23 +820,47 @@ private fun RingView(
                         SummaryLine(engine)
                     }
                     AppPhase.RUNNING -> {
-                        Text(fmt(elapsed), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                        // T자 3분할: 타이머(상단 전폭) + 좌 심박 / 우 상황별 지표
+                        Text(fmt(elapsed), fontSize = 30.sp, fontWeight = FontWeight.Bold)
                         if (!paused) {
-                            if (kind == "run") {
-                                Text(
-                                    if (trackerActive) "${runDistM.toInt()} m / 1km" else "탭 = 1km 랩",
-                                    fontSize = 10.sp, color = MutedText,
+                            Spacer(Modifier.height(2.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                // 좌 칸 — 심박 (자리 고정, 항상 표시)
+                                MetricCell(
+                                    value = if (hrNow > 30) "${hrNow.toInt()}" else "--",
+                                    valueColor = if (hrNow > 30) hrZoneColor(hrNow.toInt()) else MutedText,
+                                    sub = "♥ 심박",
+                                    modifier = Modifier.weight(1f),
                                 )
-                            }
-                            if (slotTarget != null) {
-                                Text("구간 목표 ${fmt(slotTarget)}", fontSize = 10.sp, color = MutedText)
-                            }
-                            DiffBadge(diff, fontSize = 10)
-                            if (hrNow > 30) {
-                                Text("♥ ${hrNow.toInt()}", fontSize = 11.sp, color = hrZoneColor(hrNow.toInt()))
-                            }
-                            if (nextLabel != null && kind != "run") {
-                                Text("다음: $nextLabel", fontSize = 9.sp, color = MutedText)
+                                Box(Modifier.width(1.dp).fillMaxHeight().background(SurfaceHi))
+                                // 우 칸 — 상황별 핵심 지표 1개
+                                when {
+                                    kind == "run" -> MetricCell(
+                                        value = if (trackerActive) "${runDistM.toInt()}m" else "탭=랩",
+                                        valueColor = Chalk,
+                                        sub = if (trackerActive) "/ 1km" else "수동 랩",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    kind == "station" && pm5Connected -> MetricCell(
+                                        value = "${pm5Latest?.watts ?: 0}W",
+                                        valueColor = RaceYellow,
+                                        sub = "${pm5Latest?.spm ?: 0}spm",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    else -> MetricCell(
+                                        value = diff?.let { fmtDiff(it) } ?: "--",
+                                        valueColor = when {
+                                            diff == null -> MutedText
+                                            diff <= 0 -> Good
+                                            else -> Bad
+                                        },
+                                        sub = slotTarget?.let { "목표 ${fmt(it)}" } ?: "목표 대비",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
                             }
                         }
                     }
@@ -811,17 +877,17 @@ private fun RingView(
                     phase == AppPhase.IDLE -> {
                         ActionChip("시작", RaceYellow, Color.Black, onStart)
                         Spacer(Modifier.height(2.dp))
-                        ActionChip("메뉴", SurfaceHi, Color.White, onExit)
+                        SubActionChip("메뉴", onExit)
                     }
                     phase == AppPhase.DONE -> {
                         ActionChip("전송", RaceYellow, Color.Black, onSend)
                         Spacer(Modifier.height(2.dp))
-                        ActionChip("↩ 랩 취소", SurfaceHi, Color.White, onUndo)
+                        SubActionChip("↩ 랩 취소", onUndo)
                     }
                     phase == AppPhase.SENT -> {
                         ActionChip("새 시뮬", RaceYellow, Color.Black, onReset)
                         Spacer(Modifier.height(2.dp))
-                        ActionChip("메뉴", SurfaceHi, Color.White, onExit)
+                        SubActionChip("메뉴", onExit)
                     }
                     paused -> ActionChip("▶ 재개", RaceYellow, Color.Black, onResume)
                     kind == "run" -> ActionChip("1km 완료", TrackBlue, Color.White, onRecord)
@@ -833,32 +899,8 @@ private fun RingView(
                         },
                         Chalk, Color.Black, onRecord,
                     )
-                    kind == "station" -> {
-                        val machine = SessionAssembler.isMachine(engine.current?.machineType)
-                        if (machine) {
-                            // PM5 = 종목명 칩: 탭하면 연결, 연결되면 라이브 상태 표시
-                            val label = STATION_LABEL[engine.current?.stationKey] ?: "Erg"
-                            CompactChip(
-                                onClick = { if (!pm5Connected && !pm5Scanning) onConnectPm5() },
-                                colors = ChipDefaults.chipColors(
-                                    backgroundColor = if (pm5Connected) StationBg else SurfaceHi,
-                                    contentColor = if (pm5Connected) RaceYellow else Color.White,
-                                ),
-                                label = {
-                                    Text(
-                                        when {
-                                            pm5Connected -> "$label ✓ ${pm5Latest?.watts ?: 0}W·${pm5Latest?.spm ?: 0}spm"
-                                            pm5Scanning -> "$label 연결 중…"
-                                            else -> "$label 연결"
-                                        },
-                                        fontSize = 10.sp,
-                                    )
-                                },
-                            )
-                            Spacer(Modifier.height(2.dp))
-                        }
-                        ActionChip("완료", RaceYellow, Color.Black, onRecord)
-                    }
+                    // PM5 연결은 헤더 종목명 칩으로 이동 — 완료 버튼 위치 항상 고정
+                    kind == "station" -> ActionChip("완료", RaceYellow, Color.Black, onRecord)
                 }
             }
         }

@@ -2,11 +2,16 @@ package app.roxlogy.wear.ui
 
 import android.os.VibrationEffect
 import android.os.Vibrator
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -24,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.CompactChip
 import androidx.wear.compose.material.Scaffold
@@ -165,24 +169,16 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
                         )
                         if (connected) {
                             latest?.let { Text("${it.watts ?: 0}W · ${it.spm ?: 0}spm", fontSize = 11.sp, color = MutedText) }
-                            CompactChip(
-                                onClick = {
-                                    ble.resetSamples() // 워밍업 샘플 제거
-                                    startMs = System.currentTimeMillis()
-                                    nowMs = startMs
-                                    startIso = Instant.now().toString()
-                                    phase = "running"
-                                    buzz(60)
-                                },
-                                colors = ChipDefaults.primaryChipColors(),
-                                label = { Text("시작", fontSize = 13.sp) },
-                            )
+                            PrimaryActionChip("시작") {
+                                ble.resetSamples() // 워밍업 샘플 제거
+                                startMs = System.currentTimeMillis()
+                                nowMs = startMs
+                                startIso = Instant.now().toString()
+                                phase = "running"
+                                buzz(60)
+                            }
                         } else if (!scanning) {
-                            CompactChip(
-                                onClick = { connect() },
-                                colors = ChipDefaults.primaryChipColors(),
-                                label = { Text("다시 연결", fontSize = 12.sp) },
-                            )
+                            PrimaryActionChip("다시 연결") { connect() }
                         }
                         CompactChip(
                             onClick = { machine = null; ble.stop(); connected = false },
@@ -193,52 +189,52 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
                 }
                 "running" -> {
                     Text(if (machine == "ski") "SkiErg" else "RowErg", fontSize = 11.sp, color = MutedText)
-                    Text(fmtT(nowMs - startMs), fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                    latest?.let {
-                        Text("${it.watts ?: 0}W · ${it.spm ?: 0}spm", fontSize = 13.sp, color = RaceYellow)
-                        Text(
-                            "${it.dist.toInt()}m" + (it.pace?.let { p -> " · ${fmtT((p * 1000).toLong())}/500m" } ?: ""),
-                            fontSize = 11.sp, color = MutedText,
+                    // T자 3분할: 타이머 전폭 + 좌 파워 / 우 거리·페이스
+                    Text(fmtT(nowMs - startMs), fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MetricCell(
+                            value = "${latest?.watts ?: 0}W",
+                            valueColor = RaceYellow,
+                            sub = "${latest?.spm ?: 0}spm",
+                            modifier = Modifier.weight(1f),
+                        )
+                        Box(Modifier.width(1.dp).fillMaxHeight().background(SurfaceHi))
+                        MetricCell(
+                            value = "${latest?.dist?.toInt() ?: 0}m",
+                            valueColor = Color.White,
+                            sub = latest?.pace?.let { p -> "${fmtT((p * 1000).toLong())}/500m" } ?: "페이스 --",
+                            modifier = Modifier.weight(1f),
                         )
                     }
                     if (!connected) Text("연결 끊김 — 재연결 대기", fontSize = 9.sp, color = MutedText)
-                    Chip(
-                        onClick = {
-                            nowMs = System.currentTimeMillis()
-                            finalSamples = ble.snapshot()
-                            phase = "done"
-                            buzz(200)
-                        },
-                        colors = ChipDefaults.primaryChipColors(),
-                        label = { Text("종료", fontSize = 13.sp) },
-                    )
+                    PrimaryActionChip("종료") {
+                        nowMs = System.currentTimeMillis()
+                        finalSamples = ble.snapshot()
+                        phase = "done"
+                        buzz(200)
+                    }
                 }
                 "done" -> {
-                    Text(fmtT(nowMs - startMs), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text(fmtT(nowMs - startMs), fontSize = 26.sp, fontWeight = FontWeight.Bold)
                     val avgW = finalSamples.mapNotNull { it.watts }.let { if (it.isEmpty()) null else it.average().toInt() }
                     Text(
                         "${finalSamples.size} 샘플" + (avgW?.let { " · 평균 ${it}W" } ?: ""),
                         fontSize = 11.sp, color = MutedText,
                     )
-                    CompactChip(
-                        onClick = { send() },
-                        colors = ChipDefaults.primaryChipColors(),
-                        label = { Text("전송", fontSize = 13.sp) },
-                    )
+                    PrimaryActionChip("전송") { send() }
                     CompactChip(
                         onClick = { phase = "idle"; latest = null },
                         colors = ChipDefaults.chipColors(backgroundColor = SurfaceHi, contentColor = Color.White),
-                        label = { Text("버리기", fontSize = 11.sp) },
+                        label = { Text("버리기", fontSize = 12.sp) },
                     )
                 }
                 "sent" -> {
-                    Text("전송됨 ✓", fontSize = 14.sp, color = RaceYellow, fontWeight = FontWeight.Bold)
+                    Text("전송됨 ✓", fontSize = 15.sp, color = RaceYellow, fontWeight = FontWeight.Bold)
                     Text("세션 목록에서 곡선·지표 확인", fontSize = 10.sp, color = MutedText, textAlign = TextAlign.Center)
-                    CompactChip(
-                        onClick = { phase = "idle"; latest = null; finalSamples = emptyList() },
-                        colors = ChipDefaults.primaryChipColors(),
-                        label = { Text("새 기록", fontSize = 12.sp) },
-                    )
+                    PrimaryActionChip("새 기록") { phase = "idle"; latest = null; finalSamples = emptyList() }
                 }
             }
         }
