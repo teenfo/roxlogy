@@ -79,6 +79,9 @@ fun WodPlayerScreen(
                         pm5Live = "${it.watts ?: 0}W · ${it.spm ?: 0}spm"
                     }
                 }
+                override fun onFailed(reason: String) {
+                    pm5Scanning = false; pm5Connected = false; pm5Live = ""
+                }
             })
         }
     }

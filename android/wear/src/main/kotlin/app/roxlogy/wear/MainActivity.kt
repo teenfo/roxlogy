@@ -398,6 +398,7 @@ fun SimApp(
                 override fun onConnected() { pm5Connected = true; pm5Scanning = false }
                 override fun onDisconnected() { pm5Connected = false }
                 override fun onSamples(samples: List<ErgSample>) { pm5Latest = samples.lastOrNull() }
+                override fun onFailed(reason: String) { pm5Scanning = false; pm5Connected = false }
             })
         }
     }

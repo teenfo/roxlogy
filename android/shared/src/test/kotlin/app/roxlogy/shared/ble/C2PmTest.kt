@@ -122,4 +122,21 @@ class C2PmTest {
         assertEquals(11, out[1].t)   // 정렬 보장
         assertEquals(254.5, out[1].dist, 1e-9)
     }
+
+    /**
+     * 광고에 실리는 서비스는 Discovery(CE060000-…) 하나뿐 — 스캔 필터/매칭 기준.
+     * Rowing(CE060030-…)은 연결 후 GATT 에서만 보이므로 스캔에 쓰면 기기가 안 잡힌다.
+     * (Concept2 PM Bluetooth Smart Interface Definition)
+     */
+    @Test
+    fun `서비스 UUID가 공식 스펙과 일치`() {
+        assertEquals("CE060000-43E5-11E4-916C-0800200C9A66", C2Pm.DISCOVERY_SERVICE)
+        assertEquals("CE060010-43E5-11E4-916C-0800200C9A66", C2Pm.INFORMATION_SERVICE)
+        assertEquals("CE060020-43E5-11E4-916C-0800200C9A66", C2Pm.CONTROL_SERVICE)
+        assertEquals("CE060030-43E5-11E4-916C-0800200C9A66", C2Pm.ROWING_SERVICE)
+        assertEquals("CE060031-43E5-11E4-916C-0800200C9A66", C2Pm.GENERAL_STATUS)
+        assertEquals("CE060032-43E5-11E4-916C-0800200C9A66", C2Pm.ADDITIONAL_STATUS_1)
+        assertEquals("CE060033-43E5-11E4-916C-0800200C9A66", C2Pm.ADDITIONAL_STATUS_2)
+        assertEquals("CE060035-43E5-11E4-916C-0800200C9A66", C2Pm.STROKE_DATA)
+    }
 }

@@ -261,12 +261,15 @@ fun SettingsScreen(
                         ensureBle {
                             pm5State = "scanning"
                             ble.start(object : app.roxlogy.wear.ble.Pm5BleClient.Listener {
-                                override fun onConnected() { pm5State = "ok" }
+                                override fun onConnected() { pm5State = "ok"; pm5Live = "" }
                                 override fun onDisconnected() { pm5State = "idle"; pm5Live = "" }
                                 override fun onSamples(samples: List<app.roxlogy.shared.ingest.ErgSample>) {
                                     samples.lastOrNull()?.let {
                                         pm5Live = "${it.watts ?: 0}W · ${it.spm ?: 0}spm"
                                     }
+                                }
+                                override fun onFailed(reason: String) {
+                                    pm5State = "fail"; pm5Live = reason
                                 }
                             })
                         }
@@ -278,15 +281,21 @@ fun SettingsScreen(
                             when (pm5State) {
                                 "ok" -> "PM5 연결됨 ✓" + (if (pm5Live.isNotEmpty()) " $pm5Live" else "")
                                 "scanning" -> "PM5 검색 중…"
+                                "fail" -> "PM5 연결 실패 — 다시 탭"
                                 else -> "PM5 연결 테스트"
                             },
                             fontSize = 12.sp,
                         )
                     },
-                    secondaryLabel = { Text("PM5 화면을 깨운 뒤 탭", fontSize = 9.sp) },
+                    secondaryLabel = {
+                        Text(
+                            if (pm5State == "fail") pm5Live else "PM5 화면을 깨운 뒤 탭",
+                            fontSize = 9.sp, maxLines = 2,
+                        )
+                    },
                 )
             }
-            item { Text("v0.3.1", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("v0.3.2", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }

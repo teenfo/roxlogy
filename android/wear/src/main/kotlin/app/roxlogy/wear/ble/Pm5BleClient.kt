@@ -9,10 +9,10 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
@@ -27,8 +27,14 @@ import java.util.UUID
  * 스캔 → 연결 → General/Additional 1·2 특성 알림 구독 → N1 파서(C2Pm)로 파싱해
  * C2ErgAccumulator에 누적, 콜백으로 최신 샘플 스트림을 전달한다.
  *
- * 파싱 정확성은 N1 유닛테스트로 검증됨 — 이 파일은 BLE 런타임 "배관"이며 최종 동작은
- * 실기(워치+PM5)로 확인한다. 권한(BLUETOOTH_SCAN/CONNECT)은 호출측에서 런타임 확인.
+ * Concept2 PM Bluetooth Smart Interface Definition 기준:
+ *  - PM 은 **Discovery 서비스(CE060000-…)만 광고**한다. Rowing 서비스(CE060030-…)는
+ *    연결 후 GATT 에서만 보이므로 스캔 필터로 쓰면 기기가 잡히지 않는다.
+ *  - 펌웨어/OS 조합에 따라 서비스 UUID 가 광고가 아닌 스캔응답에 실리기도 해서,
+ *    여기서는 필터 없이 스캔한 뒤 광고 UUID 또는 이름(PM3/PM4/PM5)으로 직접 매칭한다.
+ *  - 페어링(본딩) 불필요 — GATT 직결.
+ *
+ * 파싱 정확성은 N1 유닛테스트로 검증됨. 권한(BLUETOOTH_SCAN/CONNECT)은 호출측에서 확인.
  */
 @SuppressLint("MissingPermission")
 class Pm5BleClient(private val context: Context) {
@@ -37,9 +43,13 @@ class Pm5BleClient(private val context: Context) {
         fun onConnected() {}
         fun onDisconnected() {}
         fun onSamples(samples: List<ErgSample>) {}
+        /** 스캔 실패·타임아웃·GATT 오류 — UI 가 "연결 중…"에 갇히지 않도록 알린다. */
+        fun onFailed(reason: String) {}
     }
 
     private val cccd = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+    private val discoveryUuid = ParcelUuid(UUID.fromString(C2Pm.DISCOVERY_SERVICE))
+    private val rowingParcelUuid = ParcelUuid(UUID.fromString(C2Pm.ROWING_SERVICE))
     private val serviceUuid = UUID.fromString(C2Pm.ROWING_SERVICE)
     private val subscribeUuids = listOf(
         UUID.fromString(C2Pm.GENERAL_STATUS),
@@ -62,20 +72,41 @@ class Pm5BleClient(private val context: Context) {
     // 가까운 — 사용자가 앉아 있는 — 머신을 고르기 위함)
     private val candidates = HashMap<String, Pair<BluetoothDevice, Int>>()
     private var picking = false
+    private var scanning = false
+    private var discovering = false
+    private var ready = false // 구독까지 완료 = 알림이 흐르는 상태
+    private var retried = false
+    private var target: BluetoothDevice? = null
 
     /** 스캔·연결 시작. 기존 연결이 있으면 정리 후 새로 스캔 (기기 전환 안전). */
     fun start(listener: Listener) {
         stop()
         this.listener = listener
         accumulator.clear()
-        val scanner = manager.adapter?.bluetoothLeScanner ?: return
-        val filter = ScanFilter.Builder()
-            .setServiceUuid(ParcelUuid(serviceUuid))
-            .build()
+        retried = false
+        scan()
+    }
+
+    private fun scan() {
+        val scanner = manager.adapter?.bluetoothLeScanner
+        if (scanner == null) {
+            fail("블루투스가 꺼져 있습니다")
+            return
+        }
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
-        scanner.startScan(listOf(filter), settings, scanCallback)
+        // 필터 없이 스캔하고 아래에서 직접 매칭 — 광고/스캔응답 어디에 UUID 가 실려도 잡는다
+        scanning = true
+        scanner.startScan(null, settings, scanCallback)
+        handler.postDelayed(scanTimeout, SCAN_TIMEOUT_MS)
+    }
+
+    private val scanTimeout = Runnable {
+        if (scanning && candidates.isEmpty()) {
+            stopScan()
+            fail("PM5를 찾지 못했습니다 — PM5 화면을 깨우고 다시 시도하세요")
+        }
     }
 
     /** 이미 연결/스캔 중일 때만 재스캔 — 머신 스테이션 전환(스키↔로잉) 시 호출.
@@ -83,7 +114,7 @@ class Pm5BleClient(private val context: Context) {
      *  재스캔을 시작했으면 true (호출측이 연결 표시를 끌 수 있게). */
     fun restartIfStarted(): Boolean {
         val l = listener ?: return false
-        if (gatt == null && !picking) return false
+        if (gatt == null && !scanning) return false
         start(l)
         return true
     }
@@ -91,15 +122,48 @@ class Pm5BleClient(private val context: Context) {
     fun stop() {
         handler.removeCallbacksAndMessages(null)
         picking = false
+        discovering = false
+        ready = false
+        target = null
         candidates.clear()
-        manager.adapter?.bluetoothLeScanner?.stopScan(scanCallback)
+        subscribeQueue.clear()
+        stopScan()
         gatt?.disconnect()
         gatt?.close()
         gatt = null
     }
 
+    private fun stopScan() {
+        if (!scanning) return
+        scanning = false
+        runCatching { manager.adapter?.bluetoothLeScanner?.stopScan(scanCallback) }
+    }
+
+    /** 실패 통지 + 상태 정리 — 다음 탭에서 깨끗하게 다시 시도할 수 있게. */
+    private fun fail(reason: String) {
+        handler.removeCallbacksAndMessages(null)
+        picking = false
+        discovering = false
+        ready = false
+        candidates.clear()
+        subscribeQueue.clear()
+        stopScan()
+        gatt?.close()
+        gatt = null
+        listener?.onFailed(reason)
+    }
+
+    /** PM 판별: 광고 서비스 UUID(Discovery/Rowing) 또는 기기 이름 프리픽스. */
+    private fun isPm(result: ScanResult): Boolean {
+        val uuids = result.scanRecord?.serviceUuids
+        if (uuids != null && (discoveryUuid in uuids || rowingParcelUuid in uuids)) return true
+        val name = result.scanRecord?.deviceName ?: runCatching { result.device.name }.getOrNull()
+        return name != null && NAME_PREFIXES.any { name.startsWith(it, ignoreCase = true) }
+    }
+
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
+            if (!isPm(result)) return
             val prev = candidates[result.device.address]
             if (prev == null || result.rssi > prev.second) {
                 candidates[result.device.address] = result.device to result.rssi
@@ -109,39 +173,110 @@ class Pm5BleClient(private val context: Context) {
                 handler.postDelayed({ pickBest() }, PICK_WINDOW_MS)
             }
         }
+
+        override fun onBatchScanResults(results: MutableList<ScanResult>) {
+            results.forEach { onScanResult(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, it) }
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            scanning = false
+            fail("BLE 스캔 실패 (코드 $errorCode)")
+        }
     }
 
     private fun pickBest() {
         picking = false
-        manager.adapter?.bluetoothLeScanner?.stopScan(scanCallback)
+        stopScan()
+        handler.removeCallbacks(scanTimeout)
         val best = candidates.values.maxByOrNull { it.second }?.first
         candidates.clear()
-        best?.let { connect(it) }
+        if (best == null) {
+            fail("PM5를 찾지 못했습니다")
+            return
+        }
+        connect(best)
     }
 
     private fun connect(device: BluetoothDevice) {
+        target = device
+        discovering = false
+        ready = false
         gatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        handler.postDelayed(connectTimeout, CONNECT_TIMEOUT_MS)
+    }
+
+    // 구독 완료(ready) 전에 시간이 다 가면 재시도 — status 133 등 첫 연결 실패가 흔하다
+    private val connectTimeout = Runnable {
+        if (!ready) retryOrFail("PM5 연결이 지연됩니다 — 다시 시도하세요")
+    }
+
+    private fun retryOrFail(reason: String) {
+        val device = target
+        gatt?.close()
+        gatt = null
+        if (!retried && device != null) {
+            retried = true // status 133 등 첫 실패는 흔해서 1회 재시도
+            handler.postDelayed({ connect(device) }, RETRY_DELAY_MS)
+        } else {
+            fail(reason)
+        }
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
+            if (status != BluetoothGatt.GATT_SUCCESS && newState != BluetoothProfile.STATE_CONNECTED) {
+                handler.removeCallbacks(connectTimeout)
+                if (ready) listener?.onDisconnected() // 기록 중 끊김 — 아래에서 1회 자동 재연결
+                retryOrFail("PM5 연결 실패 (status $status)")
+                return
+            }
             when (newState) {
-                BluetoothProfile.STATE_CONNECTED -> g.discoverServices()
-                BluetoothProfile.STATE_DISCONNECTED -> listener?.onDisconnected()
+                BluetoothProfile.STATE_CONNECTED -> {
+                    handler.removeCallbacks(connectTimeout)
+                    // MTU 상향(상태 특성이 20바이트라 기본 MTU 로는 여유가 없다) 후 서비스 탐색.
+                    // 콜백이 안 오는 기기가 있어 타임아웃 폴백을 함께 건다.
+                    handler.post { g.requestMtu(MTU) }
+                    handler.postDelayed({ discover(g) }, MTU_FALLBACK_MS)
+                    handler.postDelayed(connectTimeout, CONNECT_TIMEOUT_MS)
+                }
+                BluetoothProfile.STATE_DISCONNECTED -> {
+                    handler.removeCallbacks(connectTimeout)
+                    listener?.onDisconnected()
+                }
             }
         }
 
+        override fun onMtuChanged(g: BluetoothGatt, mtu: Int, status: Int) {
+            discover(g)
+        }
+
         override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
-            if (status != BluetoothGatt.GATT_SUCCESS) return
-            val service = g.getService(serviceUuid) ?: return
+            handler.removeCallbacks(connectTimeout)
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                retryOrFail("PM5 서비스 탐색 실패 (status $status)")
+                return
+            }
+            val service = g.getService(serviceUuid)
+            if (service == null) {
+                fail("PM5 로잉 서비스를 찾지 못했습니다")
+                return
+            }
             subscribeQueue.clear()
             for (u in subscribeUuids) service.getCharacteristic(u)?.let { subscribeQueue.add(it) }
-            listener?.onConnected()
+            if (subscribeQueue.isEmpty()) {
+                fail("PM5 상태 특성을 찾지 못했습니다")
+                return
+            }
+            handler.postDelayed(connectTimeout, CONNECT_TIMEOUT_MS)
             subscribeNext(g)
         }
 
         override fun onDescriptorWrite(g: BluetoothGatt, d: BluetoothGattDescriptor, status: Int) {
-            subscribeNext(g) // 다음 특성 구독
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                fail("PM5 알림 구독 실패 (status $status)")
+                return
+            }
+            subscribeNext(g) // 다음 특성 구독 (큐가 비면 ready 처리)
         }
 
         // API 33+ (value 파라미터 제공)
@@ -161,6 +296,13 @@ class Pm5BleClient(private val context: Context) {
         }
     }
 
+    /** 서비스 탐색은 한 번만 (MTU 콜백과 폴백 타이머가 겹칠 수 있다). */
+    private fun discover(g: BluetoothGatt) {
+        if (discovering) return
+        discovering = true
+        g.discoverServices()
+    }
+
     private fun handleFrame(uuid: UUID, bytes: ByteArray) {
         try {
             when (uuid) {
@@ -174,14 +316,32 @@ class Pm5BleClient(private val context: Context) {
         }
     }
 
+    /**
+     * CCCD 쓰기는 한 번에 하나만 — Android GATT 는 동시 요청을 조용히 버린다.
+     * 큐가 빌 때까지 onDescriptorWrite 콜백으로 이어 달리고, 다 끝나면 연결 완료로 본다.
+     */
     private fun subscribeNext(g: BluetoothGatt) {
-        val c = subscribeQueue.poll() ?: return
-        g.setCharacteristicNotification(c, true)
-        val descriptor = c.getDescriptor(cccd) ?: return
-        @Suppress("DEPRECATION")
-        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-        @Suppress("DEPRECATION")
-        g.writeDescriptor(descriptor)
+        while (true) {
+            val c = subscribeQueue.poll()
+            if (c == null) { // 모든 특성 구독 완료
+                ready = true
+                handler.removeCallbacks(connectTimeout)
+                listener?.onConnected()
+                return
+            }
+            g.setCharacteristicNotification(c, true)
+            val descriptor = c.getDescriptor(cccd) ?: continue // CCCD 없으면 건너뜀
+            val enable = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                g.writeDescriptor(descriptor, enable)
+            } else {
+                @Suppress("DEPRECATION")
+                descriptor.value = enable
+                @Suppress("DEPRECATION")
+                g.writeDescriptor(descriptor)
+            }
+            return
+        }
     }
 
     /** 현재까지 누적된 세그먼트 샘플 (세그먼트 종료 시 조립에 사용). */
@@ -192,5 +352,11 @@ class Pm5BleClient(private val context: Context) {
 
     private companion object {
         const val PICK_WINDOW_MS = 1500L
+        const val SCAN_TIMEOUT_MS = 12_000L
+        const val CONNECT_TIMEOUT_MS = 12_000L
+        const val MTU_FALLBACK_MS = 1200L
+        const val RETRY_DELAY_MS = 600L
+        const val MTU = 247
+        val NAME_PREFIXES = listOf("PM5", "PM4", "PM3", "Concept2")
     }
 }

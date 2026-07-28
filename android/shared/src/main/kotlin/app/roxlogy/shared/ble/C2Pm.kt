@@ -17,6 +17,15 @@ object C2Pm {
     /** UUID 베이스: xxxxxxxx-43E5-11E4-916C-0800200C9A66 */
     private fun uuid(short: String) = "CE06$short-43E5-11E4-916C-0800200C9A66"
 
+    /**
+     * Discovery(광고) 서비스 — PM 이 **광고 패킷에 싣는 유일한** 서비스 UUID.
+     * 스캔 필터·매칭은 반드시 이것으로 해야 한다. Rowing 서비스(0030)는 연결 후
+     * GATT 에서만 보이며 광고에는 없다 — 이걸로 필터하면 기기가 영영 안 잡힌다.
+     */
+    val DISCOVERY_SERVICE: String = uuid("0000")
+    val INFORMATION_SERVICE: String = uuid("0010")
+    val CONTROL_SERVICE: String = uuid("0020")
+
     // Rowing 서비스 및 특성 UUID (구독 대상)
     val ROWING_SERVICE: String = uuid("0030")
     val GENERAL_STATUS: String = uuid("0031")

@@ -73,6 +73,7 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
     var startIso by remember { mutableStateOf("") }
     var nowMs by remember { mutableStateOf(0L) }
     var finalSamples by remember { mutableStateOf<List<ErgSample>>(emptyList()) }
+    var error by remember { mutableStateOf<String?>(null) }
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
 
     fun buzz(ms: Long) {
@@ -84,10 +85,12 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
     fun connect() {
         ensureBle { // 권한 승인 후 스캔 시작 (호출측 런처)
             scanning = true
+            error = null
             ble.start(object : Pm5BleClient.Listener {
-                override fun onConnected() { connected = true; scanning = false }
+                override fun onConnected() { connected = true; scanning = false; error = null }
                 override fun onDisconnected() { connected = false }
                 override fun onSamples(samples: List<ErgSample>) { latest = samples.lastOrNull() }
+                override fun onFailed(reason: String) { scanning = false; connected = false; error = reason }
             })
         }
     }
@@ -167,6 +170,15 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
                             fontSize = 11.sp,
                             color = if (connected) TrackBlue else MutedText,
                         )
+                        if (!connected && !scanning) {
+                            error?.let {
+                                Text(
+                                    it, fontSize = 9.sp, color = MutedText,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth(0.85f),
+                                )
+                            }
+                        }
                         if (connected) {
                             latest?.let { Text("${it.watts ?: 0}W · ${it.spm ?: 0}spm", fontSize = 11.sp, color = MutedText) }
                             PrimaryActionChip("시작") {
