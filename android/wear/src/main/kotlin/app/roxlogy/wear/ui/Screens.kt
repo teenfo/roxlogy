@@ -290,12 +290,12 @@ fun SettingsScreen(
                     secondaryLabel = {
                         Text(
                             if (pm5State == "fail") pm5Live else "PM5 화면을 깨운 뒤 탭",
-                            fontSize = 9.sp, maxLines = 2,
+                            fontSize = 9.sp, maxLines = 4,
                         )
                     },
                 )
             }
-            item { Text("v0.3.3", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("v0.3.4", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }

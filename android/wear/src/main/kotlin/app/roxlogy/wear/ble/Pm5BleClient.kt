@@ -72,6 +72,9 @@ class Pm5BleClient(private val context: Context) {
     // 스캔 결과를 잠시 모아 RSSI 최강 기기에 연결 (짐에 PM5가 여러 대일 때 가장
     // 가까운 — 사용자가 앉아 있는 — 머신을 고르기 위함)
     private val candidates = HashMap<String, Pair<BluetoothDevice, Int>>()
+
+    // 스캔 진단 — 주변에서 본 BLE 기기(주소 → 이름). 실패 사유에 요약해 노출한다.
+    private val seen = LinkedHashMap<String, String>()
     private var picking = false
     private var scanning = false
     private var discovering = false
@@ -86,6 +89,7 @@ class Pm5BleClient(private val context: Context) {
         this.listener = listener
         accumulator.clear()
         retried = false
+        seen.clear()
         scan()
     }
 
@@ -107,7 +111,19 @@ class Pm5BleClient(private val context: Context) {
     private val scanTimeout = Runnable {
         if (scanning && candidates.isEmpty()) {
             stopScan()
-            fail("PM5를 찾지 못했습니다 — PM5 화면을 깨우고 다시 시도하세요")
+            fail(notFoundReason())
+        }
+    }
+
+    /** 스캔 실패 사유 — 주변 BLE 를 몇 대 봤는지까지 알려 원인을 좁힌다. */
+    private fun notFoundReason(): String = when {
+        seen.isEmpty() ->
+            "PM5를 찾지 못함 · 주변 BLE 0대 — 블루투스/권한을 확인하세요"
+        else -> {
+            val names = seen.values.filter { it != "(이름없음)" }.take(3).joinToString(", ")
+            "PM5를 찾지 못함 · 주변 ${seen.size}대 검색됨" +
+                (if (names.isNotEmpty()) " ($names)" else "") +
+                " — PM5 화면을 깨우고 다시 시도하세요"
         }
     }
 
@@ -167,6 +183,12 @@ class Pm5BleClient(private val context: Context) {
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
+            // 진단용: PM 이 아니어도 본 기기를 세어둔다. 0대면 권한/어댑터 문제,
+            // N대인데 매칭 0이면 광고 UUID·이름 문제 — 실패 문구로 구분해 알린다.
+            if (seen.size < SEEN_CAP) {
+                val nm = result.scanRecord?.deviceName ?: runCatching { result.device.name }.getOrNull()
+                seen[result.device.address] = nm ?: "(이름없음)"
+            }
             if (!isPm(result)) return
             val prev = candidates[result.device.address]
             if (prev == null || result.rssi > prev.second) {
@@ -195,7 +217,7 @@ class Pm5BleClient(private val context: Context) {
         val best = candidates.values.maxByOrNull { it.second }?.first
         candidates.clear()
         if (best == null) {
-            fail("PM5를 찾지 못했습니다")
+            fail(notFoundReason())
             return
         }
         connect(best)
@@ -379,6 +401,7 @@ class Pm5BleClient(private val context: Context) {
         const val WRITE_RETRY_MS = 150L
         const val MAX_WRITE_RETRIES = 8
         const val MTU = 247
+        const val SEEN_CAP = 30
         val NAME_PREFIXES = listOf("PM5", "PM4", "PM3", "Concept2")
     }
 }
