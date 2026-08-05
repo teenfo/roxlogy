@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
@@ -74,8 +75,9 @@ class Pm5BleClient(private val context: Context) {
     private var picking = false
     private var scanning = false
     private var discovering = false
-    private var ready = false // 구독까지 완료 = 알림이 흐르는 상태
+    private var ready = false // GATT 링크 + 로잉 서비스 확인 = 연결됨
     private var retried = false
+    private var writeRetries = 0
     private var target: BluetoothDevice? = null
 
     /** 스캔·연결 시작. 기존 연결이 있으면 정리 후 새로 스캔 (기기 전환 안전). */
@@ -124,6 +126,7 @@ class Pm5BleClient(private val context: Context) {
         picking = false
         discovering = false
         ready = false
+        writeRetries = 0
         target = null
         candidates.clear()
         subscribeQueue.clear()
@@ -145,6 +148,7 @@ class Pm5BleClient(private val context: Context) {
         picking = false
         discovering = false
         ready = false
+        writeRetries = 0
         candidates.clear()
         subscribeQueue.clear()
         stopScan()
@@ -267,7 +271,11 @@ class Pm5BleClient(private val context: Context) {
                 fail("PM5 상태 특성을 찾지 못했습니다")
                 return
             }
-            handler.postDelayed(connectTimeout, CONNECT_TIMEOUT_MS)
+            // GATT 링크 + 로잉 서비스 확인 = 연결 완료. 알림 구독은 이어서 진행하되,
+            // 여기서 바로 통지해야 PM5 는 연결됐는데 화면만 "검색 중"에 남는 일이 없다.
+            ready = true
+            writeRetries = 0
+            listener?.onConnected()
             subscribeNext(g)
         }
 
@@ -276,7 +284,8 @@ class Pm5BleClient(private val context: Context) {
                 fail("PM5 알림 구독 실패 (status $status)")
                 return
             }
-            subscribeNext(g) // 다음 특성 구독 (큐가 비면 ready 처리)
+            writeRetries = 0
+            subscribeNext(g) // 다음 특성 구독
         }
 
         // API 33+ (value 파라미터 제공)
@@ -318,28 +327,39 @@ class Pm5BleClient(private val context: Context) {
 
     /**
      * CCCD 쓰기는 한 번에 하나만 — Android GATT 는 동시 요청을 조용히 버린다.
-     * 큐가 빌 때까지 onDescriptorWrite 콜백으로 이어 달리고, 다 끝나면 연결 완료로 본다.
+     * 큐가 빌 때까지 onDescriptorWrite 콜백으로 이어 달린다.
+     *
+     * 쓰기 요청이 큐 혼잡으로 거부되면(false / != SUCCESS) 콜백이 아예 오지 않으므로
+     * 반환값을 보고 같은 특성을 짧게 재시도한다 — 이걸 안 보면 구독이 조용히 멈춘다.
      */
     private fun subscribeNext(g: BluetoothGatt) {
         while (true) {
-            val c = subscribeQueue.poll()
-            if (c == null) { // 모든 특성 구독 완료
-                ready = true
-                handler.removeCallbacks(connectTimeout)
-                listener?.onConnected()
-                return
-            }
+            val c = subscribeQueue.peek() ?: return // 모두 완료
             g.setCharacteristicNotification(c, true)
-            val descriptor = c.getDescriptor(cccd) ?: continue // CCCD 없으면 건너뜀
+            val descriptor = c.getDescriptor(cccd)
+            if (descriptor == null) { // CCCD 없으면 건너뜀
+                subscribeQueue.poll()
+                continue
+            }
             val enable = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                g.writeDescriptor(descriptor, enable)
+            val ok = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                g.writeDescriptor(descriptor, enable) == BluetoothStatusCodes.SUCCESS
             } else {
                 @Suppress("DEPRECATION")
                 descriptor.value = enable
                 @Suppress("DEPRECATION")
                 g.writeDescriptor(descriptor)
             }
+            if (ok) {
+                subscribeQueue.poll() // 콜백에서 다음 특성으로
+                return
+            }
+            if (++writeRetries > MAX_WRITE_RETRIES) {
+                subscribeQueue.poll() // 이 특성은 포기하고 나머지라도 구독
+                writeRetries = 0
+                continue
+            }
+            handler.postDelayed({ gatt?.let { subscribeNext(it) } }, WRITE_RETRY_MS)
             return
         }
     }
@@ -356,6 +376,8 @@ class Pm5BleClient(private val context: Context) {
         const val CONNECT_TIMEOUT_MS = 12_000L
         const val MTU_FALLBACK_MS = 1200L
         const val RETRY_DELAY_MS = 600L
+        const val WRITE_RETRY_MS = 150L
+        const val MAX_WRITE_RETRIES = 8
         const val MTU = 247
         val NAME_PREFIXES = listOf("PM5", "PM4", "PM3", "Concept2")
     }

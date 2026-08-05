@@ -279,7 +279,7 @@ fun SettingsScreen(
                     label = {
                         Text(
                             when (pm5State) {
-                                "ok" -> "PM5 연결됨 ✓" + (if (pm5Live.isNotEmpty()) " $pm5Live" else "")
+                                "ok" -> "PM5 연결됨 ✓ " + pm5Live.ifEmpty { "데이터 대기 중" }
                                 "scanning" -> "PM5 검색 중…"
                                 "fail" -> "PM5 연결 실패 — 다시 탭"
                                 else -> "PM5 연결 테스트"
@@ -295,7 +295,7 @@ fun SettingsScreen(
                     },
                 )
             }
-            item { Text("v0.3.2", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("v0.3.3", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }

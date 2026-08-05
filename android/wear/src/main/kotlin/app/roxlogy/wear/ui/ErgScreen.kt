@@ -180,7 +180,12 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
                             }
                         }
                         if (connected) {
-                            latest?.let { Text("${it.watts ?: 0}W · ${it.spm ?: 0}spm", fontSize = 11.sp, color = MutedText) }
+                            Text(
+                                latest?.let { "${it.watts ?: 0}W · ${it.spm ?: 0}spm" }
+                                    ?: "데이터 대기 중 — PM5에서 노 저으면 표시됩니다",
+                                fontSize = 10.sp, color = MutedText,
+                                textAlign = TextAlign.Center,
+                            )
                             PrimaryActionChip("시작") {
                                 ble.resetSamples() // 워밍업 샘플 제거
                                 startMs = System.currentTimeMillis()
