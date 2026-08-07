@@ -90,6 +90,29 @@ export default async function SessionsPage({
   const total = count ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  // 에르그(PM5) 세션 표시 — 이 페이지의 세션만 조회해 머신 종류를 뽑는다.
+  // 시뮬은 스테이션이 8개라 머신 세그먼트가 있어도 에르그 전용 기록이 아니므로,
+  // 세그먼트가 머신 하나뿐인 세션만 에르그로 본다(단독 기록·WOD 에르그 항목).
+  const pageIds = (sessions ?? []).map((s) => s.id);
+  const ergMachine = new Map<string, string>();
+  if (pageIds.length) {
+    const { data: segs } = await supabase
+      .from("session_segments")
+      .select("session_id, machine_type")
+      .in("session_id", pageIds);
+    const bySession = new Map<string, { total: number; machines: string[] }>();
+    for (const seg of segs ?? []) {
+      const cur = bySession.get(seg.session_id) ?? { total: 0, machines: [] };
+      cur.total++;
+      if (seg.machine_type) cur.machines.push(seg.machine_type);
+      bySession.set(seg.session_id, cur);
+    }
+    for (const [id, v] of bySession) {
+      if (v.total === 1 && v.machines.length === 1) ergMachine.set(id, v.machines[0]);
+    }
+  }
+  const ergLabel = (m: string) => (m === "ski" ? "SkiErg" : m === "row" ? "RowErg" : "Erg");
+
   // 필터를 유지하며 쿼리스트링 구성 (필터 변경 시 page 리셋)
   const qs = (over: Record<string, string>) => {
     const p = new URLSearchParams();
@@ -184,6 +207,7 @@ export default async function SessionsPage({
               | null
               | undefined;
             const isRace = !!race;
+            const erg = ergMachine.get(s.id) ?? null;
             const div = isRace ? race?.division : s.division;
             const divLabel = div
               ? t(`division.${div}` as Parameters<typeof t>[0])
@@ -217,8 +241,15 @@ export default async function SessionsPage({
                       </>
                     ) : (
                       <>
-                        <span className="text-sm">
-                          {formatDate(s.started_at, tag, tz)}
+                        <span className="flex items-center gap-2 text-sm">
+                          <span className="truncate">
+                            {formatDate(s.started_at, tag, tz)}
+                          </span>
+                          {erg && (
+                            <span className="shrink-0 rounded-full bg-track/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-track">
+                              ⚡ {ergLabel(erg)}
+                            </span>
+                          )}
                         </span>
                         <span className="text-xs text-muted">
                           {t(`source.${s.source_device}` as Parameters<typeof t>[0])}
