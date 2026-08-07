@@ -184,6 +184,7 @@ const ko: Record<DictKey, string> = {
   "sessions.period.30d": "30일",
   "sessions.period.90d": "90일",
   "sessions.typeSim": "레이스 시뮬",
+  "sessions.typeErg": "에르그",
   "sessions.emptyFiltered": "필터에 맞는 세션이 없습니다.",
   "sessions.record": "세션 기록",
   "compare.title": "변화 추이 비교",

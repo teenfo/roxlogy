@@ -189,6 +189,7 @@ const en = {
   "sessions.period.30d": "30 days",
   "sessions.period.90d": "90 days",
   "sessions.typeSim": "Race sim",
+  "sessions.typeErg": "Erg",
   "sessions.emptyFiltered": "No sessions match these filters.",
   "sessions.record": "Log session",
   "compare.title": "Compare trend",

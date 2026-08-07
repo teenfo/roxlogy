@@ -184,6 +184,7 @@ const es: Record<DictKey, string> = {
   "sessions.period.30d": "30 días",
   "sessions.period.90d": "90 días",
   "sessions.typeSim": "Simulación",
+  "sessions.typeErg": "Erg",
   "sessions.emptyFiltered": "Ninguna sesión coincide con estos filtros.",
   "sessions.record": "Registrar sesión",
   "compare.title": "Comparar evolución",

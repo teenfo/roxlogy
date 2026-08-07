@@ -13,7 +13,7 @@ export async function generateMetadata() {
 const PAGE_SIZE = 20;
 const SOURCES = ["all", "web", "watch", "phone"] as const;
 const PERIODS = ["all", "7d", "30d", "90d"] as const;
-const TYPES = ["all", "sim"] as const;
+const TYPES = ["all", "sim", "erg"] as const;
 type Source = (typeof SOURCES)[number];
 type Period = (typeof PERIODS)[number];
 type SessType = (typeof TYPES)[number];
@@ -52,15 +52,30 @@ export default async function SessionsPage({
   const { t, tag, tz } = await getT();
   const user = await getCachedUser();
 
-  // 시뮬만: 스테이션 세그먼트가 있는 세션 id를 선별해 일반 id 필터로 적용
+  // 타입 필터: 해당하는 세션 id를 선별해 일반 id 필터로 적용
   // (count/range와 호환되도록 일반 WHERE 절로 들어감)
-  let simIds: string[] | null = null;
+  let typeIds: string[] | null = null;
   if (type === "sim") {
     const { data: segRows } = await supabase
       .from("session_segments")
       .select("session_id")
       .eq("kind", "station");
-    simIds = [...new Set((segRows ?? []).map((r) => r.session_id))];
+    typeIds = [...new Set((segRows ?? []).map((r) => r.session_id))];
+  } else if (type === "erg") {
+    // 에르그 = 세그먼트가 머신(PM5) 하나뿐인 세션 — 배지 판정과 같은 기준
+    const { data: segRows } = await supabase
+      .from("session_segments")
+      .select("session_id, machine_type");
+    const by = new Map<string, { total: number; machines: number }>();
+    for (const r of segRows ?? []) {
+      const cur = by.get(r.session_id) ?? { total: 0, machines: 0 };
+      cur.total++;
+      if (r.machine_type) cur.machines++;
+      by.set(r.session_id, cur);
+    }
+    typeIds = [...by.entries()]
+      .filter(([, v]) => v.total === 1 && v.machines === 1)
+      .map(([id]) => id);
   }
 
   let query = supabase
@@ -81,7 +96,7 @@ export default async function SessionsPage({
     cutoff.setDate(cutoff.getDate() - days);
     query = query.gte("started_at", cutoff.toISOString());
   }
-  if (simIds != null) query = query.in("id", simIds.length ? simIds : [""]);
+  if (typeIds != null) query = query.in("id", typeIds.length ? typeIds : [""]);
 
   const { data: sessions, count } = await query
     .order("started_at", { ascending: false })
@@ -181,7 +196,11 @@ export default async function SessionsPage({
           <span className="mr-1 text-xs text-muted">{t("sessions.fltType")}</span>
           {TYPES.map((ty) => (
             <Link key={ty} href={qs({ type: ty })} className={chip(type === ty)}>
-              {ty === "all" ? t("sessions.fltAll") : t("sessions.typeSim")}
+              {ty === "all"
+                ? t("sessions.fltAll")
+                : ty === "sim"
+                  ? t("sessions.typeSim")
+                  : t("sessions.typeErg")}
             </Link>
           ))}
         </div>
