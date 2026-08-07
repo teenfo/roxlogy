@@ -295,7 +295,7 @@ fun SettingsScreen(
                     },
                 )
             }
-            item { Text("v0.3.4", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("v0.3.5", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }

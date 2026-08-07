@@ -181,6 +181,8 @@ fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
 
     LaunchedEffect(loggedIn) {
         if (loggedIn) {
+            // 로그인 전에 도착해 건너뛴 워치 세션 회수 — 없으면 즉시 0 반환(멱등 업서트라 안전)
+            app.roxlogy.android.sync.PendingSessionSync().uploadPending(context)
             GoalSync().fetchAndPush(context) // 최신 목표를 워치로 밀어줌
             app.roxlogy.android.sync.WodSync().fetchAndPush(context) // 오늘의 WOD 도 워치로
             // 이미 알림 권한이 있으면 FCM 토큰을 조용히 (재)등록 — 서버 발송 대상 최신화.
