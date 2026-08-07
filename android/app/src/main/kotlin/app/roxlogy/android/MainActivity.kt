@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        CrashLog.install(applicationContext) // 사이드로드라 로그를 볼 방법이 이것뿐
+        // 크래시 핸들러는 RoxApp.attachBaseContext 에서 이미 설치됨(더 이른 시점)
         // 시작 초기화가 앱을 통째로 죽이지 않게 — 실패해도 화면은 뜨고 원인은 크래시 로그로 남는다
         runCatching { TokenStore.init(applicationContext) } // 저장된 세션 복원
         runCatching { RoxMessagingService.ensureChannel(this) }
