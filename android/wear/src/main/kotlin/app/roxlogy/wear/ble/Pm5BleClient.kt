@@ -52,16 +52,26 @@ class Pm5BleClient(private val context: Context) {
     private val discoveryUuid = ParcelUuid(UUID.fromString(C2Pm.DISCOVERY_SERVICE))
     private val rowingParcelUuid = ParcelUuid(UUID.fromString(C2Pm.ROWING_SERVICE))
     private val serviceUuid = UUID.fromString(C2Pm.ROWING_SERVICE)
+    // 1Hz 상태 3종 + 스트로크·스플릿·힘곡선. 스트로크/스플릿 계열은 이벤트가 있을 때만
+    // (스트로크 종료·인터벌 종료) 알림이 오므로 상시 트래픽이 늘지는 않는다.
+    private val statusUuid = UUID.fromString(C2Pm.GENERAL_STATUS)
+    private val addStatus1Uuid = UUID.fromString(C2Pm.ADDITIONAL_STATUS_1)
+    private val addStatus2Uuid = UUID.fromString(C2Pm.ADDITIONAL_STATUS_2)
+    private val strokeUuid = UUID.fromString(C2Pm.STROKE_DATA)
+    private val addStrokeUuid = UUID.fromString(C2Pm.ADDITIONAL_STROKE_DATA)
+    private val splitUuid = UUID.fromString(C2Pm.SPLIT_INTERVAL_DATA)
+    private val addSplitUuid = UUID.fromString(C2Pm.ADDITIONAL_SPLIT_INTERVAL_DATA)
+    private val forceCurveUuid = UUID.fromString(C2Pm.FORCE_CURVE)
     private val subscribeUuids = listOf(
-        UUID.fromString(C2Pm.GENERAL_STATUS),
-        UUID.fromString(C2Pm.ADDITIONAL_STATUS_1),
-        UUID.fromString(C2Pm.ADDITIONAL_STATUS_2),
+        statusUuid, addStatus1Uuid, addStatus2Uuid,
+        strokeUuid, addStrokeUuid, splitUuid, addSplitUuid, forceCurveUuid,
     )
 
     private val manager by lazy {
         context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     }
     private val accumulator = C2ErgAccumulator()
+    private val forceCurve = C2Pm.ForceCurveAssembler()
     private var gatt: BluetoothGatt? = null
     private var listener: Listener? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -337,9 +347,15 @@ class Pm5BleClient(private val context: Context) {
     private fun handleFrame(uuid: UUID, bytes: ByteArray) {
         try {
             when (uuid) {
-                subscribeUuids[0] -> accumulator.onGeneralStatus(C2Pm.parseGeneralStatus(bytes))
-                subscribeUuids[1] -> accumulator.onAdditionalStatus1(C2Pm.parseAdditionalStatus1(bytes))
-                subscribeUuids[2] -> accumulator.onAdditionalStatus2(C2Pm.parseAdditionalStatus2(bytes))
+                statusUuid -> accumulator.onGeneralStatus(C2Pm.parseGeneralStatus(bytes))
+                addStatus1Uuid -> accumulator.onAdditionalStatus1(C2Pm.parseAdditionalStatus1(bytes))
+                addStatus2Uuid -> accumulator.onAdditionalStatus2(C2Pm.parseAdditionalStatus2(bytes))
+                strokeUuid -> accumulator.onStroke(C2Pm.parseStrokeData(bytes))
+                addStrokeUuid -> accumulator.onAdditionalStroke(C2Pm.parseAdditionalStrokeData(bytes))
+                splitUuid -> accumulator.onSplit(C2Pm.parseSplitIntervalData(bytes))
+                addSplitUuid -> accumulator.onAdditionalSplit(C2Pm.parseAdditionalSplitIntervalData(bytes))
+                forceCurveUuid -> forceCurve.onChunk(bytes)?.let { accumulator.onForceCurve(it) }
+                else -> return
             }
             listener?.onSamples(accumulator.snapshot())
         } catch (_: IllegalArgumentException) {
@@ -389,8 +405,16 @@ class Pm5BleClient(private val context: Context) {
     /** 현재까지 누적된 세그먼트 샘플 (세그먼트 종료 시 조립에 사용). */
     fun snapshot(): List<ErgSample> = accumulator.snapshot()
 
+    /** PM5 확장 데이터 — 스트로크/스플릿/힘곡선. */
+    fun strokeSnapshot() = accumulator.strokeSnapshot()
+    fun splitSnapshot() = accumulator.splitSnapshot()
+    fun forceCurveSnapshot() = accumulator.forceCurveSnapshot()
+
     /** 세그먼트 기록 시작 시 누적 초기화 — 이전 스테이션/워밍업 샘플 유입 방지. */
-    fun resetSamples() = accumulator.clear()
+    fun resetSamples() {
+        accumulator.clear()
+        forceCurve.clear()
+    }
 
     private companion object {
         const val PICK_WINDOW_MS = 1500L

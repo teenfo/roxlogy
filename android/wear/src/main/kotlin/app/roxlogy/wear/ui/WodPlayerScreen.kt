@@ -98,6 +98,9 @@ fun WodPlayerScreen(
             exerciseId = station.exerciseId,
             machineType = machine,
             ergSamples = samples,
+            ergStrokes = ble.strokeSnapshot(),
+            ergSplits = ble.splitSnapshot(),
+            ergForceCurves = ble.forceCurveSnapshot(),
         )
         val req = app.roxlogy.shared.record.SessionAssembler.assemble(
             sessionId = java.util.UUID.randomUUID().toString(),

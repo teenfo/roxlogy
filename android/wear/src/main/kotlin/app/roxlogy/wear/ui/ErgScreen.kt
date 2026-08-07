@@ -73,6 +73,10 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
     var startIso by remember { mutableStateOf("") }
     var nowMs by remember { mutableStateOf(0L) }
     var finalSamples by remember { mutableStateOf<List<ErgSample>>(emptyList()) }
+    // 종료 시점의 PM5 확장 데이터 스냅샷 (스트로크·스플릿·힘곡선)
+    var finalStrokes by remember { mutableStateOf<List<app.roxlogy.shared.ingest.ErgStroke>>(emptyList()) }
+    var finalSplits by remember { mutableStateOf<List<app.roxlogy.shared.ingest.ErgSplit>>(emptyList()) }
+    var finalCurves by remember { mutableStateOf<List<app.roxlogy.shared.ingest.ErgForceCurve>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
 
@@ -113,6 +117,9 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
             exerciseId = station.exerciseId,
             machineType = key,
             ergSamples = finalSamples,
+            ergStrokes = finalStrokes,
+            ergSplits = finalSplits,
+            ergForceCurves = finalCurves,
         )
         val req = SessionAssembler.assemble(
             sessionId = UUID.randomUUID().toString(),
@@ -230,6 +237,9 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
                     PrimaryActionChip("종료") {
                         nowMs = System.currentTimeMillis()
                         finalSamples = ble.snapshot()
+                        finalStrokes = ble.strokeSnapshot()
+                        finalSplits = ble.splitSnapshot()
+                        finalCurves = ble.forceCurveSnapshot()
                         phase = "done"
                         buzz(200)
                     }

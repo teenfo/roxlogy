@@ -19,10 +19,57 @@ data class ErgSample(
     val cal: Double? = null,
 )
 
+/** 0x0035+0x0036 — 스트로크 단위 지표 (스트로크 종료 시마다 1건). */
+@Serializable
+data class ErgStroke(
+    val n: Int,                     // 스트로크 번호
+    val t: Int,                     // 세그먼트 시작 후 경과 초
+    val dist: Double? = null,       // 누적 거리 m
+    val drive_len: Double? = null,  // 드라이브 길이 m
+    val drive_ms: Long? = null,     // 드라이브 시간
+    val recover_ms: Long? = null,   // 리커버리 시간
+    val stroke_dist: Double? = null,// 스트로크당 거리 m
+    val peak_force: Double? = null, // 최대 드라이브 힘 lbs
+    val avg_force: Double? = null,  // 평균 드라이브 힘 lbs
+    val work_j: Double? = null,     // 스트로크당 일 J
+    val watts: Int? = null,         // 스트로크 파워
+    val cal_hr: Int? = null,        // 스트로크 칼로리 cal/hr
+)
+
+/** 0x0037+0x0038 — 스플릿/인터벌 단위 지표. */
+@Serializable
+data class ErgSplit(
+    val n: Int,                     // 인터벌 번호
+    val t: Int,                     // 경과 초
+    val type: Int? = null,
+    val dist: Double? = null,       // 누적 거리 m
+    val split_ms: Long? = null,
+    val split_dist: Int? = null,
+    val rest_ms: Long? = null,
+    val rest_dist: Int? = null,
+    val spm: Int? = null,
+    val hr: Int? = null,            // 운동 구간 심박
+    val pace: Double? = null,       // 평균 페이스 초/500m
+    val cal: Int? = null,
+    val watts: Int? = null,
+    val drag: Int? = null,          // 평균 드래그 팩터
+)
+
+/** 0x003C — 스트로크 하나의 힘 프로파일(파운드). */
+@Serializable
+data class ErgForceCurve(
+    val n: Int,                     // 스트로크 번호
+    val f: List<Double>,            // 힘 시퀀스 lbs
+)
+
 @Serializable
 data class ErgBlock(
     val machine_type: String, // "ski" | "row"
     val samples: List<ErgSample>,
+    // 아래 셋은 PM5 가 이벤트로 보내는 확장 데이터 — 없으면 생략된다(구버전 호환).
+    val strokes: List<ErgStroke>? = null,
+    val splits: List<ErgSplit>? = null,
+    val force_curves: List<ErgForceCurve>? = null,
 )
 
 @Serializable

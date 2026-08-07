@@ -16,6 +16,10 @@ data class RecordedSegment(
     val machineType: String? = null,     // "ski" | "row" | null
     val id: String? = null,              // 클라이언트 생성 세그먼트 id (선택)
     val ergSamples: List<ErgSample> = emptyList(),
+    // PM5 확장 데이터 — 스트로크/스플릿/힘곡선 (있을 때만)
+    val ergStrokes: List<app.roxlogy.shared.ingest.ErgStroke> = emptyList(),
+    val ergSplits: List<app.roxlogy.shared.ingest.ErgSplit> = emptyList(),
+    val ergForceCurves: List<app.roxlogy.shared.ingest.ErgForceCurve> = emptyList(),
     val avgHr: Int? = null,              // 세그먼트 평균/최대 심박 bpm (선택)
     val maxHr: Int? = null,
 )
@@ -46,7 +50,13 @@ object SessionAssembler {
     ): IngestRequest {
         val payloads = segments.mapIndexed { i, s ->
             val erg = if (s.ergSamples.isNotEmpty() && s.machineType != null) {
-                ErgBlock(machine_type = s.machineType, samples = rebase(s.ergSamples))
+                ErgBlock(
+                    machine_type = s.machineType,
+                    samples = rebase(s.ergSamples),
+                    strokes = s.ergStrokes.ifEmpty { null },
+                    splits = s.ergSplits.ifEmpty { null },
+                    force_curves = s.ergForceCurves.ifEmpty { null },
+                )
             } else null
             SegmentPayload(
                 seq = i + 1,

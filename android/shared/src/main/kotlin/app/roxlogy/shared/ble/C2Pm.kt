@@ -32,6 +32,10 @@ object C2Pm {
     val ADDITIONAL_STATUS_1: String = uuid("0032")
     val ADDITIONAL_STATUS_2: String = uuid("0033")
     val STROKE_DATA: String = uuid("0035")
+    val ADDITIONAL_STROKE_DATA: String = uuid("0036")
+    val SPLIT_INTERVAL_DATA: String = uuid("0037")
+    val ADDITIONAL_SPLIT_INTERVAL_DATA: String = uuid("0038")
+    val FORCE_CURVE: String = uuid("003C")
 
     // ---- 리틀엔디언 언사인드 판독 헬퍼 ----
     private fun ByteArray.u8(i: Int): Int = this[i].toInt() and 0xFF
@@ -72,6 +76,48 @@ object C2Pm {
         val strokeCount: Int,
         val avgDriveForceLbs: Double,  // 0.1 lbs
         val workPerStrokeJ: Double,    // 0.1 J
+        val driveLengthM: Double,      // 0.01 m
+        val driveTimeMs: Long,         // 0.01s → ms
+        val recoveryTimeMs: Long,      // 0.01s → ms
+        val strokeDistanceM: Double,   // 0.01 m
+        val peakDriveForceLbs: Double, // 0.1 lbs
+    )
+
+    /** 0x0036 Additional Stroke Data */
+    data class AdditionalStrokeData(
+        val elapsedTimeMs: Long,       // 0.01s → ms
+        val strokePowerW: Int,         // watts
+        val strokeCaloriesPerHr: Int,  // cal/hr
+        val strokeCount: Int,
+        val projectedWorkTimeMs: Long, // s → ms
+        val projectedWorkDistanceM: Int,
+    )
+
+    /** 0x0037 Split/Interval Data */
+    data class SplitIntervalData(
+        val elapsedTimeMs: Long,       // 0.01s → ms
+        val distanceM: Double,         // 0.1 m
+        val splitTimeMs: Long,         // 0.01s → ms
+        val splitDistanceM: Int,
+        val restTimeMs: Long,          // 0.01s → ms
+        val restDistanceM: Int,
+        val type: Int,
+        val intervalNumber: Int,
+    )
+
+    /** 0x0038 Additional Split/Interval Data */
+    data class AdditionalSplitIntervalData(
+        val elapsedTimeMs: Long,       // 0.01s → ms
+        val strokeRate: Int,           // spm
+        val workHeartRate: Int?,       // bpm (255 = 무효)
+        val restHeartRate: Int?,       // bpm (255 = 무효)
+        val avgPaceSecPer500: Double,  // 0.01s
+        val totalCalories: Int,
+        val avgCaloriesPerHr: Int,
+        val speedMps: Double,          // 0.001 m/s
+        val powerW: Int,
+        val avgDragFactor: Int,
+        val intervalNumber: Int,
     )
 
     /** 0x0031 General Status (>=19 bytes) */
@@ -120,10 +166,114 @@ object C2Pm {
         return StrokeData(
             elapsedTimeMs = b.u24(0) * 10L,
             distanceM = b.u24(3) * 0.1,
+            driveLengthM = b.u8(6) * 0.01,
+            driveTimeMs = b.u8(7) * 10L,
+            recoveryTimeMs = b.u16(8) * 10L,
+            strokeDistanceM = b.u16(10) * 0.01,
+            peakDriveForceLbs = b.u16(12) * 0.1,
             avgDriveForceLbs = b.u16(14) * 0.1,
             workPerStrokeJ = b.u16(16) * 0.1,
             strokeCount = b.u16(18),
         )
+    }
+
+    /** 0x0036 Additional Stroke Data (>=15 bytes) */
+    fun parseAdditionalStrokeData(b: ByteArray): AdditionalStrokeData {
+        require(b.size >= 15) { "Additional Stroke Data needs >=15 bytes, got ${b.size}" }
+        return AdditionalStrokeData(
+            elapsedTimeMs = b.u24(0) * 10L,
+            strokePowerW = b.u16(3),
+            strokeCaloriesPerHr = b.u16(5),
+            strokeCount = b.u16(7),
+            projectedWorkTimeMs = b.u24(9) * 1000L,
+            projectedWorkDistanceM = b.u24(12),
+        )
+    }
+
+    /** 0x0037 Split/Interval Data (>=18 bytes) */
+    fun parseSplitIntervalData(b: ByteArray): SplitIntervalData {
+        require(b.size >= 18) { "Split/Interval Data needs >=18 bytes, got ${b.size}" }
+        return SplitIntervalData(
+            elapsedTimeMs = b.u24(0) * 10L,
+            distanceM = b.u24(3) * 0.1,
+            splitTimeMs = b.u24(6) * 10L,
+            splitDistanceM = b.u24(9),
+            restTimeMs = b.u16(12) * 10L,
+            restDistanceM = b.u16(14),
+            type = b.u8(16),
+            intervalNumber = b.u8(17),
+        )
+    }
+
+    /** 0x0038 Additional Split/Interval Data (>=18 bytes) */
+    fun parseAdditionalSplitIntervalData(b: ByteArray): AdditionalSplitIntervalData {
+        require(b.size >= 18) { "Additional Split/Interval Data needs >=18 bytes, got ${b.size}" }
+        val workHr = b.u8(4)
+        val restHr = b.u8(5)
+        return AdditionalSplitIntervalData(
+            elapsedTimeMs = b.u24(0) * 10L,
+            strokeRate = b.u8(3),
+            workHeartRate = if (workHr == 255) null else workHr,
+            restHeartRate = if (restHr == 255) null else restHr,
+            avgPaceSecPer500 = b.u16(6) * 0.01,
+            totalCalories = b.u16(8),
+            avgCaloriesPerHr = b.u16(10),
+            speedMps = b.u16(12) * 0.001,
+            powerW = b.u16(14),
+            avgDragFactor = b.u8(16),
+            intervalNumber = b.u8(17),
+        )
+    }
+
+    /**
+     * 0x003C Force Curve — 한 스트로크의 힘 프로파일을 여러 패킷에 나눠 보낸다.
+     *
+     * 헤더 1바이트: 상위 4비트 = 이 스트로크의 전체 데이터 워드 수,
+     * 하위 4비트 = 이 패킷이 싣고 있는 워드 수. 이어서 16비트 LE 값들(파운드)이 온다.
+     * 워드 수가 채워지면 한 스트로크가 완성된다.
+     *
+     * ⚠️ 이 레이아웃은 공식 PDF 로 아직 교차검증하지 못했다(문서 접근 차단).
+     * 실기기 로그로 확인하기 전까지 [ForceCurveAssembler.assembled] 결과는
+     * 참고용으로만 쓸 것 — 값이 이상하면 헤더 해석부터 의심해야 한다.
+     */
+    fun parseForceCurveChunk(b: ByteArray): Pair<Int, List<Double>> {
+        require(b.isNotEmpty()) { "Force Curve needs >=1 byte" }
+        val totalWords = (b.u8(0) shr 4) and 0x0F
+        val chunkWords = b.u8(0) and 0x0F
+        val values = ArrayList<Double>(chunkWords)
+        var i = 1
+        var n = 0
+        while (n < chunkWords && i + 1 < b.size) {
+            values.add(b.u16(i) * 0.1) // 0.1 lbs
+            i += 2
+            n++
+        }
+        return totalWords to values
+    }
+
+    /** 여러 패킷을 한 스트로크 곡선으로 모은다. */
+    class ForceCurveAssembler {
+        private val buf = ArrayList<Double>()
+        private var expected = 0
+
+        /** 완성된 곡선이면 반환하고 버퍼를 비운다. 아직이면 null. */
+        fun onChunk(bytes: ByteArray): List<Double>? {
+            val (total, values) = parseForceCurveChunk(bytes)
+            if (total > 0) expected = total
+            buf.addAll(values)
+            if (expected in 1..buf.size) {
+                val out = ArrayList(buf.take(expected))
+                buf.clear()
+                expected = 0
+                return out
+            }
+            return null
+        }
+
+        fun clear() {
+            buf.clear()
+            expected = 0
+        }
     }
 
     /**

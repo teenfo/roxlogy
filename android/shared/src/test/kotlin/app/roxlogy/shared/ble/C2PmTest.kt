@@ -139,4 +139,90 @@ class C2PmTest {
         assertEquals("CE060033-43E5-11E4-916C-0800200C9A66", C2Pm.ADDITIONAL_STATUS_2)
         assertEquals("CE060035-43E5-11E4-916C-0800200C9A66", C2Pm.STROKE_DATA)
     }
+
+    // ---- 확장 특성 (0x0035/0x0036/0x0037/0x0038/0x003C) ----
+    // 오프셋은 ErgometerJS(공개 구현) 레이아웃과 대조해 확정했다. 0x0035 는 기존
+    // 파서와 정확히 일치해 교차검증됐고, 나머지는 같은 순차 패킹 규칙을 따른다.
+
+    private fun le16(n: Int) = listOf(n and 0xFF, (n shr 8) and 0xFF)
+    private fun le24(n: Int) = listOf(n and 0xFF, (n shr 8) and 0xFF, (n shr 16) and 0xFF)
+
+    @Test
+    fun `0x0035 스트로크 데이터 전 필드 파싱`() {
+        val b = (le24(1234) + le24(2500) + listOf(55, 8) + le16(210) + le16(1050) +
+            le16(2400) + le16(1800) + le16(3300) + le16(42))
+            .let { l -> ByteArray(l.size) { l[it].toByte() } }
+        val d = C2Pm.parseStrokeData(b)
+        assertEquals(12_340L, d.elapsedTimeMs)     // 1234 × 0.01s
+        assertEquals(250.0, d.distanceM, 1e-9)     // 2500 × 0.1m
+        assertEquals(0.55, d.driveLengthM, 1e-9)   // 55 × 0.01m
+        assertEquals(80L, d.driveTimeMs)           // 8 × 0.01s
+        assertEquals(2_100L, d.recoveryTimeMs)     // 210 × 0.01s
+        assertEquals(10.5, d.strokeDistanceM, 1e-9)
+        assertEquals(240.0, d.peakDriveForceLbs, 1e-9)
+        assertEquals(180.0, d.avgDriveForceLbs, 1e-9)
+        assertEquals(330.0, d.workPerStrokeJ, 1e-9)
+        assertEquals(42, d.strokeCount)
+    }
+
+    @Test
+    fun `0x0036 추가 스트로크 데이터 파싱`() {
+        val b = (le24(1000) + le16(215) + le16(700) + le16(43) + le24(120) + le24(2000))
+            .let { l -> ByteArray(l.size) { l[it].toByte() } }
+        val d = C2Pm.parseAdditionalStrokeData(b)
+        assertEquals(10_000L, d.elapsedTimeMs)
+        assertEquals(215, d.strokePowerW)
+        assertEquals(700, d.strokeCaloriesPerHr)
+        assertEquals(43, d.strokeCount)
+        assertEquals(120_000L, d.projectedWorkTimeMs)
+        assertEquals(2000, d.projectedWorkDistanceM)
+    }
+
+    @Test
+    fun `0x0037 스플릿 데이터 파싱`() {
+        val b = (le24(5000) + le24(10000) + le24(1200) + le24(500) + le16(300) + le16(0) +
+            listOf(1, 3))
+            .let { l -> ByteArray(l.size) { l[it].toByte() } }
+        val d = C2Pm.parseSplitIntervalData(b)
+        assertEquals(50_000L, d.elapsedTimeMs)
+        assertEquals(1000.0, d.distanceM, 1e-9)
+        assertEquals(12_000L, d.splitTimeMs)
+        assertEquals(500, d.splitDistanceM)
+        assertEquals(3_000L, d.restTimeMs)
+        assertEquals(0, d.restDistanceM)
+        assertEquals(1, d.type)
+        assertEquals(3, d.intervalNumber)
+    }
+
+    @Test
+    fun `0x0038 추가 스플릿 데이터 파싱 — 심박 255는 무효`() {
+        val b = (le24(5000) + listOf(30, 255, 140) + le16(12000) + le16(88) + le16(600) +
+            le16(4000) + le16(210) + listOf(120, 3))
+            .let { l -> ByteArray(l.size) { l[it].toByte() } }
+        val d = C2Pm.parseAdditionalSplitIntervalData(b)
+        assertEquals(30, d.strokeRate)
+        assertEquals(null, d.workHeartRate)   // 255 = 무효
+        assertEquals(140, d.restHeartRate)
+        assertEquals(120.0, d.avgPaceSecPer500, 1e-9)
+        assertEquals(88, d.totalCalories)
+        assertEquals(600, d.avgCaloriesPerHr)
+        assertEquals(4.0, d.speedMps, 1e-9)
+        assertEquals(210, d.powerW)
+        assertEquals(120, d.avgDragFactor)
+        assertEquals(3, d.intervalNumber)
+    }
+
+    @Test
+    fun `0x003C 힘 곡선은 여러 패킷을 한 스트로크로 조립`() {
+        val asm = C2Pm.ForceCurveAssembler()
+        // 헤더 0x53 = 전체 5워드 / 이번 3워드
+        val first = (listOf(0x53) + le16(100) + le16(250) + le16(400))
+            .let { l -> ByteArray(l.size) { l[it].toByte() } }
+        assertEquals(null, asm.onChunk(first)) // 아직 미완성
+        // 헤더 0x02 = 이번 2워드 (전체는 앞 패킷에서 확정)
+        val second = (listOf(0x02) + le16(300) + le16(120))
+            .let { l -> ByteArray(l.size) { l[it].toByte() } }
+        val curve = asm.onChunk(second)
+        assertEquals(listOf(10.0, 25.0, 40.0, 30.0, 12.0), curve)
+    }
 }
