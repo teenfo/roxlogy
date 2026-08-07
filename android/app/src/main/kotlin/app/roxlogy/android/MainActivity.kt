@@ -51,6 +51,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.webkit.CookieManager
@@ -88,8 +90,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        TokenStore.init(applicationContext) // 저장된 세션 복원
-        RoxMessagingService.ensureChannel(this)
+        CrashLog.install(applicationContext) // 사이드로드라 로그를 볼 방법이 이것뿐
+        // 시작 초기화가 앱을 통째로 죽이지 않게 — 실패해도 화면은 뜨고 원인은 크래시 로그로 남는다
+        runCatching { TokenStore.init(applicationContext) } // 저장된 세션 복원
+        runCatching { RoxMessagingService.ensureChannel(this) }
 
         // 알림 권한 요청 결과 — 허용 시 FCM 토큰 등록(사용자 '켜기' → 옵트아웃 해제)
         notifPermLauncher = registerForActivityResult(
@@ -181,22 +185,37 @@ fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
 
     LaunchedEffect(loggedIn) {
         if (loggedIn) {
-            // 로그인 전에 도착해 건너뛴 워치 세션 회수 — 없으면 즉시 0 반환(멱등 업서트라 안전)
-            app.roxlogy.android.sync.PendingSessionSync().uploadPending(context)
-            GoalSync().fetchAndPush(context) // 최신 목표를 워치로 밀어줌
-            app.roxlogy.android.sync.WodSync().fetchAndPush(context) // 오늘의 WOD 도 워치로
+            // 로그인 전에 도착해 건너뛴 워치 세션 회수 — 업로드 재시도가 길어질 수 있어
+            // 별도 코루틴으로 떼어낸다(아래 목표·WOD 동기화를 막지 않도록).
+            launch {
+                runCatching { app.roxlogy.android.sync.PendingSessionSync().uploadPending(context) }
+            }
+            runCatching { GoalSync().fetchAndPush(context) } // 최신 목표를 워치로 밀어줌
+            runCatching { app.roxlogy.android.sync.WodSync().fetchAndPush(context) } // 오늘의 WOD 도
             // 이미 알림 권한이 있으면 FCM 토큰을 조용히 (재)등록 — 서버 발송 대상 최신화.
             // (사용자가 설정에서 '끄기'를 눌렀다면 register 내부의 옵트아웃 체크가 스킵)
-            if (PushRegistration.isConfigured(context) && PushRegistration.notificationsEnabled(context)) {
-                PushRegistration.register(context)
+            runCatching {
+                if (PushRegistration.isConfigured(context) && PushRegistration.notificationsEnabled(context)) {
+                    PushRegistration.register(context)
+                }
             }
         }
     }
+
+    // 직전 실행이 크래시로 끝났으면 원인을 화면에 보여준다 (사이드로드라 adb 없이는 볼 방법이 없다)
+    var crash by remember { mutableStateOf(CrashLog.last(context)) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
+        crash?.let { trace ->
+            CrashReportScreen(
+                trace = trace,
+                onDismiss = { CrashLog.clear(context); crash = null },
+            )
+            return@Surface
+        }
         if (!loggedIn) {
             AuthScreen(auth = auth, google = google, onAuthed = { loggedIn = true })
             return@Surface
@@ -409,5 +428,38 @@ private fun AuthScreen(
                 Text(if (isSignup) "로그인" else "회원가입", color = RoxAccent, fontSize = 13.sp)
             }
         }
+    }
+}
+
+/**
+ * 직전 크래시 리포트 화면 — 스토어 배포가 아니라 사용자가 스택트레이스를 볼 방법이
+ * 이것뿐이다. 길게 눌러 복사한 뒤 개발자에게 전달하면 원인을 바로 좁힐 수 있다.
+ */
+@Composable
+private fun CrashReportScreen(trace: String, onDismiss: () -> Unit) {
+    val clipboard = LocalClipboardManager.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp)
+            .verticalScroll(rememberScrollState()),
+    ) {
+        Text("앱이 비정상 종료됐습니다", fontSize = 18.sp, color = RoxAccent)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "직전 실행에서 발생한 오류입니다. 복사해서 알려주시면 원인을 바로 찾을 수 있습니다.",
+            fontSize = 13.sp, color = RoxMuted,
+        )
+        Spacer(Modifier.height(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { clipboard.setText(AnnotatedString(trace)) }) {
+                Text("오류 복사", color = RoxAccent, fontSize = 14.sp)
+            }
+            TextButton(onClick = onDismiss) {
+                Text("닫고 계속", color = RoxMuted, fontSize = 14.sp)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(trace, fontSize = 11.sp, color = RoxMuted)
     }
 }
