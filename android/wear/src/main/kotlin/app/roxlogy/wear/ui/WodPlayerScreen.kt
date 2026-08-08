@@ -68,11 +68,14 @@ fun WodPlayerScreen(
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
     androidx.compose.runtime.DisposableEffect(Unit) { onDispose { ble.stop() } }
 
-    fun connectPm5() {
+    fun connectPm5(machine: String) {
         ensureBle {
             pm5Scanning = true
             ble.start(object : app.roxlogy.wear.ble.Pm5BleClient.Listener {
-                override fun onConnected() { pm5Connected = true; pm5Scanning = false }
+                override fun onConnected() {
+                    pm5Connected = true; pm5Scanning = false
+                    ble.deviceAddress()?.let { WearStore.setPm5Mac(context, machine, it) }
+                }
                 override fun onDisconnected() { pm5Connected = false }
                 override fun onSamples(samples: List<app.roxlogy.shared.ingest.ErgSample>) {
                     samples.lastOrNull()?.let {
@@ -82,7 +85,7 @@ fun WodPlayerScreen(
                 override fun onFailed(reason: String) {
                     pm5Scanning = false; pm5Connected = false; pm5Live = ""
                 }
-            })
+            }, preferMac = WearStore.pm5Mac(context, machine))
         }
     }
 
@@ -192,7 +195,7 @@ fun WodPlayerScreen(
                     if (current!!.machineType != null) {
                         item {
                             Chip(
-                                onClick = { if (!pm5Connected && !pm5Scanning) connectPm5() },
+                                onClick = { if (!pm5Connected && !pm5Scanning) current!!.machineType?.let { connectPm5(it) } },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ChipDefaults.secondaryChipColors(backgroundColor = SurfaceHi),
                                 label = {

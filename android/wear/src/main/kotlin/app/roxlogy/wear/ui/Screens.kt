@@ -214,6 +214,8 @@ fun SettingsScreen(
     var haptic by remember { mutableStateOf(WearStore.hapticEnabled(context)) }
     var screenOn by remember { mutableStateOf(WearStore.screenOnEnabled(context)) }
     var ambient by remember { mutableStateOf(WearStore.ambientEnabled(context)) }
+    var gymMode by remember { mutableStateOf(WearStore.gymModeEnabled(context)) }
+    var macsCleared by remember { mutableStateOf(false) }
     // PM5 연결 테스트 — 화면을 나가면 연결 해제
     var pm5State by remember { mutableStateOf("idle") } // idle | scanning | ok
     var pm5Live by remember { mutableStateOf("") }
@@ -254,6 +256,11 @@ fun SettingsScreen(
                     ambient = it; WearStore.setAmbient(context, it)
                 }
             }
+            item {
+                toggle("짐 모드", "스테이션 종료 시 PM5 연결 해제", gymMode) {
+                    gymMode = it; WearStore.setGymMode(context, it)
+                }
+            }
             item { ListHeader { Text("PM5", fontSize = 11.sp, color = MutedText) } }
             item {
                 Chip(
@@ -261,7 +268,10 @@ fun SettingsScreen(
                         ensureBle {
                             pm5State = "scanning"
                             ble.start(object : app.roxlogy.wear.ble.Pm5BleClient.Listener {
-                                override fun onConnected() { pm5State = "ok"; pm5Live = "" }
+                                override fun onConnected() {
+                                    pm5State = "ok"
+                                    pm5Live = ble.deviceName().orEmpty() // 어느 모니터인지 시리얼로 확인
+                                }
                                 override fun onDisconnected() { pm5State = "idle"; pm5Live = "" }
                                 override fun onSamples(samples: List<app.roxlogy.shared.ingest.ErgSample>) {
                                     samples.lastOrNull()?.let {
@@ -295,7 +305,18 @@ fun SettingsScreen(
                     },
                 )
             }
-            item { Text("v0.4.2", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item {
+                Chip(
+                    onClick = { WearStore.clearPm5Macs(context); macsCleared = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ChipDefaults.secondaryChipColors(backgroundColor = SurfaceHi),
+                    label = {
+                        Text(if (macsCleared) "기억한 PM5 지움 ✓" else "기억한 PM5 지우기", fontSize = 12.sp)
+                    },
+                    secondaryLabel = { Text("머신을 바꿨을 때 초기화", fontSize = 9.sp) },
+                )
+            }
+            item { Text("v0.5.0", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }

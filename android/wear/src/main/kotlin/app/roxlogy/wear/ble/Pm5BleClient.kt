@@ -95,11 +95,16 @@ class Pm5BleClient(private val context: Context) {
     private var retried = false
     private var writeRetries = 0
     private var target: BluetoothDevice? = null
+    private var targetName: String? = null
+    private var preferMac: String? = null
 
-    /** 스캔·연결 시작. 기존 연결이 있으면 정리 후 새로 스캔 (기기 전환 안전). */
-    fun start(listener: Listener) {
+    /** 스캔·연결 시작. 기존 연결이 있으면 정리 후 새로 스캔 (기기 전환 안전).
+     *  [preferMac] — 기억해 둔 PM5 주소. 스캔에서 보이면 RSSI 대기 없이 즉시 연결하고,
+     *  안 보이면 기존 RSSI 최강 선택으로 폴백한다 (짐에서 다른 머신을 써도 안전). */
+    fun start(listener: Listener, preferMac: String? = null) {
         stop()
         this.listener = listener
+        this.preferMac = preferMac
         accumulator.clear()
         retried = false
         seen.clear()
@@ -203,6 +208,17 @@ class Pm5BleClient(private val context: Context) {
                 seen[result.device.address] = nm ?: "(이름없음)"
             }
             if (!isPm(result)) return
+            // 기억해 둔 기기가 보이면 후보 수집을 건너뛰고 즉시 연결
+            if (preferMac != null && result.device.address == preferMac) {
+                picking = false
+                stopScan()
+                handler.removeCallbacks(scanTimeout)
+                candidates.clear()
+                targetName = result.scanRecord?.deviceName
+                    ?: runCatching { result.device.name }.getOrNull()
+                connect(result.device)
+                return
+            }
             val prev = candidates[result.device.address]
             if (prev == null || result.rssi > prev.second) {
                 candidates[result.device.address] = result.device to result.rssi
@@ -233,7 +249,19 @@ class Pm5BleClient(private val context: Context) {
             fail(notFoundReason())
             return
         }
+        targetName = seen[best.address].takeIf { it != "(이름없음)" }
+            ?: runCatching { best.name }.getOrNull()
         connect(best)
+    }
+
+    /** 기록 중 끊긴 연결을 수동 개입 없이 복구 — autoConnect=true 는 대상 기기가
+     *  다시 광고를 시작하는 순간 OS 가 연결해 준다(타임아웃 없음, stop()으로 취소). */
+    private fun autoReconnect() {
+        val device = target ?: return
+        discovering = false
+        writeRetries = 0
+        gatt?.close()
+        gatt = device.connectGatt(context, true, gattCallback, BluetoothDevice.TRANSPORT_LE)
     }
 
     private fun connect(device: BluetoothDevice) {
@@ -265,7 +293,12 @@ class Pm5BleClient(private val context: Context) {
         override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
             if (status != BluetoothGatt.GATT_SUCCESS && newState != BluetoothProfile.STATE_CONNECTED) {
                 handler.removeCallbacks(connectTimeout)
-                if (ready) listener?.onDisconnected() // 기록 중 끊김 — 아래에서 1회 자동 재연결
+                if (ready) { // 기록 중 끊김 — PM 이 재광고하면 OS 가 알아서 다시 붙는다
+                    ready = false
+                    listener?.onDisconnected()
+                    autoReconnect()
+                    return
+                }
                 retryOrFail("PM5 연결 실패 (status $status)")
                 return
             }
@@ -280,7 +313,10 @@ class Pm5BleClient(private val context: Context) {
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     handler.removeCallbacks(connectTimeout)
+                    val wasReady = ready
+                    ready = false
                     listener?.onDisconnected()
+                    if (wasReady) autoReconnect()
                 }
             }
         }
@@ -404,6 +440,12 @@ class Pm5BleClient(private val context: Context) {
             return
         }
     }
+
+    /** 연결(시도) 중인 PM5 의 MAC — 연결 성공 후 기억용. */
+    fun deviceAddress(): String? = target?.address
+
+    /** 연결된 PM5 이름(시리얼 포함, 예: "PM5 430123456") — 어느 모니터인지 확인용. */
+    fun deviceName(): String? = targetName
 
     /** 현재까지 누적된 세그먼트 샘플 (세그먼트 종료 시 조립에 사용). */
     fun snapshot(): List<ErgSample> = accumulator.snapshot()

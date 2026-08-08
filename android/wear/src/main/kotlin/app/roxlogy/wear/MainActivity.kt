@@ -308,6 +308,8 @@ fun SimApp(
 
     var pm5Connected by remember { mutableStateOf(false) }
     var pm5Scanning by remember { mutableStateOf(false) }
+    // 연결된(또는 연결하려는) 머신 종류 — 스키↔로잉 전환 판단·기기 기억 키
+    var pm5Machine by remember { mutableStateOf<String?>(null) }
     var pm5Latest by remember { mutableStateOf<ErgSample?>(null) }
     var startIso by remember { mutableStateOf(resume?.startIso ?: "") }
 
@@ -394,12 +396,18 @@ fun SimApp(
     ) { grants ->
         if (grants.values.all { it }) {
             pm5Scanning = true
+            val machine = pm5Machine
             ble.start(object : Pm5BleClient.Listener {
-                override fun onConnected() { pm5Connected = true; pm5Scanning = false }
+                override fun onConnected() {
+                    pm5Connected = true; pm5Scanning = false
+                    // 머신별 기기 기억 — 다음부터 스캔에서 보이면 즉시 연결
+                    val mac = ble.deviceAddress()
+                    if (machine != null && mac != null) WearStore.setPm5Mac(context, machine, mac)
+                }
                 override fun onDisconnected() { pm5Connected = false }
                 override fun onSamples(samples: List<ErgSample>) { pm5Latest = samples.lastOrNull() }
                 override fun onFailed(reason: String) { pm5Scanning = false; pm5Connected = false }
-            })
+            }, preferMac = machine?.let { WearStore.pm5Mac(context, it) })
         }
     }
 
@@ -435,7 +443,15 @@ fun SimApp(
         val isMachine = SessionAssembler.isMachine(engine.current?.machineType)
         val erg = if (engine.current?.kind == "station" && isMachine) ble.snapshot() else emptyList()
         engine.record(elapsed, erg, slotAvgHr(), slotMaxHr())
-        if (isMachine) ble.resetSamples()
+        if (isMachine) {
+            ble.resetSamples()
+            // 짐 모드: 스테이션 종료 즉시 연결 해제 — 공유 머신의 BLE 를 점유하지 않는다
+            if (WearStore.gymModeEnabled(context)) {
+                ble.stop()
+                pm5Connected = false
+                pm5Machine = null
+            }
+        }
         version++
         buzz()
         persist()
@@ -448,7 +464,11 @@ fun SimApp(
             val next = engine.current
             if (next?.kind == "station" && SessionAssembler.isMachine(next.machineType)) {
                 ble.resetSamples()
-                if (ble.restartIfStarted()) pm5Connected = false
+                // 같은 머신이면 연결 유지(흐름 끊김 없음). 다른 머신(스키↔로잉)만 재스캔.
+                val sameMachine = pm5Machine == null || pm5Machine == next.machineType
+                if (!(pm5Connected && sameMachine)) {
+                    if (ble.restartIfStarted()) pm5Connected = false
+                }
             }
         }
     }
@@ -580,7 +600,10 @@ fun SimApp(
                 onStart = { start() },
                 onRecord = { recordCurrent() },
                 onResume = { resumeRun() },
-                onConnectPm5 = { bleLauncher.launch(blePermissions()) },
+                onConnectPm5 = {
+                    pm5Machine = engine.current?.machineType // IDLE(런 슬롯)이면 null
+                    bleLauncher.launch(blePermissions())
+                },
                 onSend = { sendSession() },
                 onUndo = { undoLap() },
                 onReset = {
@@ -814,7 +837,28 @@ private fun RingView(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 when (phase) {
-                    AppPhase.IDLE -> Text("8×1km + 8 스테이션\n32구간 기록", fontSize = 11.sp, color = MutedText, textAlign = TextAlign.Center)
+                    AppPhase.IDLE -> {
+                        Text("8×1km + 8 스테이션\n32구간 기록", fontSize = 11.sp, color = MutedText, textAlign = TextAlign.Center)
+                        Spacer(Modifier.height(4.dp))
+                        // 시작 전 PM5 미리 연결 — 운동 중 모니터를 만질 일이 없게 (Menu → Connect 후 탭)
+                        CompactChip(
+                            onClick = { if (!pm5Connected && !pm5Scanning) onConnectPm5() },
+                            colors = ChipDefaults.chipColors(
+                                backgroundColor = if (pm5Connected) StationBg else SurfaceHi,
+                                contentColor = if (pm5Connected) RaceYellow else Color.White,
+                            ),
+                            label = {
+                                Text(
+                                    when {
+                                        pm5Connected -> "PM5 ✓"
+                                        pm5Scanning -> "PM5 연결 중…"
+                                        else -> "PM5 미리 연결"
+                                    },
+                                    fontSize = 11.sp,
+                                )
+                            },
+                        )
+                    }
                     AppPhase.DONE, AppPhase.SENT -> {
                         Text(fmt(engine.elapsedTotalMs()), fontSize = 26.sp, fontWeight = FontWeight.Bold)
                         DiffBadge(diff)

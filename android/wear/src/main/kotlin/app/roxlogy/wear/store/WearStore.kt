@@ -48,4 +48,17 @@ object WearStore {
     fun setScreenOn(c: Context, on: Boolean) = p(c).edit().putBoolean("screen_on", on).apply()
     fun ambientEnabled(c: Context): Boolean = p(c).getBoolean("ambient", true)
     fun setAmbient(c: Context, on: Boolean) = p(c).edit().putBoolean("ambient", on).apply()
+
+    // 짐 모드 — 켜면 머신 스테이션 종료 시 PM5 연결을 해제해 공유 머신을 점유하지 않는다.
+    // 기본 꺼짐(홈트) = 시뮬 내내 연결 유지로 흐름 끊김 없음.
+    fun gymModeEnabled(c: Context): Boolean = p(c).getBoolean("gym_mode", false)
+    fun setGymMode(c: Context, on: Boolean) = p(c).edit().putBoolean("gym_mode", on).apply()
+
+    // 머신 종류별로 기억한 PM5 MAC — 스캔에서 보이면 RSSI 대기 없이 즉시 연결.
+    // 스키와 로잉은 물리적으로 다른 모니터라 반드시 따로 저장한다.
+    fun pm5Mac(c: Context, machine: String): String? = p(c).getString("pm5_mac_$machine", null)
+    fun setPm5Mac(c: Context, machine: String, mac: String) =
+        p(c).edit().putString("pm5_mac_$machine", mac).apply()
+    fun clearPm5Macs(c: Context) =
+        p(c).edit().remove("pm5_mac_ski").remove("pm5_mac_row").apply()
 }

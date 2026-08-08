@@ -87,15 +87,19 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
     }
 
     fun connect() {
+        val m = machine ?: return
         ensureBle { // 권한 승인 후 스캔 시작 (호출측 런처)
             scanning = true
             error = null
             ble.start(object : Pm5BleClient.Listener {
-                override fun onConnected() { connected = true; scanning = false; error = null }
+                override fun onConnected() {
+                    connected = true; scanning = false; error = null
+                    ble.deviceAddress()?.let { WearStore.setPm5Mac(context, m, it) } // 기기 기억
+                }
                 override fun onDisconnected() { connected = false }
                 override fun onSamples(samples: List<ErgSample>) { latest = samples.lastOrNull() }
                 override fun onFailed(reason: String) { scanning = false; connected = false; error = reason }
-            })
+            }, preferMac = WearStore.pm5Mac(context, m))
         }
     }
 
@@ -170,7 +174,8 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
                     } else {
                         Text(
                             when {
-                                connected -> "${if (machine == "ski") "SkiErg" else "RowErg"} 연결됨 ✓"
+                                connected -> "${if (machine == "ski") "SkiErg" else "RowErg"} 연결됨 ✓" +
+                                    (ble.deviceName()?.let { "\n$it" } ?: "")
                                 scanning -> "연결 중…"
                                 else -> "연결 안 됨"
                             },
