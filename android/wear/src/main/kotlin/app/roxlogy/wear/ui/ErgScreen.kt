@@ -166,7 +166,7 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
                                 label = { Text("RowErg", fontSize = 12.sp) },
                             )
                         }
-                        Text("PM5 화면을 깨운 뒤 선택", fontSize = 9.sp, color = MutedText)
+                        Text("PM5에서 Menu → Connect 를 연 뒤 선택", fontSize = 9.sp, color = MutedText)
                     } else {
                         Text(
                             when {

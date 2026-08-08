@@ -33,6 +33,9 @@ import java.util.UUID
  *    연결 후 GATT 에서만 보이므로 스캔 필터로 쓰면 기기가 잡히지 않는다.
  *  - 펌웨어/OS 조합에 따라 서비스 UUID 가 광고가 아닌 스캔응답에 실리기도 해서,
  *    여기서는 필터 없이 스캔한 뒤 광고 UUID 또는 이름(PM3/PM4/PM5)으로 직접 매칭한다.
+ *  - **PM 은 화면만 깨워서는 광고하지 않는다.** 사용자가 PM5 에서 Menu → Connect 를
+ *    눌러야 광고가 시작된다(실기기 확인 + ErgData/ErgZone 연동 가이드 공통 절차).
+ *    그래서 스캔 타임아웃을 30초로 잡아 메뉴를 여는 시간을 준다.
  *  - 페어링(본딩) 불필요 — GATT 직결.
  *
  * 파싱 정확성은 N1 유닛테스트로 검증됨. 권한(BLUETOOTH_SCAN/CONNECT)은 호출측에서 확인.
@@ -133,7 +136,7 @@ class Pm5BleClient(private val context: Context) {
             val names = seen.values.filter { it != "(이름없음)" }.take(3).joinToString(", ")
             "PM5를 찾지 못함 · 주변 ${seen.size}대 검색됨" +
                 (if (names.isNotEmpty()) " ($names)" else "") +
-                " — PM5 화면을 깨우고 다시 시도하세요"
+                " — PM5에서 Menu → Connect 를 연 뒤 다시 시도하세요"
         }
     }
 
@@ -418,7 +421,7 @@ class Pm5BleClient(private val context: Context) {
 
     private companion object {
         const val PICK_WINDOW_MS = 1500L
-        const val SCAN_TIMEOUT_MS = 12_000L
+        const val SCAN_TIMEOUT_MS = 30_000L // PM5 메뉴(Connect)를 여는 시간 포함
         const val CONNECT_TIMEOUT_MS = 12_000L
         const val MTU_FALLBACK_MS = 1200L
         const val RETRY_DELAY_MS = 600L
