@@ -21,8 +21,8 @@ android {
         applicationId = "app.roxlogy.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "0.4.1"
+        versionCode = 12
+        versionName = "0.4.2"
 
         // Google 로그인용 웹 클라이언트 ID. **공개 식별자**(APK에 포함·추출 가능)라
         // 커밋해도 안전하다 — 비밀은 아니다. Supabase Google 프로바이더에 등록된 것과 동일.
@@ -82,6 +82,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.swiperefreshlayout) // WebView 당겨서 새로고침
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.compose.bom))
