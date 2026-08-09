@@ -27,6 +27,16 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Link zeus private module
+        # zeus-cli 는 내부 의존성 zeppos-app-utils 를 npm 에 공개하지 않고 패키지 안
+        # private-modules/ 에 담아 배포한다(선언 누락 패키징 버그). npm 레지스트리의
+        # 동명 서드파티 패키지는 exports 가 달라 "devicesData is not a function" 이 난다.
+        # → 패키지 내장본을 node_modules 에 심링크 (zepp-health/discussions#350 공식 우회).
+        run: |
+          rm -rf node_modules/zeppos-app-utils
+          ln -s @zeppos/zeus-cli/private-modules/zeppos-app-utils node_modules/zeppos-app-utils
+          node -e "console.log('app-utils modules:', Object.keys(require('zeppos-app-utils').modules).join(','))"
+
       - name: Build .zab
         run: npx zeus build
 
