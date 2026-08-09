@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCrew, getCrewBoard, getCrewSchedule } from "@/lib/crew";
+import { getCrew, getCrewBoard } from "@/lib/crew";
 import { getT } from "@/lib/i18n";
-import { formatDate } from "@/lib/format";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 export async function generateMetadata({
@@ -25,13 +24,10 @@ export default async function CrewHomePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
+  const [crew, { t }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
 
-  const [posts, events] = await Promise.all([
-    getCrewBoard(slug, null, 5),
-    getCrewSchedule(slug, 3),
-  ]);
+  const posts = await getCrewBoard(slug, null, 5);
 
   const links = crew.links ?? {};
   const info: { label: string; value: string; href?: string }[] = [];
@@ -83,47 +79,6 @@ export default async function CrewHomePage({
           ))}
         </section>
       )}
-
-      {/* 다가오는 일정 */}
-      <section>
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-bold">{t("crew.schedule")}</h2>
-          <Link
-            href={`/crews/${slug}/schedule`}
-            className="text-xs text-muted hover:text-accent"
-          >
-            {t("crew.viewAll")} →
-          </Link>
-        </div>
-        {!events.length ? (
-          <p className="mt-3 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
-            {t("crew.emptySchedule")}
-          </p>
-        ) : (
-          <ul className="mt-3 flex flex-col gap-2">
-            {events.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-center justify-between gap-3 rounded-md bg-surface px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{e.title}</p>
-                  <p className="mt-0.5 text-xs text-muted">
-                    {t(`crew.kind.${e.kind}` as DictKey)} ·{" "}
-                    {formatDate(e.starts_at, tag, tz)}
-                  </p>
-                </div>
-                <span className="shrink-0 font-mono text-sm text-accent">
-                  {e.going_count}
-                  <span className="ml-1 text-[10px] text-muted">
-                    {t("crew.going")}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
       {/* 최근 글 */}
       <section>

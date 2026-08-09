@@ -11,19 +11,8 @@ export const POST_CATEGORIES = [
 ] as const;
 export type PostCategory = (typeof POST_CATEGORIES)[number];
 
-export const EVENT_KINDS = [
-  "wod",
-  "race_sim",
-  "run",
-  "strength",
-  "social",
-  "race",
-] as const;
-export type EventKind = (typeof EVENT_KINDS)[number];
-
 export type CrewRole = "owner" | "coach" | "member";
 export type CrewStatus = "pending" | "active" | "blocked";
-export type RsvpStatus = "going" | "maybe" | "declined";
 
 export type CrewOverview = {
   id: string;
@@ -69,20 +58,6 @@ export type CrewComment = {
 
 export type CrewPostDetail = Omit<CrewPost, "author_division"> & {
   comments: CrewComment[];
-};
-
-export type CrewEvent = {
-  id: string;
-  title: string;
-  description: string | null;
-  kind: EventKind;
-  starts_at: string;
-  ends_at: string | null;
-  location: string | null;
-  capacity: number | null;
-  coach_name: string | null;
-  going_count: number;
-  my_status: RsvpStatus | null;
 };
 
 export type CrewRankRow = {
