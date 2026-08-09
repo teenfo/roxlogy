@@ -38,7 +38,12 @@ jobs:
           node -e "console.log('app-utils modules:', Object.keys(require('zeppos-app-utils').modules).join(','))"
 
       - name: Build .zab
-        run: npx zeus build
+        # 타깃이 2개 이상이면 zeus 가 대화형 선택 프롬프트를 띄워 CI 에서 죽는다 —
+        # app.json 의 전체 타깃을 -t 콤마 목록으로 명시해 비대화형으로 빌드.
+        run: |
+          TARGETS="$(node -p "Object.keys(require('./app.json').targets).join(',')")"
+          echo "targets: $TARGETS"
+          npx zeus build -t "$TARGETS"
 
       - name: Dump device mapping (deviceSource ↔ 제품명, 타깃 확장용)
         # app.json platforms 는 deviceSource 번호로 판정된다 — 기기 추가 시 이 목록 참조.
