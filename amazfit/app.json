@@ -46,6 +46,33 @@
         }
       ],
       "designWidth": 466
+    },
+    "t-rex3": {
+      "module": {
+        "page": {
+          "pages": [
+            "page/index"
+          ]
+        },
+        "app-side": {
+          "path": "app-side/index"
+        },
+        "setting": {
+          "path": "setting/index"
+        }
+      },
+      "platforms": [
+        {
+          "deviceSource": 8716544
+        },
+        {
+          "deviceSource": 8716545
+        },
+        {
+          "deviceSource": 8716547
+        }
+      ],
+      "designWidth": 480
     }
   },
   "i18n": {
