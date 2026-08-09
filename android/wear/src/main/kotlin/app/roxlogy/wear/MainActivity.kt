@@ -1106,8 +1106,7 @@ private fun GridRunningView(
         HairlineHFrac(0.70f)
         Spacer(Modifier.height(2.dp))
 
-        // ④ NEXT UP — 다음 구간 · 다음 목표
-        Text(nextLabel ?: "피니시", fontSize = 9.sp, color = MutedText, maxLines = 1)
+        // ④ NEXT UP — 다음 목표 시간 (다음 종목명은 ⑤ 탭 안내에 병합)
         Text(
             "NEXT UP · " + (nextTarget?.let { fmt(it) } ?: "—"),
             fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Chalk,
@@ -1115,12 +1114,12 @@ private fun GridRunningView(
         )
         Spacer(Modifier.height(5.dp))
 
-        // ⑤ 탭 안내 — 버튼 없이 화면 탭으로 진행. 어떤 동작인지 색으로 구분해 표시.
+        // ⑤ 탭 안내 — 버튼 없이 화면 탭으로 진행. 록스존에선 다음 종목명을 포함해 표시.
         val (actionLabel, actionColor) = when (kind) {
             "run" -> "1km 완료" to TrackBlue
             "roxzone" -> when (nextKind) {
-                "station" -> "스테이션 시작"
-                "run" -> "런 시작"
+                "station" -> "${nextLabel ?: "스테이션"} 시작"
+                "run" -> "${nextLabel ?: "런"} 시작"
                 else -> "피니시"
             } to Chalk
             else -> "완료" to RaceYellow
