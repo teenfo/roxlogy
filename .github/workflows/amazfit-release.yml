@@ -40,6 +40,22 @@ jobs:
       - name: Build .zab
         run: npx zeus build
 
+      - name: Dump valid device target names (참고용)
+        # zeus 가 받아온 기기 목록 — app.json targets 이름 조정에 사용.
+        if: always()
+        run: |
+          node -e "
+            const fs = require('fs'), os = require('os'), path = require('path');
+            const p = path.join(os.homedir(), '.zepp/.zeus_devices');
+            if (!fs.existsSync(p)) { console.log('no device cache'); process.exit(0); }
+            try {
+              const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+              const list = Array.isArray(d) ? d : (d.data || d.devices || Object.values(d)[0] || []);
+              const names = [...new Set((Array.isArray(list) ? list : []).flatMap(x => [x.name, x.deviceName, x.target]).filter(Boolean))];
+              console.log(names.join('\n') || JSON.stringify(d).slice(0, 3000));
+            } catch (e) { console.log(fs.readFileSync(p, 'utf8').slice(0, 3000)); }
+          "
+
       - name: Locate artifact
         id: zab
         run: |
