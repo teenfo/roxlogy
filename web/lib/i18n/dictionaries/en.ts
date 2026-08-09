@@ -115,6 +115,16 @@ const en = {
   "download.apkButton": "Download APK",
   "download.sideloadNote": "To install the APK, allow installs from unknown sources in your device settings, then open the downloaded file.",
   "download.androidPending": "Direct download will be available here soon. Store links will replace it once published.",
+  "download.garminTitle": "Garmin",
+  "download.garminDesc": "Connect IQ sim recorder.",
+  "download.garminPrg": "Download .prg",
+  "download.garminNote": "Connect the watch to a PC and copy the .prg into the GARMIN/APPS folder. Enter your upload token in Garmin Connect → Roxlogy settings.",
+  "download.garminPending": "Garmin package coming soon.",
+  "download.amazfitTitle": "Amazfit",
+  "download.amazfitDesc": "Zepp OS sim recorder.",
+  "download.amazfitZab": "Download .zab",
+  "download.amazfitNote": "Install via Zepp app developer mode. Enter your upload token in Zepp → Roxlogy settings.",
+  "download.amazfitPending": "Amazfit package coming soon.",
   "download.webCta": "No install needed —",
 
   // 인증

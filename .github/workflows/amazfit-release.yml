@@ -1,0 +1,70 @@
+name: amazfit-release
+
+# Zepp OS(.zab) 빌드 + Supabase 공개 스토리지 게시.
+# zeus build 는 docs.zepp.com 에서 기기 목록을 받아오므로 네트워크가 필요하다(CI 는 가능).
+# 다운로드 페이지(web/lib/app-links.ts)가 roxlogy-amazfit-latest.zab 를 가리킨다.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "amazfit/**"
+      - ".github/workflows/amazfit-release.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: amazfit
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build .zab
+        run: npx zeus build
+
+      - name: Locate artifact
+        id: zab
+        run: |
+          ZAB="$(find . -name '*.zab' -not -path './node_modules/*' | head -1)"
+          if [ -z "$ZAB" ]; then
+            echo "::error::no .zab produced"; exit 1
+          fi
+          echo "path=$ZAB" >> "$GITHUB_OUTPUT"
+          echo "built: $ZAB ($(wc -c < "$ZAB") bytes)"
+
+      - name: Upload to Supabase Storage (public)
+        env:
+          SR: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BASE: https://vuloxbpfhyqkvgmpmkst.supabase.co/storage/v1/object/app-downloads
+          RUN_NO: ${{ github.run_number }}
+          ZAB: ${{ steps.zab.outputs.path }}
+        run: |
+          if [ -z "$SR" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY not set — skipping publish."
+            exit 0
+          fi
+          VER="$(node -p "require('./package.json').version")"
+          upload() {
+            curl -sSf -X POST \
+              -H "Authorization: Bearer $SR" -H "apikey: $SR" \
+              -H "x-upsert: true" -H "Content-Type: application/octet-stream" \
+              --data-binary "@$ZAB" "$BASE/$1" > /dev/null
+            echo "uploaded $1"
+          }
+          upload "roxlogy-amazfit-v${VER}-${RUN_NO}.zab"
+          upload "roxlogy-amazfit-latest.zab"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: roxlogy-amazfit-zab
+          path: amazfit/**/*.zab
+          if-no-files-found: error

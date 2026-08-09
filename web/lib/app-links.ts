@@ -17,6 +17,21 @@ const STORAGE_PUBLIC =
 export const ANDROID_WEAR_APK_URL: string | null = `${STORAGE_PUBLIC}/roxlogy-wear-latest.apk`;
 export const ANDROID_PHONE_APK_URL: string | null = `${STORAGE_PUBLIC}/roxlogy-phone-latest.apk`;
 
+// 가민(.prg)·어메이즈핏(.zab) 사이드로드 패키지 — 각 릴리스 파이프라인이 같은 버킷에 게시.
+// 파일이 아직 없으면 다운로드 페이지가 "준비 중"으로 표시한다(storageFileExists).
+export const GARMIN_PRG_URL = `${STORAGE_PUBLIC}/roxlogy-garmin-latest.prg`;
+export const AMAZFIT_ZAB_URL = `${STORAGE_PUBLIC}/roxlogy-amazfit-latest.zab`;
+
+/** 공개 스토리지에 파일이 실제로 게시됐는지 (서버 컴포넌트용, 5분 캐시). */
+export async function storageFileExists(url: string): Promise<boolean> {
+  try {
+    const r = await fetch(url, { method: "HEAD", next: { revalidate: 300 } });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 export type AppDownloads = {
   phoneUrl: string | null;
   wearUrl: string | null;

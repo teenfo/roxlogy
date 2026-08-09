@@ -1,0 +1,16 @@
+{
+  "name": "roxlogy-amazfit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Roxlogy HYROX sim recorder for Zepp OS (Amazfit)",
+  "scripts": {
+    "build": "zeus build"
+  },
+  "dependencies": {
+    "@zeppos/zml": "^0.0.36"
+  },
+  "devDependencies": {
+    "@zeppos/zeus-cli": "^1.9.3",
+    "zeppos-app-utils": "^1.0.0"
+  }
+}

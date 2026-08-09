@@ -3,8 +3,13 @@ using Toybox.Lang;
 
 // PM5(Concept2) BLE 중앙 — 커스텀 서비스 CE060030 + 상태 특성 0031/0032/0033 구독.
 // 스키/로잉 스테이션에서 라이브 watts/spm/pace 보강(선택). 프레임 오프셋은 :shared C2Pm 이식.
+//
+// ⚠️ PM5 는 광고(advertise)에 Discovery 서비스(CE060000)만 싣는다 — Rowing(CE060030)은
+// GATT 전용이라 광고 매칭에 쓰면 영영 발견되지 않는다(Wear OS v0.3.2 에서 잡은 동일 버그).
+// 또한 PM5 는 모니터에서 Menu → Connect 를 눌러야 광고를 시작한다(화면 깨우기로는 불가).
 // 참고: 실기기 검증 필수(시뮬레이터로 실 PM5 불가). Connect IQ SDK 컴파일 시 API 시그니처 확인 필요.
 class Pm5Ble extends Ble.BleDelegate {
+    var DISCOVERY;
     var SVC;
     var C0031;
     var C0032;
@@ -20,6 +25,7 @@ class Pm5Ble extends Ble.BleDelegate {
 
     function initialize() {
         BleDelegate.initialize();
+        DISCOVERY = Ble.stringToUuid("CE060000-43E5-11E4-916C-0800200C9A66");
         SVC   = Ble.stringToUuid("CE060030-43E5-11E4-916C-0800200C9A66");
         C0031 = Ble.stringToUuid("CE060031-43E5-11E4-916C-0800200C9A66");
         C0032 = Ble.stringToUuid("CE060032-43E5-11E4-916C-0800200C9A66");
@@ -54,16 +60,30 @@ class Pm5Ble extends Ble.BleDelegate {
 
     function onScanResults(scanResults) {
         for (var r = scanResults.next(); r != null; r = scanResults.next()) {
-            var uuids = r.getServiceUuids();
-            for (var u = uuids.next(); u != null; u = uuids.next()) {
-                if (u.equals(SVC)) {
-                    Ble.setScanState(Ble.SCAN_STATE_OFF);
-                    scanning = false;
-                    device = Ble.pairDevice(r);
-                    return;
-                }
+            if (isPm(r)) {
+                Ble.setScanState(Ble.SCAN_STATE_OFF);
+                scanning = false;
+                device = Ble.pairDevice(r);
+                return;
             }
         }
+    }
+
+    // PM 식별 — 광고에는 Discovery(CE060000)만 실린다. 일부 펌웨어는 서비스 UUID 를
+    // 광고에 아예 싣지 않으므로 기기 이름(PM5/PM4/PM3/Concept2)도 함께 본다.
+    function isPm(r) {
+        var uuids = r.getServiceUuids();
+        for (var u = uuids.next(); u != null; u = uuids.next()) {
+            if (u.equals(DISCOVERY) || u.equals(SVC)) { return true; }
+        }
+        var name = r.getDeviceName();
+        if (name != null) {
+            if (name.find("PM5") != null || name.find("PM4") != null ||
+                name.find("PM3") != null || name.find("Concept2") != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function onConnectedStateChanged(dev, state) {

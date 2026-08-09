@@ -2,7 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { getT } from "@/lib/i18n";
 import { LocaleSwitcher } from "@/components/locale-switcher";
-import { getAppDownloads, PLAY_STORE_URL } from "@/lib/app-links";
+import {
+  getAppDownloads,
+  storageFileExists,
+  AMAZFIT_ZAB_URL,
+  GARMIN_PRG_URL,
+  PLAY_STORE_URL,
+} from "@/lib/app-links";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -11,7 +17,11 @@ export async function generateMetadata() {
 
 export default async function DownloadPage() {
   const { t } = await getT();
-  const dl = await getAppDownloads();
+  const [dl, hasGarmin, hasAmazfit] = await Promise.all([
+    getAppDownloads(),
+    storageFileExists(GARMIN_PRG_URL),
+    storageFileExists(AMAZFIT_ZAB_URL),
+  ]);
   const hasApk = !!(dl.wearUrl || dl.phoneUrl);
   const androidReady = !!PLAY_STORE_URL || hasApk;
 
@@ -85,6 +95,56 @@ export default async function DownloadPage() {
             </>
           ) : (
             <p className="mt-4 text-sm text-muted">{t("download.androidPending")}</p>
+          )}
+        </div>
+
+        {/* 가민 (Connect IQ) */}
+        <div className="mt-4 rounded-md bg-surface px-5 py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">{t("download.garminTitle")}</h2>
+              <p className="mt-1 text-sm text-muted">{t("download.garminDesc")}</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-background px-3 py-1 text-xs text-muted">
+              {hasGarmin ? t("download.beta") : t("download.comingSoon")}
+            </span>
+          </div>
+          {hasGarmin ? (
+            <>
+              <a href={GARMIN_PRG_URL} download className={`mt-4 inline-block ${apkBtn}`}>
+                {t("download.garminPrg")}
+              </a>
+              <p className="mt-3 text-xs leading-relaxed text-muted">
+                {t("download.garminNote")}
+              </p>
+            </>
+          ) : (
+            <p className="mt-4 text-sm text-muted">{t("download.garminPending")}</p>
+          )}
+        </div>
+
+        {/* 어메이즈핏 (Zepp OS) */}
+        <div className="mt-4 rounded-md bg-surface px-5 py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">{t("download.amazfitTitle")}</h2>
+              <p className="mt-1 text-sm text-muted">{t("download.amazfitDesc")}</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-background px-3 py-1 text-xs text-muted">
+              {hasAmazfit ? t("download.beta") : t("download.comingSoon")}
+            </span>
+          </div>
+          {hasAmazfit ? (
+            <>
+              <a href={AMAZFIT_ZAB_URL} download className={`mt-4 inline-block ${apkBtn}`}>
+                {t("download.amazfitZab")}
+              </a>
+              <p className="mt-3 text-xs leading-relaxed text-muted">
+                {t("download.amazfitNote")}
+              </p>
+            </>
+          ) : (
+            <p className="mt-4 text-sm text-muted">{t("download.amazfitPending")}</p>
           )}
         </div>
 
