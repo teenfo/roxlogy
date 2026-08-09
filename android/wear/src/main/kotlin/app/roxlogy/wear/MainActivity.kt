@@ -768,7 +768,7 @@ private fun HairlineV() {
     Box(Modifier.width(1.dp).fillMaxHeight().background(SurfaceHi))
 }
 
-/** 라벨(위)+값(아래) 셀 — TOTAL·목표 밴드용. */
+/** 라벨(위)+값(아래) 셀 — TOTAL·목표 밴드용. 숫자는 한 줄 고정(줄바꿈 시 레이아웃 붕괴). */
 @Composable
 private fun LabelCell(
     label: String,
@@ -778,12 +778,15 @@ private fun LabelCell(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 9.sp, color = MutedText)
-        Text(value, fontSize = valueSp.sp, fontWeight = FontWeight.Bold, color = valueColor)
+        Text(label, fontSize = 9.sp, color = MutedText, maxLines = 1, softWrap = false)
+        Text(
+            value, fontSize = valueSp.sp, fontWeight = FontWeight.Bold, color = valueColor,
+            maxLines = 1, softWrap = false, lineHeight = (valueSp + 2).sp,
+        )
     }
 }
 
-/** 값(위)+라벨(아래) 셀 — 심박·합계 밴드용. */
+/** 값(위)+라벨(아래) 셀 — 심박·합계 밴드용. 숫자는 한 줄 고정. */
 @Composable
 private fun ValueCell(
     value: String,
@@ -793,8 +796,11 @@ private fun ValueCell(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontSize = valueSp.sp, fontWeight = FontWeight.Bold, color = valueColor)
-        Text(label, fontSize = 9.sp, color = MutedText)
+        Text(
+            value, fontSize = valueSp.sp, fontWeight = FontWeight.Bold, color = valueColor,
+            maxLines = 1, softWrap = false, lineHeight = (valueSp + 2).sp,
+        )
+        Text(label, fontSize = 9.sp, color = MutedText, maxLines = 1, softWrap = false)
     }
 }
 
@@ -805,11 +811,17 @@ private fun DiffFillCell(diff: Long, labelSp: Int, valueSp: Int, modifier: Modif
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
             .background(if (diff <= 0) Good else Bad)
-            .padding(horizontal = 6.dp, vertical = 1.dp),
+            .padding(horizontal = 4.dp, vertical = 1.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("목표 대비", fontSize = labelSp.sp, color = Color.Black.copy(alpha = 0.65f))
-        Text(fmtDiff(diff), fontSize = valueSp.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+        Text(
+            "목표 대비", fontSize = labelSp.sp, color = Color.Black.copy(alpha = 0.65f),
+            maxLines = 1, softWrap = false,
+        )
+        Text(
+            fmtDiff(diff), fontSize = valueSp.sp, fontWeight = FontWeight.Bold, color = Color.Black,
+            maxLines = 1, softWrap = false, lineHeight = (valueSp + 2).sp,
+        )
     }
 }
 
@@ -1041,18 +1053,18 @@ private fun GridRunningView(
     ) {
         // ① TOTAL │ 목표 대비 — 목표 대비 셀은 전체를 Good/Bad 로 채움
         Row(
-            modifier = Modifier.fillMaxWidth(0.46f).height(IntrinsicSize.Min).padding(bottom = 2.dp),
+            modifier = Modifier.fillMaxWidth(0.52f).height(IntrinsicSize.Min).padding(bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            LabelCell("TOTAL", fmt(totalMs), Chalk, 19, Modifier.weight(1f))
+            LabelCell("TOTAL", fmt(totalMs), Chalk, 16, Modifier.weight(1f))
             HairlineV()
             if (diff != null) {
-                DiffFillCell(diff, labelSp = 9, valueSp = 19, modifier = Modifier.weight(1f).padding(start = 3.dp))
+                DiffFillCell(diff, labelSp = 9, valueSp = 16, modifier = Modifier.weight(1f).padding(start = 3.dp))
             } else {
-                LabelCell("목표 대비", "--", MutedText, 19, Modifier.weight(1f))
+                LabelCell("목표 대비", "--", MutedText, 16, Modifier.weight(1f))
             }
         }
-        HairlineHFrac(0.46f)
+        HairlineHFrac(0.52f)
         Spacer(Modifier.height(2.dp))
 
         // ② 구간 정체성 — 머신 스테이션은 이 줄 자체가 PM5 연결 버튼
@@ -1076,35 +1088,37 @@ private fun GridRunningView(
 
         // ③ 심박 │ 구간시간 │ 목표
         Row(
-            modifier = Modifier.fillMaxWidth(0.64f).height(IntrinsicSize.Min).padding(vertical = 1.dp),
+            modifier = Modifier.fillMaxWidth(0.70f).height(IntrinsicSize.Min).padding(vertical = 1.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ValueCell(
                 if (hrNow > 30) "${hrNow.toInt()}" else "--", "♥ bpm",
                 if (hrNow > 30) hrZoneColor(hrNow.toInt()) else MutedText,
-                18, Modifier.weight(1f),
+                15, Modifier.weight(1f),
             )
             HairlineV()
             Text(
-                fmt(elapsed), fontSize = 32.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 6.dp),
+                fmt(elapsed), fontSize = 30.sp, fontWeight = FontWeight.Bold,
+                maxLines = 1, softWrap = false, lineHeight = 34.sp,
+                modifier = Modifier.padding(horizontal = 8.dp),
             )
             HairlineV()
-            ValueCell(slotTarget?.let { fmt(it) } ?: "--", "목표", MutedText, 18, Modifier.weight(1f))
+            ValueCell(slotTarget?.let { fmt(it) } ?: "--", "목표", MutedText, 15, Modifier.weight(1f))
         }
-        HairlineHFrac(0.64f)
+        HairlineHFrac(0.70f)
         Spacer(Modifier.height(2.dp))
 
         // ④ NEXT UP — 다음 구간 · 다음 목표
-        Text(nextLabel ?: "피니시", fontSize = 10.sp, color = MutedText, maxLines = 1)
+        Text(nextLabel ?: "피니시", fontSize = 9.sp, color = MutedText, maxLines = 1)
         Text(
             "NEXT UP · " + (nextTarget?.let { fmt(it) } ?: "—"),
-            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Chalk,
+            fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Chalk,
+            maxLines = 1, softWrap = false,
         )
         Spacer(Modifier.height(4.dp))
 
         // ⑤ 주 액션 — 시안 196×42 (원형 하단 코드에 맞춘 폭)
-        val gridActionWidth = Modifier.fillMaxWidth(0.55f)
+        val gridActionWidth = Modifier.fillMaxWidth(0.52f)
         when (kind) {
             "run" -> ActionChip("1km 완료", TrackBlue, Color.White, onRecord, gridActionWidth)
             "roxzone" -> ActionChip(

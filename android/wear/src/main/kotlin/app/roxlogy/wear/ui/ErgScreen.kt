@@ -200,7 +200,10 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
             verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("에르그", fontSize = 12.sp, color = RaceYellow, fontWeight = FontWeight.Bold)
+            // 헤더는 대기 단계에서만 — 기록 중엔 큰 타이머와 시계(TimeText) 겹침 방지
+            if (phase == "idle") {
+                Text("에르그", fontSize = 12.sp, color = RaceYellow, fontWeight = FontWeight.Bold)
+            }
             when (phase) {
                 "idle" -> when {
                     machine == null -> DevicePicker(
