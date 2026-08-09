@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
+  CrewDirectoryRow,
   CrewMemberRow,
   CrewOverview,
   CrewPost,
@@ -29,6 +30,12 @@ export async function getCrewBoard(
     p_offset: offset,
   });
   return (data ?? []) as CrewPost[];
+}
+
+export async function getCrewDirectory(limit = 50): Promise<CrewDirectoryRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("crew_directory", { p_limit: limit });
+  return (data ?? []) as CrewDirectoryRow[];
 }
 
 export async function getCrewLeaderboard(

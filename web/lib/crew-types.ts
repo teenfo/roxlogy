@@ -60,6 +60,17 @@ export type CrewPostDetail = Omit<CrewPost, "author_division"> & {
   comments: CrewComment[];
 };
 
+export type CrewDirectoryRow = {
+  slug: string;
+  name: string;
+  tagline: string | null;
+  logo_url: string | null;
+  location: string | null;
+  join_policy: "open" | "approval" | "invite";
+  member_count: number;
+  post_count: number;
+};
+
 export type CrewRankRow = {
   rank: number;
   user_id: string;

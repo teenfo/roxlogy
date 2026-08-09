@@ -79,10 +79,6 @@ export default async function CrewLayout({
                 <b className="text-foreground">{crew.post_count}</b>{" "}
                 {t("crew.posts")}
               </span>
-              <span>
-                <b className="text-foreground">{crew.upcoming_count}</b>{" "}
-                {t("crew.upcoming")}
-              </span>
             </p>
           </div>
           <CrewJoinButton
