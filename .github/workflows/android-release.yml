@@ -127,6 +127,42 @@ jobs:
           upload "$RUNNER_TEMP/latest.json" latest.json application/json
           echo "Published $PHONE / $WEAR (+latest.json) to $BASE/public/"
 
+      - name: Prune old versions in Supabase Storage
+        # 스토리지 용량 관리(Free 1GB): 버전 APK(roxlogy-*-v*-{run}.apk)는 최근 3개
+        # 빌드만 남기고 삭제한다. latest.json 과 roxlogy-*-latest.apk 는 항상 유지.
+        env:
+          SR: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          API: https://vuloxbpfhyqkvgmpmkst.supabase.co/storage/v1
+          KEEP: "3"
+        run: |
+          if [ -z "$SR" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY 미설정 — 정리 생략"
+            exit 0
+          fi
+          LIST=$(curl -sSf -X POST \
+            -H "Authorization: Bearer $SR" -H "apikey: $SR" \
+            -H "Content-Type: application/json" \
+            -d '{"limit":1000,"prefix":""}' \
+            "$API/object/list/app-downloads")
+          # 버전 APK만 골라 빌드 번호(파일명 끝 -N.apk) 기준 최근 KEEP개 빌드 외 삭제 목록 생성
+          DELETE=$(echo "$LIST" | jq -c --argjson keep "$KEEP" '
+            [ .[].name | select(test("^roxlogy-(phone|wear)-v.+-[0-9]+\\.apk$")) ] as $vers
+            | ([ $vers[] | capture("-(?<n>[0-9]+)\\.apk$").n | tonumber ] | unique | sort | reverse | .[:$keep]) as $keepBuilds
+            | [ $vers[] | select((capture("-(?<n>[0-9]+)\\.apk$").n | tonumber) as $b | ($keepBuilds | index($b)) == null) ]')
+          COUNT=$(echo "$DELETE" | jq 'length')
+          if [ "$COUNT" -eq 0 ]; then
+            echo "정리할 구버전 없음"
+            exit 0
+          fi
+          echo "삭제 대상 ${COUNT}개:"
+          echo "$DELETE" | jq -r '.[]'
+          curl -sSf -X DELETE \
+            -H "Authorization: Bearer $SR" -H "apikey: $SR" \
+            -H "Content-Type: application/json" \
+            -d "$(echo "$DELETE" | jq -c '{prefixes: .}')" \
+            "$API/object/app-downloads" > /dev/null
+          echo "구버전 정리 완료 — 최근 ${KEEP}개 빌드 + latest 계열만 유지"
+
       - name: Upload APKs as workflow artifacts
         uses: actions/upload-artifact@v4
         with:
