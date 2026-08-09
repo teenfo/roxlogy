@@ -31,7 +31,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -89,8 +89,6 @@ import app.roxlogy.wear.ui.theme.Good
 import app.roxlogy.wear.ui.theme.MutedText
 import app.roxlogy.wear.ui.theme.RaceYellow
 import app.roxlogy.wear.ui.theme.RoxWearTheme
-import app.roxlogy.wear.ui.theme.RoxzoneBg
-import app.roxlogy.wear.ui.theme.RunBg
 import app.roxlogy.wear.ui.theme.StationBg
 import app.roxlogy.wear.ui.theme.SurfaceHi
 import app.roxlogy.wear.ui.theme.TrackBlue
@@ -864,15 +862,6 @@ private fun RingView(
             modifier = Modifier.fillMaxSize().padding(4.dp),
         )
 
-        val phaseBg = if (phase == AppPhase.RUNNING && !paused) {
-            when (kind) {
-                "run" -> RunBg
-                "station" -> StationBg
-                else -> RoxzoneBg
-            }
-        } else Color.Transparent
-        Box(Modifier.fillMaxSize(0.70f).clip(CircleShape).background(phaseBg))
-
         // 구간 한 줄 요약 — 그리드 밴드②·일시정지 화면 공용
         val contextLine = when (kind) {
             "run" -> "RUN $round" +
@@ -1024,8 +1013,8 @@ private fun RingView(
 
 /**
  * 진행 중(RUN·스테이션·록스존) — 시안 5밴드 그리드.
- * ① TOTAL │ 목표 대비(셀 채움) ② 구간 정체성 ③ 심박 │ 구간시간 │ 목표 ④ NEXT UP ⑤ 주 액션.
- * 시안 44sp 구간시간은 원형 화면 수직 공간에 맞춰 32sp 로 조정.
+ * ① TOTAL │ 목표 대비(셀 채움) ② 구간 정체성 ③ 심박 │ 구간시간 │ 목표 ④ NEXT UP ⑤ 탭 안내.
+ * 버튼 대신 **화면 전체 탭 = 다음 구간**(물리 퀵버튼과 동일). 하단은 탭 동작 안내만 표시.
  */
 @Composable
 private fun GridRunningView(
@@ -1047,7 +1036,11 @@ private fun GridRunningView(
     onRecord: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null, // 전면 탭 리플은 소음 — 햅틱(랩 진동)이 피드백을 대신한다
+            onClick = onRecord,
+        ),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -1098,8 +1091,8 @@ private fun GridRunningView(
             )
             HairlineV()
             Text(
-                fmt(elapsed), fontSize = 30.sp, fontWeight = FontWeight.Bold,
-                maxLines = 1, softWrap = false, lineHeight = 34.sp,
+                fmt(elapsed), fontSize = 34.sp, fontWeight = FontWeight.Bold,
+                maxLines = 1, softWrap = false, lineHeight = 38.sp,
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
             HairlineV()
@@ -1115,22 +1108,23 @@ private fun GridRunningView(
             fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Chalk,
             maxLines = 1, softWrap = false,
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(5.dp))
 
-        // ⑤ 주 액션 — 시안 196×42 (원형 하단 코드에 맞춘 폭)
-        val gridActionWidth = Modifier.fillMaxWidth(0.52f)
-        when (kind) {
-            "run" -> ActionChip("1km 완료", TrackBlue, Color.White, onRecord, gridActionWidth)
-            "roxzone" -> ActionChip(
-                when (nextKind) {
-                    "station" -> "스테이션 시작"
-                    "run" -> "런 시작"
-                    else -> "피니시"
-                },
-                Chalk, Color.Black, onRecord, gridActionWidth,
-            )
-            else -> ActionChip("완료", RaceYellow, Color.Black, onRecord, gridActionWidth)
+        // ⑤ 탭 안내 — 버튼 없이 화면 탭으로 진행. 어떤 동작인지 색으로 구분해 표시.
+        val (actionLabel, actionColor) = when (kind) {
+            "run" -> "1km 완료" to TrackBlue
+            "roxzone" -> when (nextKind) {
+                "station" -> "스테이션 시작"
+                "run" -> "런 시작"
+                else -> "피니시"
+            } to Chalk
+            else -> "완료" to RaceYellow
         }
+        Text(
+            "탭 = $actionLabel",
+            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = actionColor,
+            maxLines = 1, softWrap = false,
+        )
     }
 }
 
