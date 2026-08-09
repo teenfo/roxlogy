@@ -40,20 +40,23 @@ jobs:
       - name: Build .zab
         run: npx zeus build
 
-      - name: Dump valid device target names (참고용)
-        # zeus 가 받아온 기기 목록 — app.json targets 이름 조정에 사용.
+      - name: Dump device mapping (deviceSource ↔ 제품명, 타깃 확장용)
+        # app.json platforms 는 deviceSource 번호로 판정된다 — 기기 추가 시 이 목록 참조.
         if: always()
         run: |
           node -e "
             const fs = require('fs'), os = require('os'), path = require('path');
             const p = path.join(os.homedir(), '.zepp/.zeus_devices');
             if (!fs.existsSync(p)) { console.log('no device cache'); process.exit(0); }
-            try {
-              const d = JSON.parse(fs.readFileSync(p, 'utf8'));
-              const list = Array.isArray(d) ? d : (d.data || d.devices || Object.values(d)[0] || []);
-              const names = [...new Set((Array.isArray(list) ? list : []).flatMap(x => [x.name, x.deviceName, x.target]).filter(Boolean))];
-              console.log(names.join('\n') || JSON.stringify(d).slice(0, 3000));
-            } catch (e) { console.log(fs.readFileSync(p, 'utf8').slice(0, 3000)); }
+            const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+            const list = d.devices || [];
+            for (const x of list) {
+              const v = x.value || {};
+              const api = (v.os && v.os.apiLevel) || '?';
+              if (parseFloat(api) >= 2.0) {
+                console.log([x.deviceSource, (v.productNameEN || x.productName), 'api ' + api, v.shape, (v.screen||{}).size].join(' | '));
+              }
+            }
           "
 
       - name: Locate artifact
