@@ -1013,7 +1013,7 @@ private fun RingView(
 
 /**
  * 진행 중(RUN·스테이션·록스존) — 시안 5밴드 그리드.
- * ① TOTAL │ 목표 대비(셀 채움) ② 구간 정체성 ③ 심박 │ 구간시간 │ 목표 ④ NEXT UP ⑤ 탭 안내.
+ * ① 구간 정체성 ② TOTAL │ 목표 대비 ③ 심박 │ 구간시간 │ 목표 ④ NEXT UP ⑤ 탭 안내.
  * 버튼 대신 **화면 전체 탭 = 다음 구간**(물리 퀵버튼과 동일). 하단은 탭 동작 안내만 표시.
  */
 @Composable
@@ -1044,28 +1044,7 @@ private fun GridRunningView(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // ① TOTAL │ 목표 대비 — 목표 대비 셀은 전체를 Good/Bad 로 채움
-        Row(
-            modifier = Modifier.fillMaxWidth(0.52f).height(IntrinsicSize.Min).padding(bottom = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            LabelCell("TOTAL", fmt(totalMs), Chalk, 16, Modifier.weight(1f))
-            HairlineV()
-            // 채움 패널은 상단 트랙 링을 가려서 제거 — 색 글자로만 목표 대비 표시
-            LabelCell(
-                "목표 대비", diff?.let { fmtDiff(it) } ?: "--",
-                when {
-                    diff == null -> MutedText
-                    diff <= 0 -> Good
-                    else -> Bad
-                },
-                16, Modifier.weight(1f),
-            )
-        }
-        HairlineHFrac(0.52f)
-        Spacer(Modifier.height(2.dp))
-
-        // ② 구간 정체성 — 머신 스테이션은 이 줄 자체가 PM5 연결 버튼
+        // ① 구간 정체성 — 머신 스테이션은 이 줄 자체가 PM5 연결 버튼
         val line = if (isMachineStation) {
             contextLine + when {
                 pm5Connected -> " ✓" + (pm5Latest?.watts?.let { " · ${it}W ${pm5Latest?.spm ?: 0}spm" } ?: "")
@@ -1083,6 +1062,26 @@ private fun GridRunningView(
         )
         Spacer(Modifier.height(2.dp))
         HairlineHFrac(0.58f)
+        Spacer(Modifier.height(2.dp))
+
+        // ② TOTAL │ 목표 대비 (채움 패널은 트랙 링을 가려서 색 글자로만 표시)
+        Row(
+            modifier = Modifier.fillMaxWidth(0.52f).height(IntrinsicSize.Min).padding(bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LabelCell("TOTAL", fmt(totalMs), Chalk, 16, Modifier.weight(1f))
+            HairlineV()
+            LabelCell(
+                "목표 대비", diff?.let { fmtDiff(it) } ?: "--",
+                when {
+                    diff == null -> MutedText
+                    diff <= 0 -> Good
+                    else -> Bad
+                },
+                16, Modifier.weight(1f),
+            )
+        }
+        HairlineHFrac(0.52f)
 
         // ③ 심박 │ 구간시간 │ 목표
         Row(
