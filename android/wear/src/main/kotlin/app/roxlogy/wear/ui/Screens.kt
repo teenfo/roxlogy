@@ -1,5 +1,6 @@
 package app.roxlogy.wear.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -34,6 +36,8 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.ToggleChip
 import androidx.wear.compose.material.ToggleChipDefaults
+import app.roxlogy.shared.ingest.IngestJson
+import app.roxlogy.shared.model.Stations
 import app.roxlogy.shared.record.StoredSession
 import app.roxlogy.shared.sim.GoalPlan
 import app.roxlogy.shared.sim.HyroxSim
@@ -164,7 +168,25 @@ fun ArchiveScreen(sender: WearDataSender) {
     val context = LocalContext.current
     val items = remember { WearStore.sessions(context).sortedByDescending { it.createdAtMs } }
     var resentId by remember { mutableStateOf<String?>(null) }
+    var selected by remember { mutableStateOf<StoredSession?>(null) }
     val dateFmt = remember { SimpleDateFormat("M/d (E) HH:mm", Locale.getDefault()) }
+
+    // 상세에서 뒤로가기 = 목록 복귀 (메뉴로 빠지지 않게)
+    BackHandler(enabled = selected != null) { selected = null }
+
+    val sel = selected
+    if (sel != null) {
+        ArchiveDetail(
+            s = sel,
+            dateFmt = dateFmt,
+            resent = resentId == sel.id,
+            onSend = {
+                sender.sendRaw(sel.id, sel.payloadJson, sel.clientUpdatedAt)
+                resentId = sel.id
+            },
+        )
+        return
+    }
 
     Scaffold(timeText = { TimeText() }) {
         ScalingLazyColumn(Modifier.fillMaxSize()) {
@@ -179,10 +201,7 @@ fun ArchiveScreen(sender: WearDataSender) {
                 }
             }
             items(items, key = { it.id }) { s: StoredSession ->
-                Card(onClick = {
-                    sender.sendRaw(s.id, s.payloadJson, s.clientUpdatedAt)
-                    resentId = s.id
-                }) {
+                Card(onClick = { selected = s }) {
                     Text(dateFmt.format(Date(s.createdAtMs)), fontSize = 12.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(fmtTotal(s.totalMs), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RaceYellow)
@@ -199,7 +218,85 @@ fun ArchiveScreen(sender: WearDataSender) {
                     }
                 }
             }
-            item { Text("최근 20세션 · 72시간 보관 · 탭 = 재전송", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("최근 20세션 · 72시간 보관 · 탭 = 스플릿 보기", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+        }
+    }
+}
+
+/** 보관함 상세 — 스플릿 리스트 + 폰으로 전송. payload 를 로컬 재해석해 표시한다. */
+@Composable
+private fun ArchiveDetail(
+    s: StoredSession,
+    dateFmt: SimpleDateFormat,
+    resent: Boolean,
+    onSend: () -> Unit,
+) {
+    val stationName = remember {
+        mapOf(
+            "ski" to "SkiErg", "sledpush" to "Sled Push", "sledpull" to "Sled Pull",
+            "burpee" to "Burpee BJ", "row" to "Rowing", "farmers" to "Farmers",
+            "lunges" to "Lunges", "wallballs" to "Wall Balls",
+        )
+    }
+    // 세그먼트 → (라벨, 시간, erg 여부). 구버전 payload 파싱 실패 시 빈 목록으로 폴백.
+    val rows = remember(s.id) {
+        val exToKey = Stations.ALL.associate { it.exerciseId to it.key }
+        val segments = runCatching { IngestJson.decode(s.payloadJson).segments.orEmpty() }
+            .getOrDefault(emptyList())
+        var runN = 0
+        segments.map { seg ->
+            val label = when (seg.kind) {
+                "run" -> { runN++; "런 $runN" }
+                "station" -> seg.exercise_id?.let { ex -> exToKey[ex]?.let { stationName[it] } } ?: "스테이션"
+                else -> "록스존"
+            }
+            Triple(label, seg.split_time_ms ?: 0L, seg.erg?.samples?.isNotEmpty() == true)
+        }
+    }
+
+    Scaffold(timeText = { TimeText() }) {
+        ScalingLazyColumn(Modifier.fillMaxSize()) {
+            item { ListHeader { Text("스플릿", color = RaceYellow, fontWeight = FontWeight.Bold) } }
+            item {
+                Text(
+                    dateFmt.format(Date(s.createdAtMs)) + " · " + fmtTotal(s.totalMs),
+                    fontSize = 11.sp, color = MutedText, textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (rows.isEmpty()) {
+                item {
+                    Text(
+                        "스플릿 정보 없음", fontSize = 11.sp, color = MutedText,
+                        textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            items(rows.size) { i ->
+                val (label, ms, hasErg) = rows[i]
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        (if (hasErg) "⚡ " else "") + label,
+                        fontSize = 12.sp, color = MutedText,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(fmtTotal(ms), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            item {
+                PrimaryActionChip(if (resent) "재전송함 ✓" else "폰으로 전송") { onSend() }
+            }
+            item {
+                Text(
+                    "여러 번 보내도 안전 (중복 저장 안 됨)",
+                    fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
@@ -316,7 +413,7 @@ fun SettingsScreen(
                     secondaryLabel = { Text("머신을 바꿨을 때 초기화", fontSize = 9.sp) },
                 )
             }
-            item { Text("v0.6.2", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("v0.6.3", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }

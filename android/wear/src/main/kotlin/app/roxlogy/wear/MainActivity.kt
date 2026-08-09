@@ -1051,11 +1051,16 @@ private fun GridRunningView(
         ) {
             LabelCell("TOTAL", fmt(totalMs), Chalk, 16, Modifier.weight(1f))
             HairlineV()
-            if (diff != null) {
-                DiffFillCell(diff, labelSp = 9, valueSp = 16, modifier = Modifier.weight(1f).padding(start = 3.dp))
-            } else {
-                LabelCell("목표 대비", "--", MutedText, 16, Modifier.weight(1f))
-            }
+            // 채움 패널은 상단 트랙 링을 가려서 제거 — 색 글자로만 목표 대비 표시
+            LabelCell(
+                "목표 대비", diff?.let { fmtDiff(it) } ?: "--",
+                when {
+                    diff == null -> MutedText
+                    diff <= 0 -> Good
+                    else -> Bad
+                },
+                16, Modifier.weight(1f),
+            )
         }
         HairlineHFrac(0.52f)
         Spacer(Modifier.height(2.dp))

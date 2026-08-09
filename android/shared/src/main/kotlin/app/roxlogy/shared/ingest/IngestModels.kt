@@ -135,6 +135,10 @@ object IngestJson {
     fun encode(request: IngestRequest): String =
         encoder.encodeToString(IngestRequest.serializer(), request)
 
+    /** 보관함 스플릿 표시 등 로컬 payload 재해석용. */
+    fun decode(json: String): IngestRequest =
+        encoder.decodeFromString(IngestRequest.serializer(), json)
+
     fun decodeResponse(body: String): IngestResponse =
         encoder.decodeFromString(IngestResponse.serializer(), body)
 }
