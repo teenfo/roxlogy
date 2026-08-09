@@ -86,8 +86,13 @@ class Pm5BleClient(private val context: Context) {
     // 가까운 — 사용자가 앉아 있는 — 머신을 고르기 위함)
     private val candidates = HashMap<String, Pair<BluetoothDevice, Int>>()
 
+    /** 스캔에서 본 주변 PM — 실패 화면 목록·수동 선택 연결용. */
+    data class NearbyPm(val name: String, val mac: String, val rssi: Int, val remembered: Boolean)
+
     // 스캔 진단 — 주변에서 본 BLE 기기(주소 → 이름). 실패 사유에 요약해 노출한다.
     private val seen = LinkedHashMap<String, String>()
+    // PM 매칭된 기기(주소 → 이름/RSSI) — fail 후에도 유지해 목록으로 보여준다
+    private val pmSeen = LinkedHashMap<String, Pair<String, Int>>()
     private var picking = false
     private var scanning = false
     private var discovering = false
@@ -108,6 +113,7 @@ class Pm5BleClient(private val context: Context) {
         accumulator.clear()
         retried = false
         seen.clear()
+        pmSeen.clear()
         scan()
     }
 
@@ -208,6 +214,12 @@ class Pm5BleClient(private val context: Context) {
                 seen[result.device.address] = nm ?: "(이름없음)"
             }
             if (!isPm(result)) return
+            val nm = result.scanRecord?.deviceName
+                ?: runCatching { result.device.name }.getOrNull() ?: "PM5"
+            val prevPm = pmSeen[result.device.address]
+            if (prevPm == null || result.rssi > prevPm.second) {
+                pmSeen[result.device.address] = nm to result.rssi
+            }
             // 기억해 둔 기기가 보이면 후보 수집을 건너뛰고 즉시 연결
             if (preferMac != null && result.device.address == preferMac) {
                 picking = false
@@ -439,6 +451,19 @@ class Pm5BleClient(private val context: Context) {
             handler.postDelayed({ gatt?.let { subscribeNext(it) } }, WRITE_RETRY_MS)
             return
         }
+    }
+
+    /** 마지막 스캔에서 본 주변 PM 목록(RSSI 내림차순) — 실패 화면·수동 선택용. */
+    fun nearbyPm5(rememberedMac: String? = null): List<NearbyPm> =
+        pmSeen.entries
+            .map { (mac, v) -> NearbyPm(v.first, mac, v.second, mac == rememberedMac) }
+            .sortedByDescending { it.rssi }
+
+    /** 스캔 취소 — 실패 통지 없이 조용히 멈춘다("검색 중지" 버튼). */
+    fun cancelScan() {
+        handler.removeCallbacksAndMessages(null)
+        picking = false
+        stopScan()
     }
 
     /** 연결(시도) 중인 PM5 의 MAC — 연결 성공 후 기억용. */

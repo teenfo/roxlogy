@@ -60,7 +60,7 @@ private fun fmtTotal(ms: Long): String {
 fun PrimaryActionChip(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Chip(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(0.85f).height(40.dp),
+        modifier = modifier.fillMaxWidth(0.86f).height(42.dp),
         colors = ChipDefaults.primaryChipColors(),
         label = {
             Text(
@@ -316,7 +316,7 @@ fun SettingsScreen(
                     secondaryLabel = { Text("머신을 바꿨을 때 초기화", fontSize = 9.sp) },
                 )
             }
-            item { Text("v0.5.0", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("v0.6.0", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }
