@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
@@ -147,6 +148,7 @@ private enum class RoxTab(val label: String, val route: String?, val icon: Image
     HOME("홈", "/dashboard", Icons.Filled.Home),
     SESSIONS("세션", "/sessions", Icons.AutoMirrored.Filled.List),
     WATCH("워치", null, null), // 브랜드 마크 아이콘 사용
+    CREW("크루", "/crews", Icons.Filled.Face),
     FEED("피드", "/feed", Icons.Filled.Person),
     MORE("더보기", "/settings/profile", Icons.Filled.Menu),
 }
@@ -155,6 +157,7 @@ private enum class RoxTab(val label: String, val route: String?, val icon: Image
 private fun tabForPath(path: String): RoxTab? = when {
     path == "/" || path.startsWith("/dashboard") -> RoxTab.HOME
     path.startsWith("/sessions") || path.startsWith("/workouts") -> RoxTab.SESSIONS
+    path.startsWith("/crews") -> RoxTab.CREW
     path.startsWith("/feed") || path.startsWith("/members") || path.startsWith("/u/") ||
         path.startsWith("/leaderboard") -> RoxTab.FEED
     path.startsWith("/settings") || path.startsWith("/goals") || path.startsWith("/programs") ||
