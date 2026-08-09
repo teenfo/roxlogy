@@ -10,10 +10,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 
 // Roxlogy 로고 두 링: 바깥 옐로 8세그먼트(스테이션) + 안쪽 블루 트랙(러닝).
-private val Yellow = Color(0xFFFFD500)
+// 채움 색은 브랜드 원색에서 한 단계 톤 다운 — 진행 화면 텍스트 가독성 확보.
+private val Yellow = Color(0xFFC2A300)
 private val YellowDim = Color(0xFF2B2A12)
 private val YellowActive = Color(0xFF8A7A1E)
-private val Blue = Color(0xFF2D7DFF)
+private val Blue = Color(0xFF2563C7)
 private val BlueDim = Color(0xFF14213F)
 
 /**

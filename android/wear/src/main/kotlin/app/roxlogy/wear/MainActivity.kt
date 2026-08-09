@@ -1035,15 +1035,22 @@ private fun GridRunningView(
     onConnectPm5: () -> Unit,
     onRecord: () -> Unit,
 ) {
-    Column(
+    Box(
         modifier = Modifier.fillMaxSize().clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = null, // 전면 탭 리플은 소음 — 햅틱(랩 진동)이 피드백을 대신한다
             onClick = onRecord,
         ),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        contentAlignment = Alignment.Center,
     ) {
+        Column(
+            // 정보창 반투명 그레이 패널 — 링 위에서도 텍스트가 읽히게
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color(0xD11F1F1F))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
         // ① 구간 정체성 — 머신 스테이션은 이 줄 자체가 PM5 연결 버튼
         val line = if (isMachineStation) {
             contextLine + when {
@@ -1128,6 +1135,7 @@ private fun GridRunningView(
             fontSize = 13.sp, fontWeight = FontWeight.Bold, color = actionColor,
             maxLines = 1, softWrap = false,
         )
+        }
     }
 }
 
