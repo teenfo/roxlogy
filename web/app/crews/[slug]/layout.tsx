@@ -64,7 +64,14 @@ export default async function CrewLayout({
         {/* 크루 헤더 */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-3xl font-black tracking-tight">{crew.name}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-black tracking-tight">{crew.name}</h1>
+              {crew.crew_status === "pending" && (
+                <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent">
+                  {t("crew.pendingBadge")}
+                </span>
+              )}
+            </div>
             {crew.tagline && (
               <p className="mt-1 text-sm font-semibold tracking-widest text-accent">
                 {crew.tagline}
@@ -81,11 +88,15 @@ export default async function CrewLayout({
               </span>
             </p>
           </div>
-          <CrewJoinButton
-            slug={slug}
-            status={crew.my_status}
-            loggedIn={!!user}
-          />
+          {crew.crew_status === "active" ? (
+            <CrewJoinButton
+              slug={slug}
+              status={crew.my_status}
+              loggedIn={!!user}
+            />
+          ) : (
+            <p className="max-w-48 text-xs text-muted">{t("crew.pendingNote")}</p>
+          )}
         </div>
 
         {/* 탭 */}

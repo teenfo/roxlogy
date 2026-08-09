@@ -30,6 +30,7 @@ export type CrewOverview = {
   upcoming_count: number;
   my_role: CrewRole | null;
   my_status: CrewStatus | null;
+  crew_status: "pending" | "active" | "rejected";
 };
 
 export type CrewPost = {

@@ -52,10 +52,20 @@ export default async function CrewDirectoryPage() {
       </header>
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
-        <h1 className="text-3xl font-black tracking-tight">
-          {t("crew.directoryTitle")}
-        </h1>
-        <p className="mt-1 text-sm text-muted">{t("crew.directorySub")}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">
+              {t("crew.directoryTitle")}
+            </h1>
+            <p className="mt-1 text-sm text-muted">{t("crew.directorySub")}</p>
+          </div>
+          <Link
+            href="/crews/new"
+            className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          >
+            {t("crew.createCta")}
+          </Link>
+        </div>
 
         {!crews.length ? (
           <p className="mt-8 rounded-md bg-surface px-4 py-12 text-center text-sm text-muted">
