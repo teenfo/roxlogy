@@ -1013,7 +1013,7 @@ private fun RingView(
 
 /**
  * 진행 중(RUN·스테이션·록스존) — 시안 5밴드 그리드.
- * ① 구간 정체성 ② TOTAL │ 목표 대비 ③ 심박 │ 구간시간 │ 목표 ④ NEXT UP ⑤ 탭 안내.
+ * ① 구간 정체성 ② 구간 목표 │ 목표 대비 ③ 심박 │ 구간시간 ④ TOTAL ⑤ 탭 안내.
  * 버튼 대신 **화면 전체 탭 = 다음 구간**(물리 퀵버튼과 동일). 하단은 탭 동작 안내만 표시.
  */
 @Composable
@@ -1035,22 +1035,15 @@ private fun GridRunningView(
     onConnectPm5: () -> Unit,
     onRecord: () -> Unit,
 ) {
-    Box(
+    Column(
         modifier = Modifier.fillMaxSize().clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = null, // 전면 탭 리플은 소음 — 햅틱(랩 진동)이 피드백을 대신한다
             onClick = onRecord,
         ),
-        contentAlignment = Alignment.Center,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            // 정보창 반투명 그레이 패널 — 링 위에서도 텍스트가 읽히게
-            modifier = Modifier
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color(0xD11F1F1F))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
         // ① 구간 정체성 — 머신 스테이션은 이 줄 자체가 PM5 연결 버튼
         val line = if (isMachineStation) {
             contextLine + when {
@@ -1071,12 +1064,12 @@ private fun GridRunningView(
         HairlineHFrac(0.58f)
         Spacer(Modifier.height(2.dp))
 
-        // ② TOTAL │ 목표 대비 (채움 패널은 트랙 링을 가려서 색 글자로만 표시)
+        // ② 구간 목표 │ 목표 대비
         Row(
             modifier = Modifier.fillMaxWidth(0.52f).height(IntrinsicSize.Min).padding(bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            LabelCell("TOTAL", fmt(totalMs), Chalk, 16, Modifier.weight(1f))
+            LabelCell("목표", slotTarget?.let { fmt(it) } ?: "--", Chalk, 16, Modifier.weight(1f))
             HairlineV()
             LabelCell(
                 "목표 대비", diff?.let { fmtDiff(it) } ?: "--",
@@ -1090,7 +1083,7 @@ private fun GridRunningView(
         }
         HairlineHFrac(0.52f)
 
-        // ③ 심박 │ 구간시간 │ 목표
+        // ③ 심박 │ 구간시간 │ (빈 칸 — 타이머 중앙 유지. 목표는 ②로 이동)
         Row(
             modifier = Modifier.fillMaxWidth(0.70f).height(IntrinsicSize.Min).padding(vertical = 1.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -1107,14 +1100,14 @@ private fun GridRunningView(
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
             HairlineV()
-            ValueCell(slotTarget?.let { fmt(it) } ?: "--", "목표", MutedText, 15, Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
         }
         HairlineHFrac(0.70f)
         Spacer(Modifier.height(2.dp))
 
-        // ④ NEXT UP — 다음 목표 시간 (다음 종목명은 ⑤ 탭 안내에 병합)
+        // ④ TOTAL — 누적 총시간 (NEXT UP 자리)
         Text(
-            "NEXT UP · " + (nextTarget?.let { fmt(it) } ?: "—"),
+            "TOTAL · " + fmt(totalMs),
             fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Chalk,
             maxLines = 1, softWrap = false,
         )
@@ -1135,7 +1128,6 @@ private fun GridRunningView(
             fontSize = 13.sp, fontWeight = FontWeight.Bold, color = actionColor,
             maxLines = 1, softWrap = false,
         )
-        }
     }
 }
 
