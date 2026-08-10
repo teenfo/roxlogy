@@ -37,6 +37,11 @@ object C2Pm {
     val ADDITIONAL_SPLIT_INTERVAL_DATA: String = uuid("0038")
     val FORCE_CURVE: String = uuid("003C")
 
+    // 멀티플렉스 특성 — 모든 데이터를 [특성 ID 1바이트][해당 특성 페이로드] 로 한 채널에
+    // 실어 보낸다. 일부 PM5 펌웨어는 개별 0x003C 로 힘 곡선 알림을 보내지 않으므로
+    // (실기기 진단: 구독 성공에도 003C 0건) 이 채널이 힘 곡선의 사실상 유일 경로.
+    val MULTIPLEXED: String = uuid("0080")
+
     // ---- 리틀엔디언 언사인드 판독 헬퍼 ----
     private fun ByteArray.u8(i: Int): Int = this[i].toInt() and 0xFF
     private fun ByteArray.u16(i: Int): Int = u8(i) or (u8(i + 1) shl 8)

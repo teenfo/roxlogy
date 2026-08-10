@@ -65,6 +65,7 @@ class Pm5BleClient(private val context: Context) {
     private val splitUuid = UUID.fromString(C2Pm.SPLIT_INTERVAL_DATA)
     private val addSplitUuid = UUID.fromString(C2Pm.ADDITIONAL_SPLIT_INTERVAL_DATA)
     private val forceCurveUuid = UUID.fromString(C2Pm.FORCE_CURVE)
+    private val multiplexUuid = UUID.fromString(C2Pm.MULTIPLEXED)
     private val subscribeUuids = listOf(
         statusUuid, addStatus1Uuid, addStatus2Uuid,
         strokeUuid, addStrokeUuid, splitUuid, addSplitUuid, forceCurveUuid,
@@ -368,7 +369,14 @@ class Pm5BleClient(private val context: Context) {
                 return
             }
             subscribeQueue.clear()
-            for (u in subscribeUuids) service.getCharacteristic(u)?.let { subscribeQueue.add(it) }
+            // 멀티플렉스(0x0080)가 있으면 그 하나만 구독 — 개별 0x003C 가 침묵하는
+            // 펌웨어에서도 힘 곡선까지 전 데이터가 이 채널로 온다. 없으면 개별 폴백.
+            val mux = service.getCharacteristic(multiplexUuid)
+            if (mux != null) {
+                subscribeQueue.add(mux)
+            } else {
+                for (u in subscribeUuids) service.getCharacteristic(u)?.let { subscribeQueue.add(it) }
+            }
             if (subscribeQueue.isEmpty()) {
                 fail("PM5 상태 특성을 찾지 못했습니다")
                 return
@@ -415,6 +423,23 @@ class Pm5BleClient(private val context: Context) {
     }
 
     private fun handleFrame(uuid: UUID, bytes: ByteArray) {
+        // 멀티플렉스 프레임: [특성 ID 1바이트][해당 특성 페이로드] → 개별 특성으로 라우팅
+        if (uuid == multiplexUuid) {
+            if (bytes.isEmpty()) return
+            val mapped = when (bytes[0].toInt() and 0xFF) {
+                0x31 -> statusUuid
+                0x32 -> addStatus1Uuid
+                0x33 -> addStatus2Uuid
+                0x35 -> strokeUuid
+                0x36 -> addStrokeUuid
+                0x37 -> splitUuid
+                0x38 -> addSplitUuid
+                0x3C -> forceCurveUuid
+                else -> return
+            }
+            handleFrame(mapped, bytes.copyOfRange(1, bytes.size))
+            return
+        }
         notifCounts.merge(shortId(uuid), 1, Int::plus)
         if (uuid == forceCurveUuid) fcChunks++
         try {
