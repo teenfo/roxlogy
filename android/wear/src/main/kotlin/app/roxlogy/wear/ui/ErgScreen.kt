@@ -358,7 +358,16 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
                                 "평균 /500m", modifier = Modifier.weight(1f),
                             )
                         }
-                        Text("${finalSamples.size} 샘플", fontSize = 9.sp, color = MutedText)
+                        Text(
+                            "샘플 ${finalSamples.size} · 스트로크 ${finalStrokes.size} · 곡선 ${finalCurves.size}",
+                            fontSize = 9.sp, color = MutedText,
+                        )
+                        // 힘 곡선 0건 진단 — 특성별 수신 수·청크·구독 포기 (원인 확정 후 제거)
+                        Text(
+                            ble.diag(),
+                            fontSize = 8.sp, color = MutedText,
+                            textAlign = TextAlign.Center, maxLines = 3,
+                        )
                     }
                     PrimaryActionChip("전송") { send() }
                     SubtleChip("버리기") { phase = "idle"; latest = null; laps = emptyList() }

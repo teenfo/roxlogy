@@ -372,7 +372,8 @@ fun SettingsScreen(
                                 override fun onDisconnected() { pm5State = "idle"; pm5Live = "" }
                                 override fun onSamples(samples: List<app.roxlogy.shared.ingest.ErgSample>) {
                                     samples.lastOrNull()?.let {
-                                        pm5Live = "${it.watts ?: 0}W · ${it.spm ?: 0}spm"
+                                        // 진단 포함 — 특성별 수신 수·힘곡선 청크·구독 포기 (0x003C 추적)
+                                        pm5Live = "${it.watts ?: 0}W · ${it.spm ?: 0}spm\n${ble.diag()}"
                                     }
                                 }
                                 override fun onFailed(reason: String) {
@@ -413,7 +414,7 @@ fun SettingsScreen(
                     secondaryLabel = { Text("머신을 바꿨을 때 초기화", fontSize = 9.sp) },
                 )
             }
-            item { Text("v0.6.7", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("v0.6.8", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }

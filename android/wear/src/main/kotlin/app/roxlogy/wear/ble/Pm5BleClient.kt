@@ -103,6 +103,22 @@ class Pm5BleClient(private val context: Context) {
     private var targetName: String? = null
     private var preferMac: String? = null
 
+    // 진단 — 특성별 수신 프레임 수·구독 포기 목록·힘곡선 청크 수 (0x003C 0건 원인 추적)
+    private val notifCounts = LinkedHashMap<String, Int>()
+    private val subGiveUps = mutableListOf<String>()
+    private var fcChunks = 0
+
+    private fun shortId(uuid: UUID): String = uuid.toString().substring(4, 8).uppercase()
+
+    /** 수신 진단 요약 — "0031:22 0035:17 003C:0 · 곡선청크 0 · 구독포기 003C" 식. */
+    fun diag(): String {
+        val counts = subscribeUuids.joinToString(" ") { u ->
+            "${shortId(u)}:${notifCounts[shortId(u)] ?: 0}"
+        }
+        val giveUp = if (subGiveUps.isEmpty()) "없음" else subGiveUps.joinToString(",")
+        return "$counts · 곡선청크 $fcChunks/조립 ${accumulator.forceCurveSnapshot().size} · 구독포기 $giveUp"
+    }
+
     /** 스캔·연결 시작. 기존 연결이 있으면 정리 후 새로 스캔 (기기 전환 안전).
      *  [preferMac] — 기억해 둔 PM5 주소. 스캔에서 보이면 RSSI 대기 없이 즉시 연결하고,
      *  안 보이면 기존 RSSI 최강 선택으로 폴백한다 (짐에서 다른 머신을 써도 안전). */
@@ -114,6 +130,9 @@ class Pm5BleClient(private val context: Context) {
         retried = false
         seen.clear()
         pmSeen.clear()
+        notifCounts.clear()
+        subGiveUps.clear()
+        fcChunks = 0
         scan()
     }
 
@@ -396,6 +415,8 @@ class Pm5BleClient(private val context: Context) {
     }
 
     private fun handleFrame(uuid: UUID, bytes: ByteArray) {
+        notifCounts.merge(shortId(uuid), 1, Int::plus)
+        if (uuid == forceCurveUuid) fcChunks++
         try {
             when (uuid) {
                 statusUuid -> accumulator.onGeneralStatus(C2Pm.parseGeneralStatus(bytes))
@@ -444,6 +465,7 @@ class Pm5BleClient(private val context: Context) {
                 return
             }
             if (++writeRetries > MAX_WRITE_RETRIES) {
+                subGiveUps.add(shortId(c.uuid)) // 진단에 노출 — 조용한 포기가 0건 수신의 유력 원인
                 subscribeQueue.poll() // 이 특성은 포기하고 나머지라도 구독
                 writeRetries = 0
                 continue
