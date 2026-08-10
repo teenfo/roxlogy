@@ -13,9 +13,11 @@ import {
 } from "@/lib/analysis";
 import {
   BreakdownStackBar,
+  DriveChart,
   ErgCurve,
   RunLapLine,
   SegmentSplitBars,
+  StrokeForceChart,
 } from "@/components/charts";
 import { CHART_COLORS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
@@ -44,8 +46,39 @@ type Segment = {
     pace_curve: [number, number][] | null;
     power_curve: [number, number][] | null;
   } | null;
-  erg_samples: { sample_count: number }[] | null;
+  // PostgREST 1:1 embed 는 객체로 오고, 배열 판정 코드가 있던 곳은 항상 "no raw" 였다
+  erg_samples: { sample_count: number }[] | { sample_count: number } | null;
 };
+
+function rawOf(seg: Segment): { sample_count: number } | null {
+  const e = seg.erg_samples;
+  if (!e) return null;
+  return Array.isArray(e) ? (e[0] ?? null) : e;
+}
+
+type ErgRawRow = {
+  segment_id: string;
+  samples:
+    | { t: number; dist: number; pace: number | null; spm: number | null; watts: number | null }[]
+    | null;
+  strokes:
+    | {
+        n: number;
+        drive_ms: number | null;
+        recover_ms: number | null;
+        drive_len: number | null;
+        stroke_dist: number | null;
+        peak_force: number | null;
+        avg_force: number | null;
+        work_j: number | null;
+      }[]
+    | null;
+};
+
+function fmtPace(sec: number): string {
+  const s = Math.round(sec);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
 
 export async function generateMetadata({
   params,
@@ -145,6 +178,43 @@ export default async function SessionDetailPage({
       kind: s.kind,
     }));
 
+  // 에르그 단독 세션(런·록스존 없이 머신 스테이션만) → 전용 화면.
+  // 시뮬용 섹션(페이싱·구성비·스플릿 바 등)을 걷어내고 raw 기반 차트를 채운다.
+  const isErg =
+    segments.length > 0 &&
+    segments.every((s) => s.kind === "station") &&
+    segments.some((s) => s.machine_type);
+
+  let ergRaws: ErgRawRow[] = [];
+  if (isErg) {
+    const { data: raws } = await supabase
+      .from("erg_samples")
+      .select("segment_id, samples, strokes")
+      .in(
+        "segment_id",
+        segments.map((s) => s.id),
+      );
+    ergRaws = (raws ?? []) as ErgRawRow[];
+  }
+  const ergSamplesAll = ergRaws.flatMap((r) => r.samples ?? []);
+  const ergStrokesAll = ergRaws.flatMap((r) => r.strokes ?? []);
+  const ergDist = ergSamplesAll.length
+    ? Math.max(...ergSamplesAll.map((s) => s.dist))
+    : null;
+  const spmCurve = ergSamplesAll
+    .filter((s) => s.spm != null)
+    .map((s) => ({ t: s.t, v: s.spm! }));
+  const avgOf = (xs: (number | null)[]) => {
+    const v = xs.filter((x): x is number => x != null);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
+  const ergAvgDriveLen = avgOf(ergStrokesAll.map((s) => s.drive_len));
+  const ergAvgStrokeDist = avgOf(ergStrokesAll.map((s) => s.stroke_dist));
+  const ergAvgWork = avgOf(ergStrokesAll.map((s) => s.work_j));
+  const ergDriveMs = avgOf(ergStrokesAll.map((s) => s.drive_ms));
+  const ergRecoverMs = avgOf(ergStrokesAll.map((s) => s.recover_ms));
+  const ergMetrics = segments.find((s) => s.segment_metrics)?.segment_metrics;
+
   // S6 파워/페이스 곡선 — 워커가 채운 segment_metrics 곡선이 있는 세그먼트
   const ergSegments = segments
     .filter(
@@ -199,6 +269,11 @@ export default async function SessionDetailPage({
         </span>
       </div>
       <p className="mt-1 text-sm text-muted">
+        {isErg && (
+          <span className="mr-2 rounded-full bg-track/20 px-2 py-0.5 text-xs font-semibold text-track">
+            ⚡ {t("sessions.ergDedicated")}
+          </span>
+        )}
         {t("sessions.recordedVia", {
           device: t(`source.${session.source_device}` as Parameters<typeof t>[0]),
         })}
@@ -242,36 +317,85 @@ export default async function SessionDetailPage({
         </section>
       )}
 
-      <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">{t("sessions.pacing")}</p>
-          <p className="mt-1 text-lg font-semibold">
-            {grade ? t(`pacing.${grade}`) : "—"}
-          </p>
-        </div>
-        <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">{t("sessions.runLapDeviation")}</p>
-          <p className="mt-1 font-mono text-lg font-semibold">
-            {deviation != null
-              ? t("sessions.deviationSec", { n: Math.round(deviation / 1000) })
-              : "—"}
-          </p>
-        </div>
-        <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">{t("sessions.roxzoneTotal")}</p>
-          <p className="mt-1 font-mono text-lg font-semibold">
-            {roxzoneMs ? formatMs(roxzoneMs) : "—"}
-          </p>
-        </div>
-        <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">{t("sessions.longestTransition")}</p>
-          <p className="mt-1 font-mono text-lg font-semibold">
-            {slowestZone ? formatMs(slowestZone.ms) : "—"}
-          </p>
-        </div>
-      </section>
+      {isErg && (
+        <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.ergDistance")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold">
+              {ergDist != null ? `${Math.round(ergDist)} m` : "—"}
+            </p>
+          </div>
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.ergAvgPower")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold">
+              {ergMetrics?.avg_power != null
+                ? `${Math.round(Number(ergMetrics.avg_power))} W`
+                : "—"}
+            </p>
+          </div>
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.ergAvgPace")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold">
+              {ergMetrics?.avg_pace_500 != null
+                ? `${fmtPace(Number(ergMetrics.avg_pace_500))} /500m`
+                : "—"}
+            </p>
+          </div>
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.ergAvgSpm")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold">
+              {ergMetrics?.avg_spm != null
+                ? Math.round(Number(ergMetrics.avg_spm))
+                : "—"}
+            </p>
+          </div>
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.ergStrokes")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold">
+              {ergStrokesAll.length || "—"}
+            </p>
+          </div>
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.ergAvgWork")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold">
+              {ergAvgWork != null ? `${Math.round(ergAvgWork)} J` : "—"}
+            </p>
+          </div>
+        </section>
+      )}
 
-      {share.totalMs > 0 && (
+      {!isErg && (
+        <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.pacing")}</p>
+            <p className="mt-1 text-lg font-semibold">
+              {grade ? t(`pacing.${grade}`) : "—"}
+            </p>
+          </div>
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.runLapDeviation")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold">
+              {deviation != null
+                ? t("sessions.deviationSec", { n: Math.round(deviation / 1000) })
+                : "—"}
+            </p>
+          </div>
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.roxzoneTotal")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold">
+              {roxzoneMs ? formatMs(roxzoneMs) : "—"}
+            </p>
+          </div>
+          <div className="rounded-md bg-surface px-4 py-3">
+            <p className="text-xs text-muted">{t("sessions.longestTransition")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold">
+              {slowestZone ? formatMs(slowestZone.ms) : "—"}
+            </p>
+          </div>
+        </section>
+      )}
+
+      {!isErg && share.totalMs > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("sessions.timeComposition")}</h2>
           <div className="mt-3">
@@ -284,7 +408,7 @@ export default async function SessionDetailPage({
         </section>
       )}
 
-      {chartData.length > 1 && (
+      {!isErg && chartData.length > 1 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("sessions.segmentSplits")}</h2>
           <div className="mt-3 rounded-md bg-surface p-4">
@@ -293,7 +417,7 @@ export default async function SessionDetailPage({
         </section>
       )}
 
-      {runLaps.length >= 2 && (
+      {!isErg && runLaps.length >= 2 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("sessions.runLapTrend")}</h2>
           <div className="mt-3 rounded-md bg-surface p-4">
@@ -327,8 +451,70 @@ export default async function SessionDetailPage({
                     <ErgCurve data={e.pace} color={CHART_COLORS.run} unit="/500m" />
                   </div>
                 )}
+                {isErg && spmCurve.length > 1 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-muted">{t("sessions.spmCurve")}</p>
+                    <ErgCurve data={spmCurve} color="#35C26B" unit="spm" />
+                  </div>
+                )}
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* 스트로크 분석 — PM5 0x0035 스트로크 이벤트 (있을 때만) */}
+      {isErg && ergStrokesAll.length > 1 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">{t("sessions.strokeSection")}</h2>
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            <div className="rounded-md bg-surface px-4 py-3">
+              <p className="text-xs text-muted">{t("sessions.avgDriveLen")}</p>
+              <p className="mt-1 font-mono text-lg font-semibold">
+                {ergAvgDriveLen != null ? `${ergAvgDriveLen.toFixed(2)} m` : "—"}
+              </p>
+            </div>
+            <div className="rounded-md bg-surface px-4 py-3">
+              <p className="text-xs text-muted">{t("sessions.avgStrokeDist")}</p>
+              <p className="mt-1 font-mono text-lg font-semibold">
+                {ergAvgStrokeDist != null
+                  ? `${ergAvgStrokeDist.toFixed(2)} m`
+                  : "—"}
+              </p>
+            </div>
+            <div className="rounded-md bg-surface px-4 py-3">
+              <p className="text-xs text-muted">{t("sessions.driveRatio")}</p>
+              <p className="mt-1 font-mono text-lg font-semibold">
+                {ergDriveMs != null && ergRecoverMs != null && ergDriveMs > 0
+                  ? `1 : ${(ergRecoverMs / ergDriveMs).toFixed(2)}`
+                  : "—"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 rounded-md bg-surface p-4">
+            <p className="text-xs text-muted">{t("sessions.strokeForce")}</p>
+            <StrokeForceChart
+              data={ergStrokesAll.map((s) => ({
+                n: s.n,
+                peak: s.peak_force,
+                avg: s.avg_force,
+              }))}
+              peakLabel={t("sessions.peakForce")}
+              avgLabel={t("sessions.avgForce")}
+            />
+          </div>
+          <div className="mt-3 rounded-md bg-surface p-4">
+            <p className="text-xs text-muted">{t("sessions.driveAnalysis")}</p>
+            <DriveChart
+              data={ergStrokesAll.map((s) => ({
+                n: s.n,
+                drive: s.drive_ms != null ? Math.round(s.drive_ms) / 1000 : null,
+                recover:
+                  s.recover_ms != null ? Math.round(s.recover_ms) / 1000 : null,
+              }))}
+              driveLabel={t("sessions.drive")}
+              recoverLabel={t("sessions.recover")}
+            />
           </div>
         </section>
       )}
@@ -366,8 +552,8 @@ export default async function SessionDetailPage({
                       {seg.machine_type === "ski"
                         ? t("sessions.machineSki")
                         : t("sessions.machineRow")}
-                      {seg.erg_samples?.length
-                        ? ` · ${t("sessions.rawSamples", { n: seg.erg_samples[0].sample_count })}`
+                      {rawOf(seg)
+                        ? ` · ${t("sessions.rawSamples", { n: rawOf(seg)!.sample_count })}`
                         : ` · ${t("sessions.rawNone")}`}
                     </span>
                   )}

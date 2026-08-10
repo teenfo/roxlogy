@@ -374,3 +374,144 @@ export function TrendBars({
     </ResponsiveContainer>
   );
 }
+
+/** 에르그 스트로크별 힘 — 최대/평균 드라이브 힘 (lbs), x축 = 스트로크 번호 */
+export function StrokeForceChart({
+  data,
+  peakLabel,
+  avgLabel,
+}: {
+  data: { n: number; peak: number | null; avg: number | null }[];
+  peakLabel: string;
+  avgLabel: string;
+}) {
+  return (
+    <div>
+      <ResponsiveContainer width="100%" height={180}>
+        <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke={GRID} vertical={false} />
+          <XAxis
+            dataKey="n"
+            tick={{ fill: INK_MUTED, fontSize: 10 }}
+            tickLine={false}
+            axisLine={{ stroke: GRID }}
+          />
+          <YAxis
+            tick={{ fill: INK_MUTED, fontSize: 10 }}
+            tickLine={false}
+            axisLine={false}
+            width={40}
+          />
+          <Tooltip
+            cursor={{ stroke: GRID }}
+            contentStyle={{
+              background: "#141414",
+              border: "1px solid #ffffff22",
+              borderRadius: 6,
+              fontSize: 12,
+            }}
+            labelFormatter={(v) => `#${v}`}
+            formatter={((v: number, name: string) => [`${v} lbs`, name]) as never}
+          />
+          <Line
+            type="monotone"
+            dataKey="peak"
+            name={peakLabel}
+            stroke={CHART_COLORS.station}
+            strokeWidth={2}
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="avg"
+            name={avgLabel}
+            stroke={CHART_COLORS.run}
+            strokeWidth={2}
+            dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+      <div className="mt-2 flex gap-4 text-xs text-muted">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: CHART_COLORS.station }} />
+          {peakLabel}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: CHART_COLORS.run }} />
+          {avgLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** 에르그 드라이브 분석 — 스트로크별 드라이브/리커버리 시간 (초) */
+export function DriveChart({
+  data,
+  driveLabel,
+  recoverLabel,
+}: {
+  data: { n: number; drive: number | null; recover: number | null }[];
+  driveLabel: string;
+  recoverLabel: string;
+}) {
+  return (
+    <div>
+      <ResponsiveContainer width="100%" height={180}>
+        <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke={GRID} vertical={false} />
+          <XAxis
+            dataKey="n"
+            tick={{ fill: INK_MUTED, fontSize: 10 }}
+            tickLine={false}
+            axisLine={{ stroke: GRID }}
+          />
+          <YAxis
+            tick={{ fill: INK_MUTED, fontSize: 10 }}
+            tickLine={false}
+            axisLine={false}
+            width={40}
+            tickFormatter={(v: number) => `${v}s`}
+          />
+          <Tooltip
+            cursor={{ stroke: GRID }}
+            contentStyle={{
+              background: "#141414",
+              border: "1px solid #ffffff22",
+              borderRadius: 6,
+              fontSize: 12,
+            }}
+            labelFormatter={(v) => `#${v}`}
+            formatter={((v: number, name: string) => [`${v}s`, name]) as never}
+          />
+          <Line
+            type="monotone"
+            dataKey="drive"
+            name={driveLabel}
+            stroke={CHART_COLORS.station}
+            strokeWidth={2}
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="recover"
+            name={recoverLabel}
+            stroke="#35C26B"
+            strokeWidth={2}
+            dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+      <div className="mt-2 flex gap-4 text-xs text-muted">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: CHART_COLORS.station }} />
+          {driveLabel}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: "#35C26B" }} />
+          {recoverLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
