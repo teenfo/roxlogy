@@ -48,10 +48,15 @@ type Seg = {
   id: string;
   kind: string;
   seq: number;
+  machine_type?: string | null;
   split_time_ms: number | null;
   avg_hr?: number | null;
   max_hr?: number | null;
   erg_samples?: { samples: Record<string, number>[] }[] | { samples: Record<string, number>[] } | null;
+  segment_metrics?:
+    | { avg_power: number | null; avg_spm: number | null; avg_pace_500: number | null }[]
+    | { avg_power: number | null; avg_spm: number | null; avg_pace_500: number | null }
+    | null;
   exercises?: { name_ko: string } | null;
 };
 
@@ -209,6 +214,60 @@ function sessionPrompt(
         lines.push(`- ${label}: 목표 ${fmtMs(g)} / 실제 ${fmtMs(actual)} / 격차 ${fmtMs(actual - g)}`);
       }
     }
+  }
+  return lines.join("\n");
+}
+
+// 에르그 단독 세션(머신 스테이션만) 전용 프롬프트 — 시뮬 관점(런·록스존·페이싱 등급)
+// 대신 페이스 유지·스트로크 효율·케이던스 관점으로 코칭한다.
+function ergSessionPrompt(
+  session: { started_at: string; total_time_ms: number | null },
+  machine: string,
+  metrics: { avg_power: number | null; avg_spm: number | null; avg_pace_500: number | null } | null,
+  samples: Record<string, number | null>[],
+  strokes: Record<string, number | null>[],
+): string {
+  const name = machine === "row" ? "로잉(RowErg)" : "스키에르그(SkiErg)";
+  const dists = samples.map((s) => s.dist).filter((x): x is number => typeof x === "number");
+  const dist = dists.length ? Math.max(...dists) : null;
+  const watts = samples.map((s) => s.watts).filter((w): w is number => typeof w === "number" && w > 0);
+  const third = Math.max(1, Math.floor(watts.length / 3));
+  const avg = (xs: number[]) => xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null;
+  const w1 = avg(watts.slice(0, third));
+  const w2 = avg(watts.slice(third, third * 2));
+  const w3 = avg(watts.slice(third * 2));
+  const num = (k: string) => {
+    const v = strokes.map((s) => s[k]).filter((x): x is number => typeof x === "number");
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
+  const driveLen = num("drive_len"), strokeDist = num("stroke_dist");
+  const driveMs = num("drive_ms"), recoverMs = num("recover_ms"), peak = num("peak_force");
+  const lines = [
+    `다음 에르그 단독 세션(${name})을 분석해 코칭 코멘트를 작성하라.`,
+    "관점: 페이스 유지(전·중·후반 파워 변화), 스트로크 효율(드라이브 길이·스트로크당 거리·" +
+      "드라이브:리커버리 비율), 케이던스(spm) 선택. 마지막 '다음 훈련 제안'은 하이록스 " +
+      "레이스에서 이 머신 구간 공략과 연결하라. 런·록스존 언급은 하지 마라(이 세션에는 없다).",
+    `세션 일시: ${(session.started_at ?? "").slice(0, 16)}`,
+    `시간: ${fmtMs(session.total_time_ms)}` + (dist != null ? `, 거리(계산됨): ${Math.round(dist)}m` : ""),
+  ];
+  if (metrics) {
+    const p = metrics.avg_power != null ? `${Math.round(Number(metrics.avg_power))}W` : "-";
+    const pc = metrics.avg_pace_500 != null ? `${fmtMs(Number(metrics.avg_pace_500) * 1000)}/500m` : "-";
+    const spm = metrics.avg_spm != null ? `${Math.round(Number(metrics.avg_spm))}spm` : "-";
+    lines.push(`평균 파워 ${p} · 평균 페이스 ${pc} · 평균 ${spm}`);
+  }
+  if (w1 != null && w3 != null) {
+    lines.push(`전·중·후반 평균 파워(계산됨): ${w1}W / ${w2 ?? "-"}W / ${w3}W`);
+  }
+  if (strokes.length) {
+    const parts = [`스트로크 ${strokes.length}개`];
+    if (driveLen != null) parts.push(`평균 드라이브 길이 ${driveLen.toFixed(2)}m`);
+    if (strokeDist != null) parts.push(`스트로크당 거리 ${strokeDist.toFixed(2)}m`);
+    if (driveMs != null && recoverMs != null && driveMs > 0) {
+      parts.push(`드라이브:리커버리 1:${(recoverMs / driveMs).toFixed(2)}`);
+    }
+    if (peak != null) parts.push(`평균 최대힘 ${Math.round(peak)}lbs`);
+    lines.push(`스트로크 지표(계산됨): ${parts.join(", ")}`);
   }
   return lines.join("\n");
 }
@@ -484,7 +543,7 @@ Deno.serve(async (req) => {
       .insert({ kind: "session", user_id: s.user_id, ref_id: s.id }).select("id").single();
     if (claimErr || !claim) continue;
     const { data: segs } = await db.from("session_segments")
-      .select("id,seq,kind,split_time_ms,avg_hr,max_hr,exercises(name_ko)")
+      .select("id,seq,kind,machine_type,split_time_ms,avg_hr,max_hr,exercises(name_ko),segment_metrics(avg_power,avg_spm,avg_pace_500)")
       .eq("session_id", s.id).order("seq", { ascending: true });
     const segments = (segs ?? []) as unknown as Seg[];
     if (segments.length === 0) {
@@ -492,12 +551,30 @@ Deno.serve(async (req) => {
       await db.from("ai_jobs").delete().eq("id", claim.id);
       continue;
     }
-    const { data: m } = await db.from("session_metrics")
-      .select("run_lap_deviation_ms,pacing_grade").eq("session_id", s.id).maybeSingle();
-    const { data: goal } = await db.from("goal_plans")
-      .select("target_total_ms,run_total_ms,station_total_ms,roxzone_total_ms")
-      .eq("user_id", s.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    const jobId = await gwSubmit(sessionPrompt(s, segments, m, goal), { kind: "session", ref: s.id });
+    // 에르그 단독 세션(머신 스테이션만) → 전용 프롬프트, 그 외 → 시뮬 프롬프트
+    const isErg = segments.every((g) => g.kind === "station") && segments.some((g) => g.machine_type);
+    let prompt: string;
+    if (isErg) {
+      const mseg = segments.find((g) => g.machine_type)!;
+      const { data: raw } = await db.from("erg_samples")
+        .select("samples,strokes").eq("segment_id", mseg.id).maybeSingle();
+      const sm = Array.isArray(mseg.segment_metrics) ? mseg.segment_metrics[0] : mseg.segment_metrics;
+      prompt = ergSessionPrompt(
+        s,
+        mseg.machine_type!,
+        sm ?? null,
+        ((raw?.samples ?? []) as Record<string, number | null>[]).slice(0, 3600),
+        ((raw?.strokes ?? []) as Record<string, number | null>[]).slice(0, 2000),
+      );
+    } else {
+      const { data: m } = await db.from("session_metrics")
+        .select("run_lap_deviation_ms,pacing_grade").eq("session_id", s.id).maybeSingle();
+      const { data: goal } = await db.from("goal_plans")
+        .select("target_total_ms,run_total_ms,station_total_ms,roxzone_total_ms")
+        .eq("user_id", s.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      prompt = sessionPrompt(s, segments, m, goal);
+    }
+    const jobId = await gwSubmit(prompt, { kind: "session", ref: s.id });
     if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); continue; }
     await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
     out.submitted++;
