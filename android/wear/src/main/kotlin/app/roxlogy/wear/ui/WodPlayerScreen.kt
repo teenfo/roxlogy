@@ -66,7 +66,21 @@ fun WodPlayerScreen(
     var pm5Scanning by remember { mutableStateOf(false) }
     var pm5Live by remember { mutableStateOf("") }
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
-    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { ble.stop() } }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            ble.stop()
+            app.roxlogy.wear.service.SimSessionService.stop(context)
+        }
+    }
+
+    // 화면 꺼짐에도 PM5 수집 유지 — 연결 중엔 포그라운드 서비스 (에르그·시뮬과 동일)
+    androidx.compose.runtime.LaunchedEffect(pm5Connected, pm5Scanning) {
+        if (pm5Connected || pm5Scanning) {
+            app.roxlogy.wear.service.SimSessionService.start(context)
+        } else {
+            app.roxlogy.wear.service.SimSessionService.stop(context)
+        }
+    }
 
     fun connectPm5(machine: String) {
         ensureBle {

@@ -47,6 +47,7 @@ import app.roxlogy.shared.record.RecordedSegment
 import app.roxlogy.shared.record.SessionAssembler
 import app.roxlogy.shared.record.StoredSession
 import app.roxlogy.wear.ble.Pm5BleClient
+import app.roxlogy.wear.service.SimSessionService
 import app.roxlogy.wear.store.WearStore
 import app.roxlogy.wear.sync.WearDataSender
 import app.roxlogy.wear.ui.theme.Bad
@@ -139,7 +140,30 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
         }
     }
 
-    DisposableEffect(Unit) { onDispose { ble.stop() } }
+    DisposableEffect(Unit) {
+        onDispose {
+            ble.stop()
+            SimSessionService.stop(context)
+        }
+    }
+
+    // 화면 꺼짐 대응 — 연결·기록 중엔 포그라운드 서비스로 BLE 수집 유지 (시뮬과 동일).
+    // 서비스 없이는 Wear OS 절전이 화면 꺼짐 직후 백그라운드 BLE 를 끊는다.
+    LaunchedEffect(phase, connected, scanning) {
+        val active = phase == "running" || connected || scanning
+        if (active) SimSessionService.start(context) else SimSessionService.stop(context)
+    }
+
+    // 설정 '화면 항상 켜기' 존중 (시뮬과 동일)
+    val activity = context as? androidx.activity.ComponentActivity
+    DisposableEffect(Unit) {
+        if (WearStore.screenOnEnabled(context)) {
+            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     LaunchedEffect(phase) {
         while (phase == "running") {
