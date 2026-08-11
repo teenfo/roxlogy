@@ -3,6 +3,8 @@ package app.roxlogy.wear
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.view.KeyEvent
@@ -148,16 +150,43 @@ class MainActivity : ComponentActivity() {
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK && BackButton.active()) {
-            // 길게 눌러 이미 처리된 경우 짧게 액션은 건너뛴다
+            // 길게 눌러 이미 처리된 경우 짧게/더블 액션은 건너뛴다
             if (event != null && (event.flags and KeyEvent.FLAG_CANCELED_LONG_PRESS) != 0) return true
-            if (BackButton.short()) return true
+            if (BackButton.doubleHandler == null) {
+                if (BackButton.short()) return true
+            } else {
+                // 더블클릭 판별 — 창(280ms) 안에 두 번째 클릭이 오면 더블, 아니면 짧게
+                val pending = pendingBackShort
+                if (pending != null) {
+                    uiHandler.removeCallbacks(pending)
+                    pendingBackShort = null
+                    BackButton.double()
+                } else {
+                    val r = Runnable {
+                        pendingBackShort = null
+                        BackButton.short()
+                    }
+                    pendingBackShort = r
+                    uiHandler.postDelayed(r, DOUBLE_CLICK_MS)
+                }
+                return true
+            }
         }
         return super.onKeyUp(keyCode, event)
     }
 
     override fun onDestroy() {
+        pendingBackShort?.let { uiHandler.removeCallbacks(it) }
+        pendingBackShort = null
         ble.stop()
         super.onDestroy()
+    }
+
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private var pendingBackShort: Runnable? = null
+
+    private companion object {
+        const val DOUBLE_CLICK_MS = 280L
     }
 }
 
@@ -168,15 +197,18 @@ object QuickButton {
     fun press(): Boolean = handler?.invoke() ?: false
 }
 
-/** 뒤로가기 버튼 짧게/길게 → 시뮬 화면으로 전달하는 버스. 핸들러가 있을 때만 가로챈다. */
+/** 뒤로가기 버튼 짧게/길게/더블클릭 → 시뮬 화면으로 전달하는 버스. 핸들러가 있을 때만 가로챈다. */
 object BackButton {
     @Volatile
     var shortHandler: (() -> Boolean)? = null
     @Volatile
     var longHandler: (() -> Boolean)? = null
-    fun active(): Boolean = shortHandler != null || longHandler != null
+    @Volatile
+    var doubleHandler: (() -> Boolean)? = null
+    fun active(): Boolean = shortHandler != null || longHandler != null || doubleHandler != null
     fun short(): Boolean = shortHandler?.invoke() ?: false
     fun long(): Boolean = longHandler?.invoke() ?: false
+    fun double(): Boolean = doubleHandler?.invoke() ?: false
 }
 
 /** 앰비언트(AOD) 상태 — MainActivity 옵저버가 갱신, 시뮬 화면이 구독. */
@@ -598,13 +630,18 @@ fun SimApp(
         onDispose { QuickButton.handler = null }
     }
 
-    // 뒤로가기 버튼: 진행 중엔 짧게 = 일시정지/재개, 길게 = 종료 확인.
+    // 뒤로가기 버튼: 진행 중엔 짧게 = 일시정지/재개, 더블클릭 = 구간 완료(랩), 길게 = 종료 확인.
     // 종료 다이얼로그가 떠 있으면 가로채지 않아 뒤로가기로 다이얼로그를 닫을 수 있다.
     DisposableEffect(phase, showExit) {
         if (phase == AppPhase.RUNNING && !showExit) {
             BackButton.shortHandler = handler@{
                 if (phase != AppPhase.RUNNING || engine.isDone) return@handler false
                 if (pausedAt == null) pause() else resumeRun()
+                true
+            }
+            BackButton.doubleHandler = handler@{
+                if (phase != AppPhase.RUNNING || pausedAt != null || engine.isDone) return@handler false
+                recordCurrent()
                 true
             }
             BackButton.longHandler = handler@{
@@ -615,10 +652,12 @@ fun SimApp(
             }
         } else {
             BackButton.shortHandler = null
+            BackButton.doubleHandler = null
             BackButton.longHandler = null
         }
         onDispose {
             BackButton.shortHandler = null
+            BackButton.doubleHandler = null
             BackButton.longHandler = null
         }
     }
