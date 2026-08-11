@@ -104,7 +104,7 @@ import java.util.UUID
  * 워치 하이록스 시뮬레이션 레코더 — M10-R 재설계.
  * 메뉴/보관함/목표/설정 = ScalingLazyColumn 표준 Wear 화면, 시뮬 = 두 링(서클) 컨셉 유지.
  * 시뮬: 좌 스와이프 = 컨트롤(일시정지·랩취소·종료), 상하 스와이프 = 데이터 뷰(삼성헬스 패턴),
- * 뒤로가기 짧게 = 일시정지/재개, 길게 = 종료 확인, 퀵버튼(STEM) = 랩.
+ * 뒤로가기 짧게 = 일시정지/재개, 더블클릭 = 랩, 길게 = 종료 확인.
  * 32슬롯(록스존 IN/OUT), PM5 는 종목명 칩으로 연결.
  */
 class MainActivity : ComponentActivity() {
@@ -127,15 +127,9 @@ class MainActivity : ComponentActivity() {
         setContent { RoxWearTheme { RootApp(ble, sender) } }
     }
 
-    // 워치 물리 퀵버튼(멀티펑션/STEM) → 시뮬 랩. 홈(전원)은 시스템 예약.
-    // 뒤로가기는 시뮬 진행 중에만 가로채 짧게/길게를 구분한다 (짧게=일시정지, 길게=종료).
+    // 뒤로가기는 시뮬 진행 중에만 가로채 짧게/더블/길게를 구분한다.
+    // 참고: 퀵버튼(STEM)은 삼성이 시스템 키로 예약해 서드파티 앱에 이벤트가 오지 않아 미사용.
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_STEM_1 ||
-            keyCode == KeyEvent.KEYCODE_STEM_2 ||
-            keyCode == KeyEvent.KEYCODE_STEM_PRIMARY
-        ) {
-            if (QuickButton.press()) return true
-        }
         if (keyCode == KeyEvent.KEYCODE_BACK && BackButton.active()) {
             event?.startTracking() // onKeyLongPress 를 받으려면 추적 시작 필요
             return true
@@ -188,13 +182,6 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val DOUBLE_CLICK_MS = 280L
     }
-}
-
-/** 물리 퀵버튼 → 현재 시뮬 화면으로 전달하는 버스. */
-object QuickButton {
-    @Volatile
-    var handler: (() -> Boolean)? = null
-    fun press(): Boolean = handler?.invoke() ?: false
 }
 
 /** 뒤로가기 버튼 짧게/길게/더블클릭 → 시뮬 화면으로 전달하는 버스. 핸들러가 있을 때만 가로챈다. */
@@ -613,21 +600,6 @@ fun SimApp(
         if (showExit) showExit = false // 다이얼로그가 떠 있으면 뒤로가기 = 닫기
         else if (phase == AppPhase.RUNNING) showExit = true
         else onExit()
-    }
-
-    // 물리 퀵버튼 = 화면 탭(각 단계의 주 액션)과 동일:
-    // 대기 = 시작, 진행 = 구간 완료, 일시정지 = 재개, 완료 = 전송
-    DisposableEffect(Unit) {
-        QuickButton.handler = handler@{
-            when {
-                phase == AppPhase.IDLE -> { start(); true }
-                phase == AppPhase.RUNNING && pausedAt != null -> { resumeRun(); true }
-                phase == AppPhase.RUNNING && !engine.isDone -> { recordCurrent(); true }
-                phase == AppPhase.DONE -> { sendSession(); true }
-                else -> false
-            }
-        }
-        onDispose { QuickButton.handler = null }
     }
 
     // 뒤로가기 버튼: 진행 중엔 짧게 = 일시정지/재개, 더블클릭 = 구간 완료(랩), 길게 = 종료 확인.
