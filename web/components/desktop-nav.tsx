@@ -75,6 +75,10 @@ export function DesktopNav() {
         </div>
       ))}
 
+      <Link href="/crews" className={linkCls}>
+        {t("nav.crews")}
+      </Link>
+
       <Link href="/feed" className={linkCls}>
         {t("nav.feed")}
       </Link>
