@@ -39,7 +39,16 @@ export default async function CrewLayout({
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         {/* 크루 헤더 */}
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
+          <div className="flex min-w-0 items-start gap-4">
+            {crew.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={crew.logo_url}
+                alt=""
+                className="h-14 w-14 shrink-0 rounded-md object-cover"
+              />
+            )}
+            <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-3xl font-black tracking-tight">{crew.name}</h1>
               {crew.crew_status === "pending" && (
@@ -63,6 +72,7 @@ export default async function CrewLayout({
                 {t("crew.posts")}
               </span>
             </p>
+            </div>
           </div>
           {crew.crew_status === "active" ? (
             <CrewJoinButton

@@ -157,6 +157,107 @@ export function CrewInfoForm({
   );
 }
 
+/** 크루 로고 업로드 — 스태프 전용. crew-logos/<crewId>/logo 에 업서트하고
+ *  logo_url 에 캐시버스터(?v=) 붙인 공개 URL 을 저장한다. */
+export function CrewLogoUpload({
+  crewId,
+  logoUrl,
+}: {
+  crewId: string;
+  logoUrl: string | null;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function upload(file: File) {
+    if (file.size > 2 * 1024 * 1024) {
+      setErr(t("crew.logoTooBig"));
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    const supabase = createClient();
+    const path = `${crewId}/logo`;
+    const { error: upErr } = await supabase.storage
+      .from("crew-logos")
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) {
+      setBusy(false);
+      setErr(upErr.message);
+      return;
+    }
+    const { data } = supabase.storage.from("crew-logos").getPublicUrl(path);
+    const { error } = await supabase
+      .from("crews")
+      .update({ logo_url: `${data.publicUrl}?v=${Date.now()}` })
+      .eq("id", crewId);
+    setBusy(false);
+    if (error) setErr(error.message);
+    else router.refresh();
+  }
+
+  async function remove() {
+    setBusy(true);
+    setErr(null);
+    const supabase = createClient();
+    await supabase.storage.from("crew-logos").remove([`${crewId}/logo`]);
+    const { error } = await supabase
+      .from("crews")
+      .update({ logo_url: null })
+      .eq("id", crewId);
+    setBusy(false);
+    if (error) setErr(error.message);
+    else router.refresh();
+  }
+
+  return (
+    <div className="flex items-center gap-4">
+      {logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt=""
+          className="h-16 w-16 shrink-0 rounded-md object-cover"
+        />
+      ) : (
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-surface text-xs text-muted">
+          {t("crew.logoNone")}
+        </div>
+      )}
+      <div>
+        <label className="inline-block cursor-pointer rounded-md bg-surface px-4 py-2 text-sm font-semibold hover:text-accent">
+          {busy ? "…" : t("crew.logoUpload")}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) upload(f);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {logoUrl && (
+          <button
+            type="button"
+            onClick={remove}
+            disabled={busy}
+            className="ml-3 text-sm text-muted hover:text-red-400 disabled:opacity-50"
+          >
+            {t("crew.logoRemove")}
+          </button>
+        )}
+        <p className="mt-1.5 text-xs text-muted">{t("crew.logoHint")}</p>
+        {err && <p className="mt-1 text-xs text-red-400">{err}</p>}
+      </div>
+    </div>
+  );
+}
+
 export type ManageMember = {
   user_id: string;
   display_name: string;

@@ -46,12 +46,24 @@ export default async function CrewDirectoryPage() {
                   href={`/crews/${c.slug}`}
                   className="block rounded-md bg-surface px-5 py-4 transition-colors hover:bg-surface/70"
                 >
-                  <p className="truncate text-lg font-bold">{c.name}</p>
-                  {c.tagline && (
-                    <p className="mt-0.5 truncate text-xs font-semibold tracking-widest text-accent">
-                      {c.tagline}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {c.logo_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={c.logo_url}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-md object-cover"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-bold">{c.name}</p>
+                      {c.tagline && (
+                        <p className="mt-0.5 truncate text-xs font-semibold tracking-widest text-accent">
+                          {c.tagline}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                   <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
                     {c.location && <span>{c.location}</span>}
                     <span>
