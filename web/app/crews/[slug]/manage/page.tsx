@@ -30,7 +30,9 @@ export default async function CrewManagePage({
   const [{ data: row }, { data: roster }] = await Promise.all([
     supabase
       .from("crews")
-      .select("id, slug, name, tagline, description, location, join_policy, is_public")
+      .select(
+        "id, slug, name, tagline, description, location, links, join_policy, is_public",
+      )
       .eq("slug", slug)
       .maybeSingle(),
     supabase.rpc("crew_manage_roster", { p_slug: slug }),

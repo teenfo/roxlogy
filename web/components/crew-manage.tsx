@@ -9,7 +9,8 @@ const input =
   "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 const label = "mt-4 block text-xs text-muted";
 
-/** 크루 정보 수정 — 크루명·주소는 변경 불가(표시만). 스태프 전용. */
+/** 크루 정보 수정 — 크루명·주소는 변경 불가(표시만). 스태프 전용.
+ *  소개 화면에 노출되는 항목(운영시간·문의·공식 링크 = links JSONB)까지 전부 여기서 고친다. */
 export function CrewInfoForm({
   crew,
 }: {
@@ -20,15 +21,21 @@ export function CrewInfoForm({
     tagline: string | null;
     description: string | null;
     location: string | null;
+    links: Record<string, string | null> | null;
     join_policy: "open" | "approval" | "invite";
     is_public: boolean;
   };
 }) {
   const { t } = useI18n();
   const router = useRouter();
+  const links = crew.links ?? {};
   const [tagline, setTagline] = useState(crew.tagline ?? "");
   const [description, setDescription] = useState(crew.description ?? "");
   const [location, setLocation] = useState(crew.location ?? "");
+  const [hoursWeekday, setHoursWeekday] = useState(links.hours_weekday ?? "");
+  const [hoursWeekend, setHoursWeekend] = useState(links.hours_weekend ?? "");
+  const [phone, setPhone] = useState(links.phone ?? "");
+  const [official, setOfficial] = useState(links.official ?? "");
   const [joinPolicy, setJoinPolicy] = useState(crew.join_policy);
   const [isPublic, setIsPublic] = useState(crew.is_public);
   const [busy, setBusy] = useState(false);
@@ -39,12 +46,24 @@ export function CrewInfoForm({
     setBusy(true);
     setMsg(null);
     const supabase = createClient();
+    // links 는 통째로 교체하지 않고 기존 키를 보존한 채 편집 필드만 덮어쓴다.
+    const nextLinks: Record<string, string | null> = {
+      ...links,
+      hours_weekday: hoursWeekday.trim() || null,
+      hours_weekend: hoursWeekend.trim() || null,
+      phone: phone.trim() || null,
+      official: official.trim() || null,
+    };
+    for (const k of Object.keys(nextLinks)) {
+      if (nextLinks[k] == null) delete nextLinks[k];
+    }
     const { error } = await supabase
       .from("crews")
       .update({
         tagline: tagline.trim() || null,
         description: description.trim() || null,
         location: location.trim() || null,
+        links: nextLinks,
         join_policy: joinPolicy,
         is_public: isPublic,
       })
@@ -76,6 +95,25 @@ export function CrewInfoForm({
 
       <label className={label}>{t("crew.fLocation")}</label>
       <input className={input} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={60} />
+
+      <label className={label}>{t("crew.fHoursWeekday")}</label>
+      <input className={input} value={hoursWeekday} onChange={(e) => setHoursWeekday(e.target.value)} maxLength={60} />
+
+      <label className={label}>{t("crew.fHoursWeekend")}</label>
+      <input className={input} value={hoursWeekend} onChange={(e) => setHoursWeekend(e.target.value)} maxLength={60} />
+
+      <label className={label}>{t("crew.fPhone")}</label>
+      <input className={input} value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={60} />
+
+      <label className={label}>{t("crew.fOfficial")}</label>
+      <input
+        className={input}
+        value={official}
+        onChange={(e) => setOfficial(e.target.value)}
+        maxLength={200}
+        placeholder="https://"
+        inputMode="url"
+      />
 
       <label className={label}>{t("crew.fPolicy")}</label>
       <div className="mt-1 flex gap-2">
