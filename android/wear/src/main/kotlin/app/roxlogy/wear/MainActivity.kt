@@ -583,12 +583,17 @@ fun SimApp(
         else onExit()
     }
 
-    // 물리 퀵버튼 = 현재 단계 완료 (진행 중에만)
+    // 물리 퀵버튼 = 화면 탭(각 단계의 주 액션)과 동일:
+    // 대기 = 시작, 진행 = 구간 완료, 일시정지 = 재개, 완료 = 전송
     DisposableEffect(Unit) {
         QuickButton.handler = handler@{
-            if (phase != AppPhase.RUNNING || pausedAt != null || engine.isDone) return@handler false
-            recordCurrent()
-            true
+            when {
+                phase == AppPhase.IDLE -> { start(); true }
+                phase == AppPhase.RUNNING && pausedAt != null -> { resumeRun(); true }
+                phase == AppPhase.RUNNING && !engine.isDone -> { recordCurrent(); true }
+                phase == AppPhase.DONE -> { sendSession(); true }
+                else -> false
+            }
         }
         onDispose { QuickButton.handler = null }
     }
