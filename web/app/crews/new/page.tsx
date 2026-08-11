@@ -1,8 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { LocaleSwitcher } from "@/components/locale-switcher";
+import { CrewHeader } from "@/components/crew-header";
 import { CrewCreateForm } from "@/components/crew-create-form";
 
 export async function generateMetadata() {
@@ -15,19 +14,7 @@ export default async function CrewNewPage() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-surface bg-background">
-        <nav className="mx-auto flex max-w-4xl items-center gap-4 px-6 py-4">
-          <Link href="/crews" className="flex items-center gap-2.5">
-            <Image src="/roxlogy-mark.svg" alt="" width={24} height={24} />
-            <span className="text-xs font-black tracking-widest text-muted">
-              ROXLOGY
-            </span>
-          </Link>
-          <div className="ml-auto flex items-center gap-4">
-            <LocaleSwitcher />
-          </div>
-        </nav>
-      </header>
+      <CrewHeader loginNext="/crews/new" />
 
       <main className="mx-auto w-full max-w-lg flex-1 px-6 py-8">
         <h1 className="text-3xl font-black tracking-tight">

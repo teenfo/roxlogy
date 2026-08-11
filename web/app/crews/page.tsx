@@ -1,9 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { getCrewDirectory } from "@/lib/crew";
-import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { LocaleSwitcher } from "@/components/locale-switcher";
+import { CrewHeader } from "@/components/crew-header";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -14,42 +12,11 @@ export async function generateMetadata() {
 }
 
 export default async function CrewDirectoryPage() {
-  const [crews, user, { t }] = await Promise.all([
-    getCrewDirectory(),
-    getCachedUser(),
-    getT(),
-  ]);
+  const [crews, { t }] = await Promise.all([getCrewDirectory(), getT()]);
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-surface bg-background">
-        <nav className="mx-auto flex max-w-4xl items-center gap-4 px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/roxlogy-mark.svg" alt="" width={24} height={24} />
-            <span className="text-xs font-black tracking-widest text-muted">
-              ROXLOGY
-            </span>
-          </Link>
-          <div className="ml-auto flex items-center gap-4">
-            <LocaleSwitcher />
-            {user ? (
-              <Link
-                href="/dashboard"
-                className="text-sm text-muted hover:text-foreground"
-              >
-                {t("nav.dashboard")}
-              </Link>
-            ) : (
-              <Link
-                href="/login?next=/crews"
-                className="text-sm text-muted hover:text-foreground"
-              >
-                {t("common.login")}
-              </Link>
-            )}
-          </div>
-        </nav>
-      </header>
+      <CrewHeader loginNext="/crews" />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         <div className="flex items-start justify-between gap-3">
