@@ -102,7 +102,8 @@ import java.util.UUID
  * 워치 하이록스 시뮬레이션 레코더 — M10-R 재설계.
  * 메뉴/보관함/목표/설정 = ScalingLazyColumn 표준 Wear 화면, 시뮬 = 두 링(서클) 컨셉 유지.
  * 시뮬: 좌 스와이프 = 컨트롤(일시정지·랩취소·종료), 상하 스와이프 = 데이터 뷰(삼성헬스 패턴),
- * 뒤로가기 = 종료 확인, 퀵버튼(STEM) = 랩. 32슬롯(록스존 IN/OUT), PM5 는 종목명 칩으로 연결.
+ * 뒤로가기 짧게 = 일시정지/재개, 길게 = 종료 확인, 퀵버튼(STEM) = 랩.
+ * 32슬롯(록스존 IN/OUT), PM5 는 종목명 칩으로 연결.
  */
 class MainActivity : ComponentActivity() {
     private lateinit var ble: Pm5BleClient
@@ -124,7 +125,8 @@ class MainActivity : ComponentActivity() {
         setContent { RoxWearTheme { RootApp(ble, sender) } }
     }
 
-    // 워치 물리 퀵버튼(멀티펑션/STEM) → 시뮬 랩. 홈(전원)·뒤로가기는 시스템 예약.
+    // 워치 물리 퀵버튼(멀티펑션/STEM) → 시뮬 랩. 홈(전원)은 시스템 예약.
+    // 뒤로가기는 시뮬 진행 중에만 가로채 짧게/길게를 구분한다 (짧게=일시정지, 길게=종료).
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_STEM_1 ||
             keyCode == KeyEvent.KEYCODE_STEM_2 ||
@@ -132,7 +134,25 @@ class MainActivity : ComponentActivity() {
         ) {
             if (QuickButton.press()) return true
         }
+        if (keyCode == KeyEvent.KEYCODE_BACK && BackButton.active()) {
+            event?.startTracking() // onKeyLongPress 를 받으려면 추적 시작 필요
+            return true
+        }
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK && BackButton.long()) return true
+        return super.onKeyLongPress(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK && BackButton.active()) {
+            // 길게 눌러 이미 처리된 경우 짧게 액션은 건너뛴다
+            if (event != null && (event.flags and KeyEvent.FLAG_CANCELED_LONG_PRESS) != 0) return true
+            if (BackButton.short()) return true
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onDestroy() {
@@ -146,6 +166,17 @@ object QuickButton {
     @Volatile
     var handler: (() -> Boolean)? = null
     fun press(): Boolean = handler?.invoke() ?: false
+}
+
+/** 뒤로가기 버튼 짧게/길게 → 시뮬 화면으로 전달하는 버스. 핸들러가 있을 때만 가로챈다. */
+object BackButton {
+    @Volatile
+    var shortHandler: (() -> Boolean)? = null
+    @Volatile
+    var longHandler: (() -> Boolean)? = null
+    fun active(): Boolean = shortHandler != null || longHandler != null
+    fun short(): Boolean = shortHandler?.invoke() ?: false
+    fun long(): Boolean = longHandler?.invoke() ?: false
 }
 
 /** 앰비언트(AOD) 상태 — MainActivity 옵저버가 갱신, 시뮬 화면이 구독. */
@@ -547,7 +578,9 @@ fun SimApp(
 
     // 뒤로가기: 진행 중이면 종료 확인, 아니면 즉시 메뉴
     BackHandler {
-        if (phase == AppPhase.RUNNING) showExit = true else onExit()
+        if (showExit) showExit = false // 다이얼로그가 떠 있으면 뒤로가기 = 닫기
+        else if (phase == AppPhase.RUNNING) showExit = true
+        else onExit()
     }
 
     // 물리 퀵버튼 = 현재 단계 완료 (진행 중에만)
@@ -558,6 +591,31 @@ fun SimApp(
             true
         }
         onDispose { QuickButton.handler = null }
+    }
+
+    // 뒤로가기 버튼: 진행 중엔 짧게 = 일시정지/재개, 길게 = 종료 확인.
+    // 종료 다이얼로그가 떠 있으면 가로채지 않아 뒤로가기로 다이얼로그를 닫을 수 있다.
+    DisposableEffect(phase, showExit) {
+        if (phase == AppPhase.RUNNING && !showExit) {
+            BackButton.shortHandler = handler@{
+                if (phase != AppPhase.RUNNING || engine.isDone) return@handler false
+                if (pausedAt == null) pause() else resumeRun()
+                true
+            }
+            BackButton.longHandler = handler@{
+                if (phase != AppPhase.RUNNING) return@handler false
+                buzz(120)
+                showExit = true
+                true
+            }
+        } else {
+            BackButton.shortHandler = null
+            BackButton.longHandler = null
+        }
+        onDispose {
+            BackButton.shortHandler = null
+            BackButton.longHandler = null
+        }
     }
 
     // 앰비언트(AOD): 진행 중이면 저전력 간소 화면 (검정 배경·타이머·종목만)
