@@ -37,6 +37,14 @@ export default async function CrewLayout({
       <CrewHeader loginNext={`/crews/${slug}`} />
 
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+        {crew.cover_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={crew.cover_url}
+            alt=""
+            className="mb-6 h-36 w-full rounded-md object-cover sm:h-52"
+          />
+        )}
         {/* 크루 헤더 */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-4">

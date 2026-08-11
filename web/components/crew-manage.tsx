@@ -157,55 +157,84 @@ export function CrewInfoForm({
   );
 }
 
-/** 크루 로고 업로드 — 스태프 전용. crew-logos/<crewId>/logo 에 업서트하고
- *  logo_url 에 캐시버스터(?v=) 붙인 공개 URL 을 저장한다. */
-export function CrewLogoUpload({
+/** 큰 이미지는 반려하지 않고 캔버스로 축소한다 — 긴 변을 maxDim 이하로 맞추고
+ *  WebP 로 재인코딩. 2MB(버킷 상한)를 넘으면 품질을 낮춰가며 재시도. */
+async function downscaleImage(file: File, maxDim: number): Promise<Blob> {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * scale));
+  const h = Math.max(1, Math.round(bmp.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d")!.drawImage(bmp, 0, 0, w, h);
+  bmp.close();
+  for (const quality of [0.85, 0.7, 0.5, 0.3]) {
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob(res, "image/webp", quality),
+    );
+    if (blob && blob.size <= 2 * 1024 * 1024) return blob;
+  }
+  throw new Error("image too large after resize");
+}
+
+/** 크루 이미지(로고·커버) 업로드 — 스태프 전용. crew-logos/<crewId>/<kind> 에
+ *  업서트하고 해당 컬럼에 캐시버스터(?v=) 붙인 공개 URL 을 저장한다. */
+export function CrewImageUpload({
   crewId,
-  logoUrl,
+  url,
+  kind,
 }: {
   crewId: string;
-  logoUrl: string | null;
+  url: string | null;
+  kind: "logo" | "cover";
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const column = kind === "logo" ? "logo_url" : "cover_url";
+  // 로고는 정사각 512px, 커버는 가로 1600px 이면 충분하다.
+  const maxDim = kind === "logo" ? 512 : 1600;
+  const previewCls =
+    kind === "logo"
+      ? "h-16 w-16 shrink-0 rounded-md object-cover"
+      : "h-24 w-full max-w-72 shrink-0 rounded-md object-cover";
+
   async function upload(file: File) {
-    if (file.size > 2 * 1024 * 1024) {
-      setErr(t("crew.logoTooBig"));
-      return;
-    }
     setBusy(true);
     setErr(null);
-    const supabase = createClient();
-    const path = `${crewId}/logo`;
-    const { error: upErr } = await supabase.storage
-      .from("crew-logos")
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (upErr) {
+    try {
+      const blob = await downscaleImage(file, maxDim);
+      const supabase = createClient();
+      const path = `${crewId}/${kind}`;
+      const { error: upErr } = await supabase.storage
+        .from("crew-logos")
+        .upload(path, blob, { upsert: true, contentType: "image/webp" });
+      if (upErr) throw new Error(upErr.message);
+      const { data } = supabase.storage.from("crew-logos").getPublicUrl(path);
+      const { error } = await supabase
+        .from("crews")
+        .update({ [column]: `${data.publicUrl}?v=${Date.now()}` })
+        .eq("id", crewId);
+      if (error) throw new Error(error.message);
+      router.refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t("crew.imgFailed"));
+    } finally {
       setBusy(false);
-      setErr(upErr.message);
-      return;
     }
-    const { data } = supabase.storage.from("crew-logos").getPublicUrl(path);
-    const { error } = await supabase
-      .from("crews")
-      .update({ logo_url: `${data.publicUrl}?v=${Date.now()}` })
-      .eq("id", crewId);
-    setBusy(false);
-    if (error) setErr(error.message);
-    else router.refresh();
   }
 
   async function remove() {
     setBusy(true);
     setErr(null);
     const supabase = createClient();
-    await supabase.storage.from("crew-logos").remove([`${crewId}/logo`]);
+    await supabase.storage.from("crew-logos").remove([`${crewId}/${kind}`]);
     const { error } = await supabase
       .from("crews")
-      .update({ logo_url: null })
+      .update({ [column]: null })
       .eq("id", crewId);
     setBusy(false);
     if (error) setErr(error.message);
@@ -213,25 +242,23 @@ export function CrewLogoUpload({
   }
 
   return (
-    <div className="flex items-center gap-4">
-      {logoUrl ? (
+    <div className={kind === "logo" ? "flex items-center gap-4" : "flex flex-col gap-3"}>
+      {url ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={logoUrl}
-          alt=""
-          className="h-16 w-16 shrink-0 rounded-md object-cover"
-        />
+        <img src={url} alt="" className={previewCls} />
       ) : (
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-surface text-xs text-muted">
-          {t("crew.logoNone")}
+        <div
+          className={`flex items-center justify-center bg-surface text-xs text-muted ${previewCls}`}
+        >
+          {t(kind === "logo" ? "crew.logoNone" : "crew.coverNone")}
         </div>
       )}
       <div>
         <label className="inline-block cursor-pointer rounded-md bg-surface px-4 py-2 text-sm font-semibold hover:text-accent">
-          {busy ? "…" : t("crew.logoUpload")}
+          {busy ? "…" : t(kind === "logo" ? "crew.logoUpload" : "crew.coverUpload")}
           <input
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept="image/*"
             className="hidden"
             disabled={busy}
             onChange={(e) => {
@@ -241,7 +268,7 @@ export function CrewLogoUpload({
             }}
           />
         </label>
-        {logoUrl && (
+        {url && (
           <button
             type="button"
             onClick={remove}
@@ -251,7 +278,9 @@ export function CrewLogoUpload({
             {t("crew.logoRemove")}
           </button>
         )}
-        <p className="mt-1.5 text-xs text-muted">{t("crew.logoHint")}</p>
+        <p className="mt-1.5 text-xs text-muted">
+          {t(kind === "logo" ? "crew.logoHint" : "crew.coverHint")}
+        </p>
         {err && <p className="mt-1 text-xs text-red-400">{err}</p>}
       </div>
     </div>

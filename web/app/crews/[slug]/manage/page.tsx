@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import {
   CrewDeleteButton,
+  CrewImageUpload,
   CrewInfoForm,
-  CrewLogoUpload,
   CrewMemberManage,
   type ManageMember,
 } from "@/components/crew-manage";
@@ -32,7 +32,7 @@ export default async function CrewManagePage({
     supabase
       .from("crews")
       .select(
-        "id, slug, name, tagline, description, location, links, logo_url, join_policy, is_public",
+        "id, slug, name, tagline, description, location, links, logo_url, cover_url, join_policy, is_public",
       )
       .eq("slug", slug)
       .maybeSingle(),
@@ -46,7 +46,14 @@ export default async function CrewManagePage({
       <section>
         <h2 className="text-lg font-bold">{t("crew.logoTitle")}</h2>
         <div className="mt-3">
-          <CrewLogoUpload crewId={crew.id} logoUrl={row.logo_url} />
+          <CrewImageUpload crewId={crew.id} url={row.logo_url} kind="logo" />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-bold">{t("crew.coverTitle")}</h2>
+        <div className="mt-3">
+          <CrewImageUpload crewId={crew.id} url={row.cover_url} kind="cover" />
         </div>
       </section>
 
