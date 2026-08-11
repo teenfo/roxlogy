@@ -365,9 +365,21 @@ fun SimApp(
     // 목표 미리 로드 — IDLE 목표 미리보기(목표 총시간·1km 랩)와 진행 diff 에 사용
     LaunchedEffect(Unit) { goal = WearGoal.load(context) }
 
-    // 이어서 기록으로 재진입한 경우에도 진행 서비스 유지
-    LaunchedEffect(phase) {
-        if (phase == AppPhase.RUNNING) SimSessionService.start(context)
+    // 이어서 기록으로 재진입한 경우에도 진행 서비스 유지.
+    // 구간이 바뀌거나 일시정지되면 워치페이스 칩의 라벨·스톱워치를 갱신한다 (타이머 앱과 동일).
+    LaunchedEffect(phase, slotStartMs, pausedAt) {
+        if (phase == AppPhase.RUNNING) {
+            val label = when (engine.current?.kind) {
+                "run" -> "RUN ${engine.current?.index ?: 0}"
+                "station" -> STATION_LABEL[engine.current?.stationKey] ?: "STATION"
+                else -> "록스존"
+            }
+            if (pausedAt != null) {
+                SimSessionService.start(context, "$label 일시정지")
+            } else {
+                SimSessionService.start(context, label, slotStartMs)
+            }
+        }
         if (phase == AppPhase.SENT || phase == AppPhase.IDLE) SimSessionService.stop(context)
     }
 

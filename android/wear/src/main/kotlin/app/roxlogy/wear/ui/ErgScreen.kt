@@ -149,9 +149,19 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
 
     // 화면 꺼짐 대응 — 연결·기록 중엔 포그라운드 서비스로 BLE 수집 유지 (시뮬과 동일).
     // 서비스 없이는 Wear OS 절전이 화면 꺼짐 직후 백그라운드 BLE 를 끊는다.
+    // 기록 중엔 워치페이스 칩에 경과 시간을 스톱워치로 표시한다 (타이머 앱과 동일).
     LaunchedEffect(phase, connected, scanning) {
-        val active = phase == "running" || connected || scanning
-        if (active) SimSessionService.start(context) else SimSessionService.stop(context)
+        val label = when (machine) {
+            "ski" -> "스키에르그"
+            "row" -> "로우에르그"
+            else -> "에르그"
+        }
+        when {
+            phase == "running" -> SimSessionService.start(context, label, startMs)
+            connected -> SimSessionService.start(context, "$label 대기")
+            scanning -> SimSessionService.start(context, "PM5 연결 중")
+            else -> SimSessionService.stop(context)
+        }
     }
 
     // 설정 '화면 항상 켜기' 존중 (시뮬과 동일)

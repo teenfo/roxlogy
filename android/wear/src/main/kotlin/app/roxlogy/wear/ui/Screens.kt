@@ -414,7 +414,7 @@ fun SettingsScreen(
                     secondaryLabel = { Text("머신을 바꿨을 때 초기화", fontSize = 9.sp) },
                 )
             }
-            item { Text("v0.6.10", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+            item { Text("v0.6.11", fontSize = 9.sp, color = MutedText, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
         }
     }
 }

@@ -73,10 +73,11 @@ fun WodPlayerScreen(
         }
     }
 
-    // 화면 꺼짐에도 PM5 수집 유지 — 연결 중엔 포그라운드 서비스 (에르그·시뮬과 동일)
-    androidx.compose.runtime.LaunchedEffect(pm5Connected, pm5Scanning) {
+    // 화면 꺼짐에도 PM5 수집 유지 — 연결 중엔 포그라운드 서비스 (에르그·시뮬과 동일).
+    // 현재 항목 경과 시간을 워치페이스 칩에 스톱워치로 표시한다.
+    androidx.compose.runtime.LaunchedEffect(pm5Connected, pm5Scanning, itemStartMs) {
         if (pm5Connected || pm5Scanning) {
-            app.roxlogy.wear.service.SimSessionService.start(context)
+            app.roxlogy.wear.service.SimSessionService.start(context, "WOD", itemStartMs)
         } else {
             app.roxlogy.wear.service.SimSessionService.stop(context)
         }
