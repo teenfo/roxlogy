@@ -127,60 +127,76 @@ class MainActivity : ComponentActivity() {
         setContent { RoxWearTheme { RootApp(ble, sender) } }
     }
 
-    // 뒤로가기는 시뮬 진행 중에만 가로채 짧게/더블/길게를 구분한다.
+    // 뒤로가기는 시뮬 진행 중에만 dispatchKeyEvent 단계에서 전부 가로채 짧게/더블/길게를
+    // 직접 판정한다. 프레임워크의 long-press 추적(onKeyLongPress)은 워치 백 버튼에서
+    // 동작하지 않는 기기가 있어(키 반복 미발생) 자체 타이머로 잰다.
     // 참고: 퀵버튼(STEM)은 삼성이 시스템 키로 예약해 서드파티 앱에 이벤트가 오지 않아 미사용.
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK && BackButton.active()) {
-            event?.startTracking() // onKeyLongPress 를 받으려면 추적 시작 필요
-            return true
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode != KeyEvent.KEYCODE_BACK || !BackButton.active()) {
+            return super.dispatchKeyEvent(event)
         }
-        return super.onKeyDown(keyCode, event)
-    }
-
-    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK && BackButton.long()) return true
-        return super.onKeyLongPress(keyCode, event)
-    }
-
-    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK && BackButton.active()) {
-            // 길게 눌러 이미 처리된 경우 짧게/더블 액션은 건너뛴다
-            if (event != null && (event.flags and KeyEvent.FLAG_CANCELED_LONG_PRESS) != 0) return true
-            if (BackButton.doubleHandler == null) {
-                if (BackButton.short()) return true
-            } else {
-                // 더블클릭 판별 — 창(280ms) 안에 두 번째 클릭이 오면 더블, 아니면 짧게
-                val pending = pendingBackShort
-                if (pending != null) {
-                    uiHandler.removeCallbacks(pending)
+        when (event.action) {
+            KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) {
+                backLongFired = false
+                val r = Runnable {
+                    pendingBackLong = null
+                    backLongFired = true
+                    // 길게 확정 — 더블 대기 중이던 짧게 액션은 취소
+                    pendingBackShort?.let { uiHandler.removeCallbacks(it) }
                     pendingBackShort = null
-                    BackButton.double()
-                } else {
-                    val r = Runnable {
-                        pendingBackShort = null
-                        BackButton.short()
-                    }
-                    pendingBackShort = r
-                    uiHandler.postDelayed(r, DOUBLE_CLICK_MS)
+                    BackButton.long()
                 }
-                return true
+                pendingBackLong = r
+                uiHandler.postDelayed(r, LONG_PRESS_MS)
+            }
+            KeyEvent.ACTION_UP -> {
+                pendingBackLong?.let { uiHandler.removeCallbacks(it) }
+                pendingBackLong = null
+                if (!backLongFired) {
+                    val pending = pendingBackShort
+                    if (pending != null) {
+                        // 창 안의 두 번째 클릭 = 더블
+                        uiHandler.removeCallbacks(pending)
+                        pendingBackShort = null
+                        BackButton.double()
+                    } else {
+                        // 창(280ms)이 지나도록 두 번째 클릭이 없으면 짧게
+                        val r = Runnable {
+                            pendingBackShort = null
+                            BackButton.short()
+                        }
+                        pendingBackShort = r
+                        uiHandler.postDelayed(r, DOUBLE_CLICK_MS)
+                    }
+                }
+                backLongFired = false
             }
         }
-        return super.onKeyUp(keyCode, event)
+        return true // 진행 중엔 뒤로가기를 항상 소비 — 시스템 기본 백으로 새지 않게
+    }
+
+    private fun cancelBackTimers() {
+        pendingBackShort?.let { uiHandler.removeCallbacks(it) }
+        pendingBackShort = null
+        pendingBackLong?.let { uiHandler.removeCallbacks(it) }
+        pendingBackLong = null
+        backLongFired = false
     }
 
     override fun onDestroy() {
-        pendingBackShort?.let { uiHandler.removeCallbacks(it) }
-        pendingBackShort = null
+        cancelBackTimers()
         ble.stop()
         super.onDestroy()
     }
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private var pendingBackShort: Runnable? = null
+    private var pendingBackLong: Runnable? = null
+    private var backLongFired = false
 
     private companion object {
         const val DOUBLE_CLICK_MS = 280L
+        const val LONG_PRESS_MS = 600L
     }
 }
 
