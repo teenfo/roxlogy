@@ -108,16 +108,19 @@ class Pm5BleClient(private val context: Context) {
     private val notifCounts = LinkedHashMap<String, Int>()
     private val subGiveUps = mutableListOf<String>()
     private var fcChunks = 0
+    private var connMode = "?" // "MUX" | "개별" — 서비스 탐색 시 확정
+    private var has3C: Boolean? = null // 이 PM5 펌웨어에 힘곡선 특성이 존재하는지
 
     private fun shortId(uuid: UUID): String = uuid.toString().substring(4, 8).uppercase()
 
-    /** 수신 진단 요약 — "0031:22 0035:17 003C:0 · 곡선청크 0 · 구독포기 003C" 식. */
+    /** 수신 진단 요약 — "MUX·3C있음 · 0031:22 … · 곡선청크 0 · 구독포기 없음" 식. */
     fun diag(): String {
         val counts = subscribeUuids.joinToString(" ") { u ->
             "${shortId(u)}:${notifCounts[shortId(u)] ?: 0}"
         }
         val giveUp = if (subGiveUps.isEmpty()) "없음" else subGiveUps.joinToString(",")
-        return "$counts · 곡선청크 $fcChunks/조립 ${accumulator.forceCurveSnapshot().size} · 구독포기 $giveUp"
+        val cap3C = when (has3C) { true -> "3C있음"; false -> "3C없음"; null -> "3C?" }
+        return "$connMode·$cap3C · $counts · 곡선청크 $fcChunks/조립 ${accumulator.forceCurveSnapshot().size} · 구독포기 $giveUp"
     }
 
     /** 스캔·연결 시작. 기존 연결이 있으면 정리 후 새로 스캔 (기기 전환 안전).
@@ -134,6 +137,8 @@ class Pm5BleClient(private val context: Context) {
         notifCounts.clear()
         subGiveUps.clear()
         fcChunks = 0
+        connMode = "?"
+        has3C = null
         scan()
     }
 
@@ -369,11 +374,16 @@ class Pm5BleClient(private val context: Context) {
                 return
             }
             subscribeQueue.clear()
-            // 멀티플렉스(0x0080)가 있으면 그 하나만 구독 — 개별 0x003C 가 침묵하는
-            // 펌웨어에서도 힘 곡선까지 전 데이터가 이 채널로 온다. 없으면 개별 폴백.
+            // 멀티플렉스(0x0080)가 있으면 그것을 구독하고, 힘곡선(0x003C)은 존재하면
+            // 병행 구독한다 — 펌웨어별로 곡선이 mux 로만 오거나 개별로만 오는 편차 대비.
+            // mux 가 없으면 개별 특성 전체로 폴백.
             val mux = service.getCharacteristic(multiplexUuid)
+            val fc = service.getCharacteristic(forceCurveUuid)
+            has3C = fc != null
+            connMode = if (mux != null) "MUX" else "개별"
             if (mux != null) {
                 subscribeQueue.add(mux)
+                fc?.let { subscribeQueue.add(it) }
             } else {
                 for (u in subscribeUuids) service.getCharacteristic(u)?.let { subscribeQueue.add(it) }
             }
