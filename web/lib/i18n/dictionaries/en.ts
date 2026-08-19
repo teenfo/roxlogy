@@ -736,6 +736,7 @@ const en = {
   "programs.mineEmpty": "No programs yet. Create your first plan.",
   "programs.community": "Community programs",
   "programs.back": "← Programs",
+  "programs.icsDownload": "Add to calendar (.ics)",
   "programs.clone": "Clone",
   "programs.copySuffix": "copy",
   "programs.start": "Start (from today)",

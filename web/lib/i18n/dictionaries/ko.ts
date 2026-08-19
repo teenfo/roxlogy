@@ -716,6 +716,7 @@ const ko: Record<DictKey, string> = {
   "programs.mineEmpty": "아직 프로그램이 없습니다. 첫 계획을 만들어 보세요.",
   "programs.community": "커뮤니티 프로그램",
   "programs.back": "← 프로그램",
+  "programs.icsDownload": "캘린더에 추가 (.ics)",
   "programs.clone": "복제",
   "programs.copySuffix": "복사",
   "programs.start": "시작하기 (오늘부터)",

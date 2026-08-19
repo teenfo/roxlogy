@@ -723,6 +723,7 @@ const es: Record<DictKey, string> = {
   "programs.mineEmpty": "Aún no hay programas. Crea tu primer plan.",
   "programs.community": "Programas de la comunidad",
   "programs.back": "← Programas",
+  "programs.icsDownload": "Añadir al calendario (.ics)",
   "programs.clone": "Clonar",
   "programs.copySuffix": "copia",
   "programs.start": "Empezar (desde hoy)",

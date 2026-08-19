@@ -85,6 +85,20 @@ export function ProgramBuilder({
   const delDay = (id: string) =>
     run(() => supabase.from("program_days").delete().eq("id", id));
 
+  // Day 순서 이동 — 이웃 Day 와 day_index 를 맞바꾼다 (initialDays 는 정렬 상태로 전달됨)
+  const moveDay = (id: string, dir: -1 | 1) => {
+    const idx = initialDays.findIndex((d) => d.id === id);
+    const other = initialDays[idx + dir];
+    if (idx < 0 || !other) return;
+    const me = initialDays[idx];
+    return run(async () => {
+      await Promise.all([
+        supabase.from("program_days").update({ day_index: other.day_index }).eq("id", me.id),
+        supabase.from("program_days").update({ day_index: me.day_index }).eq("id", other.id),
+      ]);
+    });
+  };
+
   const addWorkout = (
     dayId: string,
     title: string,
@@ -141,7 +155,7 @@ export function ProgramBuilder({
 
   return (
     <div className="mt-8 flex flex-col gap-4">
-      {initialDays.map((d) => (
+      {initialDays.map((d, i) => (
         <DayCard
           key={d.id}
           day={d}
@@ -152,6 +166,9 @@ export function ProgramBuilder({
           setPick={setPick}
           busy={busy}
           inputCls={inputCls}
+          canUp={i > 0}
+          canDown={i < initialDays.length - 1}
+          onMove={(dir) => moveDay(d.id, dir)}
           onDelDay={() => delDay(d.id)}
           onAddWorkout={(title, type, autofill) =>
             addWorkout(d.id, title, type, autofill)
@@ -183,6 +200,9 @@ function DayCard({
   setPick,
   busy,
   inputCls,
+  canUp,
+  canDown,
+  onMove,
   onDelDay,
   onAddWorkout,
   onDelWorkout,
@@ -199,6 +219,9 @@ function DayCard({
   >;
   busy: boolean;
   inputCls: string;
+  canUp: boolean;
+  canDown: boolean;
+  onMove: (dir: -1 | 1) => void;
   onDelDay: () => void;
   onAddWorkout: (title: string, type: string, autofillRaceSim: boolean) => void;
   onDelWorkout: (id: string) => void;
@@ -219,14 +242,34 @@ function DayCard({
           ) : null}
           {day.focus ? ` · ${day.focus}` : ""}
         </h2>
-        <button
-          type="button"
-          onClick={onDelDay}
-          disabled={busy}
-          className="text-xs text-muted hover:text-red-400"
-        >
-          {t("common.delete")}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onMove(-1)}
+            disabled={busy || !canUp}
+            aria-label="move up"
+            className="rounded px-1.5 py-0.5 text-sm text-muted hover:bg-background hover:text-foreground disabled:opacity-25"
+          >
+            ▲
+          </button>
+          <button
+            type="button"
+            onClick={() => onMove(1)}
+            disabled={busy || !canDown}
+            aria-label="move down"
+            className="rounded px-1.5 py-0.5 text-sm text-muted hover:bg-background hover:text-foreground disabled:opacity-25"
+          >
+            ▼
+          </button>
+          <button
+            type="button"
+            onClick={onDelDay}
+            disabled={busy}
+            className="ml-2 text-xs text-muted hover:text-red-400"
+          >
+            {t("common.delete")}
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 flex flex-col gap-3">

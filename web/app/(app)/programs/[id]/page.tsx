@@ -122,9 +122,19 @@ export default async function ProgramDetailPage({
         {program.is_public ? ` · ${t("programs.public")}` : ""}
       </p>
       {(program.start_date || program.end_date) && (
-        <p className="mt-1 text-sm font-medium text-track">
-          {formatDateShort(program.start_date, tag, tz)} –{" "}
-          {formatDateShort(program.end_date, tag, tz)}
+        <p className="mt-1 flex flex-wrap items-center gap-3 text-sm font-medium text-track">
+          <span>
+            {formatDateShort(program.start_date, tag, tz)} –{" "}
+            {formatDateShort(program.end_date, tag, tz)}
+          </span>
+          {program.start_date && (
+            <a
+              href={`/programs/${program.id}/calendar.ics`}
+              className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent"
+            >
+              📅 {t("programs.icsDownload")}
+            </a>
+          )}
         </p>
       )}
       {program.description && (
