@@ -34,7 +34,14 @@ type CalDay = {
   notes: string | null;
   workouts: CalWorkout[];
 };
-type Cal = { id: string; title: string; start_date: string | null; days: CalDay[] };
+type Cal = {
+  id: string;
+  title: string;
+  start_date: string | null;
+  end_date: string | null;
+  repeat_enabled: boolean;
+  days: CalDay[];
+};
 
 function buildIcs(cal: Cal, locale: string): string {
   const exName = (it: CalItem) =>
@@ -54,9 +61,22 @@ function buildIcs(cal: Cal, locale: string): string {
 
   const stamp = `${new Date().toISOString().slice(0, 19).replace(/[-:]/g, "")}Z`;
   const days = cal.days.slice().sort((a, b) => a.day_index - b.day_index);
-  for (const d of days) {
-    const date = icsDate(cal.start_date!, d.day_index - 1);
-    const next = icsDate(cal.start_date!, d.day_index);
+  const byIndex = new Map(days.map((d) => [d.day_index, d]));
+  const cycleLen = days.reduce((m, d) => Math.max(m, d.day_index), 0);
+
+  // 반복이면 start~end 전 기간을 사이클로 전개, 아니면 일차별 1회
+  const repeat = cal.repeat_enabled && cycleLen > 0 && !!cal.end_date;
+  const totalDays = repeat
+    ? Math.floor(
+        (Date.parse(`${cal.end_date}T00:00:00Z`) -
+          Date.parse(`${cal.start_date}T00:00:00Z`)) /
+          86400000,
+      ) + 1
+    : cycleLen;
+
+  const emit = (d: CalDay, offset: number, occurrence: number) => {
+    const date = icsDate(cal.start_date!, offset);
+    const next = icsDate(cal.start_date!, offset + 1);
     const summary = [`${cal.title} D${d.day_index}`, d.focus ?? ""]
       .filter(Boolean)
       .join(" · ");
@@ -69,10 +89,9 @@ function buildIcs(cal: Cal, locale: string): string {
       })
       .concat(d.notes ? [d.notes] : [])
       .join("\n\n");
-
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${cal.id}-${d.id}@roxlogy.com`,
+      `UID:${cal.id}-${d.id}-${occurrence}@roxlogy.com`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${date}`,
       `DTEND;VALUE=DATE:${next}`,
@@ -80,6 +99,15 @@ function buildIcs(cal: Cal, locale: string): string {
       ...(desc ? [`DESCRIPTION:${icsEscape(desc)}`] : []),
       "END:VEVENT",
     );
+  };
+
+  if (repeat) {
+    for (let offset = 0; offset < totalDays; offset++) {
+      const d = byIndex.get((offset % cycleLen) + 1);
+      if (d) emit(d, offset, Math.floor(offset / cycleLen));
+    }
+  } else {
+    for (const d of days) emit(d, d.day_index - 1, 0);
   }
   lines.push("END:VCALENDAR");
   return lines.join("\r\n") + "\r\n";
@@ -106,7 +134,7 @@ export async function GET(
     const { data } = await supabase
       .from("programs")
       .select(
-        `id, title, start_date,
+        `id, title, start_date, end_date, repeat_enabled,
          program_days (
            id, day_index, focus, notes,
            workout_templates (
@@ -136,6 +164,8 @@ export async function GET(
         id: data.id,
         title: data.title,
         start_date: data.start_date,
+        end_date: data.end_date,
+        repeat_enabled: data.repeat_enabled === true,
         days: ((data.program_days ?? []) as unknown as Row[]).map((d) => ({
           id: d.id,
           day_index: d.day_index,

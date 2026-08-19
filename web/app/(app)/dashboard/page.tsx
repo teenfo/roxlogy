@@ -4,7 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
 import { getRaceBenchmarks } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
-import { formatDate, formatDateShortYear, formatMs } from "@/lib/format";
+import {
+  formatDate,
+  formatDateShortYear,
+  formatMs,
+  programDayNumber,
+} from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { CorrelationLine, TrendBars } from "@/components/charts";
 import { RehearsalReport } from "@/components/rehearsal-report";
@@ -75,7 +80,7 @@ export default async function DashboardPage() {
       .from("program_enrollments")
       .select(
         `start_date,
-         programs ( id, title,
+         programs ( id, title, end_date, repeat_enabled,
            program_days ( day_index, focus,
              workout_templates ( id, title, type ) ) )`,
       )
@@ -111,6 +116,8 @@ export default async function DashboardPage() {
     programs: {
       id: string;
       title: string;
+      end_date: string | null;
+      repeat_enabled: boolean;
       program_days: {
         day_index: number;
         focus: string | null;
@@ -130,8 +137,23 @@ export default async function DashboardPage() {
     const start = new Date(enroll.start_date + "T00:00:00");
     const nowMid = new Date();
     nowMid.setHours(0, 0, 0, 0);
-    const dayNumber =
-      Math.floor((nowMid.getTime() - start.getTime()) / 86400000) + 1;
+    const daysSince = Math.floor((nowMid.getTime() - start.getTime()) / 86400000);
+    const cycleLen = enroll.programs.program_days.reduce(
+      (m, d) => Math.max(m, d.day_index),
+      0,
+    );
+    const pastEnd =
+      enroll.programs.repeat_enabled &&
+      !!enroll.programs.end_date &&
+      nowMid.getTime() >
+        new Date(enroll.programs.end_date + "T00:00:00").getTime();
+    const dayNumber = pastEnd
+      ? -1
+      : (programDayNumber(
+          daysSince,
+          cycleLen,
+          enroll.programs.repeat_enabled,
+        ) ?? -1);
     if (dayNumber >= 1) {
       const day = enroll.programs.program_days.find(
         (d) => d.day_index === dayNumber,

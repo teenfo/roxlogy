@@ -45,7 +45,7 @@ class WodClient(
     suspend fun loadToday(access: String, koreanNames: Boolean = true): Wod? =
         withContext(Dispatchers.IO) {
             val select =
-                "start_date,programs(id,title,program_days(day_index," +
+                "start_date,programs(id,title,end_date,repeat_enabled,program_days(day_index," +
                     "workout_templates(id,title,workout_template_items(id,seq,target," +
                     "exercises(id,name_ko,name_en)))))"
             val url = "${SupabaseConfig.REST_URL}/program_enrollments".toHttpUrl().newBuilder()
@@ -61,8 +61,22 @@ class WodClient(
 
             val start = runCatching { LocalDate.parse(enroll.start_date) }.getOrNull()
                 ?: return@withContext null
-            val dayNumber = (ChronoUnit.DAYS.between(start, LocalDate.now()) + 1).toInt()
-            if (dayNumber < 1) return@withContext null
+            val today = LocalDate.now()
+            val daysSince = ChronoUnit.DAYS.between(start, today).toInt()
+            if (daysSince < 0) return@withContext null
+            // 반복 프로그램: 사이클(max day_index)로 순환, 종료일 이후는 스케줄 없음 (웹과 동일 규칙)
+            val cycleLen = program.program_days.maxOfOrNull { it.day_index } ?: 0
+            val endDate = program.end_date?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            if (program.repeat_enabled && endDate != null && today.isAfter(endDate)) {
+                return@withContext null
+            }
+            val dayNumber =
+                if (program.repeat_enabled) {
+                    if (cycleLen <= 0) return@withContext null
+                    (daysSince % cycleLen) + 1
+                } else {
+                    daysSince + 1
+                }
             val day = program.program_days.firstOrNull { it.day_index == dayNumber }
                 ?: return@withContext null
             val template = day.workout_templates.firstOrNull() ?: return@withContext null
@@ -179,6 +193,8 @@ class WodClient(
     private data class ProgramRow(
         val id: String,
         val title: String,
+        val end_date: String? = null,
+        val repeat_enabled: Boolean = false,
         val program_days: List<DayRow> = emptyList(),
     )
 

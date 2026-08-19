@@ -5,24 +5,30 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 
-/** 소유자용: 프로그램 시작·종료일 편집. 저장 시 각 일차 날짜가 갱신된다. */
+/** 소유자용: 프로그램 시작·종료일·반복 편집. 저장 시 각 일차 날짜가 갱신된다. */
 export function ProgramDatesEditor({
   programId,
   initialStart,
   initialEnd,
+  initialRepeat = false,
 }: {
   programId: string;
   initialStart: string | null;
   initialEnd: string | null;
+  initialRepeat?: boolean;
 }) {
   const router = useRouter();
   const { t } = useI18n();
   const [start, setStart] = useState(initialStart ?? "");
   const [end, setEnd] = useState(initialEnd ?? "");
+  const [repeat, setRepeat] = useState(initialRepeat);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
 
-  const dirty = start !== (initialStart ?? "") || end !== (initialEnd ?? "");
+  const dirty =
+    start !== (initialStart ?? "") ||
+    end !== (initialEnd ?? "") ||
+    repeat !== initialRepeat;
 
   async function save() {
     setPending(true);
@@ -30,7 +36,11 @@ export function ProgramDatesEditor({
     const supabase = createClient();
     const { error } = await supabase
       .from("programs")
-      .update({ start_date: start || null, end_date: end || null })
+      .update({
+        start_date: start || null,
+        end_date: end || null,
+        repeat_enabled: repeat,
+      })
       .eq("id", programId);
     setPending(false);
     if (!error) {
@@ -69,6 +79,17 @@ export function ProgramDatesEditor({
           className={inputCls}
         />
       </label>
+      <label className="flex items-center gap-2 pb-2 text-sm">
+        <input
+          type="checkbox"
+          checked={repeat}
+          onChange={(e) => {
+            setRepeat(e.target.checked);
+            setSaved(false);
+          }}
+        />
+        {t("programs.repeatLabel")}
+      </label>
       <button
         type="button"
         onClick={save}
@@ -79,6 +100,9 @@ export function ProgramDatesEditor({
       </button>
       {saved && !dirty && (
         <span className="text-xs text-track">{t("profile.saved")}</span>
+      )}
+      {repeat && (
+        <p className="w-full text-xs text-muted">{t("programs.repeatHint")}</p>
       )}
     </div>
   );

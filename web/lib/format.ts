@@ -76,6 +76,22 @@ export function programDayDate(
   });
 }
 
+/**
+ * 시작일로부터 daysSince(0-based)일째의 프로그램 일차(1-based).
+ * repeat 면 사이클(max day_index)로 순환한다. 시작 전이면 null.
+ * 스케줄·대시보드·오늘의 WOD·캘린더가 모두 이 규칙을 공유한다.
+ */
+export function programDayNumber(
+  daysSince: number,
+  cycleLen: number,
+  repeat: boolean,
+): number | null {
+  if (daysSince < 0) return null;
+  if (!repeat) return daysSince + 1;
+  if (cycleLen <= 0) return null;
+  return (daysSince % cycleLen) + 1;
+}
+
 /** "mm:ss" / "h:mm:ss" → ms. 잘못된 입력이면 null */
 export function parseTimeToMs(input: string): number | null {
   const t = input.trim();

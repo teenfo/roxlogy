@@ -14,8 +14,8 @@ android {
         applicationId = "app.roxlogy.android"
         minSdk = 30            // Wear OS 3
         targetSdk = 34
-        versionCode = 30
-        versionName = "0.6.16"
+        versionCode = 31
+        versionName = "0.6.17"
     }
 
     signingConfigs {

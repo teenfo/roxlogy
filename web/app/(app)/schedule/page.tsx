@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { formatDateShort } from "@/lib/format";
+import { formatDateShort, programDayNumber } from "@/lib/format";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -14,6 +14,8 @@ type EnrollProgram = {
   programs: {
     id: string;
     title: string;
+    end_date: string | null;
+    repeat_enabled: boolean;
     program_days: {
       day_index: number;
       focus: string | null;
@@ -44,7 +46,7 @@ export default async function SchedulePage({
     .from("program_enrollments")
     .select(
       `start_date,
-       programs ( id, title,
+       programs ( id, title, end_date, repeat_enabled,
          program_days ( day_index, focus,
            workout_templates ( id, title, type ) ) )`,
     )
@@ -117,6 +119,14 @@ export default async function SchedulePage({
 
   const start = midnight(new Date(enroll.start_date + "T00:00:00"));
   const today = midnight(new Date());
+  const cycleLen = enroll.programs.program_days.reduce(
+    (m, d) => Math.max(m, d.day_index),
+    0,
+  );
+  const repeat = enroll.programs.repeat_enabled;
+  const endAt = enroll.programs.end_date
+    ? midnight(new Date(enroll.programs.end_date + "T00:00:00"))
+    : null;
 
   // 이번 주(월요일 시작) + weekOffset
   const base = midnight(new Date());
@@ -124,8 +134,11 @@ export default async function SchedulePage({
   const week7 = Array.from({ length: 7 }, (_, i) => {
     const date = midnight(new Date(base));
     date.setDate(base.getDate() + i);
-    const dayIndex =
-      Math.floor((date.getTime() - start.getTime()) / 86400000) + 1;
+    const daysSince = Math.floor((date.getTime() - start.getTime()) / 86400000);
+    const pastEnd = repeat && endAt !== null && date.getTime() > endAt.getTime();
+    const dayIndex = pastEnd
+      ? -1
+      : (programDayNumber(daysSince, cycleLen, repeat) ?? -1);
     const day = dayIndex >= 1 ? (dayMap.get(dayIndex) ?? null) : null;
     const doneSessionId = day
       ? (day.workout_templates

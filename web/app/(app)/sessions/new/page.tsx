@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import { programDayNumber } from "@/lib/format";
 import {
   SessionNewForm,
   type TodayWorkout,
@@ -13,6 +14,8 @@ export async function generateMetadata() {
 type EnrollProgram = {
   start_date: string;
   programs: {
+    end_date: string | null;
+    repeat_enabled: boolean;
     program_days: {
       day_index: number;
       workout_templates: { id: string; title: string }[];
@@ -28,7 +31,8 @@ export default async function SessionNewPage() {
     .from("program_enrollments")
     .select(
       `start_date,
-       programs ( program_days ( day_index, workout_templates ( id, title ) ) )`,
+       programs ( end_date, repeat_enabled,
+         program_days ( day_index, workout_templates ( id, title ) ) )`,
     )
     .eq("active", true)
     .maybeSingle();
@@ -39,8 +43,23 @@ export default async function SessionNewPage() {
     const start = new Date(enroll.start_date + "T00:00:00");
     const nowMid = new Date();
     nowMid.setHours(0, 0, 0, 0);
-    const dayNumber =
-      Math.floor((nowMid.getTime() - start.getTime()) / 86400000) + 1;
+    const daysSince = Math.floor((nowMid.getTime() - start.getTime()) / 86400000);
+    const cycleLen = enroll.programs.program_days.reduce(
+      (m, d) => Math.max(m, d.day_index),
+      0,
+    );
+    const pastEnd =
+      enroll.programs.repeat_enabled &&
+      !!enroll.programs.end_date &&
+      nowMid.getTime() >
+        new Date(enroll.programs.end_date + "T00:00:00").getTime();
+    const dayNumber = pastEnd
+      ? -1
+      : (programDayNumber(
+          daysSince,
+          cycleLen,
+          enroll.programs.repeat_enabled,
+        ) ?? -1);
     const day = enroll.programs.program_days.find(
       (d) => d.day_index === dayNumber,
     );

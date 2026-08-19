@@ -40,7 +40,7 @@ export default async function ProgramDetailPage({
   const { data: program } = await supabase
     .from("programs")
     .select(
-      `id, owner_id, title, description, weeks, level, is_public, start_date, end_date, calendar_token,
+      `id, owner_id, title, description, weeks, level, is_public, start_date, end_date, repeat_enabled, calendar_token,
        program_days (
          id, day_index, focus, notes,
          workout_templates (
@@ -139,6 +139,7 @@ export default async function ProgramDetailPage({
               <ProgramCalendarSubscribe
                 programId={program.id}
                 token={program.calendar_token}
+                isOwner={isOwner}
               />
             </>
           )}
@@ -156,6 +157,7 @@ export default async function ProgramDetailPage({
           programId={program.id}
           initialStart={program.start_date}
           initialEnd={program.end_date}
+          initialRepeat={program.repeat_enabled === true}
         />
       )}
 
