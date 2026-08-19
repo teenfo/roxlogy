@@ -6,6 +6,7 @@ import { getT } from "@/lib/i18n";
 import { formatDateShort, programDayDate } from "@/lib/format";
 import { ProgramBuilder } from "@/components/program-builder";
 import { ProgramDatesEditor } from "@/components/program-dates-editor";
+import { ProgramCalendarSubscribe } from "@/components/program-calendar-subscribe";
 import { ProgramEnrollButton } from "@/components/program-enroll-button";
 import { CloneProgramButton } from "@/components/clone-program-button";
 import { DeleteButton } from "@/components/delete-button";
@@ -39,7 +40,7 @@ export default async function ProgramDetailPage({
   const { data: program } = await supabase
     .from("programs")
     .select(
-      `id, owner_id, title, description, weeks, level, is_public, start_date, end_date,
+      `id, owner_id, title, description, weeks, level, is_public, start_date, end_date, calendar_token,
        program_days (
          id, day_index, focus, notes,
          workout_templates (
@@ -128,14 +129,23 @@ export default async function ProgramDetailPage({
             {formatDateShort(program.end_date, tag, tz)}
           </span>
           {program.start_date && (
-            <a
-              href={`/programs/${program.id}/calendar.ics`}
-              className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent"
-            >
-              📅 {t("programs.icsDownload")}
-            </a>
+            <>
+              <a
+                href={`/programs/${program.id}/calendar.ics`}
+                className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent"
+              >
+                📅 {t("programs.icsDownload")}
+              </a>
+              <ProgramCalendarSubscribe
+                programId={program.id}
+                token={program.calendar_token}
+              />
+            </>
           )}
         </p>
+      )}
+      {program.start_date && (
+        <p className="mt-1 text-xs text-muted">{t("programs.subscribeHint")}</p>
       )}
       {program.description && (
         <p className="mt-3 whitespace-pre-wrap text-sm">{program.description}</p>
