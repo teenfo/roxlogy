@@ -45,13 +45,15 @@ export default async function DashboardPage() {
       .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(60),
+    // 주의: shared 세션 세그먼트는 RLS 로 전체 공개(피드용) — 본인 필터 필수
     supabase
       .from("session_segments")
       .select(
-        "exercise_id, split_time_ms, sessions!inner ( deleted_at, started_at )",
+        "exercise_id, split_time_ms, sessions!inner ( user_id, deleted_at, started_at )",
       )
       .eq("kind", "station")
       .not("split_time_ms", "is", null)
+      .eq("sessions.user_id", user!.id)
       .is("sessions.deleted_at", null),
     // 레이스 시뮬(스테이션 포함) 세션만 — 상관 차트·리허설 대비용
     supabase

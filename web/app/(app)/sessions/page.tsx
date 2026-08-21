@@ -58,14 +58,16 @@ export default async function SessionsPage({
   if (type === "sim") {
     const { data: segRows } = await supabase
       .from("session_segments")
-      .select("session_id")
-      .eq("kind", "station");
+      .select("session_id, sessions!inner ( user_id )")
+      .eq("kind", "station")
+      .eq("sessions.user_id", user!.id);
     typeIds = [...new Set((segRows ?? []).map((r) => r.session_id))];
   } else if (type === "erg") {
     // 에르그 = 세그먼트가 머신(PM5) 하나뿐인 세션 — 배지 판정과 같은 기준
     const { data: segRows } = await supabase
       .from("session_segments")
-      .select("session_id, machine_type");
+      .select("session_id, machine_type, sessions!inner ( user_id )")
+      .eq("sessions.user_id", user!.id);
     const by = new Map<string, { total: number; machines: number }>();
     for (const r of segRows ?? []) {
       const cur = by.get(r.session_id) ?? { total: 0, machines: 0 };

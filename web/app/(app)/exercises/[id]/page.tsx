@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDateShort, formatMs } from "@/lib/format";
 import { RunLapLine } from "@/components/charts";
@@ -39,12 +40,15 @@ export default async function ExerciseDetailPage({
     .maybeSingle();
   if (!ex) notFound();
 
-  // 이 운동에 대한 내 세션 스플릿 추이 (RLS: 본인 세그먼트만 조회됨)
+  // 이 운동에 대한 내 세션 스플릿 추이 — shared 세션 세그먼트는 RLS 로
+  // 전체 공개(피드용)라 본인 필터가 필수다
+  const user = await getCachedUser();
   const { data: segRows } = await supabase
     .from("session_segments")
-    .select("split_time_ms, sessions!inner ( started_at, deleted_at )")
+    .select("split_time_ms, sessions!inner ( user_id, started_at, deleted_at )")
     .eq("exercise_id", id)
     .not("split_time_ms", "is", null)
+    .eq("sessions.user_id", user!.id)
     .is("sessions.deleted_at", null);
   type SegRow = {
     split_time_ms: number;
