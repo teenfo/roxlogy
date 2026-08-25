@@ -130,9 +130,12 @@ async function main() {
     console.log(`  sample: ${JSON.stringify(rows[0]).slice(0, 400)}`);
 
     const existing = await db(
-      `race_results?select=total_time_ms&user_id=eq.${p.id}`,
+      `race_results?select=id,total_time_ms,event_date,splits&user_id=eq.${p.id}`,
     );
     const known = new Set(existing.map((r) => r.total_time_ms));
+    // 연동 전 수동 기록과의 매칭: 대회 날짜 ±3일이면 같은 레이스로 본다
+    const dateNear = (a, b) =>
+      a && b && Math.abs((Date.parse(a) - Date.parse(b)) / 86400000) <= 3;
 
     for (const r of rows) {
       const total = pick(r, ["total_time_ms", "totalTimeMs", "total_ms"]);
@@ -142,7 +145,17 @@ async function main() {
       const eventDate = String(
         pick(r, ["event_date", "race_date", "date", "started_at"]) ?? "",
       ).slice(0, 10);
+      const validDate = /^\d{4}-\d{2}-\d{2}$/.test(eventDate) ? eventDate : null;
       const division = mapDivision(pick(r, ["division_name", "division"]));
+
+      // 같은 날짜대의 기존(수동) 기록이 있으면: 스플릿이 없는 기록은 공식 값으로
+      // 보강하고, 이미 완전한 기록은 중복 등록하지 않는다
+      const prior = validDate
+        ? existing.find((e) => dateNear(e.event_date, validDate))
+        : null;
+      const priorHasSplits =
+        prior && Object.keys(prior.splits?.stations ?? {}).length > 0;
+      if (prior && priorHasSplits) continue;
 
       let splits = { stations: {} };
       if (raceId != null) {
@@ -152,10 +165,29 @@ async function main() {
         splits = buildSplits(sp?.data);
       }
 
+      if (prior) {
+        if (DRY_RUN) {
+          console.log(`  DRY: would enrich existing record (${validDate})`);
+          continue;
+        }
+        await db(`race_results?id=eq.${prior.id}`, {
+          method: "PATCH",
+          headers: { prefer: "return=minimal" },
+          body: JSON.stringify({
+            total_time_ms: total,
+            division: division ?? undefined,
+            splits,
+          }),
+        });
+        known.add(total);
+        console.log(`  ✓ enriched existing record ${validDate} → ${total}ms`);
+        continue;
+      }
+
       const record = {
         user_id: p.id,
         event: eventName ?? "HYROX",
-        event_date: /^\d{4}-\d{2}-\d{2}$/.test(eventDate) ? eventDate : null,
+        event_date: validDate,
         division,
         total_time_ms: total,
         splits,
