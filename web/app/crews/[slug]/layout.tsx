@@ -23,6 +23,7 @@ export default async function CrewLayout({
 
   const tabs = [
     { href: `/crews/${slug}`, label: t("crew.about") },
+    { href: `/crews/${slug}/schedule`, label: t("crew.schedTab") },
     { href: `/crews/${slug}/board`, label: t("crew.board") },
     { href: `/crews/${slug}/leaderboard`, label: t("crew.leaderboard") },
     { href: `/crews/${slug}/members`, label: t("crew.roster") },

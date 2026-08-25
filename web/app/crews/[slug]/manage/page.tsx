@@ -10,6 +10,11 @@ import {
   CrewMemberManage,
   type ManageMember,
 } from "@/components/crew-manage";
+import {
+  CrewProgramAttach,
+  type AttachedProgram,
+  type PickableProgram,
+} from "@/components/crew-program-attach";
 
 export default async function CrewManagePage({
   params,
@@ -28,18 +33,40 @@ export default async function CrewManagePage({
 
   const supabase = await createClient();
   // 정보 폼 초기값 — crew_overview 에 없는 join_policy/is_public 은 테이블에서 직접 (멤버 RLS 허용)
-  const [{ data: row }, { data: roster }] = await Promise.all([
-    supabase
-      .from("crews")
-      .select(
-        "id, slug, name, tagline, description, location, links, logo_url, cover_url, join_policy, is_public",
-      )
-      .eq("slug", slug)
-      .maybeSingle(),
-    supabase.rpc("crew_manage_roster", { p_slug: slug }),
-  ]);
+  const [{ data: row }, { data: roster }, { data: attachedRows }, { data: progRows }] =
+    await Promise.all([
+      supabase
+        .from("crews")
+        .select(
+          "id, slug, name, tagline, description, location, links, logo_url, cover_url, join_policy, is_public",
+        )
+        .eq("slug", slug)
+        .maybeSingle(),
+      supabase.rpc("crew_manage_roster", { p_slug: slug }),
+      supabase
+        .from("crew_program_enrollments")
+        .select("program_id, start_date, end_date, programs ( title )")
+        .eq("crew_id", crew.id)
+        .order("start_date"),
+      supabase.from("programs").select("id, title").order("created_at"),
+    ]);
   if (!row) notFound();
   const members = (roster ?? []) as ManageMember[];
+  type AttachedRow = {
+    program_id: string;
+    start_date: string;
+    end_date: string | null;
+    programs: { title: string } | null;
+  };
+  const attached: AttachedProgram[] = (
+    (attachedRows ?? []) as unknown as AttachedRow[]
+  ).map((a) => ({
+    program_id: a.program_id,
+    start_date: a.start_date,
+    end_date: a.end_date,
+    title: a.programs?.title ?? "—",
+  }));
+  const pickable = (progRows ?? []) as PickableProgram[];
 
   return (
     <main className="flex flex-col gap-10">
@@ -61,6 +88,17 @@ export default async function CrewManagePage({
         <h2 className="text-lg font-bold">{t("crew.manageInfo")}</h2>
         <div className="mt-3 max-w-lg">
           <CrewInfoForm crew={row} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-bold">{t("crew.progAttach")}</h2>
+        <div className="mt-3">
+          <CrewProgramAttach
+            crewId={crew.id}
+            attached={attached}
+            programs={pickable}
+          />
         </div>
       </section>
 
