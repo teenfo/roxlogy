@@ -423,10 +423,20 @@ async function loadSource() {
           c.city === r.city && c.start_date && r.start_date && near(c, r),
       );
     const fresh = apiRows.filter((r) => !dupOfCurated(r));
-    const rows = [...curated, ...fresh];
+    // (name, season) 충돌 시 API 실측이 큐레이션(조사 시점 날짜)을 덮어쓴다 —
+    // 같은 키가 한 upsert 에 두 번 있으면 Postgres ON CONFLICT 가 거부한다.
+    const byKey = new Map(curated.map((r) => [`${r.name}|${r.season}`, r]));
+    let replaced = 0;
+    for (const r of fresh) {
+      const k = `${r.name}|${r.season}`;
+      if (byKey.has(k)) replaced++;
+      byKey.set(k, r);
+    }
+    const rows = [...byKey.values()];
     console.log(
       `result api: ${raw.length} division-rows → ${apiRows.length} weekends ` +
-        `(${apiRows.length - fresh.length} dup vs curated) + curated ${curated.length} → ${rows.length}`,
+        `(${apiRows.length - fresh.length} dup vs curated, ${replaced} replaced) ` +
+        `+ curated ${curated.length} → ${rows.length}`,
     );
     return { from: `${RESULT_API_BASE}/events + curated json`, rows };
   }
