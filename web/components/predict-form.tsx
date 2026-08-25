@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMs, parseTimeToMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
@@ -14,6 +14,11 @@ import {
   type Level,
 } from "@/lib/predict";
 import { percentileOfBest, type Benchmark } from "@/lib/percentile";
+import {
+  mapApiDivision,
+  percentileWithin,
+  type EventDivisionStat,
+} from "@/lib/event-stats";
 import { InfoTip } from "@/components/info-tip";
 import { useI18n } from "@/components/i18n-provider";
 
@@ -108,6 +113,38 @@ export function PredictForm({
     eventChoice && eventChoice !== "custom"
       ? upcomingEvents.find((e) => e.id === eventChoice)
       : null;
+
+  // 목표 대회의 실측 통계 (지난 회차 포함) — 선택 시 서버 프록시에서 로드
+  const [eventStats, setEventStats] = useState<{
+    source: string;
+    label: string;
+    divisions: EventDivisionStat[];
+  } | null>(null);
+  useEffect(() => {
+    setEventStats(null);
+    if (!chosenEvent) return;
+    let cancelled = false;
+    fetch(`/api/events/${chosenEvent.id}/stats`)
+      .then((r) => r.json())
+      .then((b) => {
+        if (!cancelled) setEventStats(b.stats ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [chosenEvent?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 선택 디비전에 해당하는 대회 통계 행 (없으면 open, 그래도 없으면 첫 행)
+  const eventDivStat = useMemo(() => {
+    if (!eventStats?.divisions.length) return null;
+    const want = division || "open";
+    return (
+      eventStats.divisions.find((d) => mapApiDivision(d.label) === want) ??
+      eventStats.divisions.find((d) => mapApiDivision(d.label) === "open") ??
+      eventStats.divisions[0]
+    );
+  }, [eventStats, division]);
   const goalEventName = chosenEvent
     ? `${chosenEvent.name} · ${chosenEvent.city}`
     : eventChoice === "custom"
@@ -138,6 +175,10 @@ export function PredictForm({
         : null,
     [targetMs, division, gender, ageGroup, benchmarks],
   );
+  const eventPct =
+    targetMs != null && eventDivStat
+      ? percentileWithin(targetMs, eventDivStat)
+      : null;
 
   // 조정 패널 상태 (로그인 시). null이면 아직 미개시 → 제안값으로 시드.
   // 수정 모드면 저장된 목표값으로 시드.
@@ -328,6 +369,27 @@ export function PredictForm({
             <p className="mt-1 text-xs text-muted">
               {t("predict.personalNote", { n: sessions.length })}
             </p>
+          )}
+          {eventDivStat && (
+            <div className="mt-3 rounded-md border border-track/30 bg-surface/60 px-4 py-3">
+              <p className="text-xs font-semibold text-track">
+                {eventStats!.source === "this"
+                  ? t("predict.eventStatThis", { label: eventStats!.label })
+                  : t("predict.eventStatPrev", { label: eventStats!.label })}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {t("predict.eventStatLine", {
+                  division: eventDivStat.label,
+                  n: eventDivStat.count,
+                  median: formatMs(eventDivStat.medianMs),
+                })}
+                {eventPct != null && (
+                  <span className="ml-1 font-semibold text-accent">
+                    {t("predict.eventStatPct", { pct: eventPct })}
+                  </span>
+                )}
+              </p>
+            </div>
           )}
 
           <section className="mt-6 grid grid-cols-3 gap-3">

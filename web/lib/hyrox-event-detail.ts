@@ -52,15 +52,8 @@ type ApiEventRow = {
   results_count: number | null;
 };
 
-export type EventDivisionStat = {
-  label: string; // API 디비전 이름 (예: "HYROX PRO - Saturday")
-  count: number;
-  medianMs: number | null;
-  p10Ms: number | null;
-  p25Ms: number | null;
-  p75Ms: number | null;
-  p90Ms: number | null;
-};
+import type { EventDivisionStat } from "@/lib/event-stats";
+export type { EventDivisionStat } from "@/lib/event-stats";
 
 export type EventLiveDetail = {
   phase: "scheduled" | "racing" | "finished" | "unknown" | null;
@@ -180,29 +173,85 @@ export async function getEventLiveDetail(row: {
   }
 }
 
-/** p10~p90 브레이크포인트에서 목표 시간의 백분위 보간 (상위 %) */
-export function percentileWithin(
-  targetMs: number,
-  s: EventDivisionStat,
-): number | null {
-  const pts: [number, number][] = [];
-  if (s.p10Ms != null) pts.push([10, s.p10Ms]);
-  if (s.p25Ms != null) pts.push([25, s.p25Ms]);
-  if (s.medianMs != null) pts.push([50, s.medianMs]);
-  if (s.p75Ms != null) pts.push([75, s.p75Ms]);
-  if (s.p90Ms != null) pts.push([90, s.p90Ms]);
-  if (pts.length < 2) return null;
-  if (targetMs <= pts[0][1])
-    return Math.max(1, Math.round((targetMs / pts[0][1]) * pts[0][0]));
-  const last = pts[pts.length - 1];
-  if (targetMs >= last[1]) return last[0];
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [pA, tA] = pts[i];
-    const [pB, tB] = pts[i + 1];
-    if (targetMs >= tA && targetMs <= tB) {
-      const cdf = tB === tA ? pB : pA + ((pB - pA) * (targetMs - tA)) / (tB - tA);
-      return Math.round(cdf);
-    }
+export { percentileWithin } from "@/lib/event-stats";
+
+/** 같은 도시의 가장 최근 "결과 있는" 회차 통계 — 미래 대회의 참고 실측용.
+ *  현재+직전 시즌 이벤트를 훑어 도시가 일치하는 최신 주말의 상위 디비전 통계를 준다. */
+export async function getCityLatestStats(
+  cityCandidates: string[],
+): Promise<{ label: string; divisions: EventDivisionStat[] } | null> {
+  if (!process.env.HYROX_RESULT_API_TOKEN || !cityCandidates.length) return null;
+  // 한국어 표기 후보는 영문으로도 확장 (큐레이션 행 대응)
+  const allCandidates = [
+    ...cityCandidates,
+    ...cityCandidates.map((c) => EN_BY_KO[c]).filter((c): c is string => !!c),
+  ];
+  const key = allCandidates[0].toLowerCase();
+  const cached = unstable_cache(
+    async () => {
+      const wanted = allCandidates.map((c) => c.toLowerCase());
+      const rows: ApiEventRow[] = [];
+      for (const season of ["season-9", "season-8"]) {
+        const json = (await apiGet(
+          `/events?season=${season}&per_page=100`,
+        )) as { data?: ApiEventRow[] } | null;
+        for (const e of json?.data ?? []) {
+          if (
+            wanted.includes(stripYear(e.city).toLowerCase()) &&
+            (e.results_count ?? 0) > 0
+          )
+            rows.push(e);
+        }
+        if (rows.length) break; // 현 시즌에 있으면 충분
+      }
+      if (!rows.length) return null;
+      // 최신 주말 클러스터
+      const latestStart = rows
+        .map((e) => e.start_date ?? "")
+        .sort()
+        .at(-1);
+      const cluster = rows
+        .filter((e) => e.start_date === latestStart)
+        .sort((a, b) => (b.results_count ?? 0) - (a.results_count ?? 0))
+        .slice(0, 4);
+      const stats = await Promise.all(
+        cluster.map((e) => apiGet(`/stats/divisions/${e.id}`)),
+      );
+      const divisions: EventDivisionStat[] = [];
+      cluster.forEach((e, i) => {
+        const row = (stats[i] as {
+          data?: {
+            divisions?: {
+              count: number;
+              median_total_time_ms: number | null;
+              p10_total_time_ms: number | null;
+              p25_total_time_ms: number | null;
+              p75_total_time_ms: number | null;
+              p90_total_time_ms: number | null;
+            }[];
+          };
+        } | null)?.data?.divisions?.[0];
+        if (!row) return;
+        divisions.push({
+          label: e.name,
+          count: row.count,
+          medianMs: row.median_total_time_ms,
+          p10Ms: row.p10_total_time_ms,
+          p25Ms: row.p25_total_time_ms,
+          p75Ms: row.p75_total_time_ms,
+          p90Ms: row.p90_total_time_ms,
+        });
+      });
+      return divisions.length
+        ? { label: cluster[0] ? stripYear(cluster[0].city) + ` (${latestStart})` : "", divisions }
+        : null;
+    },
+    ["city-latest-stats", key],
+    { revalidate: 6 * 3600 },
+  );
+  try {
+    return await cached();
+  } catch {
+    return null;
   }
-  return null;
 }
