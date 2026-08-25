@@ -234,6 +234,7 @@ function aggregateResultApi(rawRows, seasonLabelById) {
       rows.push({
         name,
         city: cityKo,
+        api_city: g.cityRaw, // 상세 페이지의 API 이벤트 매칭용 (영문 원문)
         country: ISO2_KO[g.countryCode] ?? g.countryCode,
         region: REGION_BY_ISO2[g.countryCode] ?? null,
         venue: null,
@@ -380,6 +381,7 @@ function normalize(raw) {
   const row = {
     name: (raw.name ?? "").toString().trim(),
     city: (raw.city ?? "").toString().trim(),
+    api_city: raw.api_city ?? null,
     country: (raw.country ?? "").toString().trim(),
     region: raw.region ?? null,
     venue: raw.venue ?? null,

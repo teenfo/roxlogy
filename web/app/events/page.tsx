@@ -131,7 +131,12 @@ export default async function EventsPage({
                     >
                       <div>
                         <p className="text-sm font-semibold">
-                          {e.name}
+                          <Link
+                            href={`/events/${e.id}`}
+                            className="hover:text-accent hover:underline"
+                          >
+                            {e.name}
+                          </Link>
                           {e.country === "대한민국" && (
                             <span className="ml-2 rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent">
                               {t("events.koreaBadge")}
@@ -195,7 +200,13 @@ export default async function EventsPage({
                       className="flex items-center justify-between rounded-md bg-surface/60 px-4 py-3 text-muted"
                     >
                       <span className="text-sm">
-                        {e.name} — {e.city}, {e.country}
+                        <Link
+                          href={`/events/${e.id}`}
+                          className="hover:text-accent hover:underline"
+                        >
+                          {e.name}
+                        </Link>{" "}
+                        — {e.city}, {e.country}
                       </span>
                       <span className="text-xs">
                         {formatRange(
