@@ -63,6 +63,7 @@ export function PredictForm({
   editGoal = null,
   benchmarks = [],
   gender = null,
+  upcomingEvents = [],
 }: {
   isLoggedIn?: boolean;
   sessions?: PredictSession[];
@@ -72,6 +73,7 @@ export function PredictForm({
   editGoal?: EditGoal | null;
   benchmarks?: Benchmark[];
   gender?: string | null;
+  upcomingEvents?: { id: string; name: string; city: string; start_date: string }[];
 }) {
   const { t } = useI18n();
   const [targetText, setTargetText] = useState(
@@ -86,6 +88,34 @@ export function PredictForm({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
+
+  // 목표 대회 선택 — 공식 대회 목록에서 고르거나 직접 입력.
+  // props/수정 목표의 기존 값이 목록에 있으면 그 항목을, 아니면 직접 입력을 시드.
+  const initialEventName = editGoal?.event_name ?? eventName ?? "";
+  const initialEventDate = editGoal?.event_date ?? eventDate ?? "";
+  const matchedEvent = upcomingEvents.find(
+    (e) => initialEventName && initialEventName.startsWith(e.name),
+  );
+  const [eventChoice, setEventChoice] = useState<string>(
+    matchedEvent ? matchedEvent.id : initialEventName ? "custom" : "",
+  );
+  const [customEventName, setCustomEventName] = useState(initialEventName);
+  const [customEventDate, setCustomEventDate] = useState(initialEventDate);
+
+  const chosenEvent =
+    eventChoice && eventChoice !== "custom"
+      ? upcomingEvents.find((e) => e.id === eventChoice)
+      : null;
+  const goalEventName = chosenEvent
+    ? `${chosenEvent.name} · ${chosenEvent.city}`
+    : eventChoice === "custom"
+      ? customEventName.trim() || null
+      : null;
+  const goalEventDate = chosenEvent
+    ? chosenEvent.start_date
+    : eventChoice === "custom"
+      ? customEventDate || null
+      : null;
 
   const targetMs = useMemo(() => parseTimeToMs(targetText), [targetText]);
   // 내 세션 기록 → 개인 배분 프로필 (스테이션 비율·런 비중·록스존 비중)
@@ -207,8 +237,8 @@ export function PredictForm({
       target_total_ms: adjustedMs,
       level,
       division: division || null,
-      event_name: eventName,
-      event_date: eventDate,
+      event_name: goalEventName,
+      event_date: goalEventDate,
       run_total_ms: effRunTotalMs ?? 0,
       station_total_ms: stationTotal,
       roxzone_total_ms: parseTimeToMs(eff.rox) ?? 0,
@@ -230,12 +260,12 @@ export function PredictForm({
       <h1 className="text-2xl font-bold">{t("predict.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("predict.desc")}</p>
 
-      {eventName && (
+      {goalEventName && (
         <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-4 py-3">
           <p className="text-xs text-muted">{t("predict.forEvent")}</p>
           <p className="mt-0.5 text-sm font-semibold text-accent">
-            {eventName}
-            {eventDate ? ` · ${eventDate}` : ""}
+            {goalEventName}
+            {goalEventDate ? ` · ${goalEventDate}` : ""}
           </p>
         </div>
       )}
@@ -376,6 +406,53 @@ export function PredictForm({
               </div>
 
               <div className="mt-4 flex flex-wrap gap-4">
+                <label className="flex flex-col gap-1.5 text-sm text-muted">
+                  {t("predict.goalEvent")}
+                  <select
+                    value={eventChoice}
+                    onChange={(e) => {
+                      setEventChoice(e.target.value);
+                      setSaveState("idle");
+                    }}
+                    className="max-w-64 rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                  >
+                    <option value="">{t("predict.goalEventNone")}</option>
+                    {upcomingEvents.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.name} · {e.city} · {e.start_date}
+                      </option>
+                    ))}
+                    <option value="custom">{t("predict.goalEventCustom")}</option>
+                  </select>
+                </label>
+                {eventChoice === "custom" && (
+                  <>
+                    <label className="flex flex-col gap-1.5 text-sm text-muted">
+                      {t("predict.goalEventNamePh")}
+                      <input
+                        value={customEventName}
+                        onChange={(e) => {
+                          setCustomEventName(e.target.value);
+                          setSaveState("idle");
+                        }}
+                        maxLength={80}
+                        className="w-52 rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm text-muted">
+                      {t("predict.goalEventDate")}
+                      <input
+                        type="date"
+                        value={customEventDate}
+                        onChange={(e) => {
+                          setCustomEventDate(e.target.value);
+                          setSaveState("idle");
+                        }}
+                        className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                      />
+                    </label>
+                  </>
+                )}
                 <label className="flex flex-col gap-1.5 text-sm text-muted">
                   {t("newSession.division")}
                   <select

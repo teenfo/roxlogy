@@ -45,6 +45,13 @@ export default async function PredictPage({
   let editGoal: EditGoal | null = null;
   // 실측 백분위 분포 (공개 집계 — 비로그인도 표시)
   const benchmarks = await getRaceBenchmarks();
+  // 목표 대회 선택용 — 다가오는 공식 대회 (공개 테이블)
+  const { data: upcoming } = await supabase
+    .from("race_events")
+    .select("id, name, city, start_date")
+    .gte("start_date", new Date().toISOString().slice(0, 10))
+    .order("start_date")
+    .limit(50);
   if (user) {
     if (sp.goal) {
       const { data: g } = await supabase
@@ -167,6 +174,14 @@ export default async function PredictPage({
           editGoal={editGoal}
           benchmarks={benchmarks as Benchmark[]}
           gender={gender}
+          upcomingEvents={
+            (upcoming ?? []) as {
+              id: string;
+              name: string;
+              city: string;
+              start_date: string;
+            }[]
+          }
         />
       </div>
     </>
