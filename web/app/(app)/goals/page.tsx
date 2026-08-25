@@ -98,7 +98,11 @@ export default async function GoalsPage() {
                 <span className="rounded bg-background px-2 py-1">
                   {t("predict.runPerKm")}:{" "}
                   <span className="font-mono font-semibold text-track">
-                    {formatMs(g.run_total_ms)}
+                    {formatMs(
+                      g.run_total_ms != null
+                        ? Math.round(g.run_total_ms / 8)
+                        : g.run_total_ms,
+                    )}
                   </span>
                 </span>
                 <span className="rounded bg-background px-2 py-1">
