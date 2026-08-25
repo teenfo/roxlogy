@@ -287,6 +287,7 @@ const ko: Record<DictKey, string> = {
   "dash.rehGap": "차이",
   "dash.rehNote":
     "차이 = 실측 − 목표. 파란색이면 해당 스테이션에서 목표 스플릿을 앞섰다는 뜻입니다.",
+  "dash.crewSched": "크루 일정",
   "dash.recentTitle": "최근 세션",
   "dash.viewAll": "전체 보기",
   "dash.empty": "아직 기록된 세션이 없습니다.",

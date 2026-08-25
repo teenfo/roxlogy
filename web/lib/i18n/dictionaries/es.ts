@@ -287,6 +287,7 @@ const es: Record<DictKey, string> = {
   "dash.rehGap": "Dif.",
   "dash.rehNote":
     "Dif. = real − objetivo. Azul significa que superaste tu parcial objetivo en esa estación.",
+  "dash.crewSched": "Agenda del crew",
   "dash.recentTitle": "Sesiones recientes",
   "dash.viewAll": "Ver todas",
   "dash.empty": "Aún no hay sesiones registradas.",

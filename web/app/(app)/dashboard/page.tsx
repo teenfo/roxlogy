@@ -93,6 +93,41 @@ export default async function DashboardPage() {
   const all = sessions ?? [];
   const recent = all.slice(0, 3);
 
+  // 크루 일정: 내 활성 크루의 다가오는 14일 (모임·대회·프로그램)
+  type CrewCalRow = {
+    kind: "meetup" | "race" | "program";
+    on_date: string;
+    starts_at: string | null;
+    title: string;
+    member_name: string | null;
+    going_count: number | null;
+    my_status: string | null;
+  };
+  const { data: myCrews } = await supabase
+    .from("crew_members")
+    .select("crews ( slug, name )")
+    .eq("user_id", user!.id)
+    .eq("status", "active")
+    .limit(3);
+  type CrewRef = { slug: string; name: string };
+  const crewRefs = (myCrews ?? [])
+    .map((m) => (Array.isArray(m.crews) ? m.crews[0] : m.crews) as CrewRef | null)
+    .filter((c): c is CrewRef => !!c?.slug);
+  const agendaFrom = new Date().toISOString().slice(0, 10);
+  const agendaTo = new Date(Date.now() + 14 * 86400000)
+    .toISOString()
+    .slice(0, 10);
+  const crewAgenda: { crew: CrewRef; rows: CrewCalRow[] }[] = [];
+  for (const c of crewRefs.slice(0, 2)) {
+    const { data: calRows } = await supabase.rpc("crew_calendar", {
+      p_slug: c.slug,
+      p_from: agendaFrom,
+      p_to: agendaTo,
+    });
+    const rows = ((calRows ?? []) as CrewCalRow[]).slice(0, 5);
+    if (rows.length) crewAgenda.push({ crew: c, rows });
+  }
+
   // 최근 레이스 필드 대비 백분위 (공개 분포 기준) — races는 event_date 오름차순
   const raceList = (races ?? []) as {
     id: string;
@@ -387,6 +422,76 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      {/* 크루 일정 — 다가오는 14일 (모임·대회·프로그램) */}
+      {crewAgenda.map(({ crew, rows }) => (
+        <section key={crew.slug} className="mt-8">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-semibold">
+              {t("dash.crewSched")}{" "}
+              <span className="text-sm font-normal text-muted">
+                · {crew.name}
+              </span>
+            </h2>
+            <Link
+              href={`/crews/${crew.slug}/schedule`}
+              className="text-sm text-accent hover:underline"
+            >
+              {t("dash.viewAll")}
+            </Link>
+          </div>
+          <ul className="mt-3 flex flex-col gap-1.5">
+            {rows.map((r, i) => {
+              const kindCls = {
+                meetup: "bg-accent/15 text-accent",
+                race: "bg-track/15 text-track",
+                program: "bg-background text-muted",
+              }[r.kind];
+              const kindLabel = {
+                meetup: t("crew.schedKindMeetup"),
+                race: t("crew.schedKindRace"),
+                program: t("crew.schedKindProgram"),
+              }[r.kind];
+              return (
+                <li key={`${r.kind}-${r.on_date}-${i}`}>
+                  <Link
+                    href={`/crews/${crew.slug}/schedule`}
+                    className="flex min-w-0 items-center gap-2 rounded-md bg-surface px-3 py-2.5 hover:bg-surface/70"
+                  >
+                    <span className="shrink-0 text-xs font-semibold text-muted">
+                      {new Date(`${r.on_date}T00:00:00`).toLocaleDateString(
+                        tag,
+                        { month: "short", day: "numeric", weekday: "short" },
+                      )}
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${kindCls}`}
+                    >
+                      {kindLabel}
+                    </span>
+                    <span className="min-w-0 truncate text-sm">{r.title}</span>
+                    {r.kind === "race" && r.member_name && (
+                      <span className="shrink-0 text-xs text-track">
+                        {r.member_name}
+                      </span>
+                    )}
+                    {r.kind === "meetup" && (
+                      <span className="ml-auto shrink-0 text-xs text-muted">
+                        ✓ {r.going_count ?? 0}
+                        {r.my_status === "going" && (
+                          <span className="ml-1 text-accent">
+                            {t("crew.rsvpGoing")}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+
       {latestRace && latestRacePct != null && latestRace.division && (
         <PercentileBar
           pct={latestRacePct}
@@ -396,6 +501,49 @@ export default async function DashboardPage() {
           link={{ href: `/races/${latestRace.id}`, label: latestRace.event }}
         />
       )}
+
+      {/* 최근 세션 — 자주 쓰는 항목이라 차트들보다 위 */}
+      <section className="mt-8">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold">{t("dash.recentTitle")}</h2>
+          <Link href="/sessions" className="text-sm text-accent hover:underline">
+            {t("dash.viewAll")}
+          </Link>
+        </div>
+
+        {!recent.length ? (
+          <div className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
+            <p>{t("dash.empty")}</p>
+            <Link
+              href="/sessions/new"
+              className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+            >
+              {t("dash.recordFirst")}
+            </Link>
+          </div>
+        ) : (
+          <ul className="mt-4 flex flex-col gap-2">
+            {recent.map((s) => (
+              <li key={s.id}>
+                <Link
+                  href={`/sessions/${s.id}`}
+                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3 hover:bg-surface/70"
+                >
+                  <span className="text-sm">{formatDate(s.started_at, tag, tz)}</span>
+                  <span className="flex items-center gap-3 text-sm">
+                    <span className="text-muted">
+                      {t(`source.${s.source_device}` as Parameters<typeof t>[0])}
+                    </span>
+                    <span className="font-mono font-semibold">
+                      {formatMs(s.total_time_ms)}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {trend.length >= 2 && (
         <section className="mt-8">
@@ -441,48 +589,6 @@ export default async function DashboardPage() {
           </div>
         </section>
       )}
-
-      <section className="mt-8">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold">{t("dash.recentTitle")}</h2>
-          <Link href="/sessions" className="text-sm text-accent hover:underline">
-            {t("dash.viewAll")}
-          </Link>
-        </div>
-
-        {!recent.length ? (
-          <div className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-            <p>{t("dash.empty")}</p>
-            <Link
-              href="/sessions/new"
-              className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
-            >
-              {t("dash.recordFirst")}
-            </Link>
-          </div>
-        ) : (
-          <ul className="mt-4 flex flex-col gap-2">
-            {recent.map((s) => (
-              <li key={s.id}>
-                <Link
-                  href={`/sessions/${s.id}`}
-                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3 hover:bg-surface/70"
-                >
-                  <span className="text-sm">{formatDate(s.started_at, tag, tz)}</span>
-                  <span className="flex items-center gap-3 text-sm">
-                    <span className="text-muted">
-                      {t(`source.${s.source_device}` as Parameters<typeof t>[0])}
-                    </span>
-                    <span className="font-mono font-semibold">
-                      {formatMs(s.total_time_ms)}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
       <AiInsight kind="weekly" />
     </main>

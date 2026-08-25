@@ -291,6 +291,7 @@ const en = {
   "dash.rehGap": "Gap",
   "dash.rehNote":
     "Gap = actual − target. Blue means you beat your goal split on that station.",
+  "dash.crewSched": "Crew schedule",
   "dash.recentTitle": "Recent sessions",
   "dash.viewAll": "View all",
   "dash.empty": "No sessions recorded yet.",
