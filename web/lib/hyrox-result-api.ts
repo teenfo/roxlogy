@@ -159,7 +159,10 @@ export async function apiFetchRace(raceId: string): Promise<ParsedRace | null> {
   const roxzones: number[] = [];
   const stationsPlace: Record<string, number> = {};
   for (const s of splitsJson?.data ?? []) {
-    const key = String(s.canonical_key ?? "").toLowerCase();
+    // 구형 레이스는 "run1_time"/"ski_erg_time" 형태 — _time 접미 제거
+    const key = String(s.canonical_key ?? "")
+      .toLowerCase()
+      .replace(/_time$/, "");
     const ms = s.time_ms;
     if (ms == null) continue;
     const place =

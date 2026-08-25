@@ -84,7 +84,10 @@ function buildSplits(rows) {
   const runsPlace = [];
   const roxzones = [];
   for (const s of rows ?? []) {
-    const key = String(s.canonical_key ?? "").toLowerCase();
+    // 구형 레이스는 "run1_time"/"ski_erg_time" 형태 — _time 접미 제거
+    const key = String(s.canonical_key ?? "")
+      .toLowerCase()
+      .replace(/_time$/, "");
     const ms = s.time_ms;
     if (ms == null) continue;
     const place = Number(s.place ?? s.rank ?? s.position);
