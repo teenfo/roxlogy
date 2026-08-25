@@ -253,7 +253,7 @@ async function main() {
 
   for (const p of linked) {
     const existing = await db(
-      `race_results?select=id,total_time_ms,event_date,splits&user_id=eq.${p.id}`,
+      `race_results?select=id,total_time_ms,event_date,division,splits&user_id=eq.${p.id}`,
     );
     const known = new Set(existing.map((r) => r.total_time_ms));
     // 연동 전 수동 기록과의 매칭: 대회 날짜 ±3일이면 같은 레이스로 본다
@@ -297,7 +297,17 @@ async function main() {
         pick(r, ["event_date", "race_date", "date", "started_at"]) ?? "",
       ).slice(0, 10);
       const validDate = /^\d{4}-\d{2}-\d{2}$/.test(eventDate) ? eventDate : null;
-      const division = mapDivision(pick(r, ["division_name", "division"]));
+      // 더블은 sex 값으로 mixed 여부를 판별한다 (이벤트명엔 MIXED 가 없을 수 있음)
+      const sexRaw = String(pick(r, ["sex", "gender"]) ?? "").trim().toUpperCase();
+      const divRaw = pick(r, ["division_name", "division"]);
+      let division = mapDivision(divRaw);
+      if (division === "doubles" && /^(X|MX)$/.test(sexRaw))
+        division = "mixed_doubles";
+      if (division === "doubles" && sexRaw.includes("MIX"))
+        division = "mixed_doubles";
+      console.log(
+        `  row ${eventName ?? "?"}: div=${divRaw ?? "?"} sex=${sexRaw || "-"} → ${division ?? "?"}`,
+      );
 
       // 같은 레이스로 볼 기존 기록: 대회 날짜 ±3일 우선, 없으면 같은 총기록
       const prior =
@@ -310,20 +320,26 @@ async function main() {
         prior &&
         (Object.keys(prior.splits?.stations_place ?? {}).length > 0 ||
           (prior.splits?.runs_place?.length ?? 0) > 0);
-      // 스플릿·순위까지 다 있으면 완결 — 결과 행에 이미 있는 배번만
-      // 비어 있을 때 채우고 스킵 (추가 API 호출 없음)
+      // 스플릿·순위까지 다 있으면 완결 — 결과 행에서 값싸게 얻는 정보만
+      // (배번, sex 기반 디비전 교정) 비어 있을 때 채우고 스킵
       if (prior && priorHasSplits && priorHasPlaces) {
         const rowBib = String(pick(r, ["bib", "bib_number"]) ?? "").trim();
-        if (rowBib && prior.id != null && prior.splits?.bib == null && !DRY_RUN) {
+        const patch = {};
+        if (rowBib && prior.splits?.bib == null)
+          patch.splits = { ...(prior.splits ?? {}), bib: rowBib };
+        if (division && prior.division !== division)
+          patch.division = division;
+        if (prior.id != null && Object.keys(patch).length && !DRY_RUN) {
           await db(`race_results?id=eq.${prior.id}`, {
             method: "PATCH",
             headers: { prefer: "return=minimal" },
-            body: JSON.stringify({
-              splits: { ...(prior.splits ?? {}), bib: rowBib },
-            }),
+            body: JSON.stringify(patch),
           });
-          prior.splits = { ...(prior.splits ?? {}), bib: rowBib };
-          console.log(`  ✓ filled bib ${rowBib} for ${prior.id}`);
+          if (patch.splits) prior.splits = patch.splits;
+          if (patch.division) prior.division = patch.division;
+          console.log(
+            `  ✓ updated ${prior.id}: ${Object.keys(patch).join(", ")}`,
+          );
         }
         continue;
       }

@@ -134,6 +134,7 @@ type RaceDetail = {
   race_name: string | null;
   division_name: string | null;
   rank_overall?: number | null;
+  sex?: string | null;
 };
 
 /** 레이스 상세 + 스플릿 → ParsedRace (기존 임포트 파이프라인 계약) */
@@ -149,7 +150,11 @@ export async function apiFetchRace(raceId: string): Promise<ParsedRace | null> {
   const parsed: ParsedRace = { stations: {} };
   if (detail.race_name) parsed.event = detail.race_name;
   if (detail.total_time_ms != null) parsed.totalMs = detail.total_time_ms;
-  const div = mapDivision(detail.division_name);
+  let div = mapDivision(detail.division_name);
+  // 더블은 sex 값으로 mixed 여부 판별 (이벤트명엔 MIXED 가 없을 수 있음)
+  const sx = String(detail.sex ?? "").toUpperCase();
+  if (div === "doubles" && (/^(X|MX)$/.test(sx) || sx.includes("MIX")))
+    div = "mixed_doubles";
   if (div) parsed.division = div;
 
   if (detail.rank_overall != null) parsed.rankOverall = detail.rank_overall;
