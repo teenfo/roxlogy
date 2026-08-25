@@ -78,9 +78,24 @@ const STATION_BY_KEY = {
   sandbag_lunges: "lunges", lunges: "lunges", wall_balls: "wallballs",
 };
 
+/** canonical_key 가 낯선 형태일 때 원문 라벨로 스테이션을 분류하는 폴백 */
+function stationFromLabel(label) {
+  const l = String(label ?? "").toLowerCase();
+  if (!l) return null;
+  if (/ski/.test(l)) return "ski";
+  if (/sled\s*push/.test(l)) return "sledpush";
+  if (/sled\s*pull/.test(l)) return "sledpull";
+  if (/burpee/.test(l)) return "burpee";
+  if (/row/.test(l) && !/run/.test(l)) return "row";
+  if (/farmer/.test(l)) return "farmers";
+  if (/lunge/.test(l)) return "lunges";
+  if (/wall/.test(l)) return "wallballs";
+  return null;
+}
+
 /** 스플릿 행들 → race_results.splits jsonb (웹 상세 페이지 계약)
  *  place(스플릿별 필드 순위)가 있으면 stations_place/runs_place 로 함께 보존. */
-function buildSplits(rows) {
+function buildSplits(rows, unknownKeys) {
   const stations = {};
   const stationsPlace = {};
   const runs = [];
@@ -95,16 +110,24 @@ function buildSplits(rows) {
     if (ms == null) continue;
     const place = Number(s.place ?? s.rank ?? s.position);
     const hasPlace = Number.isFinite(place) && place > 0;
-    const run = key.match(/^run[_ ]?(\d)$/);
-    const rox = key.match(/^rox_?zone[_ ]?(\d)$/);
+    const label = String(s.label_original ?? s.label ?? "").toLowerCase();
+    const run =
+      key.match(/^run[_ ]?(\d)$/) ?? label.match(/^run(?:ning)?\s*(\d)$/);
+    const rox =
+      key.match(/^rox_?zone[_ ]?(\d)$/) ?? label.match(/^rox\s*zone\s*(\d)$/);
+    const stationKey = STATION_BY_KEY[key] ?? stationFromLabel(label);
     if (run) {
       runs[Number(run[1]) - 1] = ms;
       if (hasPlace) runsPlace[Number(run[1]) - 1] = place;
     } else if (rox) {
       roxzones[Number(rox[1]) - 1] = ms;
-    } else if (STATION_BY_KEY[key] && stations[STATION_BY_KEY[key]] == null) {
-      stations[STATION_BY_KEY[key]] = ms;
-      if (hasPlace) stationsPlace[STATION_BY_KEY[key]] = place;
+    } else if (stationKey) {
+      if (stations[stationKey] == null) {
+        stations[stationKey] = ms;
+        if (hasPlace) stationsPlace[stationKey] = place;
+      }
+    } else if (unknownKeys) {
+      unknownKeys.add(`${key}|${label}`);
     }
   }
   const runsClean = runs.filter((v) => v != null);
@@ -113,8 +136,7 @@ function buildSplits(rows) {
   if (runsClean.length === 8) {
     out.runs = runsClean;
     out.run_total_ms = runsClean.reduce((a, b) => a + b, 0);
-    if (runsPlace.filter((v) => v != null).length === 8)
-      out.runs_place = runsPlace;
+    if (runsPlace.some((v) => v != null)) out.runs_place = runsPlace;
   }
   if (Object.keys(stationsPlace).length) out.stations_place = stationsPlace;
   if (roxClean.length) out.roxzones = roxClean;
@@ -136,12 +158,37 @@ async function fetchEventInfo(slug) {
     info = {
       count: Number.isFinite(v) && v > 0 ? v : null,
       city: ev?.city ?? null,
+      name: ev?.name ?? null,
+      startDate: ev?.start_date ?? null,
+      endDate: ev?.end_date ?? null,
     };
   } catch {
     info = null;
   }
   eventInfoCache.set(slug, info);
   return info;
+}
+
+/** 이벤트 정보 → 레이스 날짜. results 행에 날짜가 없으므로 이벤트 주말
+ *  범위에서 유도한다 — 이벤트명에 요일("- Saturday")이 있으면 그 요일. */
+const WEEKDAY_IDX = {
+  sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+  thursday: 4, friday: 5, saturday: 6,
+};
+function eventDayFromInfo(info) {
+  if (!info?.startDate) return null;
+  const start = new Date(`${info.startDate}T00:00:00Z`);
+  const end = new Date(`${info.endDate ?? info.startDate}T00:00:00Z`);
+  if (Number.isNaN(start.getTime())) return null;
+  const m = String(info.name ?? "")
+    .toLowerCase()
+    .match(/(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/);
+  if (m && !Number.isNaN(end.getTime())) {
+    const want = WEEKDAY_IDX[m[1]];
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1))
+      if (d.getUTCDay() === want) return d.toISOString().slice(0, 10);
+  }
+  return String(info.startDate).slice(0, 10);
 }
 
 /** "season-9-…" 슬러그 → "2026/27 (S9)" (race_results.season 라벨 규약) */
@@ -272,13 +319,16 @@ async function main() {
       // /athletes/{athlete_id}/splits?result_id={id} 로 조회한다.
       // (race ID 직접 경로는 검색 히트의 id 전용)
       let splits = { stations: {} };
+      const unknownKeys = new Set();
       const athleteId = pick(r, ["athlete_id", "athleteId"]) ?? ref;
       if (raceId != null && athleteId) {
         const sp = await apiGet(
           `${RESULT_API_BASE}/athletes/${encodeURIComponent(String(athleteId))}/splits?result_id=${encodeURIComponent(String(raceId))}`,
         );
-        splits = buildSplits(sp?.data);
+        splits = buildSplits(sp?.data, unknownKeys);
       }
+      if (unknownKeys.size)
+        console.log(`  ! unmatched split keys: ${[...unknownKeys].join(", ")}`);
       const eventInfo = await fetchEventInfo(eventSlug);
       const fieldSize = eventInfo?.count ?? null;
       if (fieldSize != null) splits.field_size = fieldSize;
@@ -336,10 +386,11 @@ async function main() {
       const city = eventInfo?.city
         ? String(eventInfo.city).replace(/^\d{4}\s*/, "").trim()
         : null;
+      const finalDate = validDate ?? eventDayFromInfo(eventInfo);
       const record = {
         user_id: p.id,
         event: city ? `HYROX ${city}` : (eventName ?? "HYROX"),
-        event_date: validDate,
+        event_date: finalDate,
         division,
         season: seasonLabelFromSlug(eventSlug),
         total_time_ms: total,
@@ -357,7 +408,7 @@ async function main() {
       existing.push({
         id: null,
         total_time_ms: total,
-        event_date: validDate,
+        event_date: finalDate,
         splits,
       });
       await db("notifications", {
