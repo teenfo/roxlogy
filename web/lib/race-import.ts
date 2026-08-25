@@ -27,6 +27,8 @@ export type ParsedRace = {
   stationsPlace?: Record<string, number>;
   runsPlace?: (number | null)[];
   rankOverall?: number;
+  /** 배번 — HHMM+순번(4+2): 앞 4자리가 웨이브 출발시각 */
+  bib?: string;
 };
 
 export type RaceSegment = {

@@ -100,3 +100,54 @@ Content-Type: application/json
 
 - 네트워크 오류·5xx: 지수 백오프(2s, 4s, 8s… 최대 5회) 후 다음 동기화 주기로 이월. 멱등이므로 중복 전송 안전.
 - 4xx: 재시도하지 않는다 (401만 토큰 갱신 후 1회 재시도).
+
+---
+
+# 공식 레이스 기록 파이프라인 (HYROX Result API 연동)
+
+레이스 기록이 어떤 경로로 등록되든 아래 보강이 자동 적용된다 (2026-08-25 확정).
+
+## 등록 경로 3가지
+
+| 경로 | 트리거 | 담당 |
+|---|---|---|
+| CI 자동 임포트 | 주간 sync + push/dispatch | `scripts/sync-athlete-results.mjs` |
+| 웹 검색 임포트 | /races/new 이름 검색 → 가져오기 | `web/lib/hyrox-result-api.ts` → `race-new-form` |
+| 수동 등록 | /races/new 직접 입력 | 다음 주간 CI가 ±3일 날짜 매칭으로 공식 값 보강 |
+
+## CI 자동 임포트 (연동 사용자)
+
+profiles.hyrox_person_ref 연동자 대상. 연동 ref 하나로는 더블·릴레이(등록명이 달라
+ref가 갈라짐)를 못 보므로, **이름 검색(시즌 9→7)으로 이 인물의 모든 person_ref를
+수집**해 각각의 결과를 임포트한다. 동명이인 방지: 검색으로 발견한 ref의 결과 행은
+선수명에 본인 이름 포함 필수.
+
+레코드당 저장 항목:
+- 대회명: 이벤트 city에서 연도 제거 후 `HYROX {city}` (결과 행 event_name은 디비전×요일명이라 미사용)
+- 날짜: 결과 행에 없음 → 이벤트 주말 범위에서 유도 (이벤트명의 요일 우선, 없으면 시작일)
+- 디비전: division_name 정규식 + **더블은 검색 히트 sex(M/W/X)로 mixed 판별** (X→mixed_doubles)
+- 시즌: 이벤트 슬러그 `season-N` → `20XX/YY (SN)` 라벨
+- splits: stations/runs/roxzones + **stations_place/runs_place**(스플릿별 필드 순위) +
+  **field_size**(이벤트 완주자 수) + **rank_overall** + **bib**
+- 스플릿 조회: `/athletes/{athlete_id}/splits?result_id={결과행 id}` (구형 키 `run1_time` 등은 라벨 폴백 분류)
+- 알림(race_imported) 발송
+
+기존 기록 보강(멱등): ±3일 날짜(없으면 총기록 일치) 매칭 →
+스플릿 없으면 전체 보강, 스플릿만 있으면 place/field/bib 백필,
+결과 행에 bib 없으면 레이스 상세(`/athletes/{id}`)에서 재시도. 완결 기록은 스킵.
+
+## bib 규약 (4+2)
+
+`HHMM` + 2자리 순번 — 앞 4자리가 웨이브 출발시각(현지). 워치 실측으로 검증
+(선전 bib 151045 ↔ 15:10:05 시작). 레이스 상세 헤더에 BIB 배지 표시,
+레이스→세션 변환 시 세션 시작시각으로 사용 (`race-to-session-button`).
+
+## 세그먼트 분포 모달
+
+레이스 상세의 런/스테이션 클릭 → place/field_size 기반 정규분포 곡선 + 상위 N% +
+내 레이스들의 같은 세그먼트 추이. place 없으면 순위/추이만 표시 (우아한 폴백).
+
+## 주의
+
+- 레이스 삭제 시 연결 세션은 보존되고 race_result_id만 끊긴다 — 재임포트 후 총기록 매칭으로 재연결 필요
+- 서드파티 API는 구시즌·일부 기록에 bib/스플릿/요일이 빠질 수 있음 — 주간 sync가 재확인, 수동 입력한 bib은 덮어쓰지 않음

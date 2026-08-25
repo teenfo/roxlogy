@@ -135,6 +135,7 @@ type RaceDetail = {
   division_name: string | null;
   rank_overall?: number | null;
   sex?: string | null;
+  bib?: string | null;
 };
 
 /** 레이스 상세 + 스플릿 → ParsedRace (기존 임포트 파이프라인 계약) */
@@ -158,6 +159,8 @@ export async function apiFetchRace(raceId: string): Promise<ParsedRace | null> {
   if (div) parsed.division = div;
 
   if (detail.rank_overall != null) parsed.rankOverall = detail.rank_overall;
+  const bib = String(detail.bib ?? "").trim();
+  if (bib) parsed.bib = bib;
 
   const runs: number[] = [];
   const runsPlace: (number | null)[] = [];

@@ -80,7 +80,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   // Result API 임포트 부가 데이터 — 런 랩·록스존·스플릿별 필드 순위
   const [apiExtra, setApiExtra] = useState<Pick<
     ParsedRace,
-    "runs" | "roxzones" | "stationsPlace" | "runsPlace" | "rankOverall"
+    "runs" | "roxzones" | "stationsPlace" | "runsPlace" | "rankOverall" | "bib"
   > | null>(null);
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
@@ -210,6 +210,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       stationsPlace: parsed.stationsPlace,
       runsPlace: parsed.runsPlace,
       rankOverall: parsed.rankOverall,
+      bib: parsed.bib,
     });
     setSavedRaceId(null);
     setImported(true);
@@ -312,6 +313,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             ...(apiExtra?.rankOverall != null
               ? { rank_overall: apiExtra.rankOverall }
               : {}),
+            ...(apiExtra?.bib ? { bib: apiExtra.bib } : {}),
           },
         })
         .select("id")
