@@ -6,7 +6,7 @@ import { getCachedUser } from "@/lib/supabase/auth";
 import { STATIONS } from "@/lib/hyrox";
 import { formatDateShort } from "@/lib/format";
 import { getRaceBenchmarks } from "@/lib/cache";
-import type { Benchmark } from "@/lib/percentile";
+import { hyroxAgeGroup, type Benchmark } from "@/lib/percentile";
 import {
   PredictForm,
   type PredictSession,
@@ -42,6 +42,7 @@ export default async function PredictPage({
   let sessions: PredictSession[] = [];
   let isAdmin = false;
   let gender: string | null = null;
+  let ageGroup: string | null = null;
   let editGoal: EditGoal | null = null;
   // 실측 백분위 분포 (공개 집계 — 비로그인도 표시)
   const benchmarks = await getRaceBenchmarks();
@@ -65,11 +66,12 @@ export default async function PredictPage({
     }
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_admin, gender")
+      .select("is_admin, gender, birth_year")
       .eq("id", user.id)
       .maybeSingle();
     isAdmin = profile?.is_admin === true;
     gender = (profile?.gender as string | null) ?? null;
+    ageGroup = hyroxAgeGroup(profile?.birth_year as number | null);
     const { data: rows } = await supabase
       .from("sessions")
       .select(
@@ -174,6 +176,7 @@ export default async function PredictPage({
           editGoal={editGoal}
           benchmarks={benchmarks as Benchmark[]}
           gender={gender}
+          ageGroup={ageGroup}
           upcomingEvents={
             (upcoming ?? []) as {
               id: string;

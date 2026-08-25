@@ -13,7 +13,7 @@ import {
   LEVELS,
   type Level,
 } from "@/lib/predict";
-import { percentileOf, type Benchmark } from "@/lib/percentile";
+import { percentileOfBest, type Benchmark } from "@/lib/percentile";
 import { InfoTip } from "@/components/info-tip";
 import { useI18n } from "@/components/i18n-provider";
 
@@ -63,6 +63,7 @@ export function PredictForm({
   editGoal = null,
   benchmarks = [],
   gender = null,
+  ageGroup = null,
   upcomingEvents = [],
 }: {
   isLoggedIn?: boolean;
@@ -73,6 +74,7 @@ export function PredictForm({
   editGoal?: EditGoal | null;
   benchmarks?: Benchmark[];
   gender?: string | null;
+  ageGroup?: string | null;
   upcomingEvents?: { id: string; name: string; city: string; start_date: string }[];
 }) {
   const { t } = useI18n();
@@ -128,13 +130,13 @@ export function PredictForm({
     () => (targetMs != null ? achievabilityTier(targetMs, level) : null),
     [targetMs, level],
   );
-  // 실측 분포(race_benchmarks) 기준 상위 % — 디비전 미선택 시 open 기준
+  // 실측 분포(race_benchmarks) 기준 상위 % — 동연령대 버킷 우선, 없으면 전체
   const fieldPct = useMemo(
     () =>
       targetMs != null
-        ? percentileOf(targetMs, division || "open", gender, benchmarks)
+        ? percentileOfBest(targetMs, division || "open", gender, ageGroup, benchmarks)
         : null,
-    [targetMs, division, gender, benchmarks],
+    [targetMs, division, gender, ageGroup, benchmarks],
   );
 
   // 조정 패널 상태 (로그인 시). null이면 아직 미개시 → 제안값으로 시드.
@@ -316,7 +318,10 @@ export function PredictForm({
           )}
           {fieldPct != null && (
             <p className="mt-2 text-xs text-track">
-              📊 {t("predict.fieldPct", { pct: fieldPct })}
+              📊{" "}
+              {fieldPct.byAge && ageGroup
+                ? t("predict.fieldPctAge", { pct: fieldPct.pct, age: ageGroup })
+                : t("predict.fieldPct", { pct: fieldPct.pct })}
             </p>
           )}
           {result.personalized && (

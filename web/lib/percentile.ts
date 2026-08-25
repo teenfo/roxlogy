@@ -55,3 +55,31 @@ export function percentileOf(
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
+
+/** 출생연도 → HYROX 연령그룹 라벨 ("16-24", "25-29", … "70-74") */
+export function hyroxAgeGroup(
+  birthYear: number | null | undefined,
+): string | null {
+  if (!birthYear) return null;
+  const age = new Date().getFullYear() - birthYear;
+  if (age < 16 || age > 89) return null;
+  if (age <= 24) return "16-24";
+  const lo = Math.floor(age / 5) * 5;
+  return `${lo}-${lo + 4}`;
+}
+
+/** 연령그룹 벤치마크(scope='age:그룹')가 있으면 그것을, 없으면 overall 폴백 */
+export function percentileOfBest(
+  totalMs: number | null | undefined,
+  division: string | null | undefined,
+  gender: string | null | undefined,
+  ageGroup: string | null | undefined,
+  benchmarks: Benchmark[],
+): { pct: number; byAge: boolean } | null {
+  if (ageGroup) {
+    const p = percentileOf(totalMs, division, gender, benchmarks, `age:${ageGroup}`);
+    if (p != null) return { pct: p, byAge: true };
+  }
+  const p = percentileOf(totalMs, division, gender, benchmarks, "overall");
+  return p != null ? { pct: p, byAge: false } : null;
+}

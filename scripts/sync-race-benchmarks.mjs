@@ -123,9 +123,9 @@ async function main() {
   );
 
   // 대회별 통계 수집 → (디비전, 성별) 누적
-  const accs = new Map(); // `${division}|${gender}` → acc
-  const acc = (d, g) => {
-    const k = `${d}|${g}`;
+  const accs = new Map(); // `${division}|${gender}|${scope}` → acc
+  const acc = (d, g, scope = "overall") => {
+    const k = `${d}|${g}|${scope}`;
     if (!accs.has(k)) accs.set(k, makeAcc());
     return accs.get(k);
   };
@@ -141,6 +141,10 @@ async function main() {
       if (!gender) continue;
       accumulate(acc(division, gender), t, b.count);
       accumulate(acc(division, "all"), t, b.count);
+      // 연령그룹 버킷 — scope='age:<그룹>' 인코딩으로 별도 행 (예: age:30-34)
+      if (b.age_group) {
+        accumulate(acc(division, gender, `age:${b.age_group}`), t, b.count);
+      }
     }
     console.log(`  ✓ ${ev.name} @ ${ev.city} (${ev.results_count})`);
   }
@@ -148,11 +152,11 @@ async function main() {
   const rows = [];
   for (const [k, a] of accs) {
     if (a.n < MIN_SAMPLE) continue;
-    const [division, gender] = k.split("|");
+    const [division, gender, scope] = k.split("|");
     rows.push({
       division,
       gender,
-      scope: "overall",
+      scope: scope || "overall",
       percentiles: {
         p10: Math.round(a.p10),
         p25: Math.round(a.p25),

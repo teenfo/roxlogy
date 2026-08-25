@@ -15,6 +15,7 @@ type ProfileFields = {
   gender: string;
   height_cm: string;
   weight_kg: string;
+  birth_year: string;
   leaderboard_opt_in: boolean;
 };
 
@@ -60,6 +61,7 @@ export function ProfileForm({
         gender: fields.gender || null,
         height_cm: fields.height_cm ? Number(fields.height_cm) : null,
         weight_kg: fields.weight_kg ? Number(fields.weight_kg) : null,
+        birth_year: fields.birth_year ? Number(fields.birth_year) : null,
         leaderboard_opt_in: fields.leaderboard_opt_in,
       })
       .eq("id", user.id);
@@ -128,6 +130,18 @@ export function ProfileForm({
                 </option>
               ))}
             </select>
+          </label>
+          <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-muted">
+            {t("profile.birthYear")}
+            <input
+              type="number"
+              min={1920}
+              max={2020}
+              placeholder="1990"
+              value={fields.birth_year}
+              onChange={(e) => set("birth_year", e.target.value)}
+              className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+            />
           </label>
         </div>
 

@@ -547,6 +547,8 @@ const ko: Record<DictKey, string> = {
   "predict.goalEventNamePh": "대회명",
   "predict.goalEventDate": "대회 날짜",
   "predict.fieldPct": "이 목표는 실측 완주 기록 분포에서 상위 {pct}% 페이스입니다.",
+  "predict.fieldPctAge": "동연령대({age}) 실측 분포에서 상위 {pct}% 페이스입니다.",
+  "profile.birthYear": "출생연도",
   "predict.personalNote": "스테이션 제안은 내 세션 기록의 비율을 반영했습니다 ({n}개 세션 기준).",
   "predict.roxTotalField": "록스존 합계",
   "predict.saved": "목표 저장됨 ✓",

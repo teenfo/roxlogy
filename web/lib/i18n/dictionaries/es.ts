@@ -550,6 +550,8 @@ const es: Record<DictKey, string> = {
   "predict.goalEventNamePh": "Nombre de la carrera",
   "predict.goalEventDate": "Fecha de la carrera",
   "predict.fieldPct": "Este objetivo está en el top {pct}% de la distribución real de tiempos.",
+  "predict.fieldPctAge": "Top {pct}% del campo real en tu grupo de edad ({age}).",
+  "profile.birthYear": "Año de nacimiento",
   "predict.personalNote": "Las sugerencias de estaciones reflejan tus propios ratios ({n} sesiones).",
   "predict.roxTotalField": "Total roxzone",
   "predict.saved": "Objetivo guardado ✓",

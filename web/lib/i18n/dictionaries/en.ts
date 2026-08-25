@@ -559,6 +559,8 @@ const en = {
   "predict.goalEventNamePh": "Race name",
   "predict.goalEventDate": "Race date",
   "predict.fieldPct": "This target sits in the top {pct}% of the real finish-time distribution.",
+  "predict.fieldPctAge": "Top {pct}% of the measured field in your age group ({age}).",
+  "profile.birthYear": "Birth year",
   "predict.personalNote": "Station split suggestions reflect your own recorded ratios ({n} sessions).",
   "predict.roxTotalField": "Roxzone total",
   "predict.saved": "Goal saved ✓",
