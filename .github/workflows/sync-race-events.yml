@@ -46,3 +46,13 @@ jobs:
             exit 0
           fi
           node scripts/sync-race-events.mjs
+      - name: Sync race benchmarks
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          HYROX_RESULT_API_TOKEN: ${{ secrets.HYROX_RESULT_API_TOKEN || inputs.api_token }}
+          SYNC_DRY_RUN: ${{ inputs.dry_run == true && '1' || '' }}
+        run: |
+          if [ -n "$HYROX_RESULT_API_TOKEN" ]; then
+            echo "::add-mask::$HYROX_RESULT_API_TOKEN"
+          fi
+          node scripts/sync-race-benchmarks.mjs

@@ -7,6 +7,7 @@ import {
   type SearchFilters,
   type Season,
 } from "@/lib/hyrox-results";
+import { apiSearchAthletes, resultApiEnabled } from "@/lib/hyrox-result-api";
 
 /**
  * 공식 결과 사이트에서 본인 결과 검색 — 로그인 필수, 1회성 조회.
@@ -51,6 +52,24 @@ export async function POST(request: Request) {
   const division = body.division?.trim() || undefined;
   const sex = body.sex === "M" || body.sex === "W" ? body.sex : undefined;
   if (lastName.length < 2) return NextResponse.json({ hits: [] });
+
+  // Result API 구독이 설정돼 있으면 스크래핑 대신 공식 JSON API 사용
+  if (resultApiEnabled()) {
+    const apiAttempts = [
+      { season, lastName, firstName: firstName || undefined },
+      ...(firstName ? [{ season, lastName: firstName, firstName: lastName }] : []),
+    ];
+    for (const a of apiAttempts) {
+      try {
+        const hits = await apiSearchAthletes(a);
+        if (hits.length)
+          return NextResponse.json({ hits, firstNameMiss: false });
+      } catch {
+        break; // API 오류 → 아래 스크래핑 폴백
+      }
+    }
+    return NextResponse.json({ hits: [], firstNameMiss: false });
+  }
 
   const attempts: SearchFilters[] = [
     { season, eventGroup, division, sex, lastName, firstName: firstName || undefined },

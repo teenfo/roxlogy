@@ -7,6 +7,11 @@ import {
   parseRaceHtml,
 } from "@/lib/race-import";
 import { BROWSER_UA } from "@/lib/hyrox-results";
+import {
+  API_DETAIL_PREFIX,
+  apiFetchRace,
+  resultApiEnabled,
+} from "@/lib/hyrox-result-api";
 
 /**
  * 본인 결과 페이지 URL을 서버에서 1회 가져와 파싱한다.
@@ -27,6 +32,31 @@ export async function POST(request: Request) {
     ({ url } = await request.json());
   } catch {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
+  }
+
+  // Result API 경로 — 검색 결과의 detailUrl("hyrox-api:<raceId>")로 스플릿 조회
+  if (typeof url === "string" && url.startsWith(API_DETAIL_PREFIX)) {
+    if (!resultApiEnabled()) {
+      return NextResponse.json(
+        { error: t("raceNew.import.failFetch") },
+        { status: 400 },
+      );
+    }
+    try {
+      const parsed = await apiFetchRace(url.slice(API_DETAIL_PREFIX.length));
+      if (!parsed || parsedFieldCount(parsed) === 0) {
+        return NextResponse.json(
+          { error: t("raceNew.import.failParse") },
+          { status: 422 },
+        );
+      }
+      return NextResponse.json({ parsed });
+    } catch {
+      return NextResponse.json(
+        { error: t("raceNew.import.failFetch") },
+        { status: 502 },
+      );
+    }
   }
 
   if (typeof url !== "string" || !isAllowedImportUrl(url)) {
