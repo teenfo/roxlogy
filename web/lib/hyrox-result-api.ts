@@ -45,6 +45,7 @@ function fmtMs(ms: number | null | undefined): string {
 
 type SearchHit = {
   id: string;
+  person_ref: string | null;
   display_name: string;
   nationality: string | null;
   sex: string | null;
@@ -58,6 +59,8 @@ export type ApiAthleteHit = {
   context: string;
   season: string;
   detailUrl: string;
+  /** 인물 식별자 — 프로필 연동(자동 동기화)용. 스크래핑 폴백에는 없음 */
+  personRef?: string | null;
 };
 
 /** 이름 검색 — AthleteHit(폼 계약)과 같은 모양으로 반환 */
@@ -86,6 +89,7 @@ export async function apiSearchAthletes(params: {
       .join(" · "),
     season: params.season,
     detailUrl: `${API_DETAIL_PREFIX}${h.id}`,
+    personRef: h.person_ref ?? null,
   }));
 }
 
