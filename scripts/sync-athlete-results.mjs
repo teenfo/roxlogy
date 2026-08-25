@@ -310,8 +310,23 @@ async function main() {
         prior &&
         (Object.keys(prior.splits?.stations_place ?? {}).length > 0 ||
           (prior.splits?.runs_place?.length ?? 0) > 0);
-      // 스플릿·순위까지 다 있으면 완결 — 스킵
-      if (prior && priorHasSplits && priorHasPlaces) continue;
+      // 스플릿·순위까지 다 있으면 완결 — 결과 행에 이미 있는 배번만
+      // 비어 있을 때 채우고 스킵 (추가 API 호출 없음)
+      if (prior && priorHasSplits && priorHasPlaces) {
+        const rowBib = String(pick(r, ["bib", "bib_number"]) ?? "").trim();
+        if (rowBib && prior.id != null && prior.splits?.bib == null && !DRY_RUN) {
+          await db(`race_results?id=eq.${prior.id}`, {
+            method: "PATCH",
+            headers: { prefer: "return=minimal" },
+            body: JSON.stringify({
+              splits: { ...(prior.splits ?? {}), bib: rowBib },
+            }),
+          });
+          prior.splits = { ...(prior.splits ?? {}), bib: rowBib };
+          console.log(`  ✓ filled bib ${rowBib} for ${prior.id}`);
+        }
+        continue;
+      }
       // 날짜 매칭이 안 되는 중복(총기록 동일)도 안전망으로 스킵
       if (!prior && known.has(total)) continue;
 
