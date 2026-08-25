@@ -5,6 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
+import { getRaceBenchmarks } from "@/lib/cache";
+import {
+  hyroxAgeGroup,
+  percentileOfBest,
+  type Benchmark,
+} from "@/lib/percentile";
+import { DistributionCurve } from "@/components/distribution-curve";
 import {
   breakdown,
   longestRoxzone,
@@ -113,7 +120,7 @@ export default async function SessionDetailPage({
   const { data: session } = await supabase
     .from("sessions")
     .select(
-      `id, user_id, shared, started_at, ended_at, total_time_ms, source_device, analysis_status, notes, rpe,
+      `id, user_id, shared, started_at, ended_at, total_time_ms, source_device, analysis_status, notes, rpe, division,
        workout_templates ( id, title, program_days ( day_index, programs ( id, title ) ) ),
        session_metrics ( run_lap_deviation_ms, roxzone_total_ms, pacing_grade ),
        session_segments (
@@ -198,6 +205,55 @@ export default async function SessionDetailPage({
   }
   const ergSamplesAll = ergRaws.flatMap((r) => r.samples ?? []);
   const ergStrokesAll = ergRaws.flatMap((r) => r.strokes ?? []);
+
+  // 필드 분포 곡선 — 풀 시뮬(런8+스테이션8, 30분↑) + 본인 세션일 때만.
+  // 소유자 프로필(성별·출생연도)로 동체급·동연령 실측 분포에 위치를 찍는다.
+  let dist: {
+    percentiles: Record<string, number>;
+    pct: number;
+    byAge: boolean;
+    ageGroup: string | null;
+  } | null = null;
+  const isFullSim =
+    !isErg &&
+    segments.filter((s) => s.kind === "station").length >= 8 &&
+    segments.filter((s) => s.kind === "run").length >= 8 &&
+    (session.total_time_ms ?? 0) >= 1_800_000;
+  if (isFullSim && user && user.id === session.user_id) {
+    const [{ data: myProfile }, benchmarks] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("gender, birth_year")
+        .eq("id", user.id)
+        .maybeSingle(),
+      getRaceBenchmarks(),
+    ]);
+    const ageGroup = hyroxAgeGroup(myProfile?.birth_year ?? null);
+    const division = (session.division as string | null) ?? "open";
+    const best = percentileOfBest(
+      session.total_time_ms,
+      division,
+      myProfile?.gender ?? null,
+      ageGroup,
+      benchmarks as Benchmark[],
+    );
+    if (best) {
+      const scope = best.byAge ? `age:${ageGroup}` : "overall";
+      const pickBm = (g: string) =>
+        (benchmarks as Benchmark[]).find(
+          (b) => b.division === division && b.gender === g && b.scope === scope,
+        );
+      const bm = pickBm(myProfile?.gender ?? "x") ?? pickBm("all");
+      if (bm) {
+        dist = {
+          percentiles: bm.percentiles,
+          pct: best.pct,
+          byAge: best.byAge,
+          ageGroup,
+        };
+      }
+    }
+  }
   const ergDist = ergSamplesAll.length
     ? Math.max(...ergSamplesAll.map((s) => s.dist))
     : null;
@@ -393,6 +449,32 @@ export default async function SessionDetailPage({
             </p>
           </div>
         </section>
+      )}
+
+      {dist && (
+        <DistributionCurve
+          percentiles={dist.percentiles}
+          myMs={session.total_time_ms!}
+          pct={dist.pct}
+          caption={
+            dist.byAge && dist.ageGroup
+              ? t("dist.captionAge", {
+                  division: t(
+                    `division.${(session.division as string | null) ?? "open"}` as Parameters<
+                      typeof t
+                    >[0],
+                  ),
+                  age: dist.ageGroup,
+                })
+              : t("dist.caption", {
+                  division: t(
+                    `division.${(session.division as string | null) ?? "open"}` as Parameters<
+                      typeof t
+                    >[0],
+                  ),
+                })
+          }
+        />
       )}
 
       {!isErg && share.totalMs > 0 && (
