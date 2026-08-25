@@ -266,8 +266,18 @@ async function main() {
     const refs = new Set([p.hyrox_person_ref]);
     for (const h of hits) if (h?.person_ref) refs.add(h.person_ref);
     const personName = firstPersonName(p)?.person?.toLowerCase() ?? null;
+    // 결과 행에는 sex 가 없어 검색 히트의 sex 를 총기록으로 매핑해 쓴다
+    const sexByTotal = new Map();
+    for (const h of hits ?? []) {
+      const sx = String(h?.sex ?? "").trim().toUpperCase();
+      if (h?.total_time_ms != null && sx && !sexByTotal.has(h.total_time_ms))
+        sexByTotal.set(h.total_time_ms, sx);
+    }
     console.log(
       `  ${p.hyrox_athlete_name ?? p.id}: ${refs.size} athlete refs (${hits.length} search hits)`,
+    );
+    console.log(
+      `  hit sex map: ${[...sexByTotal].map(([t, s]) => `${t}=${s}`).join(" ") || "-"}`,
     );
 
     for (const ref of refs) {
@@ -298,7 +308,10 @@ async function main() {
       ).slice(0, 10);
       const validDate = /^\d{4}-\d{2}-\d{2}$/.test(eventDate) ? eventDate : null;
       // 더블은 sex 값으로 mixed 여부를 판별한다 (이벤트명엔 MIXED 가 없을 수 있음)
-      const sexRaw = String(pick(r, ["sex", "gender"]) ?? "").trim().toUpperCase();
+      const sexRaw =
+        String(pick(r, ["sex", "gender"]) ?? "").trim().toUpperCase() ||
+        sexByTotal.get(total) ||
+        "";
       const divRaw = pick(r, ["division_name", "division"]);
       let division = mapDivision(divRaw);
       if (division === "doubles" && /^(X|MX)$/.test(sexRaw))
