@@ -63,7 +63,11 @@ const CITY_KO = {
   santiago: "산티아고", bogota: "보고타", "bogotá": "보고타",
   sydney: "시드니", melbourne: "멜버른", brisbane: "브리즈번", perth: "퍼스",
   auckland: "오클랜드", "cape town": "케이프타운",
-  johannesburg: "요하네스버그", cairo: "카이로",
+  johannesburg: "요하네스버그", cairo: "카이로", delhi: "델리",
+  mechelen: "메헬렌", karlsruhe: "카를스루에", gdansk: "그단스크",
+  bilbao: "빌바오", marseille: "마르세유", bordeaux: "보르도",
+  nice: "니스", leipzig: "라이프치히", hannover: "하노버",
+  essen: "에센", dortmund: "도르트문트", katowice: "카토비체",
 };
 
 const COUNTRY_KO = {
@@ -265,15 +269,41 @@ async function probeResultApi() {
   } catch (e) {
     console.log(`openapi.yaml fetch 실패: ${e.message}`);
   }
-  for (const path of ["/seasons"]) {
-    try {
-      const res = await fetch(`${RESULT_API_BASE}${path}`, { headers });
-      const body = await res.text();
-      console.log(`── GET ${path} → ${res.status} ──`);
-      console.log(body.slice(0, 4000));
-    } catch (e) {
-      console.log(`GET ${path} 실패: ${e.message}`);
+  // 통계·벤치마크 페이로드 구조 확인 — 결과가 있는 이벤트 하나로 샘플링
+  try {
+    const ev = await apiGet(`${RESULT_API_BASE}/events?season=season-9&per_page=5`);
+    const first = (ev.data ?? []).find((e) => (e.results_count ?? 0) > 0);
+    if (first) {
+      console.log(`── 프로브 이벤트: id=${first.id} ${first.name} @ ${first.city} ──`);
+      for (const p of [
+        `/stats/divisions/${first.id}`,
+        `/events/${first.slug}/ingest-status`,
+      ]) {
+        try {
+          const res = await fetch(`${RESULT_API_BASE}${p}`, { headers });
+          const body = await res.text();
+          console.log(`── GET ${p} → ${res.status} ──`);
+          console.log(body.slice(0, 6000));
+        } catch (e) {
+          console.log(`GET ${p} 실패: ${e.message}`);
+        }
+      }
     }
+    for (const dg of ["HYROX_MEN", "HYROX_WOMEN"]) {
+      try {
+        const res = await fetch(
+          `${RESULT_API_BASE}/simulator/division-benchmarks?dg=${dg}`,
+          { headers },
+        );
+        const body = await res.text();
+        console.log(`── GET /simulator/division-benchmarks?dg=${dg} → ${res.status} ──`);
+        console.log(body.slice(0, 4000));
+      } catch (e) {
+        console.log(`benchmarks ${dg} 실패: ${e.message}`);
+      }
+    }
+  } catch (e) {
+    console.log(`stats 프로브 실패: ${e.message}`);
   }
 }
 
@@ -364,18 +394,41 @@ function normalize(raw) {
   return row;
 }
 
+async function loadCurated() {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const file = join(here, "..", "supabase", "data", "race-events.json");
+  const rows = JSON.parse(await readFile(file, "utf8"));
+  return rows.map(normalize).filter(Boolean);
+}
+
 async function loadSource() {
   if (RESULT_API_TOKEN) {
-    // 과거 대회로 테이블이 넘치지 않게 최근(60일 이내 시작)~미래만 수집
+    // Result API 는 결과가 수집된(=이미 열린) 대회만 갖고 있다 — 미래 일정은
+    // 큐레이션 JSON 이 소스. 둘을 병합하되, 같은 대회(도시 동일 + 시작일 ±7일)가
+    // 양쪽에 있으면 이름 표기가 정확한 큐레이션 행을 우선한다.
     const cutoff = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
     const { map: seasonMap, currentSlug } = await fetchSeasonMap();
     if (!currentSlug) throw new Error("season catalog empty");
     const raw = await fetchResultApiEvents(currentSlug, cutoff);
-    const rows = aggregateResultApi(raw, seasonMap);
+    const apiRows = aggregateResultApi(raw, seasonMap);
+    const curated = await loadCurated();
+
+    const near = (a, b) =>
+      Math.abs(
+        (Date.parse(a.start_date ?? 0) - Date.parse(b.start_date ?? 0)) / 86400000,
+      ) <= 7;
+    const dupOfCurated = (r) =>
+      curated.some(
+        (c) =>
+          c.city === r.city && c.start_date && r.start_date && near(c, r),
+      );
+    const fresh = apiRows.filter((r) => !dupOfCurated(r));
+    const rows = [...curated, ...fresh];
     console.log(
-      `result api: ${raw.length} division-rows → ${rows.length} race weekends (${currentSlug}, >= ${cutoff})`,
+      `result api: ${raw.length} division-rows → ${apiRows.length} weekends ` +
+        `(${apiRows.length - fresh.length} dup vs curated) + curated ${curated.length} → ${rows.length}`,
     );
-    return { from: `${RESULT_API_BASE}/events`, rows, mapped: true };
+    return { from: `${RESULT_API_BASE}/events + curated json`, rows };
   }
   if (API_URL) {
     const res = await fetch(API_URL, {
@@ -387,10 +440,7 @@ async function loadSource() {
     const arr = Array.isArray(json) ? json : (json.events ?? json.data ?? []);
     return { from: API_URL, rows: arr.map(normalize).filter(Boolean) };
   }
-  const here = dirname(fileURLToPath(import.meta.url));
-  const file = join(here, "..", "supabase", "data", "race-events.json");
-  const rows = JSON.parse(await readFile(file, "utf8"));
-  return { from: file, rows: rows.map(normalize).filter(Boolean) };
+  return { from: "curated json", rows: await loadCurated() };
 }
 
 async function main() {
