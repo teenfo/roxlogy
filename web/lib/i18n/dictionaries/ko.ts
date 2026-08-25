@@ -434,6 +434,7 @@ const ko: Record<DictKey, string> = {
     "공식 레이스 리플레이(In/Out 체크포인트) 기반. 록스존 = 스테이션 진입·이탈 전환 시간.",
   "races.replayClickNote": "세그먼트를 누르면 필드 내 위치 분포를 볼 수 있어요.",
   "races.segPlace": "필드 {field}명 중 {place}위",
+  "races.segPlaceOnly": "디비전 이벤트 필드 {place}위",
   "races.segNoPlace":
     "이 레이스의 세그먼트별 필드 순위 정보가 아직 없어요. 공식 기록 자동 임포트 시 자동으로 채워집니다.",
   "races.segHistory": "이 세그먼트의 내 기록 추이",

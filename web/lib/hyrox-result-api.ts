@@ -125,12 +125,15 @@ type SplitRow = {
   canonical_key: string | null;
   time_ms: number | null;
   order_index: number | null;
+  /** 그 대회 필드에서의 스플릿별 순위 */
+  place?: number | null;
 };
 type RaceDetail = {
   display_name: string | null;
   total_time_ms: number | null;
   race_name: string | null;
   division_name: string | null;
+  rank_overall?: number | null;
 };
 
 /** 레이스 상세 + 스플릿 → ParsedRace (기존 임포트 파이프라인 계약) */
@@ -149,26 +152,39 @@ export async function apiFetchRace(raceId: string): Promise<ParsedRace | null> {
   const div = mapDivision(detail.division_name);
   if (div) parsed.division = div;
 
+  if (detail.rank_overall != null) parsed.rankOverall = detail.rank_overall;
+
   const runs: number[] = [];
+  const runsPlace: (number | null)[] = [];
   const roxzones: number[] = [];
+  const stationsPlace: Record<string, number> = {};
   for (const s of splitsJson?.data ?? []) {
     const key = String(s.canonical_key ?? "").toLowerCase();
     const ms = s.time_ms;
     if (ms == null) continue;
+    const place =
+      s.place != null && Number(s.place) > 0 ? Number(s.place) : null;
     const run = key.match(/^run[_ ]?(\d)$/);
     const rox = key.match(/^rox_?zone[_ ]?(\d)$/);
-    if (run) runs[Number(run[1]) - 1] = ms;
-    else if (rox) roxzones[Number(rox[1]) - 1] = ms;
+    if (run) {
+      runs[Number(run[1]) - 1] = ms;
+      runsPlace[Number(run[1]) - 1] = place;
+    } else if (rox) roxzones[Number(rox[1]) - 1] = ms;
     else if (STATION_BY_KEY[key] != null) {
       const st = STATION_BY_KEY[key];
-      if (parsed.stations[st] == null) parsed.stations[st] = ms;
+      if (parsed.stations[st] == null) {
+        parsed.stations[st] = ms;
+        if (place != null) stationsPlace[st] = place;
+      }
     }
   }
   const runsClean = runs.filter((v) => v != null);
   if (runsClean.length === 8) {
     parsed.runs = runsClean;
     parsed.runTotalMs = runsClean.reduce((a, b) => a + b, 0);
+    if (runsPlace.some((v) => v != null)) parsed.runsPlace = runsPlace;
   }
+  if (Object.keys(stationsPlace).length) parsed.stationsPlace = stationsPlace;
   const roxClean = roxzones.filter((v) => v != null);
   if (roxClean.length > 0) {
     parsed.roxzones = roxClean;

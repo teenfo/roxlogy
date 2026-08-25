@@ -77,6 +77,11 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   const [addSession, setAddSession] = useState(true);
   // 레이스 저장 후 세션 추가만 실패한 경우 재시도 시 레이스 중복 저장 방지
   const [savedRaceId, setSavedRaceId] = useState<string | null>(null);
+  // Result API 임포트 부가 데이터 — 런 랩·록스존·스플릿별 필드 순위
+  const [apiExtra, setApiExtra] = useState<Pick<
+    ParsedRace,
+    "runs" | "roxzones" | "stationsPlace" | "runsPlace" | "rankOverall"
+  > | null>(null);
 
   const totalMs = useMemo(() => parseTimeToMs(totalText), [totalText]);
   // 대회 미선택도 허용 — 이때는 시즌 통합 랭킹(list_overall)에서 검색된다
@@ -199,6 +204,13 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         ? { segments: parsed.segments, startClock: parsed.startClock }
         : null,
     );
+    setApiExtra({
+      runs: parsed.runs,
+      roxzones: parsed.roxzones,
+      stationsPlace: parsed.stationsPlace,
+      runsPlace: parsed.runsPlace,
+      rankOverall: parsed.rankOverall,
+    });
     setSavedRaceId(null);
     setImported(true);
     setImportNotice(
@@ -270,12 +282,15 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
     let raceId = savedRaceId;
     if (!raceId) {
-      const runs = detail?.segments
+      const segRuns = detail?.segments
         .filter((s) => s.kind === "run")
         .map((s) => s.splitMs);
-      const roxzones = detail?.segments
+      const segRox = detail?.segments
         .filter((s) => s.kind === "roxzone")
         .map((s) => s.splitMs);
+      // 리플레이 세그먼트 우선, 없으면 Result API 랩 데이터
+      const runs = segRuns?.length ? segRuns : apiExtra?.runs;
+      const roxzones = segRox?.length ? segRox : apiExtra?.roxzones;
       const { data, error: err } = await supabase
         .from("race_results")
         .insert({
@@ -290,6 +305,13 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             ...(runTotalMs != null ? { run_total_ms: runTotalMs } : {}),
             ...(runs?.length ? { runs } : {}),
             ...(roxzones?.length ? { roxzones } : {}),
+            ...(apiExtra?.stationsPlace
+              ? { stations_place: apiExtra.stationsPlace }
+              : {}),
+            ...(apiExtra?.runsPlace ? { runs_place: apiExtra.runsPlace } : {}),
+            ...(apiExtra?.rankOverall != null
+              ? { rank_overall: apiExtra.rankOverall }
+              : {}),
           },
         })
         .select("id")

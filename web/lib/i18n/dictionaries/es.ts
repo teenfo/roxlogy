@@ -438,6 +438,7 @@ const es: Record<DictKey, string> = {
   "races.replayClickNote":
     "Toca un segmento para ver su posición en el campo.",
   "races.segPlace": "Puesto {place} de {field} en el campo",
+  "races.segPlaceOnly": "Puesto {place} en el campo de tu división",
   "races.segNoPlace":
     "Aún no hay clasificación por segmento para esta carrera. Se completa automáticamente al importar resultados oficiales.",
   "races.segHistory": "Mi historial — este segmento",

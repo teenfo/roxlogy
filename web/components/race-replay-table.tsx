@@ -340,6 +340,12 @@ export function RaceReplayTable({
                   })}
                 </p>
               </>
+            ) : sel.place != null ? (
+              <p className="mt-1.5 text-sm text-muted">
+                {t("races.segPlaceOnly", {
+                  place: sel.place.toLocaleString(tag),
+                })}
+              </p>
             ) : (
               <p className="mt-2 rounded-md bg-background px-3 py-3 text-xs text-muted">
                 {t("races.segNoPlace")}

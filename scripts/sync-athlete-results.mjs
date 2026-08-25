@@ -303,8 +303,69 @@ async function main() {
       known.add(total);
       console.log(`  ✓ imported ${record.event} (${total}ms)`);
     }
+
+    await backfillPlacesViaSearch(p, existing);
   }
   console.log("athlete sync done");
+}
+
+/**
+ * 과거 시즌 백필 — /athletes/{ref}/results 에 안 잡히는 예전 기록은
+ * 이름 검색(시즌별)으로 레이스 ID를 찾아 총기록(ms) 정확 일치로 매칭한 뒤
+ * 스플릿 place 를 채운다. 이미 place 가 있는 기록은 건드리지 않는다.
+ */
+const SEARCH_SEASONS = ["season-9", "season-8"];
+async function backfillPlacesViaSearch(p, existing) {
+  const missing = existing.filter(
+    (e) =>
+      Object.keys(e.splits?.stations ?? {}).length > 0 &&
+      !Object.keys(e.splits?.stations_place ?? {}).length,
+  );
+  if (!missing.length) return;
+
+  // "choho kim, juhwan kim" → 첫 인물 "choho kim" → first/last
+  const person = String(p.hyrox_athlete_name ?? "").split(",")[0].trim();
+  const parts = person.split(/\s+/);
+  if (parts.length < 2) return;
+  const last = parts[parts.length - 1];
+  const first = parts.slice(0, -1).join(" ");
+
+  const byTotal = new Map();
+  for (const season of SEARCH_SEASONS) {
+    const q = new URLSearchParams({ last, first, season });
+    const json = await apiGet(`${RESULT_API_BASE}/athletes/search?${q}`);
+    for (const h of json?.data ?? []) {
+      if (h?.total_time_ms != null && h?.id != null && !byTotal.has(h.total_time_ms))
+        byTotal.set(h.total_time_ms, h.id);
+    }
+  }
+  if (!byTotal.size) return;
+
+  for (const e of missing) {
+    const hitId = byTotal.get(e.total_time_ms);
+    if (hitId == null) continue;
+    const sp = await apiGet(
+      `${RESULT_API_BASE}/athletes/${encodeURIComponent(String(hitId))}/splits`,
+    );
+    const got = buildSplits(sp?.data);
+    const gotPlaces =
+      Object.keys(got.stations_place ?? {}).length > 0 ||
+      (got.runs_place?.length ?? 0) > 0;
+    if (!gotPlaces) continue;
+    if (DRY_RUN) {
+      console.log(`  DRY: would backfill places via search (${e.id})`);
+      continue;
+    }
+    const merged = { ...(e.splits ?? {}) };
+    if (got.stations_place) merged.stations_place = got.stations_place;
+    if (got.runs_place) merged.runs_place = got.runs_place;
+    await db(`race_results?id=eq.${e.id}`, {
+      method: "PATCH",
+      headers: { prefer: "return=minimal" },
+      body: JSON.stringify({ splits: merged }),
+    });
+    console.log(`  ✓ backfilled places via search: ${e.id} (${e.total_time_ms}ms)`);
+  }
 }
 
 main().catch((e) => {

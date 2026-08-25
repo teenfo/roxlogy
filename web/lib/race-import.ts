@@ -23,6 +23,10 @@ export type ParsedRace = {
   segments?: RaceSegment[];
   /** 레이스 출발 시각 "HH:MM:SS" (대회 현지 시계) */
   startClock?: string;
+  /** 스플릿별 필드 순위 (Result API 전용) — 세그먼트 분포 모달용 */
+  stationsPlace?: Record<string, number>;
+  runsPlace?: (number | null)[];
+  rankOverall?: number;
 };
 
 export type RaceSegment = {
