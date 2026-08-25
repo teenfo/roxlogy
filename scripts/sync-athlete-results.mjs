@@ -118,33 +118,64 @@ function buildSplits(rows) {
   return out;
 }
 
-/** 이벤트(디비전×요일) 완주자 수 — 스플릿 place 를 백분위로 환산할 분모 */
-const fieldSizeCache = new Map();
-async function fetchFieldSize(slug) {
+/** 이벤트(디비전×요일) 정보 — 완주자 수(field_size 분모)와 도시(대회명) */
+const eventInfoCache = new Map();
+async function fetchEventInfo(slug) {
   if (!slug) return null;
-  if (fieldSizeCache.has(slug)) return fieldSizeCache.get(slug);
-  let n = null;
+  if (eventInfoCache.has(slug)) return eventInfoCache.get(slug);
+  let info = null;
   try {
     const j = await apiGet(
       `${RESULT_API_BASE}/events/${encodeURIComponent(slug)}`,
     );
     const ev = j?.data ?? j;
     const v = Number(ev?.results_count ?? ev?.resultsCount);
-    if (Number.isFinite(v) && v > 0) n = v;
-    if (n == null) {
-      const st = await apiGet(
-        `${RESULT_API_BASE}/events/${encodeURIComponent(slug)}/ingest-status`,
-      );
-      const w = Number(
-        st?.data?.race?.results_count ?? st?.data?.results_count,
-      );
-      if (Number.isFinite(w) && w > 0) n = w;
-    }
+    info = {
+      count: Number.isFinite(v) && v > 0 ? v : null,
+      city: ev?.city ?? null,
+    };
   } catch {
-    n = null;
+    info = null;
   }
-  fieldSizeCache.set(slug, n);
-  return n;
+  eventInfoCache.set(slug, info);
+  return info;
+}
+
+/** "season-9-…" 슬러그 → "2026/27 (S9)" (race_results.season 라벨 규약) */
+function seasonLabelFromSlug(slug) {
+  const m = String(slug ?? "").match(/^season-(\d+)/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return `20${17 + n}/${18 + n} (S${n})`;
+}
+
+/** "choho kim, juhwan kim" → 첫 인물 {person:"choho kim", first, last} */
+function firstPersonName(p) {
+  const person = String(p.hyrox_athlete_name ?? "").split(",")[0].trim();
+  const parts = person.split(/\s+/);
+  if (parts.length < 2) return null;
+  return {
+    person,
+    last: parts[parts.length - 1],
+    first: parts.slice(0, -1).join(" "),
+  };
+}
+
+/** 이름 검색 — 이 인물의 시즌별 athlete row(레이스별) 히트 전부 */
+async function searchHitsForProfile(p) {
+  const name = firstPersonName(p);
+  if (!name) return [];
+  const out = [];
+  for (const season of SEARCH_SEASONS) {
+    const q = new URLSearchParams({
+      last: name.last,
+      first: name.first,
+      season,
+    });
+    const json = await apiGet(`${RESULT_API_BASE}/athletes/search?${q}`);
+    out.push(...(json?.data ?? []));
+  }
+  return out;
 }
 
 const pick = (obj, keys) => {
@@ -171,14 +202,6 @@ async function main() {
   console.log(`linked athletes: ${linked.length}`);
 
   for (const p of linked) {
-    const json = await apiGet(
-      `${RESULT_API_BASE}/athletes/${encodeURIComponent(p.hyrox_person_ref)}/results?limit=25`,
-    );
-    const rows = json?.data ?? [];
-    if (!rows.length) continue;
-    console.log(`  ${p.hyrox_athlete_name ?? p.id}: ${rows.length} official races`);
-    console.log(`  sample: ${JSON.stringify(rows[0]).slice(0, 400)}`);
-
     const existing = await db(
       `race_results?select=id,total_time_ms,event_date,splits&user_id=eq.${p.id}`,
     );
@@ -187,7 +210,33 @@ async function main() {
     const dateNear = (a, b) =>
       a && b && Math.abs((Date.parse(a) - Date.parse(b)) / 86400000) <= 3;
 
+    // 연동된 ref 하나로는 레이스별 athlete row 를 다 못 본다(더블/릴레이는
+    // 등록명이 달라 ref 가 갈라짐) — 이름 검색으로 이 인물의 다른 ref 도 수집
+    const hits = await searchHitsForProfile(p);
+    const refs = new Set([p.hyrox_person_ref]);
+    for (const h of hits) if (h?.person_ref) refs.add(h.person_ref);
+    const personName = firstPersonName(p)?.person?.toLowerCase() ?? null;
+    console.log(
+      `  ${p.hyrox_athlete_name ?? p.id}: ${refs.size} athlete refs (${hits.length} search hits)`,
+    );
+
+    for (const ref of refs) {
+    const json = await apiGet(
+      `${RESULT_API_BASE}/athletes/${encodeURIComponent(ref)}/results?limit=25`,
+    );
+    const rows = json?.data ?? [];
+    if (!rows.length) continue;
+    const isLinkedRef = ref === p.hyrox_person_ref;
+    console.log(`  ref ${String(ref).slice(0, 10)}…: ${rows.length} races`);
+
     for (const r of rows) {
+      // 검색으로 발견한 ref 는 동명이인 방지 — 행의 선수명에 본인 이름 필수
+      if (!isLinkedRef && personName) {
+        const rowName = String(
+          pick(r, ["athlete_name", "display_name", "name"]) ?? "",
+        ).toLowerCase();
+        if (!rowName.includes(personName)) continue;
+      }
       const total = pick(r, ["total_time_ms", "totalTimeMs", "total_ms"]);
       if (total == null) continue;
       const raceId = pick(r, ["id", "race_id"]);
@@ -220,14 +269,15 @@ async function main() {
       // /athletes/{athlete_id}/splits?result_id={id} 로 조회한다.
       // (race ID 직접 경로는 검색 히트의 id 전용)
       let splits = { stations: {} };
-      const athleteId = pick(r, ["athlete_id", "athleteId"]) ?? p.hyrox_person_ref;
+      const athleteId = pick(r, ["athlete_id", "athleteId"]) ?? ref;
       if (raceId != null && athleteId) {
         const sp = await apiGet(
           `${RESULT_API_BASE}/athletes/${encodeURIComponent(String(athleteId))}/splits?result_id=${encodeURIComponent(String(raceId))}`,
         );
         splits = buildSplits(sp?.data);
       }
-      const fieldSize = await fetchFieldSize(eventSlug);
+      const eventInfo = await fetchEventInfo(eventSlug);
+      const fieldSize = eventInfo?.count ?? null;
       if (fieldSize != null) splits.field_size = fieldSize;
       if (rankOverall != null && Number(rankOverall) > 0)
         splits.rank_overall = Number(rankOverall);
@@ -277,11 +327,18 @@ async function main() {
         continue;
       }
 
+      // 대회명: 이벤트의 city("2026 Shenzhen")에서 연도를 떼고 구성.
+      // results 행의 event_name 은 "HYROX PRO DOUBLES - Saturday" 같은
+      // 디비전×요일 명칭이라 그대로 쓰지 않는다.
+      const city = eventInfo?.city
+        ? String(eventInfo.city).replace(/^\d{4}\s*/, "").trim()
+        : null;
       const record = {
         user_id: p.id,
-        event: eventName ?? "HYROX",
+        event: city ? `HYROX ${city}` : (eventName ?? "HYROX"),
         event_date: validDate,
         division,
+        season: seasonLabelFromSlug(eventSlug),
         total_time_ms: total,
         splits,
       };
@@ -293,6 +350,12 @@ async function main() {
         method: "POST",
         headers: { prefer: "return=minimal" },
         body: JSON.stringify(record),
+      });
+      existing.push({
+        id: null,
+        total_time_ms: total,
+        event_date: validDate,
+        splits,
       });
       await db("notifications", {
         method: "POST",
@@ -308,8 +371,9 @@ async function main() {
       known.add(total);
       console.log(`  ✓ imported ${record.event} (${total}ms)`);
     }
+    }
 
-    await backfillPlacesViaSearch(p, existing);
+    await backfillPlacesViaSearch(p, existing, hits);
   }
   console.log("athlete sync done");
 }
@@ -319,30 +383,20 @@ async function main() {
  * 이름 검색(시즌별)으로 레이스 ID를 찾아 총기록(ms) 정확 일치로 매칭한 뒤
  * 스플릿 place 를 채운다. 이미 place 가 있는 기록은 건드리지 않는다.
  */
-const SEARCH_SEASONS = ["season-9", "season-8"];
-async function backfillPlacesViaSearch(p, existing) {
+const SEARCH_SEASONS = ["season-9", "season-8", "season-7"];
+async function backfillPlacesViaSearch(p, existing, hits) {
   const missing = existing.filter(
     (e) =>
+      e.id != null &&
       Object.keys(e.splits?.stations ?? {}).length > 0 &&
       !Object.keys(e.splits?.stations_place ?? {}).length,
   );
   if (!missing.length) return;
 
-  // "choho kim, juhwan kim" → 첫 인물 "choho kim" → first/last
-  const person = String(p.hyrox_athlete_name ?? "").split(",")[0].trim();
-  const parts = person.split(/\s+/);
-  if (parts.length < 2) return;
-  const last = parts[parts.length - 1];
-  const first = parts.slice(0, -1).join(" ");
-
   const byTotal = new Map();
-  for (const season of SEARCH_SEASONS) {
-    const q = new URLSearchParams({ last, first, season });
-    const json = await apiGet(`${RESULT_API_BASE}/athletes/search?${q}`);
-    for (const h of json?.data ?? []) {
-      if (h?.total_time_ms != null && h?.id != null && !byTotal.has(h.total_time_ms))
-        byTotal.set(h.total_time_ms, h.id);
-    }
+  for (const h of hits ?? []) {
+    if (h?.total_time_ms != null && h?.id != null && !byTotal.has(h.total_time_ms))
+      byTotal.set(h.total_time_ms, h.id);
   }
   console.log(
     `  search backfill: ${missing.length} records w/o places, ${byTotal.size} search totals`,
