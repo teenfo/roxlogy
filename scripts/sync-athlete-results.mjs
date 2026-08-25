@@ -334,6 +334,9 @@ async function main() {
       if (fieldSize != null) splits.field_size = fieldSize;
       if (rankOverall != null && Number(rankOverall) > 0)
         splits.rank_overall = Number(rankOverall);
+      // 배번(HHMM+순번 4+2 구조 — 앞 4자리가 웨이브 출발시각)
+      const bib = String(pick(r, ["bib", "bib_number"]) ?? "").trim();
+      if (bib) splits.bib = bib;
 
       if (prior && priorHasSplits) {
         // 이미 스플릿이 있는 기록: 순위 정보(place/field_size)만 백필.
@@ -343,7 +346,8 @@ async function main() {
           (splits.runs_place?.length ?? 0) > 0;
         const addsField =
           fieldSize != null && prior.splits?.field_size == null;
-        if (!gotPlaces && !addsField) continue;
+        const addsBib = !!splits.bib && prior.splits?.bib == null;
+        if (!gotPlaces && !addsField && !addsBib) continue;
         if (DRY_RUN) {
           console.log(`  DRY: would backfill split places (${prior.id})`);
           continue;

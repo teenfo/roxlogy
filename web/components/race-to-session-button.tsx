@@ -10,19 +10,30 @@ import {
   type RaceSplits,
 } from "@/lib/session-builder";
 
+/** 배번(4+2: HHMM+순번) → 웨이브 출발시각 "HH:MM:00". 형식이 다르면 null */
+function bibStartClock(bib: string | null): string | null {
+  const m = String(bib ?? "").match(/^(\d{2})(\d{2})\d{2}$/);
+  if (!m) return null;
+  if (Number(m[1]) > 23 || Number(m[2]) > 59) return null;
+  return `${m[1]}:${m[2]}:00`;
+}
+
 /**
  * 등록된 레이스 결과를 세션으로 변환하는 버튼 (레이스 상세 페이지용).
  * 이미 이 레이스로 만든 세션이 있으면 그 세션으로 이동한다(중복 방지).
+ * 시작 시각은 배번에 인코딩된 웨이브 출발시각(앞 4자리 HHMM)을 우선 사용.
  */
 export function RaceToSessionButton({
   raceId,
   division,
   eventDate,
+  bib = null,
   splits,
 }: {
   raceId: string;
   division: string | null;
   eventDate: string | null;
+  bib?: string | null;
   splits: RaceSplits;
 }) {
   const router = useRouter();
@@ -55,8 +66,9 @@ export function RaceToSessionButton({
     }
 
     const forms = raceSplitsToForms(splits);
+    const startClock = bibStartClock(bib) ?? "09:00:00";
     const startIso = eventDate
-      ? new Date(`${eventDate}T09:00:00`).toISOString()
+      ? new Date(`${eventDate}T${startClock}`).toISOString()
       : new Date().toISOString();
     const built = buildSessionRows(user.id, startIso, forms, {
       division,

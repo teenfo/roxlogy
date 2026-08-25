@@ -445,6 +445,7 @@ const en = {
   "races.replayClickNote":
     "Tap a segment to see where it sits in the field.",
   "races.segPlace": "Field rank {place} / {field}",
+  "races.overallRank": "Overall {rank} / {field}",
   "races.segPlaceOnly": "Field rank {place} in your division event",
   "races.segNoPlace":
     "No per-segment field ranking for this race yet. It is filled automatically for imported official results.",

@@ -27,6 +27,8 @@ type RaceSplits = {
   /** 해당 디비전×요일 이벤트 완주자 수 */
   field_size?: number;
   rank_overall?: number;
+  /** 배번 — HHMM+순번(4+2): 앞 4자리가 웨이브 출발시각 */
+  bib?: string;
 };
 
 function Delta({ raceMs, trainMs }: { raceMs?: number; trainMs?: number }) {
@@ -154,6 +156,7 @@ export default async function RaceDetailPage({
             raceId={race.id}
             division={race.division ?? null}
             eventDate={race.event_date ?? null}
+            bib={splits.bib ?? null}
             splits={splits}
           />
           <DeleteButton kind="race" id={race.id} redirectTo="/races" />
@@ -171,6 +174,19 @@ export default async function RaceDetailPage({
         {race.division
           ? t(`division.${race.division}` as Parameters<typeof t>[0])
           : "—"}
+        {splits.bib && (
+          <span className="ml-2 rounded bg-surface px-1.5 py-0.5 font-mono text-xs font-bold">
+            BIB {splits.bib}
+          </span>
+        )}
+        {splits.rank_overall != null && splits.field_size != null && (
+          <span className="ml-2 text-xs">
+            {t("races.overallRank", {
+              rank: splits.rank_overall,
+              field: splits.field_size,
+            })}
+          </span>
+        )}
       </p>
 
       {percentile != null && race.division && (
