@@ -604,7 +604,7 @@ Deno.serve(async (req) => {
     out.submitted++;
   }
 
-  // ---------- 5) 신규 제출 — 주간 리포트 (지난주 세션 보유 사용자, 멱등)
+  // ---------- 5) 신규 제출 — 주간 리포트 (최근 14일 활동 사용자, 휴식 주 포함, 멱등)
   const since = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
   const { data: recent } = await db.from("sessions")
     .select("user_id").is("deleted_at", null).gte("started_at", since).limit(1000);
@@ -623,26 +623,49 @@ Deno.serve(async (req) => {
       .eq("user_id", uid).is("deleted_at", null)
       .gte("started_at", `${start}T00:00:00Z`).lte("started_at", `${end}T23:59:59Z`)
       .order("started_at", { ascending: true }).limit(50);
+    let prompt: string;
     if (!weekSessions || weekSessions.length === 0) {
-      await db.from("ai_jobs").delete().eq("id", claim.id);
-      continue;
+      // 휴식 주 — 직전 4주 이력을 컨텍스트로 회복/재개 코멘트를 생성한다.
+      // (최근 14일 활동 게이트가 있어 완전 이탈 사용자에겐 무한 생성되지 않음)
+      const histStart = new Date(
+        new Date(`${start}T00:00:00Z`).getTime() - 28 * 24 * 3600 * 1000,
+      ).toISOString().slice(0, 10);
+      const { data: hist } = await db.from("sessions")
+        .select("started_at,total_time_ms")
+        .eq("user_id", uid).is("deleted_at", null)
+        .gte("started_at", `${histStart}T00:00:00Z`)
+        .lte("started_at", `${end}T23:59:59Z`)
+        .order("started_at", { ascending: true }).limit(100);
+      if (!hist || hist.length === 0) {
+        await db.from("ai_jobs").delete().eq("id", claim.id);
+        continue;
+      }
+      prompt = [
+        `사용자가 지난주(${start} ~ ${end}) 하이록스 훈련을 쉬었다. ` +
+        "휴식 주간 리포트를 작성하라 (휴식·회복의 의미, 직전 훈련 흐름 한 줄 요약, " +
+        "재개 시 권장 강도와 첫 세션 제안 중심. 과장 없이 담백하게, 3~4문장).",
+        "직전 4주 세션 이력:",
+        ...hist.map((s) => `- ${s.started_at.slice(0, 10)}: 총 ${fmtMs(s.total_time_ms)}`),
+      ].join("\n");
+    } else {
+      const totals = weekSessions.map((s) => s.total_time_ms).filter((x): x is number => x != null);
+      const lines = [
+        `다음은 한 사용자의 지난주(${start} ~ ${end}) 하이록스 훈련 세션 목록이다. ` +
+        "주간 훈련 리포트를 작성하라 (세션 수·페이스 추세·일관성 중심).",
+        `세션 수(계산됨): ${weekSessions.length}` +
+        (totals.length ? `, 최고 기록(계산됨): ${fmtMs(Math.min(...totals))}` : ""),
+        "",
+      ];
+      for (const s of weekSessions) {
+        const mm = Array.isArray(s.session_metrics) ? s.session_metrics[0] : s.session_metrics;
+        lines.push(
+          `- ${s.started_at.slice(0, 10)}: 총 ${fmtMs(s.total_time_ms)}, ` +
+          `런 편차 ${fmtMs(mm?.run_lap_deviation_ms)}, 등급 ${mm?.pacing_grade ?? "-"}`,
+        );
+      }
+      prompt = lines.join("\n");
     }
-    const totals = weekSessions.map((s) => s.total_time_ms).filter((x): x is number => x != null);
-    const lines = [
-      `다음은 한 사용자의 지난주(${start} ~ ${end}) 하이록스 훈련 세션 목록이다. ` +
-      "주간 훈련 리포트를 작성하라 (세션 수·페이스 추세·일관성 중심).",
-      `세션 수(계산됨): ${weekSessions.length}` +
-      (totals.length ? `, 최고 기록(계산됨): ${fmtMs(Math.min(...totals))}` : ""),
-      "",
-    ];
-    for (const s of weekSessions) {
-      const mm = Array.isArray(s.session_metrics) ? s.session_metrics[0] : s.session_metrics;
-      lines.push(
-        `- ${s.started_at.slice(0, 10)}: 총 ${fmtMs(s.total_time_ms)}, ` +
-        `런 편차 ${fmtMs(mm?.run_lap_deviation_ms)}, 등급 ${mm?.pacing_grade ?? "-"}`,
-      );
-    }
-    const jobId = await gwSubmit(lines.join("\n"), { kind: "weekly", ref: `${uid}:${start}` });
+    const jobId = await gwSubmit(prompt, { kind: "weekly", ref: `${uid}:${start}` });
     if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); continue; }
     await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
     out.submitted++;

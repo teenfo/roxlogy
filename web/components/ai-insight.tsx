@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 
@@ -44,8 +45,13 @@ export async function AiInsight({
         <h2 className="text-sm font-bold uppercase tracking-wide text-accent">
           {title}
         </h2>
-        {kind === "weekly" && data.period_start && (
-          <span className="text-xs text-muted">{data.period_start} ~</span>
+        {kind === "weekly" && (
+          <span className="flex items-center gap-3 text-xs text-muted">
+            {data.period_start && <span>{data.period_start} ~</span>}
+            <Link href="/insights" className="text-accent hover:underline">
+              {t("ai.weekly.history")}
+            </Link>
+          </span>
         )}
       </div>
       <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
