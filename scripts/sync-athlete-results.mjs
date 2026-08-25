@@ -70,21 +70,31 @@ const STATION_BY_KEY = {
   sandbag_lunges: "lunges", lunges: "lunges", wall_balls: "wallballs",
 };
 
-/** 스플릿 행들 → race_results.splits jsonb (웹 상세 페이지 계약) */
+/** 스플릿 행들 → race_results.splits jsonb (웹 상세 페이지 계약)
+ *  place(스플릿별 필드 순위)가 있으면 stations_place/runs_place 로 함께 보존. */
 function buildSplits(rows) {
   const stations = {};
+  const stationsPlace = {};
   const runs = [];
+  const runsPlace = [];
   const roxzones = [];
   for (const s of rows ?? []) {
     const key = String(s.canonical_key ?? "").toLowerCase();
     const ms = s.time_ms;
     if (ms == null) continue;
+    const place = Number(s.place ?? s.rank ?? s.position);
+    const hasPlace = Number.isFinite(place) && place > 0;
     const run = key.match(/^run[_ ]?(\d)$/);
     const rox = key.match(/^rox_?zone[_ ]?(\d)$/);
-    if (run) runs[Number(run[1]) - 1] = ms;
-    else if (rox) roxzones[Number(rox[1]) - 1] = ms;
-    else if (STATION_BY_KEY[key] && stations[STATION_BY_KEY[key]] == null)
+    if (run) {
+      runs[Number(run[1]) - 1] = ms;
+      if (hasPlace) runsPlace[Number(run[1]) - 1] = place;
+    } else if (rox) {
+      roxzones[Number(rox[1]) - 1] = ms;
+    } else if (STATION_BY_KEY[key] && stations[STATION_BY_KEY[key]] == null) {
       stations[STATION_BY_KEY[key]] = ms;
+      if (hasPlace) stationsPlace[STATION_BY_KEY[key]] = place;
+    }
   }
   const runsClean = runs.filter((v) => v != null);
   const roxClean = roxzones.filter((v) => v != null);
@@ -92,9 +102,41 @@ function buildSplits(rows) {
   if (runsClean.length === 8) {
     out.runs = runsClean;
     out.run_total_ms = runsClean.reduce((a, b) => a + b, 0);
+    if (runsPlace.filter((v) => v != null).length === 8)
+      out.runs_place = runsPlace;
   }
+  if (Object.keys(stationsPlace).length) out.stations_place = stationsPlace;
   if (roxClean.length) out.roxzones = roxClean;
   return out;
+}
+
+/** 이벤트(디비전×요일) 완주자 수 — 스플릿 place 를 백분위로 환산할 분모 */
+const fieldSizeCache = new Map();
+async function fetchFieldSize(slug) {
+  if (!slug) return null;
+  if (fieldSizeCache.has(slug)) return fieldSizeCache.get(slug);
+  let n = null;
+  try {
+    const j = await apiGet(
+      `${RESULT_API_BASE}/events/${encodeURIComponent(slug)}`,
+    );
+    const ev = j?.data ?? j;
+    const v = Number(ev?.results_count ?? ev?.resultsCount);
+    if (Number.isFinite(v) && v > 0) n = v;
+    if (n == null) {
+      const st = await apiGet(
+        `${RESULT_API_BASE}/events/${encodeURIComponent(slug)}/ingest-status`,
+      );
+      const w = Number(
+        st?.data?.race?.results_count ?? st?.data?.results_count,
+      );
+      if (Number.isFinite(w) && w > 0) n = w;
+    }
+  } catch {
+    n = null;
+  }
+  fieldSizeCache.set(slug, n);
+  return n;
 }
 
 const pick = (obj, keys) => {
@@ -139,23 +181,32 @@ async function main() {
 
     for (const r of rows) {
       const total = pick(r, ["total_time_ms", "totalTimeMs", "total_ms"]);
-      if (total == null || known.has(total)) continue;
+      if (total == null) continue;
       const raceId = pick(r, ["id", "race_id"]);
       const eventName = pick(r, ["event_name", "race_name", "event"]);
+      const eventSlug = pick(r, ["event_slug", "eventSlug"]);
+      const rankOverall = pick(r, ["rank_overall", "overall_rank"]);
       const eventDate = String(
         pick(r, ["event_date", "race_date", "date", "started_at"]) ?? "",
       ).slice(0, 10);
       const validDate = /^\d{4}-\d{2}-\d{2}$/.test(eventDate) ? eventDate : null;
       const division = mapDivision(pick(r, ["division_name", "division"]));
 
-      // 같은 날짜대의 기존(수동) 기록이 있으면: 스플릿이 없는 기록은 공식 값으로
-      // 보강하고, 이미 완전한 기록은 중복 등록하지 않는다
-      const prior = validDate
-        ? existing.find((e) => dateNear(e.event_date, validDate))
-        : null;
+      // 같은 레이스로 볼 기존 기록: 대회 날짜 ±3일 우선, 없으면 같은 총기록
+      const prior =
+        (validDate
+          ? existing.find((e) => dateNear(e.event_date, validDate))
+          : null) ?? existing.find((e) => e.total_time_ms === total) ?? null;
       const priorHasSplits =
         prior && Object.keys(prior.splits?.stations ?? {}).length > 0;
-      if (prior && priorHasSplits) continue;
+      const priorHasPlaces =
+        prior &&
+        (Object.keys(prior.splits?.stations_place ?? {}).length > 0 ||
+          (prior.splits?.runs_place?.length ?? 0) > 0);
+      // 스플릿·순위까지 다 있으면 완결 — 스킵
+      if (prior && priorHasSplits && priorHasPlaces) continue;
+      // 날짜 매칭이 안 되는 중복(총기록 동일)도 안전망으로 스킵
+      if (!prior && known.has(total)) continue;
 
       let splits = { stations: {} };
       if (raceId != null) {
@@ -163,6 +214,34 @@ async function main() {
           `${RESULT_API_BASE}/athletes/${encodeURIComponent(String(raceId))}/splits`,
         );
         splits = buildSplits(sp?.data);
+      }
+      const fieldSize = await fetchFieldSize(eventSlug);
+      if (fieldSize != null) splits.field_size = fieldSize;
+      if (rankOverall != null && Number(rankOverall) > 0)
+        splits.rank_overall = Number(rankOverall);
+
+      if (prior && priorHasSplits) {
+        // 이미 스플릿이 있는 기록: 순위 정보(place/field_size)만 백필
+        const gotPlaces =
+          Object.keys(splits.stations_place ?? {}).length > 0 ||
+          (splits.runs_place?.length ?? 0) > 0 ||
+          fieldSize != null;
+        if (!gotPlaces) continue;
+        if (DRY_RUN) {
+          console.log(`  DRY: would backfill split places (${prior.id})`);
+          continue;
+        }
+        const merged = { ...(prior.splits ?? {}), ...splits };
+        if (!Object.keys(splits.stations ?? {}).length)
+          merged.stations = prior.splits?.stations ?? {};
+        await db(`race_results?id=eq.${prior.id}`, {
+          method: "PATCH",
+          headers: { prefer: "return=minimal" },
+          body: JSON.stringify({ splits: merged }),
+        });
+        known.add(total);
+        console.log(`  ✓ backfilled split places for ${prior.id}`);
+        continue;
       }
 
       if (prior) {

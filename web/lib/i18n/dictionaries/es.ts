@@ -435,6 +435,15 @@ const es: Record<DictKey, string> = {
   "races.colStationTime": "Tiempo",
   "races.replayNote":
     "Del race replay oficial (puntos In/Out). Roxzone = tiempo de transición al entrar y salir de la estación.",
+  "races.replayClickNote":
+    "Toca un segmento para ver su posición en el campo.",
+  "races.segPlace": "Puesto {place} de {field} en el campo",
+  "races.segNoPlace":
+    "Aún no hay clasificación por segmento para esta carrera. Se completa automáticamente al importar resultados oficiales.",
+  "races.segHistory": "Mi historial — este segmento",
+  "races.segDistNote":
+    "Posición dentro del campo de {field} atletas, aproximada como curva normal según tu puesto de split.",
+  "common.close": "Cerrar",
 
   "raceNew.title": "Registrar resultado oficial",
   "raceNew.desc": "Consulta tu marca en la página oficial de resultados y cópiala aquí.",

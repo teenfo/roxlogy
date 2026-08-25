@@ -8,6 +8,11 @@ import { STATIONS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
 import { PercentileBar } from "@/components/percentile-bar";
 import { RaceToSessionButton } from "@/components/race-to-session-button";
+import {
+  RaceReplayTable,
+  type ReplayRow,
+  type SegHistoryPoint,
+} from "@/components/race-replay-table";
 
 type RaceSplits = {
   stations?: Record<string, number>;
@@ -16,6 +21,12 @@ type RaceSplits = {
   runs?: number[];
   /** Race Replay In/Out에서 산출한 록스존 1~8 (ms) */
   roxzones?: number[];
+  /** 공식 API 스플릿별 필드 순위 (자동 임포트) */
+  stations_place?: Record<string, number>;
+  runs_place?: (number | null)[];
+  /** 해당 디비전×요일 이벤트 완주자 수 */
+  field_size?: number;
+  rank_overall?: number;
 };
 
 function Delta({ raceMs, trainMs }: { raceMs?: number; trainMs?: number }) {
@@ -95,6 +106,42 @@ export default async function RaceDetailPage({
   }
 
   const hasStationSplits = Object.keys(splits.stations ?? {}).length > 0;
+  const hasAnySplits = hasStationSplits || (splits.runs?.length ?? 0) > 0;
+
+  // 세그먼트 히스토리: 내 레이스들의 같은 세그먼트 기록 추이 (모달 그래프)
+  const { data: myRaces } = hasAnySplits
+    ? await supabase
+        .from("race_results")
+        .select("id, event_date, splits")
+        .eq("user_id", race.user_id)
+        .not("event_date", "is", null)
+        .order("event_date", { ascending: true })
+        .limit(30)
+    : { data: [] };
+  const segHistory: Record<string, SegHistoryPoint[]> = {};
+  for (const r of myRaces ?? []) {
+    const sp = (r.splits ?? {}) as RaceSplits;
+    const date = String(r.event_date).slice(0, 10);
+    for (const [key, ms] of Object.entries(sp.stations ?? {})) {
+      if (typeof ms !== "number") continue;
+      (segHistory[key] ??= []).push({ date, ms });
+    }
+    (sp.runs ?? []).forEach((ms, i) => {
+      if (typeof ms !== "number") return;
+      (segHistory[`run_${i + 1}`] ??= []).push({ date, ms });
+    });
+  }
+
+  const replayRows: ReplayRow[] = STATIONS.map((s, i) => ({
+    i: i + 1,
+    runMs: splits.runs?.[i] ?? null,
+    runPlace: splits.runs_place?.[i] ?? null,
+    roxMs: splits.roxzones?.[i] ?? null,
+    stationKey: s.key,
+    stationLabel: t(`station.${s.key}` as Parameters<typeof t>[0]),
+    stMs: splits.stations?.[s.key] ?? null,
+    stPlace: splits.stations_place?.[s.key] ?? null,
+  }));
 
   return (
     <main>
@@ -221,58 +268,16 @@ export default async function RaceDetailPage({
         )}
       </section>
 
-      {/* Race Replay 구간별 상세 — 런/록스존/스테이션 8개 조 */}
-      {(splits.runs?.length ?? 0) > 0 && (
+      {/* Race Replay 구간별 상세 — 런/록스존/스테이션 8개 조.
+          세그먼트 클릭 → 필드 분포 모달 (place 기반 실측 백분위) */}
+      {hasAnySplits && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("races.replayTitle")}</h2>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-surface text-left text-xs text-muted">
-                  <th className="py-2 pr-4 font-normal">#</th>
-                  <th className="py-2 pr-4 text-right font-normal">
-                    {t("races.colRun")}
-                  </th>
-                  <th className="py-2 pr-4 text-right font-normal">
-                    {t("races.colRoxzone")}
-                  </th>
-                  <th className="py-2 pr-4 font-normal">
-                    {t("races.colStation")}
-                  </th>
-                  <th className="py-2 text-right font-normal">
-                    {t("races.colStationTime")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {STATIONS.map((s, i) => {
-                  const runMs = splits.runs?.[i];
-                  const roxMs = splits.roxzones?.[i];
-                  const stMs = splits.stations?.[s.key];
-                  return (
-                    <tr key={s.key} className="border-b border-surface/60">
-                      <td className="py-2.5 pr-4 font-mono text-xs text-muted">
-                        {i + 1}
-                      </td>
-                      <td className="py-2.5 pr-4 text-right font-mono">
-                        {runMs != null ? formatMs(runMs) : "—"}
-                      </td>
-                      <td className="py-2.5 pr-4 text-right font-mono text-muted">
-                        {roxMs != null ? formatMs(roxMs) : "—"}
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        {t(`station.${s.key}` as Parameters<typeof t>[0])}
-                      </td>
-                      <td className="py-2.5 text-right font-mono">
-                        {stMs != null ? formatMs(stMs) : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <p className="mt-2 text-xs text-muted">{t("races.replayNote")}</p>
-          </div>
+          <RaceReplayTable
+            rows={replayRows}
+            fieldSize={splits.field_size ?? null}
+            history={segHistory}
+          />
         </section>
       )}
 

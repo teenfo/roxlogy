@@ -442,6 +442,15 @@ const en = {
   "races.colStationTime": "Time",
   "races.replayNote":
     "From the official race replay (In/Out checkpoints). Roxzone = transition time in and out of the station.",
+  "races.replayClickNote":
+    "Tap a segment to see where it sits in the field.",
+  "races.segPlace": "Field rank {place} / {field}",
+  "races.segNoPlace":
+    "No per-segment field ranking for this race yet. It is filled automatically for imported official results.",
+  "races.segHistory": "My history — this segment",
+  "races.segDistNote":
+    "Position within the {field}-athlete field, approximated as a normal curve from your split rank.",
+  "common.close": "Close",
 
   // 레이스 등록
   "raceNew.title": "Register official race result",

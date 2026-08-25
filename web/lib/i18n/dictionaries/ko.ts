@@ -432,6 +432,14 @@ const ko: Record<DictKey, string> = {
   "races.colStationTime": "기록",
   "races.replayNote":
     "공식 레이스 리플레이(In/Out 체크포인트) 기반. 록스존 = 스테이션 진입·이탈 전환 시간.",
+  "races.replayClickNote": "세그먼트를 누르면 필드 내 위치 분포를 볼 수 있어요.",
+  "races.segPlace": "필드 {field}명 중 {place}위",
+  "races.segNoPlace":
+    "이 레이스의 세그먼트별 필드 순위 정보가 아직 없어요. 공식 기록 자동 임포트 시 자동으로 채워집니다.",
+  "races.segHistory": "이 세그먼트의 내 기록 추이",
+  "races.segDistNote":
+    "스플릿 순위를 정규분포로 근사한 필드({field}명) 내 위치입니다.",
+  "common.close": "닫기",
 
   "raceNew.title": "공식 레이스 결과 등록",
   "raceNew.desc": "공식 결과 페이지에서 본인 기록을 확인한 뒤 그대로 옮겨 적으세요.",
