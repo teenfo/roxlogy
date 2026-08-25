@@ -13,6 +13,10 @@ on:
         description: "매핑 확인만 (DB 미반영, API 스펙·샘플 로그 덤프)"
         type: boolean
         default: false
+      api_token:
+        description: "임시 Result API 토큰 (시크릿 미등록 시 1회용 — 평시엔 비워둘 것)"
+        type: string
+        default: ""
   push:
     branches: [main]
     paths:
@@ -31,9 +35,12 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           HYROX_EVENTS_API_URL: ${{ secrets.HYROX_EVENTS_API_URL }}
-          HYROX_RESULT_API_TOKEN: ${{ secrets.HYROX_RESULT_API_TOKEN }}
+          HYROX_RESULT_API_TOKEN: ${{ secrets.HYROX_RESULT_API_TOKEN || inputs.api_token }}
           SYNC_DRY_RUN: ${{ inputs.dry_run == true && '1' || '' }}
         run: |
+          if [ -n "$HYROX_RESULT_API_TOKEN" ]; then
+            echo "::add-mask::$HYROX_RESULT_API_TOKEN"
+          fi
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] && [ -z "$SYNC_DRY_RUN" ]; then
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY not set — skipping sync."
             exit 0
