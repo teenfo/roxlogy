@@ -21,7 +21,19 @@ type CalRow = {
   member_name: string | null;
   going_count: number | null;
   my_status: string | null;
+  result_ms: number | null;
 };
+
+/** ms → h:mm:ss / m:ss */
+function fmtResult(ms: number): string {
+  const t = Math.round(ms / 1000);
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = t % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+    : `${m}:${String(s).padStart(2, "0")}`;
+}
 
 /** YYYY-MM 문자열 → [해당 월 1일, 말일] */
 function monthRange(m: string): [string, string] {
@@ -174,6 +186,11 @@ export default async function CrewSchedulePage({
                       )}
                       {r.kind === "race" && r.member_name && (
                         <span className="text-xs text-track">{r.member_name}</span>
+                      )}
+                      {r.kind === "race" && r.result_ms != null && (
+                        <span className="rounded-full bg-track/15 px-2 py-0.5 font-mono text-xs font-bold text-track">
+                          🏁 {fmtResult(r.result_ms)}
+                        </span>
                       )}
                       {r.subtitle && (
                         <span className="truncate text-xs text-muted">
