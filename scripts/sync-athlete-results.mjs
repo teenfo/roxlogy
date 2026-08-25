@@ -230,12 +230,14 @@ async function main() {
         splits.rank_overall = Number(rankOverall);
 
       if (prior && priorHasSplits) {
-        // 이미 스플릿이 있는 기록: 순위 정보(place/field_size)만 백필
+        // 이미 스플릿이 있는 기록: 순위 정보(place/field_size)만 백필.
+        // 새로 추가되는 정보가 없으면 건드리지 않는다 (매주 재패치 방지)
         const gotPlaces =
           Object.keys(splits.stations_place ?? {}).length > 0 ||
-          (splits.runs_place?.length ?? 0) > 0 ||
-          fieldSize != null;
-        if (!gotPlaces) continue;
+          (splits.runs_place?.length ?? 0) > 0;
+        const addsField =
+          fieldSize != null && prior.splits?.field_size == null;
+        if (!gotPlaces && !addsField) continue;
         if (DRY_RUN) {
           console.log(`  DRY: would backfill split places (${prior.id})`);
           continue;
@@ -339,14 +341,25 @@ async function backfillPlacesViaSearch(p, existing) {
         byTotal.set(h.total_time_ms, h.id);
     }
   }
+  console.log(
+    `  search backfill: ${missing.length} records w/o places, ${byTotal.size} search totals`,
+  );
   if (!byTotal.size) return;
 
+  let sampleLogged = false;
   for (const e of missing) {
     const hitId = byTotal.get(e.total_time_ms);
-    if (hitId == null) continue;
+    if (hitId == null) {
+      console.log(`  - no search match for ${e.total_time_ms}ms (${e.id})`);
+      continue;
+    }
     const sp = await apiGet(
       `${RESULT_API_BASE}/athletes/${encodeURIComponent(String(hitId))}/splits`,
     );
+    if (!sampleLogged && sp?.data?.length) {
+      console.log(`  splits sample: ${JSON.stringify(sp.data[0]).slice(0, 300)}`);
+      sampleLogged = true;
+    }
     const got = buildSplits(sp?.data);
     const gotPlaces =
       Object.keys(got.stations_place ?? {}).length > 0 ||
