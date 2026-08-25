@@ -145,6 +145,7 @@ const ko: Record<DictKey, string> = {
   "crew.meetupCancel": "모임 취소",
   "crew.meetupCancelConfirm": "이 모임을 취소할까요? 일정표에서 사라집니다.",
   "crew.racePlanAdd": "내 대회 일정 등록",
+  "crew.racePlanLinked": "공식 대회에 연결됨",
   "crew.racePlanTitlePh": "대회명 (예: 서울 2026)",
   "crew.racePlanNotePh": "메모 (선택)",
   "crew.racePlanDelConfirm": "이 대회 일정을 삭제할까요?",

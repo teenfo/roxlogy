@@ -147,6 +147,7 @@ const en = {
   "crew.meetupCancel": "Cancel meetup",
   "crew.meetupCancelConfirm": "Cancel this meetup? It will disappear from the schedule.",
   "crew.racePlanAdd": "Add my race",
+  "crew.racePlanLinked": "Linked to official event",
   "crew.racePlanTitlePh": "Race name (e.g. Seoul 2026)",
   "crew.racePlanNotePh": "Note (optional)",
   "crew.racePlanDelConfirm": "Remove this race from the schedule?",

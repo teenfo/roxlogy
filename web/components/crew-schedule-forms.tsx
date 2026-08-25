@@ -113,7 +113,16 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
 
 export type MyRacePlan = { id: string; title: string; race_date: string; note: string | null };
 
-/** 대회 참가 일정 — 멤버 본인이 등록·삭제. 크루 일정표에 표기된다. */
+type RaceEventRow = {
+  id: string;
+  name: string;
+  city: string;
+  start_date: string | null;
+};
+
+/** 대회 참가 일정 — 멤버 본인이 등록·삭제. 크루 일정표에 표기된다.
+ *  공식 대회(race_events)를 검색해 선택하면 이름·날짜가 채워지고 대회에 연결된다.
+ *  목록에 없는 대회는 직접 입력도 가능. */
 export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -121,8 +130,41 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [note, setNote] = useState("");
+  const [eventId, setEventId] = useState<string | null>(null);
+  const [events, setEvents] = useState<RaceEventRow[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  async function openForm() {
+    setOpen(true);
+    if (events !== null) return;
+    // 다가오는 공식 대회 목록 — 공개 테이블(전체 읽기 허용)
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("race_events")
+      .select("id, name, city, start_date")
+      .gte("start_date", new Date().toISOString().slice(0, 10))
+      .order("start_date", { ascending: true })
+      .limit(100);
+    setEvents((data ?? []) as RaceEventRow[]);
+  }
+
+  // 검색어와 매칭되는 공식 대회 (이름·도시, 최대 6개). 이미 선택했으면 숨김
+  const term = title.trim().toLowerCase();
+  const matches =
+    !eventId && term.length >= 1 && events
+      ? events
+          .filter((e) =>
+            [e.name, e.city].some((v) => v.toLowerCase().includes(term)),
+          )
+          .slice(0, 6)
+      : [];
+
+  function pickEvent(e: RaceEventRow) {
+    setTitle(`${e.name} · ${e.city}`);
+    if (e.start_date) setDate(e.start_date);
+    setEventId(e.id);
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -139,6 +181,7 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
       user_id: u.user.id,
       title: title.trim(),
       race_date: date,
+      race_event_id: eventId,
       note: note.trim() || null,
     });
     setBusy(false);
@@ -149,6 +192,7 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
     setTitle("");
     setDate("");
     setNote("");
+    setEventId(null);
     setOpen(false);
     router.refresh();
   }
@@ -165,7 +209,7 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
       {!open ? (
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={openForm}
           className="self-start rounded-md bg-surface px-3 py-1.5 text-xs font-semibold text-track hover:brightness-110"
         >
           + {t("crew.racePlanAdd")}
@@ -176,10 +220,37 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
           <input
             className={input}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setEventId(null); // 직접 수정하면 공식 대회 연결 해제
+            }}
             placeholder={t("crew.racePlanTitlePh")}
             maxLength={80}
           />
+          {matches.length > 0 && (
+            <ul className="flex flex-col gap-1 rounded-md bg-background p-2">
+              {matches.map((ev) => (
+                <li key={ev.id}>
+                  <button
+                    type="button"
+                    onClick={() => pickEvent(ev)}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-surface"
+                  >
+                    <span className="truncate font-semibold">{ev.name}</span>
+                    <span className="text-muted">{ev.city}</span>
+                    {ev.start_date && (
+                      <span className="ml-auto shrink-0 font-mono text-muted">
+                        {ev.start_date}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {eventId && (
+            <p className="text-xs text-track">✓ {t("crew.racePlanLinked")}</p>
+          )}
           <input
             type="date"
             className={input}
