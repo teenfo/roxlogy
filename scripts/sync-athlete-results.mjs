@@ -493,7 +493,13 @@ async function backfillPlacesViaSearch(p, existing, hits) {
       Object.keys(e.splits?.stations ?? {}).length > 0 &&
       !Object.keys(e.splits?.stations_place ?? {}).length,
   );
-  if (!missing.length) return;
+  const noBib = existing.filter(
+    (e) =>
+      e.id != null &&
+      Object.keys(e.splits?.stations ?? {}).length > 0 &&
+      e.splits?.bib == null,
+  );
+  if (!missing.length && !noBib.length) return;
 
   const byTotal = new Map();
   for (const h of hits ?? []) {
@@ -501,9 +507,35 @@ async function backfillPlacesViaSearch(p, existing, hits) {
       byTotal.set(h.total_time_ms, h.id);
   }
   console.log(
-    `  search backfill: ${missing.length} records w/o places, ${byTotal.size} search totals`,
+    `  search backfill: ${missing.length} w/o places, ${noBib.length} w/o bib, ${byTotal.size} search totals`,
   );
   if (!byTotal.size) return;
+
+  // 결과 목록 행에 bib 이 빠진 기록: 레이스 상세(/athletes/{id})에서 보충
+  for (const e of noBib) {
+    const hitId = byTotal.get(e.total_time_ms);
+    if (hitId == null) continue;
+    const detail = await apiGet(
+      `${RESULT_API_BASE}/athletes/${encodeURIComponent(String(hitId))}`,
+    );
+    const bib = String(detail?.data?.bib ?? "").trim();
+    if (!bib) {
+      console.log(`  - detail has no bib either (${e.total_time_ms}ms)`);
+      continue;
+    }
+    if (DRY_RUN) {
+      console.log(`  DRY: would fill bib ${bib} (${e.id})`);
+      continue;
+    }
+    const merged = { ...(e.splits ?? {}), bib };
+    await db(`race_results?id=eq.${e.id}`, {
+      method: "PATCH",
+      headers: { prefer: "return=minimal" },
+      body: JSON.stringify({ splits: merged }),
+    });
+    e.splits = merged;
+    console.log(`  ✓ filled bib ${bib} via race detail (${e.id})`);
+  }
 
   let sampleLogged = false;
   for (const e of missing) {
