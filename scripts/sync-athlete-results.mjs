@@ -31,6 +31,11 @@ async function apiGet(url) {
       continue;
     }
     if (res.status === 404) return null;
+    if (res.status === 400) {
+      // 잘못된 ID 형태 등 행 단위 문제 — 전체 동기화를 죽이지 않는다
+      console.log(`  ! result api 400 (${url}) — skipping`);
+      return null;
+    }
     if (!res.ok) throw new Error(`result api ${res.status} (${url})`);
     return res.json();
   }
@@ -208,10 +213,14 @@ async function main() {
       // 날짜 매칭이 안 되는 중복(총기록 동일)도 안전망으로 스킵
       if (!prior && known.has(total)) continue;
 
+      // 스플릿 조회: results 행의 id 는 "stored result id" — 스펙상
+      // /athletes/{athlete_id}/splits?result_id={id} 로 조회한다.
+      // (race ID 직접 경로는 검색 히트의 id 전용)
       let splits = { stations: {} };
-      if (raceId != null) {
+      const athleteId = pick(r, ["athlete_id", "athleteId"]) ?? p.hyrox_person_ref;
+      if (raceId != null && athleteId) {
         const sp = await apiGet(
-          `${RESULT_API_BASE}/athletes/${encodeURIComponent(String(raceId))}/splits`,
+          `${RESULT_API_BASE}/athletes/${encodeURIComponent(String(athleteId))}/splits?result_id=${encodeURIComponent(String(raceId))}`,
         );
         splits = buildSplits(sp?.data);
       }
