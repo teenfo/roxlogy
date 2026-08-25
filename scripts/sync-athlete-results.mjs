@@ -53,7 +53,10 @@ async function db(path, init = {}) {
     },
   });
   if (!res.ok) throw new Error(`db ${res.status} ${path}: ${await res.text()}`);
-  return res.status === 204 ? null : res.json();
+  // return=minimal 인 POST 는 201 + 빈 본문 — json() 하면 죽는다
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 function mapDivision(name) {
