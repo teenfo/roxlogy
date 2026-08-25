@@ -152,48 +152,96 @@ function normalizeSeason(rawSeason, startDate) {
   return s || null;
 }
 
-/** Result API 이벤트 → race_events 행 */
-function normalizeResultApi(raw) {
-  const name0 = String(
-    pick(raw, ["name", "title", "event_name", "eventName", "label"]) ?? "",
-  ).trim();
-  if (!name0) return null;
-  const name = /hyrox/i.test(name0) ? name0 : `HYROX ${name0}`;
+// ISO 3166-1 alpha-2 → 한국어 국가명 (모르면 코드 유지)
+const ISO2_KO = {
+  KR: "대한민국", JP: "일본", CN: "중국", HK: "홍콩", TW: "대만",
+  TH: "태국", SG: "싱가포르", MY: "말레이시아", ID: "인도네시아",
+  IN: "인도", PH: "필리핀", VN: "베트남", AE: "아랍에미리트",
+  QA: "카타르", SA: "사우디아라비아", KW: "쿠웨이트",
+  DE: "독일", GB: "영국", FR: "프랑스", NL: "네덜란드", ES: "스페인",
+  IT: "이탈리아", AT: "오스트리아", CH: "스위스", PL: "폴란드",
+  CZ: "체코", PT: "포르투갈", IE: "아일랜드", DK: "덴마크",
+  SE: "스웨덴", NO: "노르웨이", FI: "핀란드", GR: "그리스",
+  TR: "튀르키예", BE: "벨기에", HU: "헝가리", RO: "루마니아",
+  US: "미국", CA: "캐나다", MX: "멕시코",
+  BR: "브라질", AR: "아르헨티나", CL: "칠레", CO: "콜롬비아",
+  AU: "호주", NZ: "뉴질랜드", ZA: "남아프리카공화국", EG: "이집트",
+};
+const REGION_BY_ISO2 = {
+  KR: "asia", JP: "asia", CN: "asia", HK: "asia", TW: "asia", TH: "asia",
+  SG: "asia", MY: "asia", ID: "asia", IN: "asia", PH: "asia", VN: "asia",
+  AE: "asia", QA: "asia", SA: "asia", KW: "asia",
+  DE: "europe", GB: "europe", FR: "europe", NL: "europe", ES: "europe",
+  IT: "europe", AT: "europe", CH: "europe", PL: "europe", CZ: "europe",
+  PT: "europe", IE: "europe", DK: "europe", SE: "europe", NO: "europe",
+  FI: "europe", GR: "europe", TR: "europe", BE: "europe", HU: "europe",
+  RO: "europe",
+  US: "north_america", CA: "north_america", MX: "north_america",
+  BR: "south_america", AR: "south_america", CL: "south_america",
+  CO: "south_america",
+  AU: "oceania", NZ: "oceania",
+  ZA: "africa", EG: "africa",
+};
 
-  const cityRaw = String(
-    pick(raw, ["city", "location.city", "venue.city", "location"]) ?? "",
-  ).trim();
-  const countryRaw = String(
-    pick(raw, ["country", "location.country", "venue.country", "country_name"]) ?? "",
-  ).trim();
-  const city = CITY_KO[cityRaw.toLowerCase()] ?? cityRaw;
-  const country = COUNTRY_KO[countryRaw.toLowerCase()] ?? countryRaw;
-  if (!city || !country) return null;
+/** "2026 Perth" → "Perth" (연도 프리픽스 제거) */
+function stripYear(city) {
+  return String(city ?? "").replace(/^\s*(19|20)\d{2}\s+/, "").trim();
+}
 
-  const start = toDate(
-    pick(raw, ["start_date", "startDate", "date_from", "starts_at", "start", "date"]),
-  );
-  const end = toDate(
-    pick(raw, ["end_date", "endDate", "date_to", "ends_at", "end"]),
-  );
-  let region = pick(raw, ["region"]);
-  if (typeof region === "string") region = region.toLowerCase().replace(/\s+/g, "_");
-  if (!REGIONS.has(region)) region = REGION_BY_COUNTRY_KO[country] ?? null;
+/** Result API 이벤트(디비전×요일 단위) → 대회 주말 단위로 집계해 race_events 행 생성.
+ *  같은 (도시, 시작일) 묶음 = 한 대회. 한 시즌에 같은 도시 2회면 뒤 회차 이름에 월을 붙여
+ *  (name, season) 유니크 키를 지킨다. */
+function aggregateResultApi(rawRows, seasonLabelById) {
+  const groups = new Map();
+  for (const raw of rawRows) {
+    const cityRaw = stripYear(raw.city);
+    const start = toDate(raw.start_date);
+    if (!cityRaw || !start) continue;
+    const key = `${cityRaw.toLowerCase()}|${start}`;
+    const g = groups.get(key) ?? {
+      cityRaw,
+      countryCode: String(raw.country_code ?? "").toUpperCase(),
+      seasonId: raw.season_id ?? null,
+      start,
+      end: toDate(raw.end_date) ?? start,
+    };
+    const end = toDate(raw.end_date);
+    if (end && end > g.end) g.end = end;
+    groups.set(key, g);
+  }
 
-  return {
-    name,
-    city,
-    country,
-    region,
-    venue: pick(raw, ["venue", "venue.name", "venue_name", "location.venue"]),
-    start_date: start,
-    end_date: end,
-    date_note: null,
-    season: normalizeSeason(pick(raw, ["season.name", "season_name", "season"]), start),
-    official_url:
-      pick(raw, ["official_url", "url", "website", "link"]) ??
-      "https://hyrox.com/find-my-race/",
-  };
+  // 시즌 내 같은 도시 중복 → 시작일 순으로 두 번째부터 "N월" 접미
+  const byCitySeason = new Map();
+  for (const g of groups.values()) {
+    const k = `${g.cityRaw.toLowerCase()}|${g.seasonId}`;
+    const arr = byCitySeason.get(k) ?? [];
+    arr.push(g);
+    byCitySeason.set(k, arr);
+  }
+
+  const rows = [];
+  for (const arr of byCitySeason.values()) {
+    arr.sort((a, b) => a.start.localeCompare(b.start));
+    arr.forEach((g, i) => {
+      const cityKo = CITY_KO[g.cityRaw.toLowerCase()] ?? g.cityRaw;
+      const month = Number(g.start.slice(5, 7));
+      const name =
+        i === 0 ? `HYROX ${g.cityRaw}` : `HYROX ${g.cityRaw} ${month}월`;
+      rows.push({
+        name,
+        city: cityKo,
+        country: ISO2_KO[g.countryCode] ?? g.countryCode,
+        region: REGION_BY_ISO2[g.countryCode] ?? null,
+        venue: null,
+        start_date: g.start,
+        end_date: g.end,
+        date_note: null,
+        season: seasonLabelById.get(g.seasonId) ?? normalizeSeason(null, g.start),
+        official_url: "https://hyrox.com/find-my-race/",
+      });
+    });
+  }
+  return rows;
 }
 
 /** 드라이런 프로브 — OpenAPI 스펙과 주요 엔드포인트 샘플을 로그로 덤프.
@@ -217,7 +265,7 @@ async function probeResultApi() {
   } catch (e) {
     console.log(`openapi.yaml fetch 실패: ${e.message}`);
   }
-  for (const path of ["/seasons", "/user"]) {
+  for (const path of ["/seasons"]) {
     try {
       const res = await fetch(`${RESULT_API_BASE}${path}`, { headers });
       const body = await res.text();
@@ -229,30 +277,70 @@ async function probeResultApi() {
   }
 }
 
-/** Result API 전체 페이지 수집 (라라벨식 {data, meta}/{links} 페이지네이션 방어) */
-async function fetchResultApiEvents() {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 인증 GET + 레이트리밋 대응 — Starter 분당 30요청: 호출 간 2.2초 간격,
+ *  429 는 Retry-After 만큼 대기 후 재시도 (최대 3회). */
+let lastCallAt = 0;
+async function apiGet(url) {
   const headers = {
     authorization: `Bearer ${RESULT_API_TOKEN}`,
     accept: "application/json",
   };
-  const all = [];
-  for (let page = 1; page <= 30; page++) {
-    const res = await fetch(`${RESULT_API_BASE}/events?page=${page}`, { headers });
-    if (!res.ok) {
-      throw new Error(`result api ${res.status} ${res.statusText} (page ${page})`);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const wait = lastCallAt + 2200 - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastCallAt = Date.now();
+    const res = await fetch(url, { headers });
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get("retry-after")) || 30;
+      console.log(`429 — ${retryAfter}s 대기 후 재시도 (${url})`);
+      await sleep(retryAfter * 1000);
+      continue;
     }
-    const json = await res.json();
-    const arr = Array.isArray(json) ? json : (json.data ?? json.events ?? []);
+    if (!res.ok) throw new Error(`result api ${res.status} ${res.statusText} (${url})`);
+    return res.json();
+  }
+  throw new Error(`result api rate-limited repeatedly (${url})`);
+}
+
+/** 시즌 카탈로그 → id → 'S9 2026/27' 표기 맵 */
+async function fetchSeasonMap() {
+  const json = await apiGet(`${RESULT_API_BASE}/seasons?per_page=50`);
+  const map = new Map();
+  let currentSlug = null;
+  let maxN = -1;
+  for (const s of json.data ?? []) {
+    const n = Number(String(s.slug ?? "").match(/season-(\d+)/)?.[1] ?? NaN);
+    const yy = String(s.label ?? "").match(/(\d{2})\s*\/\s*(\d{2})/);
+    if (Number.isFinite(n) && yy) {
+      map.set(s.id, `S${n} 20${yy[1]}/${yy[2]}`);
+      if (n > maxN) {
+        maxN = n;
+        currentSlug = s.slug;
+      }
+    }
+  }
+  return { map, currentSlug };
+}
+
+/** 현재 시즌 이벤트 수집 — 서버 필터(season, from)로 요청 수 최소화 */
+async function fetchResultApiEvents(seasonSlug, fromDate) {
+  const all = [];
+  for (let page = 1; page <= 20; page++) {
+    const url =
+      `${RESULT_API_BASE}/events?season=${encodeURIComponent(seasonSlug)}` +
+      `&from=${fromDate}&per_page=100&page=${page}`;
+    const json = await apiGet(url);
+    const arr = json.data ?? [];
     if (page === 1) {
       console.log("── result api raw sample (매핑 검증용) ──");
       console.log(JSON.stringify(arr.slice(0, 2), null, 2));
     }
     if (!arr.length) break;
     all.push(...arr);
-    if (Array.isArray(json)) break; // 페이지네이션 정보 없음 = 단일 페이지
-    const last = json.meta?.last_page ?? json.last_page ?? null;
+    const last = json.meta?.last_page ?? null;
     if (last != null && page >= Number(last)) break;
-    if (last == null && !(json.links?.next ?? json.next_page_url)) break;
   }
   return all;
 }
@@ -278,15 +366,15 @@ function normalize(raw) {
 
 async function loadSource() {
   if (RESULT_API_TOKEN) {
-    const raw = await fetchResultApiEvents();
-    // 과거 대회로 테이블이 넘치지 않게 최근(60일 이내 시작)~미래만 유지.
-    // 날짜 미상 행은 보수적으로 유지 (미공표 신규 대회일 수 있음).
+    // 과거 대회로 테이블이 넘치지 않게 최근(60일 이내 시작)~미래만 수집
     const cutoff = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
-    const rows = raw
-      .map(normalizeResultApi)
-      .filter(Boolean)
-      .filter((r) => r.start_date == null || r.start_date >= cutoff);
-    console.log(`result api: ${raw.length} fetched → ${rows.length} kept (>= ${cutoff})`);
+    const { map: seasonMap, currentSlug } = await fetchSeasonMap();
+    if (!currentSlug) throw new Error("season catalog empty");
+    const raw = await fetchResultApiEvents(currentSlug, cutoff);
+    const rows = aggregateResultApi(raw, seasonMap);
+    console.log(
+      `result api: ${raw.length} division-rows → ${rows.length} race weekends (${currentSlug}, >= ${cutoff})`,
+    );
     return { from: `${RESULT_API_BASE}/events`, rows, mapped: true };
   }
   if (API_URL) {
