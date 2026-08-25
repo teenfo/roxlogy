@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { STATIONS } from "@/lib/hyrox";
 import { formatDateShort } from "@/lib/format";
+import { getRaceBenchmarks } from "@/lib/cache";
+import type { Benchmark } from "@/lib/percentile";
 import {
   PredictForm,
   type PredictSession,
@@ -39,7 +41,10 @@ export default async function PredictPage({
   // 로그인 시: 최근 레이스 시뮬 세션을 목표 계산용으로 불러온다.
   let sessions: PredictSession[] = [];
   let isAdmin = false;
+  let gender: string | null = null;
   let editGoal: EditGoal | null = null;
+  // 실측 백분위 분포 (공개 집계 — 비로그인도 표시)
+  const benchmarks = await getRaceBenchmarks();
   if (user) {
     if (sp.goal) {
       const { data: g } = await supabase
@@ -53,10 +58,11 @@ export default async function PredictPage({
     }
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_admin")
+      .select("is_admin, gender")
       .eq("id", user.id)
       .maybeSingle();
     isAdmin = profile?.is_admin === true;
+    gender = (profile?.gender as string | null) ?? null;
     const { data: rows } = await supabase
       .from("sessions")
       .select(
@@ -159,6 +165,8 @@ export default async function PredictPage({
           eventDate={editGoal?.event_date ?? sp.date ?? null}
           initialDivision={sp.division ?? null}
           editGoal={editGoal}
+          benchmarks={benchmarks as Benchmark[]}
+          gender={gender}
         />
       </div>
     </>

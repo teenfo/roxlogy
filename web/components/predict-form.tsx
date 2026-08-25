@@ -8,10 +8,12 @@ import { STATIONS } from "@/lib/hyrox";
 import { DIVISIONS } from "@/lib/divisions";
 import {
   achievabilityTier,
+  personalFromSessions,
   predictSplits,
   LEVELS,
   type Level,
 } from "@/lib/predict";
+import { percentileOf, type Benchmark } from "@/lib/percentile";
 import { InfoTip } from "@/components/info-tip";
 import { useI18n } from "@/components/i18n-provider";
 
@@ -45,7 +47,8 @@ export type EditGoal = {
 
 type Adjust = {
   stations: Record<string, string>;
-  run: string;
+  /** 1km당 런 페이스 (mm:ss) — 합계는 ×8 로 계산 */
+  runPace: string;
   rox: string;
 };
 
@@ -58,6 +61,8 @@ export function PredictForm({
   eventDate = null,
   initialDivision = null,
   editGoal = null,
+  benchmarks = [],
+  gender = null,
 }: {
   isLoggedIn?: boolean;
   sessions?: PredictSession[];
@@ -65,6 +70,8 @@ export function PredictForm({
   eventDate?: string | null;
   initialDivision?: string | null;
   editGoal?: EditGoal | null;
+  benchmarks?: Benchmark[];
+  gender?: string | null;
 }) {
   const { t } = useI18n();
   const [targetText, setTargetText] = useState(
@@ -81,13 +88,23 @@ export function PredictForm({
   );
 
   const targetMs = useMemo(() => parseTimeToMs(targetText), [targetText]);
+  // 내 세션 기록 → 개인 배분 프로필 (스테이션 비율·런 비중·록스존 비중)
+  const personal = useMemo(() => personalFromSessions(sessions), [sessions]);
   const result = useMemo(
-    () => (targetMs != null ? predictSplits(targetMs, level) : null),
-    [targetMs, level],
+    () => (targetMs != null ? predictSplits(targetMs, level, personal) : null),
+    [targetMs, level, personal],
   );
   const tier = useMemo(
     () => (targetMs != null ? achievabilityTier(targetMs, level) : null),
     [targetMs, level],
+  );
+  // 실측 분포(race_benchmarks) 기준 상위 % — 디비전 미선택 시 open 기준
+  const fieldPct = useMemo(
+    () =>
+      targetMs != null
+        ? percentileOf(targetMs, division || "open", gender, benchmarks)
+        : null,
+    [targetMs, division, gender, benchmarks],
   );
 
   // 조정 패널 상태 (로그인 시). null이면 아직 미개시 → 제안값으로 시드.
@@ -101,7 +118,7 @@ export function PredictForm({
     });
     return {
       stations,
-      run: formatMs(editGoal.run_total_ms ?? 0),
+      runPace: formatMs(Math.round((editGoal.run_total_ms ?? 0) / 8)),
       rox: formatMs(editGoal.roxzone_total_ms ?? 0),
     };
   });
@@ -113,7 +130,7 @@ export function PredictForm({
     result.stations.forEach((s) => (stations[s.key] = formatMs(s.targetMs)));
     return {
       stations,
-      run: formatMs(result.runTotalMs),
+      runPace: formatMs(result.runLapMs),
       rox: formatMs(result.roxzoneTotalMs),
     };
   }
@@ -129,7 +146,7 @@ export function PredictForm({
     );
     setAdj({
       stations,
-      run: formatMs(s.runTotalMs),
+      runPace: formatMs(Math.round(s.runTotalMs / 8)),
       rox: formatMs(s.roxTotalMs),
     });
   }
@@ -137,16 +154,21 @@ export function PredictForm({
   // 화면에 쓸 조정값 (미시드면 제안값)
   const eff = adj ?? seedFromResult();
 
+  const effRunTotalMs = useMemo(() => {
+    if (!eff) return null;
+    const pace = parseTimeToMs(eff.runPace);
+    return pace != null ? pace * 8 : null;
+  }, [eff]);
+
   const adjustedMs = useMemo(() => {
     if (!eff) return null;
     const st = STATION_KEYS.reduce(
       (acc, k) => acc + (parseTimeToMs(eff.stations[k] ?? "") ?? 0),
       0,
     );
-    const run = parseTimeToMs(eff.run) ?? 0;
     const rox = parseTimeToMs(eff.rox) ?? 0;
-    return st + run + rox;
-  }, [eff]);
+    return st + (effRunTotalMs ?? 0) + rox;
+  }, [eff, effRunTotalMs]);
 
   function setStation(key: string, value: string) {
     setSaveState("idle");
@@ -156,7 +178,7 @@ export function PredictForm({
       return { ...base, stations: { ...base.stations, [key]: value } };
     });
   }
-  function setField(field: "run" | "rox", value: string) {
+  function setField(field: "runPace" | "rox", value: string) {
     setSaveState("idle");
     setAdj((prev) => {
       const base = prev ?? seedFromResult();
@@ -187,7 +209,7 @@ export function PredictForm({
       division: division || null,
       event_name: eventName,
       event_date: eventDate,
-      run_total_ms: parseTimeToMs(eff.run) ?? 0,
+      run_total_ms: effRunTotalMs ?? 0,
       station_total_ms: stationTotal,
       roxzone_total_ms: parseTimeToMs(eff.rox) ?? 0,
       stations: stationsMs,
@@ -251,7 +273,7 @@ export function PredictForm({
       ) : (
         <>
           {tier && (
-            <div className="mt-6 flex items-center gap-3">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <span
                 className={`rounded-full border px-3 py-1 text-sm font-semibold ${TIER_STYLE[tier]}`}
               >
@@ -261,6 +283,16 @@ export function PredictForm({
                 {t(`predict.tierNote.${tier}`)}
               </span>
             </div>
+          )}
+          {fieldPct != null && (
+            <p className="mt-2 text-xs text-track">
+              📊 {t("predict.fieldPct", { pct: fieldPct })}
+            </p>
+          )}
+          {result.personalized && (
+            <p className="mt-1 text-xs text-muted">
+              {t("predict.personalNote", { n: sessions.length })}
+            </p>
           )}
 
           <section className="mt-6 grid grid-cols-3 gap-3">
@@ -410,11 +442,16 @@ export function PredictForm({
                 ))}
                 <div className="mt-1 flex items-center gap-3 rounded-md bg-background px-4 py-2">
                   <span className="flex-1 text-sm text-track">
-                    {t("predict.runTotalField")}
+                    {t("predict.runPaceField")}
+                    {effRunTotalMs != null && (
+                      <span className="ml-2 text-xs text-muted">
+                        {t("predict.runSum", { time: formatMs(effRunTotalMs) })}
+                      </span>
+                    )}
                   </span>
                   <input
-                    value={eff.run}
-                    onChange={(e) => setField("run", e.target.value)}
+                    value={eff.runPace}
+                    onChange={(e) => setField("runPace", e.target.value)}
                     inputMode="numeric"
                     className={inputCls}
                   />
