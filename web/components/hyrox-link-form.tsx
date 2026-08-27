@@ -28,6 +28,32 @@ export function HyroxLinkForm({
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+
+  // 본인 공식 기록 즉시 임포트 (Result API 스로틀 때문에 수십 초 걸릴 수 있음)
+  async function importNow() {
+    setImporting(true);
+    setImportMsg(null);
+    try {
+      const res = await fetch("/api/hyrox/import-mine", { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) {
+        setImportMsg(t("hyroxLink.importFail"));
+      } else {
+        setImportMsg(
+          t("hyroxLink.importDone", {
+            n: (body.imported ?? 0) + (body.enriched ?? 0),
+          }),
+        );
+        router.refresh();
+      }
+    } catch {
+      setImportMsg(t("hyroxLink.importFail"));
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function search() {
     if (last.trim().length < 2) return;
@@ -70,6 +96,8 @@ export function HyroxLinkForm({
     else {
       setHits(null);
       router.refresh();
+      // 연동 직후 본인 기록을 바로 가져온다 (주간 배치를 기다리지 않도록)
+      void importNow();
     }
   }
 
@@ -92,19 +120,32 @@ export function HyroxLinkForm({
 
   if (linkedName) {
     return (
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="text-sm">
-          ✓ <span className="font-semibold text-track">{linkedName}</span>
-          <span className="ml-2 text-xs text-muted">{t("hyroxLink.linkedNote")}</span>
-        </p>
-        <button
-          type="button"
-          onClick={unlink}
-          disabled={busy}
-          className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
-        >
-          {t("hyroxLink.unlink")}
-        </button>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm">
+            ✓ <span className="font-semibold text-track">{linkedName}</span>
+            <span className="ml-2 text-xs text-muted">{t("hyroxLink.linkedNote")}</span>
+          </p>
+          <button
+            type="button"
+            onClick={unlink}
+            disabled={busy || importing}
+            className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
+          >
+            {t("hyroxLink.unlink")}
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={importNow}
+            disabled={importing}
+            className="rounded-md border border-accent/40 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
+          >
+            {importing ? t("hyroxLink.importing") : t("hyroxLink.importNow")}
+          </button>
+          {importMsg && <p className="text-xs text-muted">{importMsg}</p>}
+        </div>
       </div>
     );
   }
