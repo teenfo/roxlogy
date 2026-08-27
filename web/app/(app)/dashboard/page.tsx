@@ -345,7 +345,13 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* ── 그룹 1: 오늘 & 일정 ── */}
+      <div className="mt-8 rounded-lg border border-muted/15 bg-surface/30 p-4 sm:p-5">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
+          {t("dash.groupToday")}
+        </h2>
+
+      <section className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-md bg-surface px-4 py-3">
           <p className="text-xs text-muted">{t("dash.streak")}</p>
           <p className="mt-1 text-2xl font-bold">
@@ -373,7 +379,7 @@ export default async function DashboardPage() {
       </section>
 
       {today && (
-        <section className="mt-8">
+        <section className="mt-6">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="flex items-center gap-2 text-lg font-semibold">
               {t("dash.todayTitle")}
@@ -424,7 +430,7 @@ export default async function DashboardPage() {
 
       {/* 크루 일정 — 다가오는 14일 (모임·대회·프로그램) */}
       {crewAgenda.map(({ crew, rows }) => (
-        <section key={crew.slug} className="mt-8">
+        <section key={crew.slug} className="mt-6">
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-semibold">
               {t("dash.crewSched")}{" "}
@@ -491,6 +497,13 @@ export default async function DashboardPage() {
           </ul>
         </section>
       ))}
+      </div>
+
+      {/* ── 그룹 2: 내 기록 ── */}
+      <div className="mt-6 rounded-lg border border-muted/15 bg-surface/30 p-4 sm:p-5">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
+          {t("dash.groupRecords")}
+        </h2>
 
       {latestRace && latestRacePct != null && latestRace.division && (
         <PercentileBar
@@ -503,7 +516,7 @@ export default async function DashboardPage() {
       )}
 
       {/* 최근 세션 — 자주 쓰는 항목이라 차트들보다 위 */}
-      <section className="mt-8">
+      <section className="mt-6">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold">{t("dash.recentTitle")}</h2>
           <Link href="/sessions" className="text-sm text-accent hover:underline">
@@ -545,35 +558,8 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      {trend.length >= 2 && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("dash.trendTitle")}</h2>
-          <div className="mt-3 rounded-md bg-surface p-4">
-            <TrendBars data={trend} />
-          </div>
-        </section>
-      )}
-
-      {showRehearsal && (
-        <RehearsalReport goals={goalRows} sessions={rehearsalSessions} />
-      )}
-
-      {showCorr && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("dash.corrTitle")}</h2>
-          <p className="mt-1 text-sm text-muted">{t("dash.corrDesc")}</p>
-          <div className="mt-3 rounded-md bg-surface p-4">
-            <CorrelationLine
-              data={corr}
-              simLabel={t("dash.corrSim")}
-              raceLabel={t("dash.corrRace")}
-            />
-          </div>
-        </section>
-      )}
-
       {hasPr && (
-        <section className="mt-8">
+        <section className="mt-6">
           <h2 className="text-lg font-semibold">{t("dash.prTitle")}</h2>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {prs.map((p) => (
@@ -589,8 +575,43 @@ export default async function DashboardPage() {
           </div>
         </section>
       )}
+      </div>
+
+      {/* ── 그룹 3: 분석 & 인사이트 ── */}
+      <div className="mt-6 rounded-lg border border-muted/15 bg-surface/30 p-4 sm:p-5">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
+          {t("dash.groupAnalysis")}
+        </h2>
+
+      {trend.length >= 2 && (
+        <section className="mt-6">
+          <h2 className="text-lg font-semibold">{t("dash.trendTitle")}</h2>
+          <div className="mt-3 rounded-md bg-surface p-4">
+            <TrendBars data={trend} />
+          </div>
+        </section>
+      )}
+
+      {showRehearsal && (
+        <RehearsalReport goals={goalRows} sessions={rehearsalSessions} />
+      )}
+
+      {showCorr && (
+        <section className="mt-6">
+          <h2 className="text-lg font-semibold">{t("dash.corrTitle")}</h2>
+          <p className="mt-1 text-sm text-muted">{t("dash.corrDesc")}</p>
+          <div className="mt-3 rounded-md bg-surface p-4">
+            <CorrelationLine
+              data={corr}
+              simLabel={t("dash.corrSim")}
+              raceLabel={t("dash.corrRace")}
+            />
+          </div>
+        </section>
+      )}
 
       <AiInsight kind="weekly" />
+      </div>
     </main>
   );
 }

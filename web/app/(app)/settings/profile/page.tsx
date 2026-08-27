@@ -4,6 +4,7 @@ import { getT } from "@/lib/i18n";
 import { ProfileForm } from "@/components/profile-form";
 import { NotificationSettings } from "@/components/notification-settings";
 import { HyroxLinkForm } from "@/components/hyrox-link-form";
+import { McpConnect } from "@/components/mcp-connect";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -37,6 +38,12 @@ export default async function ProfileSettingsPage() {
         <h2 className="text-lg font-bold">{t("hyroxLink.title")}</h2>
         <div className="mt-3 rounded-md bg-surface p-4">
           <HyroxLinkForm linkedName={profile?.hyrox_athlete_name ?? null} />
+        </div>
+      </section>
+      <section className="mt-10">
+        <h2 className="text-lg font-bold">{t("mcp.title")}</h2>
+        <div className="mt-3 rounded-md bg-surface p-4">
+          <McpConnect token={profile?.mcp_token ?? ""} />
         </div>
       </section>
       <NotificationSettings />
