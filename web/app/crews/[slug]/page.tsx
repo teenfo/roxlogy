@@ -47,6 +47,9 @@ export default async function CrewHomePage({
       value: links.official,
       href: links.official,
     });
+  // 회비 계좌는 크루원에게만 노출 (공개 소개 페이지는 비회원도 보므로)
+  if (links.bank_account && crew.my_status === "active")
+    info.push({ label: t("crew.bankAccount"), value: links.bank_account });
 
   return (
     <main className="flex flex-col gap-8">

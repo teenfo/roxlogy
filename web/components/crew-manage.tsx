@@ -37,6 +37,7 @@ export function CrewInfoForm({
   const [phone, setPhone] = useState(links.phone ?? "");
   const [official, setOfficial] = useState(links.official ?? "");
   const [policy, setPolicy] = useState(links.policy ?? "");
+  const [bankAccount, setBankAccount] = useState(links.bank_account ?? "");
   const [joinPolicy, setJoinPolicy] = useState(crew.join_policy);
   const [isPublic, setIsPublic] = useState(crew.is_public);
   const [busy, setBusy] = useState(false);
@@ -55,6 +56,7 @@ export function CrewInfoForm({
       phone: phone.trim() || null,
       official: official.trim() || null,
       policy: policy.trim() || null,
+      bank_account: bankAccount.trim() || null,
     };
     for (const k of Object.keys(nextLinks)) {
       if (nextLinks[k] == null) delete nextLinks[k];
@@ -115,6 +117,15 @@ export function CrewInfoForm({
         maxLength={200}
         placeholder="https://"
         inputMode="url"
+      />
+
+      <label className={label}>{t("crew.fBankAccount")}</label>
+      <input
+        className={input}
+        value={bankAccount}
+        onChange={(e) => setBankAccount(e.target.value)}
+        maxLength={80}
+        placeholder={t("crew.fBankAccountHint")}
       />
 
       <label className={label}>{t("crew.fRules")}</label>
