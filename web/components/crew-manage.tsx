@@ -36,6 +36,7 @@ export function CrewInfoForm({
   const [hoursWeekend, setHoursWeekend] = useState(links.hours_weekend ?? "");
   const [phone, setPhone] = useState(links.phone ?? "");
   const [official, setOfficial] = useState(links.official ?? "");
+  const [policy, setPolicy] = useState(links.policy ?? "");
   const [joinPolicy, setJoinPolicy] = useState(crew.join_policy);
   const [isPublic, setIsPublic] = useState(crew.is_public);
   const [busy, setBusy] = useState(false);
@@ -53,6 +54,7 @@ export function CrewInfoForm({
       hours_weekend: hoursWeekend.trim() || null,
       phone: phone.trim() || null,
       official: official.trim() || null,
+      policy: policy.trim() || null,
     };
     for (const k of Object.keys(nextLinks)) {
       if (nextLinks[k] == null) delete nextLinks[k];
@@ -113,6 +115,15 @@ export function CrewInfoForm({
         maxLength={200}
         placeholder="https://"
         inputMode="url"
+      />
+
+      <label className={label}>{t("crew.fRules")}</label>
+      <textarea
+        className={`${input} min-h-28`}
+        value={policy}
+        onChange={(e) => setPolicy(e.target.value)}
+        maxLength={2000}
+        placeholder={t("crew.fRulesHint")}
       />
 
       <label className={label}>{t("crew.fPolicy")}</label>

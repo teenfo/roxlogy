@@ -28,6 +28,10 @@ export default async function CrewLayout({
     { href: `/crews/${slug}/leaderboard`, label: t("crew.leaderboard") },
     { href: `/crews/${slug}/members`, label: t("crew.roster") },
   ];
+  // 회계는 크루원 전용 (재정은 비공개 정보)
+  if (crew.my_status === "active") {
+    tabs.push({ href: `/crews/${slug}/finance`, label: t("crew.financeTab") });
+  }
   // 스태프(리더·부리더)에게만 관리 탭 노출
   if (crew.my_role === "owner" || crew.my_role === "coach") {
     tabs.push({ href: `/crews/${slug}/manage`, label: t("crew.manage") });

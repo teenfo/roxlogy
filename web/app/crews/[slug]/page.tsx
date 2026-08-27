@@ -80,6 +80,16 @@ export default async function CrewHomePage({
         </section>
       )}
 
+      {/* 운영 정책 */}
+      {links.policy && (
+        <section>
+          <h2 className="text-lg font-bold">{t("crew.rulesTitle")}</h2>
+          <p className="mt-3 whitespace-pre-line rounded-md bg-surface px-4 py-4 text-sm leading-relaxed text-foreground/90">
+            {links.policy}
+          </p>
+        </section>
+      )}
+
       {/* 최근 글 */}
       <section>
         <div className="flex items-baseline justify-between">
