@@ -119,12 +119,14 @@ export function HyroxLinkForm({
   }
 
   if (linkedName) {
+    // 저장된 이름이 더블 페어명("choho kim, juhwan kim")일 수 있다 —
+    // 연동 기준은 첫 번째 인물이므로 본인 이름만 크게 보여준다
+    const person = linkedName.split(",")[0].trim();
     return (
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm">
-            ✓ <span className="font-semibold text-track">{linkedName}</span>
-            <span className="ml-2 text-xs text-muted">{t("hyroxLink.linkedNote")}</span>
+            ✓ <span className="font-semibold text-track">{person}</span>
           </p>
           <button
             type="button"
@@ -135,6 +137,7 @@ export function HyroxLinkForm({
             {t("hyroxLink.unlink")}
           </button>
         </div>
+        <p className="text-xs text-muted">{t("hyroxLink.linkedNote")}</p>
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
