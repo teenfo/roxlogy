@@ -169,6 +169,131 @@ const handler = createMcpHandler(
         ),
     );
 
+    // ---------- 운영진 전용 (owner/coach 토큰만 — 아니면 null 반환)
+
+    server.registerTool(
+      "add_crew_ledger_entry",
+      {
+        title: "크루 회계 기록 (운영진)",
+        description:
+          "크루 회계에 수입/지출 내역을 기록한다 (운영진 전용). 영수증 사진을 읽었다면 날짜·금액·상호를 추출해 사용하되, 기록 전 사용자에게 내용을 확인받아라. amount 는 KRW 정수(원).",
+        inputSchema: z.object({
+          slug: z.string(),
+          kind: z.enum(["income", "expense"]),
+          amount: z.number().int().positive(),
+          title: z.string().min(1).max(120),
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          memo: z.string().max(500).optional(),
+        }),
+      },
+      async ({ slug, kind, amount, title, date, memo }, ctx) =>
+        out(
+          await rpc("mcp_add_ledger", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_kind: kind,
+            p_amount: amount,
+            p_title: title,
+            ...(date ? { p_date: date } : {}),
+            p_memo: memo ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "add_crew_meetup",
+      {
+        title: "크루 모임 등록 (운영진)",
+        description:
+          "크루 모임 일정을 등록한다 (운영진 전용). starts_at 은 ISO8601 + 타임존 오프셋 (예: 2026-09-01T19:30:00+09:00). kind: wod|race_sim|run|strength|social|race (기본 social). 등록 전 사용자에게 내용을 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          title: z.string().min(1).max(120),
+          starts_at: z.string(),
+          location: z.string().max(120).optional(),
+          description: z.string().max(1000).optional(),
+          kind: z
+            .enum(["wod", "race_sim", "run", "strength", "social", "race"])
+            .optional(),
+        }),
+      },
+      async ({ slug, title, starts_at, location, description, kind }, ctx) =>
+        out(
+          await rpc("mcp_add_meetup", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_title: title,
+            p_starts_at: starts_at,
+            p_location: location ?? null,
+            p_description: description ?? null,
+            p_kind: kind ?? "social",
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "post_crew_notice",
+      {
+        title: "크루 공지 작성 (운영진)",
+        description:
+          "크루 게시판에 공지 글을 올린다 (운영진 전용). pinned=true 면 상단 고정. 게시 전 사용자에게 제목·본문을 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          title: z.string().min(1).max(150),
+          body: z.string().min(1).max(8000),
+          pinned: z.boolean().optional(),
+        }),
+      },
+      async ({ slug, title, body, pinned }, ctx) =>
+        out(
+          await rpc("mcp_post_notice", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_title: title,
+            p_body: body,
+            p_pinned: pinned ?? false,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "list_pending_members",
+      {
+        title: "가입 대기 멤버 (운영진)",
+        description:
+          "크루 가입 승인을 기다리는 멤버 목록 (운영진 전용) — user_id, 표시 이름, 신청 시각.",
+        inputSchema: z.object({ slug: z.string() }),
+      },
+      async ({ slug }, ctx) =>
+        out(
+          await rpc("mcp_pending_members", {
+            p_token: tok(ctx),
+            p_slug: slug,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "approve_crew_member",
+      {
+        title: "가입 승인 (운영진)",
+        description:
+          "대기 중인 멤버의 크루 가입을 승인한다 (운영진 전용). user_id 는 list_pending_members 에서 얻는다. 승인 전 사용자에게 누구를 승인할지 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          user_id: z.string().uuid(),
+        }),
+      },
+      async ({ slug, user_id }, ctx) =>
+        out(
+          await rpc("mcp_approve_member", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_user_id: user_id,
+          }),
+        ),
+    );
+
     server.registerTool(
       "get_crew_finance",
       {
@@ -193,9 +318,11 @@ const handler = createMcpHandler(
   {
     serverInfo: { name: "roxlogy", version: "1.0.0" },
     instructions:
-      "Roxlogy 하이록스 훈련 데이터 읽기 API. 시간 값은 밀리초(ms). " +
+      "Roxlogy 하이록스 훈련 데이터 API. 시간 값은 밀리초(ms). " +
       "크루 도구의 slug 는 get_profile 의 crews 목록에서 얻는다. " +
-      "결과가 null 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다.",
+      "결과가 null 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다. " +
+      "쓰기 도구(회계 기록·모임 등록·공지·가입 승인)는 크루 운영진 토큰만 동작하며, " +
+      "실행 전 반드시 사용자에게 내용을 확인받는다.",
   },
 );
 
