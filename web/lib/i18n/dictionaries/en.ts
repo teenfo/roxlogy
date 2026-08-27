@@ -602,7 +602,7 @@ const en = {
   "hyroxLink.desc": "Search your name in the official results and pick your record — new official results will then be imported automatically.",
   "hyroxLink.thisIsMe": "This is me",
   "hyroxLink.noHits": "No matching records found. Try after your first official race.",
-  "hyroxLink.linkedNote": "All of this athlete's official results sync automatically — solo, doubles with any partner, and relay. New results are picked up weekly (or use the button below).",
+  "hyroxLink.linkedNote": "All of this athlete's official results sync automatically. New results are picked up weekly (or use the button below).",
   "hyroxLink.importNow": "Import my results now",
   "hyroxLink.importing": "Importing… (can take up to a minute)",
   "hyroxLink.importDone": "Done — {n} record(s) imported or updated.",

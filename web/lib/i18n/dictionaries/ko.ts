@@ -589,7 +589,7 @@ const ko: Record<DictKey, string> = {
   "hyroxLink.desc": "공식 결과에서 본인 이름을 검색해 내 기록을 선택하면, 이후 새 공식 기록이 자동으로 등록됩니다.",
   "hyroxLink.thisIsMe": "이 기록이 나",
   "hyroxLink.noHits": "일치하는 기록이 없습니다. 첫 공식 대회 후 다시 시도해 보세요.",
-  "hyroxLink.linkedNote": "이 선수의 공식 기록 전체가 자동 연동됩니다 — 개인·더블(파트너 무관)·릴레이 모두. 새 기록은 매주 자동 등록되고, 아래 버튼으로 즉시 가져올 수도 있어요.",
+  "hyroxLink.linkedNote": "이 선수의 공식 기록 전체가 자동 연동됩니다. 새 기록은 매주 자동 등록되고, 아래 버튼으로 즉시 가져올 수도 있어요.",
   "hyroxLink.importNow": "공식 기록 지금 가져오기",
   "hyroxLink.importing": "가져오는 중… (최대 1분 걸릴 수 있어요)",
   "hyroxLink.importDone": "완료 — {n}건을 가져오거나 갱신했어요.",

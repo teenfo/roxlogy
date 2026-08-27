@@ -593,7 +593,7 @@ const es: Record<DictKey, string> = {
   "hyroxLink.desc": "Busca tu nombre en los resultados oficiales y elige tu récord — los nuevos resultados se importarán automáticamente.",
   "hyroxLink.thisIsMe": "Soy yo",
   "hyroxLink.noHits": "Sin coincidencias. Inténtalo tras tu primera carrera oficial.",
-  "hyroxLink.linkedNote": "Se sincronizan todos los resultados oficiales de este atleta — individual, dobles con cualquier pareja y relevos. Los nuevos llegan cada semana (o usa el botón de abajo).",
+  "hyroxLink.linkedNote": "Se sincronizan todos los resultados oficiales de este atleta. Los nuevos llegan cada semana (o usa el botón de abajo).",
   "hyroxLink.importNow": "Importar mis resultados ahora",
   "hyroxLink.importing": "Importando… (puede tardar hasta un minuto)",
   "hyroxLink.importDone": "Listo — {n} registro(s) importados o actualizados.",
