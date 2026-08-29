@@ -82,7 +82,7 @@ export default async function CrewSchedulePage({
     isMember
       ? supabase
           .from("race_plans")
-          .select("id, title, race_date, note")
+          .select("id, title, race_date, division, bib, note")
           .order("race_date")
       : Promise.resolve({ data: [] as MyRacePlan[] }),
   ]);
@@ -188,6 +188,11 @@ export default async function CrewSchedulePage({
                       {r.kind === "meetup" && r.starts_at && (
                         <span className="text-xs text-muted">
                           {timeLabel(r.starts_at)}
+                        </span>
+                      )}
+                      {r.kind === "race" && r.starts_at && (
+                        <span className="text-xs text-muted">
+                          🕐 {timeLabel(r.starts_at)}
                         </span>
                       )}
                       {r.kind === "race" && r.member_name && (

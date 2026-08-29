@@ -124,7 +124,16 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
   );
 }
 
-export type MyRacePlan = { id: string; title: string; race_date: string; note: string | null };
+export type MyRacePlan = {
+  id: string;
+  title: string;
+  race_date: string;
+  division: string | null;
+  bib: string | null;
+  note: string | null;
+};
+
+const bibOk = (v: string) => v.trim() === "" || /^\d{4,8}$/.test(v.trim());
 
 type RaceEventRow = {
   id: string;
@@ -142,9 +151,18 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
+  const [division, setDivision] = useState("");
+  const [bib, setBib] = useState("");
   const [note, setNote] = useState("");
   const [eventId, setEventId] = useState<string | null>(null);
   const [events, setEvents] = useState<RaceEventRow[] | null>(null);
+  // 인라인 수정 — BIB 는 대회 직전 발급되는 경우가 많아 나중에 채운다
+  const [editId, setEditId] = useState<string | null>(null);
+  const [eTitle, setETitle] = useState("");
+  const [eDate, setEDate] = useState("");
+  const [eDivision, setEDivision] = useState("");
+  const [eBib, setEBib] = useState("");
+  const [eNote, setENote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -181,7 +199,7 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !date) return;
+    if (!title.trim() || !date || !bibOk(bib)) return;
     setBusy(true);
     setErr(null);
     const supabase = createClient();
@@ -195,6 +213,8 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
       title: title.trim(),
       race_date: date,
       race_event_id: eventId,
+      division: division.trim() || null,
+      bib: bib.trim() || null,
       note: note.trim() || null,
     });
     setBusy(false);
@@ -204,9 +224,46 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
     }
     setTitle("");
     setDate("");
+    setDivision("");
+    setBib("");
     setNote("");
     setEventId(null);
     setOpen(false);
+    router.refresh();
+  }
+
+  function startEdit(p: MyRacePlan) {
+    setEditId(p.id);
+    setETitle(p.title);
+    setEDate(p.race_date);
+    setEDivision(p.division ?? "");
+    setEBib(p.bib ?? "");
+    setENote(p.note ?? "");
+    setErr(null);
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editId || !eTitle.trim() || !eDate || !bibOk(eBib)) return;
+    setBusy(true);
+    setErr(null);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("race_plans")
+      .update({
+        title: eTitle.trim(),
+        race_date: eDate,
+        division: eDivision.trim() || null,
+        bib: eBib.trim() || null,
+        note: eNote.trim() || null,
+      })
+      .eq("id", editId);
+    setBusy(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    setEditId(null);
     router.refresh();
   }
 
@@ -270,6 +327,24 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
+          <div className="flex gap-2">
+            <input
+              className={input}
+              value={division}
+              onChange={(e) => setDivision(e.target.value)}
+              placeholder={t("crew.racePlanDivisionPh")}
+              maxLength={40}
+            />
+            <input
+              className={input}
+              value={bib}
+              onChange={(e) => setBib(e.target.value)}
+              placeholder={t("crew.racePlanBibPh")}
+              maxLength={8}
+              inputMode="numeric"
+            />
+          </div>
+          <p className="text-xs text-muted">{t("crew.racePlanBibHint")}</p>
           <input
             className={input}
             value={note}
@@ -298,20 +373,97 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
       )}
       {myPlans.length > 0 && (
         <ul className="flex flex-col gap-1">
-          {myPlans.map((p) => (
-            <li key={p.id} className="flex items-center gap-2 text-xs text-muted">
-              <span className="font-mono">{p.race_date}</span>
-              <span className="truncate text-foreground">{p.title}</span>
-              <button
-                type="button"
-                onClick={() => del(p.id)}
-                className="text-muted hover:text-red-400"
-                aria-label={t("common.delete")}
-              >
-                ✕
-              </button>
-            </li>
-          ))}
+          {myPlans.map((p) =>
+            editId === p.id ? (
+              <li key={p.id}>
+                <form
+                  onSubmit={saveEdit}
+                  className="flex flex-col gap-2 rounded-md bg-surface p-3 ring-1 ring-accent/40"
+                >
+                  <input
+                    className={input}
+                    value={eTitle}
+                    onChange={(e) => setETitle(e.target.value)}
+                    placeholder={t("crew.racePlanTitlePh")}
+                    maxLength={80}
+                  />
+                  <input
+                    type="date"
+                    className={input}
+                    value={eDate}
+                    onChange={(e) => setEDate(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      className={input}
+                      value={eDivision}
+                      onChange={(e) => setEDivision(e.target.value)}
+                      placeholder={t("crew.racePlanDivisionPh")}
+                      maxLength={40}
+                    />
+                    <input
+                      className={input}
+                      value={eBib}
+                      onChange={(e) => setEBib(e.target.value)}
+                      placeholder={t("crew.racePlanBibPh")}
+                      maxLength={8}
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <input
+                    className={input}
+                    value={eNote}
+                    onChange={(e) => setENote(e.target.value)}
+                    placeholder={t("crew.racePlanNotePh")}
+                    maxLength={80}
+                  />
+                  {err && <p className="text-xs text-red-400">{err}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={busy || !eTitle.trim() || !eDate || !bibOk(eBib)}
+                      className="rounded-md bg-track px-4 py-1.5 text-xs font-bold text-background disabled:opacity-40"
+                    >
+                      {t("common.save")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditId(null)}
+                      className="rounded-md px-3 py-1.5 text-xs text-muted hover:text-foreground"
+                    >
+                      {t("common.cancel")}
+                    </button>
+                  </div>
+                </form>
+              </li>
+            ) : (
+              <li key={p.id} className="flex items-center gap-2 text-xs text-muted">
+                <span className="font-mono">{p.race_date}</span>
+                <span className="truncate text-foreground">{p.title}</span>
+                {p.division && <span className="shrink-0">{p.division}</span>}
+                {p.bib && (
+                  <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 font-mono text-[10px] font-bold text-track">
+                    BIB {p.bib}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => startEdit(p)}
+                  className="text-muted hover:text-accent"
+                >
+                  {t("common.edit")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => del(p.id)}
+                  className="text-muted hover:text-red-400"
+                  aria-label={t("common.delete")}
+                >
+                  ✕
+                </button>
+              </li>
+            ),
+          )}
         </ul>
       )}
     </div>
