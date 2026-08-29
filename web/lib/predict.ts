@@ -10,13 +10,14 @@ import { STATIONS } from "./hyrox";
  *  - 런/스테이션 비중·록스존 예산도 개인 기록이 있으면 그것을 따른다.
  */
 
-export const LEVELS = ["beginner", "intermediate", "advanced"] as const;
+export const LEVELS = ["beginner", "intermediate", "advanced", "elite"] as const;
 export type Level = (typeof LEVELS)[number];
 
 const ROXZONE_BUDGET_MS: Record<Level, number> = {
   beginner: 7 * 60_000,
   intermediate: 5.5 * 60_000,
   advanced: 4 * 60_000,
+  elite: 3 * 60_000,
 };
 
 const DEFAULT_RUN_SHARE = 0.52;
@@ -24,6 +25,11 @@ const DEFAULT_RUN_SHARE = 0.52;
 /** 레벨별 스테이션 배분(스테이션 합 대비 비율) — 공개 스플릿 중앙값 근사.
  *  초심자일수록 월볼·버피·슬레드풀 비중이 커지고 스키/로우는 상대적으로 안정적. */
 const LEVEL_STATION_SHARE: Record<Level, Record<string, number>> = {
+  // 엘리트는 근지구력 스테이션(월볼·슬레드풀) 손실이 적어 배분이 더 고르다
+  elite: {
+    ski: 0.12, sledpush: 0.105, sledpull: 0.13, burpee: 0.12,
+    row: 0.12, farmers: 0.08, lunges: 0.13, wallballs: 0.195,
+  },
   advanced: {
     ski: 0.115, sledpush: 0.105, sledpull: 0.135, burpee: 0.125,
     row: 0.115, farmers: 0.075, lunges: 0.135, wallballs: 0.175,
@@ -126,6 +132,7 @@ const LEVEL_BANDS_MIN: Record<Level, { fast: number; typical: number; easy: numb
   beginner: { fast: 80, typical: 95, easy: 110 },
   intermediate: { fast: 66, typical: 78, easy: 90 },
   advanced: { fast: 56, typical: 64, easy: 74 },
+  elite: { fast: 50, typical: 58, easy: 66 },
 };
 
 export function achievabilityTier(
