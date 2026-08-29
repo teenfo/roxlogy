@@ -241,7 +241,10 @@ const es: Record<DictKey, string> = {
   "crew.nameLocked": "El nombre y la URL no se pueden cambiar",
   "crew.roleOwner": "Líder",
   "crew.roleCoach": "Colíder",
-  "crew.roleMember": "Miembro",
+  "crew.roleMember": "Miembro pleno",
+  "crew.roleAssociate": "Miembro general",
+  "crew.makeMember": "Hacer miembro pleno",
+  "crew.toAssociate": "Pasar a general",
   "crew.makeCoach": "Hacer colíder",
   "crew.demoteCoach": "Quitar colíder",
   "crew.transferLeader": "Transferir liderazgo",
@@ -992,9 +995,10 @@ const es: Record<DictKey, string> = {
   "crew.kind.strength": "Fuerza",
   "crew.kind.social": "Social",
   "crew.kind.race": "Competición",
-  "crew.role.owner": "Propietario",
-  "crew.role.coach": "Entrenador",
-  "crew.role.member": "Miembro",
+  "crew.role.owner": "Líder",
+  "crew.role.coach": "Sublíder",
+  "crew.role.member": "Miembro pleno",
+  "crew.role.associate": "Miembro general",
 };
 
 export default es;

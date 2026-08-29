@@ -11,7 +11,7 @@ export const POST_CATEGORIES = [
 ] as const;
 export type PostCategory = (typeof POST_CATEGORIES)[number];
 
-export type CrewRole = "owner" | "coach" | "member";
+export type CrewRole = "owner" | "coach" | "member" | "associate";
 export type CrewStatus = "pending" | "active" | "blocked";
 
 export type CrewOverview = {

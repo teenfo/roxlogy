@@ -312,7 +312,7 @@ export function CrewImageUpload({
 export type ManageMember = {
   user_id: string;
   display_name: string;
-  role: "owner" | "coach" | "member";
+  role: "owner" | "coach" | "member" | "associate";
   status: "pending" | "active" | "blocked";
   joined_at: string;
 };
@@ -356,7 +356,7 @@ export function CrewMemberManage({
       supabase().from("crew_members").delete().eq("crew_id", crewId).eq("user_id", u),
     );
   };
-  const setRole = (u: string, role: "coach" | "member") =>
+  const setRole = (u: string, role: "coach" | "member" | "associate") =>
     run(`r${u}`, () => supabase().rpc("set_crew_role", { p_slug: slug, p_user: u, p_role: role }));
   const transfer = (u: string) => {
     if (!window.confirm(t("crew.transferConfirm"))) return;
@@ -364,7 +364,13 @@ export function CrewMemberManage({
   };
 
   const roleLabel = (r: string) =>
-    r === "owner" ? t("crew.roleOwner") : r === "coach" ? t("crew.roleCoach") : t("crew.roleMember");
+    r === "owner"
+      ? t("crew.roleOwner")
+      : r === "coach"
+        ? t("crew.roleCoach")
+        : r === "associate"
+          ? t("crew.roleAssociate")
+          : t("crew.roleMember");
 
   const pending = members.filter((m) => m.status === "pending");
   const active = members.filter((m) => m.status === "active");
@@ -428,15 +434,34 @@ export function CrewMemberManage({
             </span>
             {myRole === "owner" && m.user_id !== myUserId && m.role !== "owner" && (
               <span className="flex flex-wrap gap-2">
-                {m.role === "member" ? (
+                {m.role === "associate" && (
                   <button
-                    onClick={() => setRole(m.user_id, "coach")}
+                    onClick={() => setRole(m.user_id, "member")}
                     disabled={busy != null}
-                    className={`${btn} bg-background text-track`}
+                    className={`${btn} bg-background text-accent`}
                   >
-                    {t("crew.makeCoach")}
+                    {t("crew.makeMember")}
                   </button>
-                ) : (
+                )}
+                {m.role === "member" && (
+                  <>
+                    <button
+                      onClick={() => setRole(m.user_id, "coach")}
+                      disabled={busy != null}
+                      className={`${btn} bg-background text-track`}
+                    >
+                      {t("crew.makeCoach")}
+                    </button>
+                    <button
+                      onClick={() => setRole(m.user_id, "associate")}
+                      disabled={busy != null}
+                      className={`${btn} bg-background text-muted`}
+                    >
+                      {t("crew.toAssociate")}
+                    </button>
+                  </>
+                )}
+                {m.role === "coach" && (
                   <button
                     onClick={() => setRole(m.user_id, "member")}
                     disabled={busy != null}

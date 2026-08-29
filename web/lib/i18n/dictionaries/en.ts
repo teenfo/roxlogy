@@ -243,7 +243,10 @@ const en = {
   "crew.nameLocked": "Crew name and URL cannot be changed",
   "crew.roleOwner": "Leader",
   "crew.roleCoach": "Co-leader",
-  "crew.roleMember": "Member",
+  "crew.roleMember": "Full member",
+  "crew.roleAssociate": "Associate",
+  "crew.makeMember": "Make full member",
+  "crew.toAssociate": "Set as associate",
   "crew.makeCoach": "Make co-leader",
   "crew.demoteCoach": "Remove co-leader",
   "crew.transferLeader": "Transfer leadership",
@@ -1004,9 +1007,10 @@ const en = {
   "crew.kind.strength": "Strength",
   "crew.kind.social": "Social",
   "crew.kind.race": "Race",
-  "crew.role.owner": "Owner",
-  "crew.role.coach": "Coach",
-  "crew.role.member": "Member",
+  "crew.role.owner": "Leader",
+  "crew.role.coach": "Co-leader",
+  "crew.role.member": "Full member",
+  "crew.role.associate": "Associate",
 } as const;
 
 export type DictKey = keyof typeof en;

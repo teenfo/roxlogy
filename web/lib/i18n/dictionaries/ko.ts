@@ -241,7 +241,10 @@ const ko: Record<DictKey, string> = {
   "crew.nameLocked": "크루명과 주소는 변경할 수 없습니다",
   "crew.roleOwner": "리더",
   "crew.roleCoach": "부리더",
-  "crew.roleMember": "크루원",
+  "crew.roleMember": "정회원",
+  "crew.roleAssociate": "일반회원",
+  "crew.makeMember": "정회원 전환",
+  "crew.toAssociate": "일반회원으로",
   "crew.makeCoach": "부리더 지정",
   "crew.demoteCoach": "부리더 해제",
   "crew.transferLeader": "리더 위임",
@@ -983,9 +986,10 @@ const ko: Record<DictKey, string> = {
   "crew.kind.strength": "근력",
   "crew.kind.social": "모임",
   "crew.kind.race": "대회",
-  "crew.role.owner": "운영자",
-  "crew.role.coach": "코치",
-  "crew.role.member": "멤버",
+  "crew.role.owner": "리더",
+  "crew.role.coach": "부리더",
+  "crew.role.member": "정회원",
+  "crew.role.associate": "일반회원",
 };
 
 export default ko;
