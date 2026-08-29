@@ -49,6 +49,7 @@ export type CrewPost = {
   author_name: string;
   author_division: string | null;
   pinned: boolean;
+  members_only: boolean;
   comment_count: number;
   like_count: number;
   liked_by_me: boolean;

@@ -17,6 +17,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
   const [when, setWhen] = useState("");
   const [location, setLocation] = useState("");
   const [desc, setDesc] = useState("");
+  const [membersOnly, setMembersOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -34,6 +35,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
       starts_at: new Date(when).toISOString(),
       location: location.trim() || null,
       description: desc.trim() || null,
+      members_only: membersOnly,
       created_by: u.user?.id ?? null,
     });
     setBusy(false);
@@ -45,6 +47,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
     setWhen("");
     setLocation("");
     setDesc("");
+    setMembersOnly(false);
     setOpen(false);
     router.refresh();
   }
@@ -90,6 +93,16 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
         placeholder={t("crew.meetupDescPh")}
         maxLength={1000}
       />
+      <label className="flex cursor-pointer items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={membersOnly}
+          onChange={(e) => setMembersOnly(e.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        <span>{t("crew.fullOnly")}</span>
+        <span className="text-muted">{t("crew.fullOnlyMeetupHint")}</span>
+      </label>
       {err && <p className="text-xs text-red-400">{err}</p>}
       <div className="flex gap-2">
         <button

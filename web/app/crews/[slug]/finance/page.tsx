@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCrew } from "@/lib/crew";
+import { isFullMember } from "@/lib/crew-types";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import {
@@ -52,14 +53,18 @@ export default async function CrewFinancePage({
   const [crew, { t, tag }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
 
-  const isMember = crew.my_status === "active";
+  // 회계는 정회원(리더·부리더·정회원)에게만 공개 — 일반회원(associate)·비멤버 제외
+  const isFull =
+    crew.my_status === "active" &&
+    crew.my_role != null &&
+    isFullMember(crew.my_role);
   const isStaff = crew.my_role === "owner" || crew.my_role === "coach";
 
-  if (!isMember) {
+  if (!isFull) {
     return (
       <main>
         <p className="rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("crew.finMembersOnly")}
+          {t("crew.finFullOnly")}
         </p>
       </main>
     );

@@ -22,6 +22,7 @@ export function CrewPostForm({
   const [category, setCategory] = useState<PostCategory>("free");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [membersOnly, setMembersOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -51,6 +52,7 @@ export function CrewPostForm({
         category,
         title: title.trim(),
         body: body.trim() || null,
+        members_only: membersOnly,
       })
       .select("id")
       .single();
@@ -116,6 +118,17 @@ export function CrewPostForm({
           className={`${field} resize-y`}
         />
       </div>
+
+      <label className="flex cursor-pointer items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={membersOnly}
+          onChange={(e) => setMembersOnly(e.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        <span>{t("crew.fullOnly")}</span>
+        <span className="text-xs text-muted">{t("crew.fullOnlyPostHint")}</span>
+      </label>
 
       {err && <p className="text-sm text-red-400">{err}</p>}
 

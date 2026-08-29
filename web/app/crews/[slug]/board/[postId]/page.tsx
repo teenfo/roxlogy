@@ -41,6 +41,11 @@ export default async function CrewPostPage({
           {post.pinned && (
             <span className="text-[10px] font-bold text-accent">PIN</span>
           )}
+          {post.members_only && (
+            <span className="rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
+              {t("crew.fullOnly")}
+            </span>
+          )}
         </div>
         <h1 className="mt-2 text-2xl font-bold leading-snug">{post.title}</h1>
         <p className="mt-2 flex flex-wrap gap-x-3 text-xs text-muted">

@@ -83,6 +83,11 @@ export default async function CrewBoardPage({
                       PIN
                     </span>
                   )}
+                  {p.members_only && (
+                    <span className="shrink-0 rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
+                      {t("crew.fullOnly")}
+                    </span>
+                  )}
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold hover:text-accent">
                     {p.title}
                   </span>

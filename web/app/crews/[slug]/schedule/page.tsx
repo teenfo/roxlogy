@@ -22,6 +22,7 @@ type CalRow = {
   going_count: number | null;
   my_status: string | null;
   result_ms: number | null;
+  members_only: boolean;
 };
 
 /** ms → h:mm:ss / m:ss */
@@ -179,6 +180,11 @@ export default async function CrewSchedulePage({
                       <span className="min-w-0 truncate text-sm font-medium">
                         {r.title}
                       </span>
+                      {r.members_only && (
+                        <span className="shrink-0 rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
+                          {t("crew.fullOnly")}
+                        </span>
+                      )}
                       {r.kind === "meetup" && r.starts_at && (
                         <span className="text-xs text-muted">
                           {timeLabel(r.starts_at)}
