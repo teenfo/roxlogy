@@ -61,3 +61,6 @@ begin
   where crew_id = v_crew and user_id = p_user and role <> 'owner';
 end;
 $$;
+
+-- 등급 규칙(명시): 리더(owner)·부리더(coach)는 자동으로 정회원이다.
+-- "정회원" 기준 판정은 role <> 'associate' 로 한다 (웹: crew-types.isFullMember).

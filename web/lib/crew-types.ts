@@ -14,6 +14,12 @@ export type PostCategory = (typeof POST_CATEGORIES)[number];
 export type CrewRole = "owner" | "coach" | "member" | "associate";
 export type CrewStatus = "pending" | "active" | "blocked";
 
+/** 등급 규칙: 리더·부리더는 자동으로 정회원이다 — 일반회원(associate)만 예외.
+ *  정회원 기준으로 무언가를 가르는 기능은 반드시 이 헬퍼를 쓸 것. */
+export const isFullMember = (role: CrewRole) => role !== "associate";
+/** 운영진 = 리더·부리더 */
+export const isCrewStaff = (role: CrewRole) => role === "owner" || role === "coach";
+
 export type CrewOverview = {
   id: string;
   slug: string;
