@@ -131,6 +131,7 @@ export type MyRacePlan = {
   division: string | null;
   bib: string | null;
   note: string | null;
+  goal_plan_id: string | null; // 연결된 목표(goal_plans) — 있으면 목표 세우기 버튼 숨김
 };
 
 const bibOk = (v: string) => v.trim() === "" || /^\d{4,8}$/.test(v.trim());
@@ -445,6 +446,14 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
                   <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 font-mono text-[10px] font-bold text-track">
                     BIB {p.bib}
                   </span>
+                )}
+                {!p.goal_plan_id && (
+                  <a
+                    href={`/predict?event=${encodeURIComponent(p.title)}&date=${p.race_date}`}
+                    className="shrink-0 text-accent hover:underline"
+                  >
+                    {t("events.setGoal")}
+                  </a>
                 )}
                 <button
                   type="button"

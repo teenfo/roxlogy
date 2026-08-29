@@ -82,7 +82,7 @@ export default async function CrewSchedulePage({
     isMember
       ? supabase
           .from("race_plans")
-          .select("id, title, race_date, division, bib, note")
+          .select("id, title, race_date, division, bib, note, goal_plan_id")
           .order("race_date")
       : Promise.resolve({ data: [] as MyRacePlan[] }),
   ]);
