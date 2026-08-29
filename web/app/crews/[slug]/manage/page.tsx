@@ -15,6 +15,10 @@ import {
   type AttachedProgram,
   type PickableProgram,
 } from "@/components/crew-program-attach";
+import {
+  CrewDuesLinksManage,
+  type DuesLink,
+} from "@/components/crew-dues-links";
 
 export default async function CrewManagePage({
   params,
@@ -33,8 +37,13 @@ export default async function CrewManagePage({
 
   const supabase = await createClient();
   // 정보 폼 초기값 — crew_overview 에 없는 join_policy/is_public 은 테이블에서 직접 (멤버 RLS 허용)
-  const [{ data: row }, { data: roster }, { data: attachedRows }, { data: progRows }] =
-    await Promise.all([
+  const [
+    { data: row },
+    { data: roster },
+    { data: attachedRows },
+    { data: progRows },
+    { data: duesRows },
+  ] = await Promise.all([
       supabase
         .from("crews")
         .select(
@@ -49,6 +58,12 @@ export default async function CrewManagePage({
         .eq("crew_id", crew.id)
         .order("start_date"),
       supabase.from("programs").select("id, title").order("created_at"),
+      supabase
+        .from("crew_dues_links")
+        .select("id, label, url, audience")
+        .eq("crew_id", crew.id)
+        .order("sort_order")
+        .order("created_at"),
     ]);
   if (!row) notFound();
   const members = (roster ?? []) as ManageMember[];
@@ -88,6 +103,16 @@ export default async function CrewManagePage({
         <h2 className="text-lg font-bold">{t("crew.manageInfo")}</h2>
         <div className="mt-3 max-w-lg">
           <CrewInfoForm crew={row} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-bold">{t("crew.duesTitle")}</h2>
+        <div className="mt-3 max-w-lg">
+          <CrewDuesLinksManage
+            crewId={crew.id}
+            items={(duesRows ?? []) as DuesLink[]}
+          />
         </div>
       </section>
 

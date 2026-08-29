@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCrew, getCrewBoard } from "@/lib/crew";
+import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import type { DuesLink } from "@/components/crew-dues-links";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 export async function generateMetadata({
@@ -28,6 +30,20 @@ export default async function CrewHomePage({
   if (!crew) notFound();
 
   const posts = await getCrewBoard(slug, null, 5);
+
+  // 회비 납부 링크 — RLS 가 본인 등급(전체/정회원/일반회원)에 해당하는 것만 내려준다.
+  // 비회원에게는 아무것도 반환되지 않으므로 크루원일 때만 조회.
+  let duesLinks: DuesLink[] = [];
+  if (crew.my_status === "active") {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("crew_dues_links")
+      .select("id, label, url, audience")
+      .eq("crew_id", crew.id)
+      .order("sort_order")
+      .order("created_at");
+    duesLinks = (data ?? []) as DuesLink[];
+  }
 
   const links = crew.links ?? {};
   const info: { label: string; value: string; href?: string }[] = [];
@@ -80,6 +96,33 @@ export default async function CrewHomePage({
               )}
             </div>
           ))}
+        </section>
+      )}
+
+      {/* 회비 납부 링크 — 본인 등급에 해당하는 링크만 (RLS) */}
+      {duesLinks.length > 0 && (
+        <section>
+          <h2 className="text-lg font-bold">{t("crew.duesPayTitle")}</h2>
+          <ul className="mt-3 flex flex-col gap-1.5">
+            {duesLinks.map((l) => (
+              <li
+                key={l.id}
+                className="flex min-w-0 items-center gap-3 rounded-md bg-surface px-4 py-3"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                  {l.label}
+                </span>
+                <a
+                  href={l.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="shrink-0 rounded-md bg-accent px-4 py-1.5 text-xs font-bold text-background hover:brightness-110"
+                >
+                  {t("crew.duesPayBtn")}
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
