@@ -13,9 +13,14 @@ export type DuesAudience = "all" | "member" | "associate";
 export type DuesLink = {
   id: string;
   label: string;
-  url: string;
+  url: string | null; // 없으면 계좌이체 안내용 (명칭+금액만)
+  amount: number | null;
   audience: DuesAudience;
 };
+
+const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
+// url 은 선택 — 비어 있거나 http(s) 여야 한다
+const urlOk = (v: string) => v.trim() === "" || /^https?:\/\//i.test(v.trim());
 
 /** 회비 납부 링크 관리 — 스태프 전용. 카카오페이 송금 링크 등을 명칭과 함께
  *  여러 개 등록하고, 링크마다 표시 대상(전체/정회원/일반회원)을 지정한다.
@@ -31,11 +36,13 @@ export function CrewDuesLinksManage({
   const router = useRouter();
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
+  const [amount, setAmount] = useState("");
   const [audience, setAudience] = useState<DuesAudience>("all");
   // 인라인 수정 상태 — 수정 중인 링크 id 와 편집 필드
   const [editId, setEditId] = useState<string | null>(null);
   const [eLabel, setELabel] = useState("");
   const [eUrl, setEUrl] = useState("");
+  const [eAmount, setEAmount] = useState("");
   const [eAudience, setEAudience] = useState<DuesAudience>("all");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -51,16 +58,22 @@ export function CrewDuesLinksManage({
     associate: "bg-accent/15 text-accent",
   };
 
+  const parseAmount = (v: string) => {
+    const raw = v.replace(/[^\d]/g, "");
+    return raw ? parseInt(raw, 10) : null;
+  };
+
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    if (!label.trim() || !/^https?:\/\//i.test(url.trim())) return;
+    if (!label.trim() || !urlOk(url)) return;
     setBusy(true);
     setErr(null);
     const supabase = createClient();
     const { error } = await supabase.from("crew_dues_links").insert({
       crew_id: crewId,
       label: label.trim(),
-      url: url.trim(),
+      url: url.trim() || null,
+      amount: parseAmount(amount),
       audience,
     });
     setBusy(false);
@@ -70,6 +83,7 @@ export function CrewDuesLinksManage({
     }
     setLabel("");
     setUrl("");
+    setAmount("");
     setAudience("all");
     router.refresh();
   }
@@ -77,20 +91,26 @@ export function CrewDuesLinksManage({
   function startEdit(l: DuesLink) {
     setEditId(l.id);
     setELabel(l.label);
-    setEUrl(l.url);
+    setEUrl(l.url ?? "");
+    setEAmount(l.amount != null ? String(l.amount) : "");
     setEAudience(l.audience);
     setErr(null);
   }
 
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault();
-    if (!editId || !eLabel.trim() || !/^https?:\/\//i.test(eUrl.trim())) return;
+    if (!editId || !eLabel.trim() || !urlOk(eUrl)) return;
     setBusy(true);
     setErr(null);
     const supabase = createClient();
     const { error } = await supabase
       .from("crew_dues_links")
-      .update({ label: eLabel.trim(), url: eUrl.trim(), audience: eAudience })
+      .update({
+        label: eLabel.trim(),
+        url: eUrl.trim() || null,
+        amount: parseAmount(eAmount),
+        audience: eAudience,
+      })
       .eq("id", editId);
     setBusy(false);
     if (error) {
@@ -135,6 +155,13 @@ export function CrewDuesLinksManage({
                     maxLength={500}
                     inputMode="url"
                   />
+                  <input
+                    className={input}
+                    value={eAmount}
+                    onChange={(e) => setEAmount(e.target.value)}
+                    placeholder={t("crew.duesAmountPh")}
+                    inputMode="numeric"
+                  />
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs text-muted">{t("crew.duesAudience")}</span>
                     {(["all", "member", "associate"] as const).map((a) => (
@@ -155,9 +182,7 @@ export function CrewDuesLinksManage({
                   <div className="flex gap-2">
                     <button
                       type="submit"
-                      disabled={
-                        busy || !eLabel.trim() || !/^https?:\/\//i.test(eUrl.trim())
-                      }
+                      disabled={busy || !eLabel.trim() || !urlOk(eUrl)}
                       className="rounded-md bg-accent px-4 py-1.5 text-xs font-bold text-background disabled:opacity-40"
                     >
                       {t("common.save")}
@@ -183,14 +208,25 @@ export function CrewDuesLinksManage({
                   {audLabel[l.audience]}
                 </span>
                 <span className="shrink-0 text-sm font-semibold">{l.label}</span>
-                <a
-                  href={l.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="min-w-0 flex-1 truncate text-xs text-accent hover:underline"
-                >
-                  {l.url}
-                </a>
+                {l.amount != null && (
+                  <span className="shrink-0 font-mono text-xs font-semibold text-track">
+                    {won(l.amount)}
+                  </span>
+                )}
+                {l.url ? (
+                  <a
+                    href={l.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="min-w-0 flex-1 truncate text-xs text-accent hover:underline"
+                  >
+                    {l.url}
+                  </a>
+                ) : (
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted">
+                    {t("crew.duesNoLink")}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => startEdit(l)}
@@ -230,6 +266,13 @@ export function CrewDuesLinksManage({
           maxLength={500}
           inputMode="url"
         />
+        <input
+          className={input}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder={t("crew.duesAmountPh")}
+          inputMode="numeric"
+        />
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted">{t("crew.duesAudience")}</span>
           {(["all", "member", "associate"] as const).map((a) => (
@@ -251,7 +294,7 @@ export function CrewDuesLinksManage({
         <div>
           <button
             type="submit"
-            disabled={busy || !label.trim() || !/^https?:\/\//i.test(url.trim())}
+            disabled={busy || !label.trim() || !urlOk(url)}
             className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background disabled:opacity-40"
           >
             + {t("crew.duesAdd")}

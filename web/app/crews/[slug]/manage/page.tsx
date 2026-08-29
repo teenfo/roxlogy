@@ -60,7 +60,7 @@ export default async function CrewManagePage({
       supabase.from("programs").select("id, title").order("created_at"),
       supabase
         .from("crew_dues_links")
-        .select("id, label, url, audience")
+        .select("id, label, url, amount, audience")
         .eq("crew_id", crew.id)
         .order("sort_order")
         .order("created_at"),

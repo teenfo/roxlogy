@@ -50,7 +50,7 @@ export default async function CrewHomePage({
     const [{ data }, { data: payRow }] = await Promise.all([
       supabase
         .from("crew_dues_links")
-        .select("id, label, url, audience")
+        .select("id, label, url, amount, audience")
         .eq("crew_id", crew.id)
         .order("sort_order")
         .order("created_at"),
@@ -143,14 +143,21 @@ export default async function CrewHomePage({
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold">
                   {l.label}
                 </span>
-                <a
-                  href={l.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="shrink-0 rounded-md bg-accent px-4 py-1.5 text-xs font-bold text-background hover:brightness-110"
-                >
-                  {t("crew.duesPayBtn")}
-                </a>
+                {l.amount != null && (
+                  <span className="shrink-0 font-mono text-sm font-bold text-track">
+                    ₩{l.amount.toLocaleString("ko-KR")}
+                  </span>
+                )}
+                {l.url && (
+                  <a
+                    href={l.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="shrink-0 rounded-md bg-accent px-4 py-1.5 text-xs font-bold text-background hover:brightness-110"
+                  >
+                    {t("crew.duesPayBtn")}
+                  </a>
+                )}
               </li>
             ))}
           </ul>
