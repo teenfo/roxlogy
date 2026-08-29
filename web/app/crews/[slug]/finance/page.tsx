@@ -8,6 +8,11 @@ import {
   CrewLedgerDelete,
   CrewLedgerForm,
 } from "@/components/crew-ledger-form";
+import {
+  CrewDuesMatrix,
+  type DuesMatrixRow,
+  type DuesPaymentStatus,
+} from "@/components/crew-dues-check";
 
 type LedgerRow = {
   id: string;
@@ -71,7 +76,8 @@ export default async function CrewFinancePage({
   }
 
   const supabase = await createClient();
-  const [{ data: rows }, { data: allRows }] = await Promise.all([
+  const [{ data: rows }, { data: allRows }, { data: roster }, { data: payRows }] =
+    await Promise.all([
     supabase
       .from("crew_ledger")
       .select("id, entry_date, kind, amount, title, memo")
@@ -82,8 +88,40 @@ export default async function CrewFinancePage({
       .order("created_at", { ascending: false }),
     // 누적 잔액용 전체 합계 (kind별 sum)
     supabase.from("crew_ledger").select("kind, amount").eq("crew_id", crew.id),
+    // 납부 체크 매트릭스 (운영진만 — RPC 가 스태프를 검증)
+    isStaff
+      ? supabase.rpc("crew_manage_roster", { p_slug: slug })
+      : Promise.resolve({ data: null }),
+    isStaff
+      ? supabase
+          .from("crew_dues_payments")
+          .select("user_id, status, amount")
+          .eq("crew_id", crew.id)
+          .eq("period", month)
+      : Promise.resolve({ data: null }),
   ]);
   const entries = (rows ?? []) as LedgerRow[];
+
+  // 해당 월 멤버별 납부 상태 병합 (active 멤버만)
+  type RosterRow = {
+    user_id: string;
+    display_name: string;
+    role: DuesMatrixRow["role"];
+    status: string;
+  };
+  type PayRow = { user_id: string; status: DuesPaymentStatus; amount: number | null };
+  const payBy = new Map(
+    ((payRows ?? []) as PayRow[]).map((p) => [p.user_id, p]),
+  );
+  const duesRows: DuesMatrixRow[] = ((roster ?? []) as RosterRow[])
+    .filter((m) => m.status === "active")
+    .map((m) => ({
+      user_id: m.user_id,
+      display_name: m.display_name,
+      role: m.role,
+      status: payBy.get(m.user_id)?.status ?? null,
+      amount: payBy.get(m.user_id)?.amount ?? null,
+    }));
 
   const monthIncome = entries
     .filter((r) => r.kind === "income")
@@ -157,6 +195,19 @@ export default async function CrewFinancePage({
         <div className="mt-4">
           <CrewLedgerForm crewId={crew.id} />
         </div>
+      )}
+
+      {/* 납부 체크 매트릭스 — 운영진 전용, 현재 월 기준 */}
+      {isStaff && duesRows.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-bold">
+            {t("crew.duesCheckTitle")}{" "}
+            <span className="font-normal text-muted">{monthLabel}</span>
+          </h2>
+          <div className="mt-3">
+            <CrewDuesMatrix crewId={crew.id} period={month} rows={duesRows} />
+          </div>
+        </section>
       )}
 
       {/* 내역 */}

@@ -4,6 +4,11 @@ import { getCrew, getCrewBoard } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import type { DuesLink } from "@/components/crew-dues-links";
+import {
+  CrewDuesSelfReport,
+  type DuesPaymentStatus,
+} from "@/components/crew-dues-check";
+import { getCachedUser } from "@/lib/supabase/auth";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 export async function generateMetadata({
@@ -34,15 +39,33 @@ export default async function CrewHomePage({
   // 회비 납부 링크 — RLS 가 본인 등급(전체/정회원/일반회원)에 해당하는 것만 내려준다.
   // 비회원에게는 아무것도 반환되지 않으므로 크루원일 때만 조회.
   let duesLinks: DuesLink[] = [];
+  // 이번 달(KST) 본인 납부 상태 — 셀프 신고 블록용
+  const period = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Seoul",
+  }).slice(0, 7);
+  let myDues: DuesPaymentStatus = null;
   if (crew.my_status === "active") {
     const supabase = await createClient();
-    const { data } = await supabase
-      .from("crew_dues_links")
-      .select("id, label, url, audience")
-      .eq("crew_id", crew.id)
-      .order("sort_order")
-      .order("created_at");
+    const user = await getCachedUser();
+    const [{ data }, { data: payRow }] = await Promise.all([
+      supabase
+        .from("crew_dues_links")
+        .select("id, label, url, audience")
+        .eq("crew_id", crew.id)
+        .order("sort_order")
+        .order("created_at"),
+      user
+        ? supabase
+            .from("crew_dues_payments")
+            .select("status")
+            .eq("crew_id", crew.id)
+            .eq("user_id", user.id)
+            .eq("period", period)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
     duesLinks = (data ?? []) as DuesLink[];
+    myDues = (payRow?.status ?? null) as DuesPaymentStatus;
   }
 
   const links = crew.links ?? {};
@@ -103,6 +126,14 @@ export default async function CrewHomePage({
       {duesLinks.length > 0 && (
         <section>
           <h2 className="text-lg font-bold">{t("crew.duesPayTitle")}</h2>
+          {/* 이번 달 본인 납부 상태 + 셀프 신고 */}
+          <div className="mt-3">
+            <CrewDuesSelfReport
+              crewId={crew.id}
+              period={period}
+              status={myDues}
+            />
+          </div>
           <ul className="mt-3 flex flex-col gap-1.5">
             {duesLinks.map((l) => (
               <li
