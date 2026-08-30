@@ -11,10 +11,11 @@ export async function generateMetadata() {
 
 type EnrollProgram = {
   start_date: string;
+  repeat: boolean;
+  end_date: string | null;
   programs: {
     id: string;
     title: string;
-    repeat_enabled: boolean;
     program_days: {
       day_index: number;
       focus: string | null;
@@ -44,8 +45,8 @@ export default async function SchedulePage({
   const { data: enrollment } = await supabase
     .from("program_enrollments")
     .select(
-      `start_date,
-       programs ( id, title, repeat_enabled,
+      `start_date, repeat, end_date,
+       programs ( id, title,
          program_days ( day_index, focus,
            workout_templates ( id, title, type ) ) )`,
     )
@@ -122,7 +123,10 @@ export default async function SchedulePage({
     (m, d) => Math.max(m, d.day_index),
     0,
   );
-  const repeat = enroll.programs.repeat_enabled;
+  const repeat = enroll.repeat;
+  const endAt = enroll.end_date
+    ? midnight(new Date(enroll.end_date + "T00:00:00"))
+    : null;
 
   // 이번 주(월요일 시작) + weekOffset
   const base = midnight(new Date());
@@ -131,8 +135,9 @@ export default async function SchedulePage({
     const date = midnight(new Date(base));
     date.setDate(base.getDate() + i);
     const daysSince = Math.floor((date.getTime() - start.getTime()) / 86400000);
-    // 종료 판정: 비반복은 프로그램 길이를 넘으면 끝 (반복은 무기한 순환)
-    const raw = programDayNumber(daysSince, cycleLen, repeat) ?? -1;
+    // 종료 판정: 등록 종료일 경과 또는 일차 > 길이 = 끝 (반복은 종료일까지 순환)
+    const pastEnd = endAt !== null && date.getTime() > endAt.getTime();
+    const raw = pastEnd ? -1 : (programDayNumber(daysSince, cycleLen, repeat) ?? -1);
     const dayIndex = raw > cycleLen ? -1 : raw;
     const day = dayIndex >= 1 ? (dayMap.get(dayIndex) ?? null) : null;
     const doneSessionId = day

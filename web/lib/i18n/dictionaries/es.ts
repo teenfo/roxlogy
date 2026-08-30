@@ -917,6 +917,7 @@ const es: Record<DictKey, string> = {
   "programs.enrollDesc": "El programa es una plantilla — elige cuándo empieza tu calendario.",
   "programs.enrollEndPreview": "Fin previsto:",
   "programs.enrollRepeatNote": "Programa repetitivo — cicla hasta que lo detengas.",
+  "programs.enrollRepeatEnd": "Repetir hasta (opcional — vacío = hasta que lo detengas)",
   "programs.fldEndDate": "Fecha de fin",
   "programs.fldPublic": "Compartir públicamente",
   "programs.publicHint":

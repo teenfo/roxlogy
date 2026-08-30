@@ -81,8 +81,8 @@ export default async function DashboardPage() {
     supabase
       .from("program_enrollments")
       .select(
-        `start_date,
-         programs ( id, title, repeat_enabled,
+        `start_date, repeat, end_date,
+         programs ( id, title,
            program_days ( day_index, focus,
              workout_templates ( id, title, type ) ) )`,
       )
@@ -150,10 +150,11 @@ export default async function DashboardPage() {
   // 오늘의 운동: 활성 프로그램 등록 → 시작일 기준 오늘의 day_index 매핑
   type EnrollProgram = {
     start_date: string;
+    repeat: boolean;
+    end_date: string | null;
     programs: {
       id: string;
       title: string;
-      repeat_enabled: boolean;
       program_days: {
         day_index: number;
         focus: string | null;
@@ -178,10 +179,13 @@ export default async function DashboardPage() {
       (m, d) => Math.max(m, d.day_index),
       0,
     );
-    // 종료 판정: 일차가 프로그램 길이를 넘으면 완료 (반복은 무기한 순환)
-    const dayNumber =
-      programDayNumber(daysSince, cycleLen, enroll.programs.repeat_enabled) ??
-      -1;
+    // 종료 판정: 등록 종료일 경과 또는 일차 > 길이 = 완료 (반복은 종료일까지 순환)
+    const pastEnd =
+      !!enroll.end_date &&
+      nowMid.getTime() > new Date(enroll.end_date + "T00:00:00").getTime();
+    const dayNumber = pastEnd
+      ? -1
+      : (programDayNumber(daysSince, cycleLen, enroll.repeat) ?? -1);
     if (dayNumber >= 1 && dayNumber <= cycleLen) {
       const day = enroll.programs.program_days.find(
         (d) => d.day_index === dayNumber,

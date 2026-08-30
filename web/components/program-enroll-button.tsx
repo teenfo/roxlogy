@@ -21,28 +21,32 @@ function addDays(iso: string, n: number): string {
 }
 
 /** 프로그램 시작 — 템플릿을 "내 일정"으로 바인딩한다.
- *  모달에서 시작일을 고르면(기본 오늘) 종료 예정일이 함께 표시된다.
- *  비반복: 종료 = 시작 + 일차 수 − 1 / 반복: 중지할 때까지 순환. */
+ *  모달에서 시작일(기본 오늘)과 "설정 기간 동안 반복" 여부를 정한다.
+ *  비반복: 종료 = 시작 + 일차 수 − 1 (자동)
+ *  반복: 종료일 선택(비우면 중지할 때까지 무기한 순환) */
 export function ProgramEnrollButton({
   programId,
   initialActive,
   totalDays,
-  repeat,
 }: {
   programId: string;
   initialActive: boolean;
   totalDays: number; // max day_index (프로그램 길이)
-  repeat: boolean;
 }) {
   const router = useRouter();
   const { t, tag } = useI18n();
   const [active, setActive] = useState(initialActive);
   const [open, setOpen] = useState(false);
   const [startDate, setStartDate] = useState(todayLocal());
+  const [repeat, setRepeat] = useState(false);
+  const [repeatEnd, setRepeatEnd] = useState("");
   const [pending, setPending] = useState(false);
 
-  const endPreview =
-    !repeat && totalDays > 0 ? addDays(startDate, totalDays - 1) : null;
+  const endPreview = repeat
+    ? repeatEnd || null
+    : totalDays > 0
+      ? addDays(startDate, totalDays - 1)
+      : null;
   const fmt = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString(tag, {
       month: "short",
@@ -70,6 +74,8 @@ export function ProgramEnrollButton({
       user_id: user.id,
       program_id: programId,
       start_date: startDate,
+      repeat,
+      end_date: repeat ? repeatEnd || null : null,
       active: true,
     });
     setPending(false);
@@ -123,6 +129,8 @@ export function ProgramEnrollButton({
       <button
         onClick={() => {
           setStartDate(todayLocal());
+          setRepeat(false);
+          setRepeatEnd("");
           setOpen(true);
         }}
         className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
@@ -140,9 +148,7 @@ export function ProgramEnrollButton({
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-bold">{t("programs.enrollTitle")}</h2>
-            <p className="mt-1 text-xs text-muted">
-              {t("programs.enrollDesc")}
-            </p>
+            <p className="mt-1 text-xs text-muted">{t("programs.enrollDesc")}</p>
 
             <label className="mt-4 flex flex-col gap-1.5 text-sm text-muted">
               {t("programs.fldStartDate")}
@@ -154,8 +160,31 @@ export function ProgramEnrollButton({
               />
             </label>
 
+            <label className="mt-3 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={repeat}
+                onChange={(e) => setRepeat(e.target.checked)}
+                className="accent-accent"
+              />
+              {t("programs.repeatLabel")}
+            </label>
+
+            {repeat && (
+              <label className="mt-2 flex flex-col gap-1.5 text-sm text-muted">
+                {t("programs.enrollRepeatEnd")}
+                <input
+                  type="date"
+                  value={repeatEnd}
+                  min={startDate || undefined}
+                  onChange={(e) => setRepeatEnd(e.target.value)}
+                  className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm text-foreground outline-none focus:border-accent"
+                />
+              </label>
+            )}
+
             <p className="mt-3 rounded-md bg-surface px-3 py-2.5 text-sm">
-              {repeat ? (
+              {repeat && !endPreview ? (
                 <span className="text-muted">
                   🔁 {t("programs.enrollRepeatNote")}
                 </span>
@@ -165,9 +194,12 @@ export function ProgramEnrollButton({
                     {t("programs.enrollEndPreview")}
                   </span>{" "}
                   <b className="text-track">{fmt(endPreview)}</b>
-                  <span className="ml-1 text-xs text-muted">
-                    ({t("programs.dayN", { n: totalDays })})
-                  </span>
+                  {!repeat && (
+                    <span className="ml-1 text-xs text-muted">
+                      ({t("programs.dayN", { n: totalDays })})
+                    </span>
+                  )}
+                  {repeat && <span className="ml-1">🔁</span>}
                 </>
               ) : (
                 <span className="text-muted">{t("programs.emptyDays")}</span>

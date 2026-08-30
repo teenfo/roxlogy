@@ -54,7 +54,7 @@ export default async function CrewManagePage({
       supabase.rpc("crew_manage_roster", { p_slug: slug }),
       supabase
         .from("crew_program_enrollments")
-        .select("program_id, start_date, end_date, programs ( title )")
+        .select("program_id, start_date, end_date, repeat, programs ( title )")
         .eq("crew_id", crew.id)
         .order("start_date"),
       supabase.from("programs").select("id, title").order("created_at"),
@@ -71,6 +71,7 @@ export default async function CrewManagePage({
     program_id: string;
     start_date: string;
     end_date: string | null;
+    repeat: boolean;
     programs: { title: string } | null;
   };
   const attached: AttachedProgram[] = (
@@ -79,6 +80,7 @@ export default async function CrewManagePage({
     program_id: a.program_id,
     start_date: a.start_date,
     end_date: a.end_date,
+    repeat: a.repeat === true,
     title: a.programs?.title ?? "—",
   }));
   const pickable = (progRows ?? []) as PickableProgram[];

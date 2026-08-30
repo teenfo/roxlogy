@@ -930,6 +930,7 @@ const en = {
   "programs.enrollDesc": "The program is a template — pick when your schedule starts.",
   "programs.enrollEndPreview": "Expected finish:",
   "programs.enrollRepeatNote": "Repeating program — it cycles until you stop it.",
+  "programs.enrollRepeatEnd": "Repeat until (optional — empty means until you stop)",
   "programs.fldEndDate": "End date",
   "programs.fldPublic": "Share publicly",
   "programs.publicHint": "Public programs are visible to all Roxlogy users.",

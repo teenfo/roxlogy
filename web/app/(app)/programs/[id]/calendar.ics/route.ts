@@ -142,7 +142,7 @@ export async function GET(
     const { data } = await supabase
       .from("programs")
       .select(
-        `id, title, repeat_enabled,
+        `id, title,
          program_days (
            id, day_index, focus, notes,
            workout_templates (
@@ -156,7 +156,7 @@ export async function GET(
     // 요청자 본인의 활성 등록 시작일 (own RLS — 남의 일정은 안 보임)
     const { data: myEnroll } = await supabase
       .from("program_enrollments")
-      .select("start_date")
+      .select("start_date, repeat, end_date")
       .eq("program_id", id)
       .eq("active", true)
       .maybeSingle();
@@ -179,8 +179,8 @@ export async function GET(
         id: data.id,
         title: data.title,
         start_date: myEnroll?.start_date ?? null,
-        end_date: null,
-        repeat_enabled: data.repeat_enabled === true,
+        end_date: myEnroll?.end_date ?? null,
+        repeat_enabled: myEnroll?.repeat === true,
         days: ((data.program_days ?? []) as unknown as Row[]).map((d) => ({
           id: d.id,
           day_index: d.day_index,

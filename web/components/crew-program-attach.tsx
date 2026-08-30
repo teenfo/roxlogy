@@ -12,6 +12,7 @@ export type AttachedProgram = {
   program_id: string;
   start_date: string;
   end_date: string | null;
+  repeat: boolean;
   title: string;
 };
 export type PickableProgram = { id: string; title: string };
@@ -32,6 +33,7 @@ export function CrewProgramAttach({
   const [pick, setPick] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [repeat, setRepeat] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -48,6 +50,7 @@ export function CrewProgramAttach({
         program_id: pick,
         start_date: start,
         end_date: end || null,
+        repeat,
         created_by: u.user?.id ?? null,
       },
       { onConflict: "crew_id,program_id" },
@@ -60,6 +63,7 @@ export function CrewProgramAttach({
     setPick("");
     setStart("");
     setEnd("");
+    setRepeat(false);
     router.refresh();
   }
 
@@ -88,6 +92,7 @@ export function CrewProgramAttach({
                 <span className="ml-2 text-xs text-muted">
                   {a.start_date}
                   {a.end_date ? ` ~ ${a.end_date}` : ""}
+                  {a.repeat ? " 🔁" : ""}
                 </span>
               </span>
               <button
@@ -127,6 +132,15 @@ export function CrewProgramAttach({
             onChange={(e) => setEnd(e.target.value)}
             className={input}
           />
+        </label>
+        <label className="flex items-center gap-2 pb-2 text-xs">
+          <input
+            type="checkbox"
+            checked={repeat}
+            onChange={(e) => setRepeat(e.target.checked)}
+            className="accent-accent"
+          />
+          {t("programs.repeatLabel")}
         </label>
         <button
           type="submit"

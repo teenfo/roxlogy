@@ -13,8 +13,9 @@ export async function generateMetadata() {
 
 type EnrollProgram = {
   start_date: string;
+  repeat: boolean;
+  end_date: string | null;
   programs: {
-    repeat_enabled: boolean;
     program_days: {
       day_index: number;
       workout_templates: { id: string; title: string }[];
@@ -29,8 +30,8 @@ export default async function SessionNewPage() {
   const { data: enrollment } = await supabase
     .from("program_enrollments")
     .select(
-      `start_date,
-       programs ( repeat_enabled,
+      `start_date, repeat, end_date,
+       programs (
          program_days ( day_index, workout_templates ( id, title ) ) )`,
     )
     .eq("active", true)
@@ -47,10 +48,13 @@ export default async function SessionNewPage() {
       (m, d) => Math.max(m, d.day_index),
       0,
     );
-    // 종료 판정: 일차가 프로그램 길이를 넘으면 완료 (반복은 무기한 순환)
-    const dayNumber =
-      programDayNumber(daysSince, cycleLen, enroll.programs.repeat_enabled) ??
-      -1;
+    // 종료 판정: 등록 종료일 경과 시 완료 (반복은 종료일까지 순환)
+    const pastEnd =
+      !!enroll.end_date &&
+      nowMid.getTime() > new Date(enroll.end_date + "T00:00:00").getTime();
+    const dayNumber = pastEnd
+      ? -1
+      : (programDayNumber(daysSince, cycleLen, enroll.repeat) ?? -1);
     const day = enroll.programs.program_days.find(
       (d) => d.day_index === dayNumber,
     );

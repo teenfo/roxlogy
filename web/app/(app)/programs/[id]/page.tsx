@@ -5,7 +5,6 @@ import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDateShort, programDayDate } from "@/lib/format";
 import { ProgramBuilder } from "@/components/program-builder";
-import { ProgramDatesEditor } from "@/components/program-dates-editor";
 import { ProgramCalendarSubscribe } from "@/components/program-calendar-subscribe";
 import { ProgramEnrollButton } from "@/components/program-enroll-button";
 import { CloneProgramButton } from "@/components/clone-program-button";
@@ -40,7 +39,7 @@ export default async function ProgramDetailPage({
   const { data: program } = await supabase
     .from("programs")
     .select(
-      `id, owner_id, title, description, weeks, level, is_public, repeat_enabled, calendar_token,
+      `id, owner_id, title, description, weeks, level, is_public, calendar_token,
        program_days (
          id, day_index, focus, notes,
          workout_templates (
@@ -61,12 +60,13 @@ export default async function ProgramDetailPage({
   // 내 활성 등록 — 프로그램은 템플릿이고 날짜는 등록에 속한다 (own RLS)
   const { data: myEnroll } = await supabase
     .from("program_enrollments")
-    .select("start_date")
+    .select("start_date, repeat, end_date")
     .eq("program_id", program.id)
     .eq("active", true)
     .maybeSingle();
   const isEnrolled = !!myEnroll;
   const myStart: string | null = myEnroll?.start_date ?? null;
+  const myRepeat: boolean = myEnroll?.repeat === true;
 
   // 소유자면 편집용 운동 목록도 함께 전달
   const { data: exercises } = isOwner
@@ -98,8 +98,10 @@ export default async function ProgramDetailPage({
     .sort((a, b) => a.day_index - b.day_index);
   // 프로그램 길이(최대 일차)와 내 일정 종료 예정일 (비반복만)
   const totalDays = days.reduce((m, d) => Math.max(m, d.day_index), 0);
-  const myEnd =
-    myStart && !program.repeat_enabled && totalDays > 0
+  // 종료: 반복이면 등록의 종료일(없으면 무기한), 비반복이면 시작 + 일차 수 − 1
+  const myEnd = myRepeat
+    ? (myEnroll?.end_date ?? null)
+    : myStart && totalDays > 0
       ? (() => {
           const d = new Date(`${myStart}T00:00:00`);
           d.setDate(d.getDate() + totalDays - 1);
@@ -124,7 +126,6 @@ export default async function ProgramDetailPage({
             programId={program.id}
             initialActive={isEnrolled}
             totalDays={totalDays}
-            repeat={program.repeat_enabled === true}
           />
           {isOwner && (
             <DeleteButton kind="program" id={program.id} redirectTo="/programs" />
@@ -146,7 +147,7 @@ export default async function ProgramDetailPage({
           <span>
             {t("programs.mySchedule")}: {formatDateShort(myStart, tag, tz)}
             {myEnd ? ` – ${formatDateShort(myEnd, tag, tz)}` : ""}
-            {program.repeat_enabled ? " 🔁" : ""}
+            {myRepeat ? " 🔁" : ""}
           </span>
           <a
             href={`/programs/${program.id}/calendar.ics`}
@@ -166,13 +167,6 @@ export default async function ProgramDetailPage({
       )}
       {program.description && (
         <p className="mt-3 whitespace-pre-wrap text-sm">{program.description}</p>
-      )}
-
-      {isOwner && (
-        <ProgramDatesEditor
-          programId={program.id}
-          initialRepeat={program.repeat_enabled === true}
-        />
       )}
 
       {isOwner ? (

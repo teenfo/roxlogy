@@ -367,10 +367,9 @@ const handler = createMcpHandler(
             .enum(["beginner", "intermediate", "advanced", "elite"])
             .optional(),
           description: z.string().max(2000).optional(),
-          repeat: z.boolean().optional(),
         }),
       },
-      async ({ title, weeks, days, level, description, repeat }, ctx) =>
+      async ({ title, weeks, days, level, description }, ctx) =>
         out(
           await rpc("mcp_create_program", {
             p_token: tok(ctx),
@@ -379,7 +378,6 @@ const handler = createMcpHandler(
             p_days: days,
             p_level: level ?? "intermediate",
             p_description: description ?? null,
-            p_repeat: repeat ?? false,
           }),
         ),
     );
@@ -414,15 +412,16 @@ const handler = createMcpHandler(
       {
         title: "크루에 프로그램 연결 (운영진)",
         description:
-          "훈련 프로그램을 크루에 연결해 크루 일정표에 일차별로 표시한다 (운영진 전용, 본인 소유/공개 프로그램만). 이미 연결돼 있으면 기간을 갱신한다. 연결 전 사용자에게 확인받아라.",
+          "훈련 프로그램을 크루에 연결해 크루 일정표에 일차별로 표시한다 (운영진 전용, 본인 소유/공개 프로그램만). repeat=true 면 설정 기간 동안 프로그램이 순환 반복된다. 이미 연결돼 있으면 기간·반복을 갱신한다. 연결 전 사용자에게 확인받아라.",
         inputSchema: z.object({
           slug: z.string(),
           program_id: z.string().uuid(),
           start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
           end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          repeat: z.boolean().optional(),
         }),
       },
-      async ({ slug, program_id, start_date, end_date }, ctx) =>
+      async ({ slug, program_id, start_date, end_date, repeat }, ctx) =>
         out(
           await rpc("mcp_attach_crew_program", {
             p_token: tok(ctx),
@@ -430,6 +429,7 @@ const handler = createMcpHandler(
             p_program: program_id,
             ...(start_date ? { p_start_date: start_date } : {}),
             p_end_date: end_date ?? null,
+            p_repeat: repeat ?? false,
           }),
         ),
     );

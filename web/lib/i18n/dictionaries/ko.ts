@@ -909,6 +909,7 @@ const ko: Record<DictKey, string> = {
   "programs.enrollDesc": "프로그램은 템플릿입니다 — 내 일정의 시작일을 정하세요.",
   "programs.enrollEndPreview": "종료 예정:",
   "programs.enrollRepeatNote": "반복 프로그램 — 중지할 때까지 계속 순환합니다.",
+  "programs.enrollRepeatEnd": "반복 종료일 (선택 — 비우면 중지할 때까지)",
   "programs.fldEndDate": "종료일",
   "programs.fldPublic": "공개 공유",
   "programs.publicHint": "공개 프로그램은 모든 Roxlogy 사용자에게 표시됩니다.",
