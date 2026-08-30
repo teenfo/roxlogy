@@ -41,7 +41,7 @@ export default async function FeedPage({
         <h1 className="text-2xl font-bold">{t("feed.title")}</h1>
         <Link
           href="/members"
-          className="rounded-md border border-accent/40 px-3 py-1.5 text-sm font-semibold text-accent hover:bg-accent/10"
+          className="rounded-md border border-accent/50 px-3 py-1.5 text-sm font-semibold text-accent hover:bg-accent/10"
         >
           {t("feed.findMembers")}
         </Link>

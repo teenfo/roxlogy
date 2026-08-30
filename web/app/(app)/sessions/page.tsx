@@ -146,7 +146,7 @@ export default async function SessionsPage({
     `rounded-full border px-3 py-1 text-xs transition ${
       active
         ? "border-accent text-accent"
-        : "border-muted/30 text-muted hover:border-foreground"
+        : "border-muted/40 text-muted hover:border-foreground"
     }`;
 
   return (

@@ -306,7 +306,7 @@ export default async function SessionDetailPage({
             <ShareToggle id={session.id} shared={session.shared} />
             <Link
               href={`/sessions/${session.id}/edit`}
-              className="text-sm text-track hover:underline"
+              className="text-sm text-accent hover:underline"
             >
               {t("sessions.edit")}
             </Link>

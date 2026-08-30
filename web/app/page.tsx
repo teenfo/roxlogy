@@ -39,13 +39,13 @@ export default async function Landing() {
           </Link>
         </div>
         <div className="flex gap-6 text-sm">
-          <Link href="/predict" className="text-track hover:underline">
+          <Link href="/predict" className="text-accent hover:underline">
             {t("landing.predictLink")}
           </Link>
-          <Link href="/events" className="text-track hover:underline">
+          <Link href="/events" className="text-accent hover:underline">
             {t("landing.eventsLink")}
           </Link>
-          <Link href="/download" className="text-track hover:underline">
+          <Link href="/download" className="text-accent hover:underline">
             {t("landing.downloadLink")}
           </Link>
         </div>

@@ -466,7 +466,7 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
                 </form>
               </li>
             ) : (
-              <li key={p.id} className="flex items-center gap-2 text-xs text-muted">
+              <li key={p.id} className="flex flex-wrap items-center gap-2 text-xs text-muted">
                 <span className="font-mono">{p.race_date}</span>
                 <span className="truncate text-foreground">{p.title}</span>
                 {p.division && (

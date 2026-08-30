@@ -56,7 +56,7 @@ export default async function CrewEventPage({
   const when = new Date(ev.starts_at).toLocaleString(tag, {
     dateStyle: "full",
     timeStyle: "short",
-    timeZone: "Asia/Seoul",
+    timeZone: tz,
   });
 
   return (

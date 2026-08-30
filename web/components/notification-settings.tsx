@@ -213,7 +213,7 @@ export function NotificationSettings() {
                     type="button"
                     onClick={test}
                     disabled={busy}
-                    className="justify-self-start rounded-md border border-muted/30 px-3 py-1.5 text-xs text-foreground hover:border-accent disabled:opacity-40"
+                    className="justify-self-start rounded-md border border-muted/40 px-3 py-1.5 text-xs text-foreground hover:border-foreground disabled:opacity-40"
                   >
                     {t("notif.test")}
                   </button>
@@ -244,7 +244,7 @@ export function NotificationSettings() {
                     type="button"
                     onClick={test}
                     disabled={busy}
-                    className="justify-self-start rounded-md border border-muted/30 px-3 py-1.5 text-xs text-foreground hover:border-accent disabled:opacity-40"
+                    className="justify-self-start rounded-md border border-muted/40 px-3 py-1.5 text-xs text-foreground hover:border-foreground disabled:opacity-40"
                   >
                     {t("notif.test")}
                   </button>
@@ -283,7 +283,7 @@ export function NotificationSettings() {
                 type="time"
                 value={wodTime}
                 onChange={(e) => saveWodTime(e.target.value)}
-                className="rounded-md border border-muted/30 bg-background px-2 py-1.5 text-foreground outline-none focus:border-accent"
+                className="rounded-md border border-muted/40 bg-background px-2 py-1.5 text-foreground outline-none focus:border-accent"
               />
             </span>
             <span className="text-xs text-muted">{t("notif.wodTimeHint")}</span>

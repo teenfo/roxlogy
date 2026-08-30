@@ -137,7 +137,7 @@ const handler = createMcpHandler(
       {
         title: "크루 정보",
         description:
-          "slug 없이 호출하면 내 크루 목록, slug 를 주면 그 크루의 소개·위치·운영시간·연락처·운영 정책·멤버 수·내 역할.",
+          "slug 없이 호출하면 내 크루 목록, slug 를 주면 그 크루의 소개·위치·운영시간·연락처·운영 정책·멤버 수·내 역할·회비 계좌(bank_account, 크루원에게만).",
         inputSchema: z.object({ slug: z.string().optional() }),
       },
       async ({ slug }, ctx) =>
@@ -301,7 +301,7 @@ const handler = createMcpHandler(
       {
         title: "크루 회계",
         description:
-          "크루 회계 (활성 크루원 전용) — 월 수입/지출 합계, 누적 잔액, 해당 월 내역. month 는 YYYY-MM, 기본 이번 달. 금액은 KRW.",
+          "크루 회계 (정회원 전용) — 월 수입/지출 합계, 누적 잔액, 해당 월 내역. month 는 YYYY-MM, 기본 이번 달. 금액은 KRW.",
         inputSchema: z.object({
           slug: z.string(),
           month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
@@ -373,7 +373,7 @@ const handler = createMcpHandler(
       {
         title: "프로그램 상세",
         description:
-          "훈련 프로그램 1건의 상세 — 일차별(day_index) 포커스와 내용. 내 프로그램, 공개 프로그램, 내 크루에 연결된 프로그램을 볼 수 있다.",
+          "훈련 프로그램 1건의 상세 — 일차별(day_index) focus·notes 와 워크아웃(items 의 exercise + 구조화 처방 distance_m·weight_kg·reps·sets·duration_s·note), 내 등록 시작일(my_start_date). 내 프로그램, 공개 프로그램, 내 크루에 연결된 프로그램을 볼 수 있다.",
         inputSchema: z.object({ program_id: z.string().uuid() }),
       },
       async ({ program_id }, ctx) =>
@@ -451,7 +451,7 @@ const handler = createMcpHandler(
       {
         title: "프로그램 일차 수정",
         description:
-          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. workouts 를 주면 그 일차의 워크아웃을 통째로 교체한다(운동은 list_exercises 의 등록 이름만). 아이템 처방은 distance_m·weight_kg·reps·sets·duration_s 숫자 필드로 구조화하고 note 에는 휴식·강도만. focus·notes·workouts 를 모두 생략하면 그 일차를 삭제한다.",
+          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. workouts 를 주면 그 일차의 워크아웃을 통째로 교체한다(운동은 list_exercises 의 등록 이름만). 아이템 처방은 distance_m·weight_kg·reps·sets·duration_s 숫자 필드로 구조화하고 note 에는 휴식·강도만. focus·notes·workouts 를 모두 생략하면 그 일차를 삭제한다. 워크아웃 교체·일차 삭제는 되돌릴 수 없으니 실행 전 사용자에게 확인받아라.",
         inputSchema: z.object({
           program_id: z.string().uuid(),
           day_index: z.number().int().min(1),
@@ -698,9 +698,9 @@ const handler = createMcpHandler(
     instructions:
       "Roxlogy 하이록스 훈련 데이터 API. 시간 값은 밀리초(ms). " +
       "크루 도구의 slug 는 get_profile 의 crews 목록에서 얻는다. " +
-      "결과가 null 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다. " +
+      '응답이 {"error":"not_found_or_invalid_token"} 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다 — 빈 목록([])과 구분된다. ' +
       "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
-      "쓰기 도구(회계·모임 등록/수정·공지·승인·프로그램 생성/연결·회비 확정)는 " +
+      "쓰기 도구(회계·모임 등록/수정·공지·승인·프로그램 생성/일차 수정·크루 연결·회비 확정·운동 등록 요청)는 " +
       "실행 전 반드시 사용자에게 내용을 확인받는다. " +
       "훈련 계획 문서를 받으면 create_program 으로 일차별 등록 후 " +
       "attach_crew_program 으로 크루 일정표에 연결할 수 있다.",

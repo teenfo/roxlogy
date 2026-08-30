@@ -53,7 +53,7 @@ export function McpConnect({ token }: { token: string }) {
           <button
             type="button"
             onClick={() => copy("ep", endpoint)}
-            className="shrink-0 rounded-md border border-muted/30 px-2.5 py-1.5 text-xs hover:border-accent"
+            className="shrink-0 rounded-md border border-muted/40 px-2.5 py-1.5 text-xs hover:border-foreground"
           >
             {copied === "ep" ? t("mcp.copied") : t("mcp.copy")}
           </button>
@@ -69,14 +69,14 @@ export function McpConnect({ token }: { token: string }) {
           <button
             type="button"
             onClick={() => setShow((v) => !v)}
-            className="shrink-0 rounded-md border border-muted/30 px-2.5 py-1.5 text-xs hover:border-accent"
+            className="shrink-0 rounded-md border border-muted/40 px-2.5 py-1.5 text-xs hover:border-foreground"
           >
             {show ? t("mcp.hide") : t("mcp.show")}
           </button>
           <button
             type="button"
             onClick={() => copy("tk", token)}
-            className="shrink-0 rounded-md border border-muted/30 px-2.5 py-1.5 text-xs hover:border-accent"
+            className="shrink-0 rounded-md border border-muted/40 px-2.5 py-1.5 text-xs hover:border-foreground"
           >
             {copied === "tk" ? t("mcp.copied") : t("mcp.copy")}
           </button>
@@ -92,7 +92,7 @@ export function McpConnect({ token }: { token: string }) {
           <button
             type="button"
             onClick={() => copy("cmd", cmd)}
-            className="shrink-0 rounded-md border border-muted/30 px-2.5 py-1.5 text-xs hover:border-accent"
+            className="shrink-0 rounded-md border border-muted/40 px-2.5 py-1.5 text-xs hover:border-foreground"
           >
             {copied === "cmd" ? t("mcp.copied") : t("mcp.copy")}
           </button>

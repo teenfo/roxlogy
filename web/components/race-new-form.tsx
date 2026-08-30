@@ -724,7 +724,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         <button
           type="button"
           onClick={() => setShowManual(true)}
-          className="mt-4 text-sm text-track hover:underline"
+          className="mt-4 text-sm text-accent hover:underline"
         >
           {t("raceNew.manualToggle")}
         </button>
@@ -778,7 +778,7 @@ function ManualImport({
         type="button"
         onClick={onOpenSite}
         disabled={!canOpenSite}
-        className="text-xs text-track hover:underline disabled:opacity-40"
+        className="text-xs text-accent hover:underline disabled:opacity-40"
       >
         {t("raceNew.import.openSite")} ↗
       </button>

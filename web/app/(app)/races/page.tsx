@@ -50,7 +50,7 @@ export default async function RacesPage() {
           href="https://results.hyrox.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-block text-track hover:underline"
+          className="mt-2 inline-block text-accent hover:underline"
         >
           {t("races.findLink")}
         </a>

@@ -85,7 +85,7 @@ export default async function EventsPage({
       </header>
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
-        <h1 className="text-2xl font-bold">{t("events.title")}</h1>
+        <h1 className="text-3xl font-black tracking-tight">{t("events.title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("events.desc")}</p>
 
         <form method="get" className="mt-6 flex flex-wrap gap-3">
@@ -169,7 +169,7 @@ export default async function EventsPage({
                               href={e.official_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-track hover:underline"
+                              className="text-xs text-accent hover:underline"
                             >
                               {t("events.official")}
                             </a>
@@ -233,7 +233,7 @@ export default async function EventsPage({
             href="https://hyrox.com/find-my-race/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-track hover:underline"
+            className="text-accent hover:underline"
           >
             {t("events.disclaimer.link")}
           </a>

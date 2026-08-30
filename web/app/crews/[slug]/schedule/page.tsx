@@ -66,7 +66,7 @@ export default async function CrewSchedulePage({
       : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const [from, to] = monthRange(month);
 
-  const [crew, user, { t, tag }] = await Promise.all([
+  const [crew, user, { t, tag, tz }] = await Promise.all([
     getCrew(slug),
     getCachedUser(),
     getT(),
@@ -111,7 +111,7 @@ export default async function CrewSchedulePage({
     new Date(iso).toLocaleTimeString(tag, {
       hour: "2-digit",
       minute: "2-digit",
-      timeZone: "Asia/Seoul",
+      timeZone: tz,
     });
   const todayIso = new Date().toISOString().slice(0, 10);
 

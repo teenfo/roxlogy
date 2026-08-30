@@ -410,7 +410,13 @@ export default async function DashboardPage() {
                     key={w.id}
                     className="flex items-center justify-between rounded-md bg-background px-3 py-2.5"
                   >
-                    <span className="text-sm">{w.title}</span>
+                    {/* 가장 자주 쓰는 진입점 — 체크리스트로 바로 가게 한다 */}
+                    <Link
+                      href={`/workouts/${w.id}`}
+                      className="text-sm hover:text-accent"
+                    >
+                      {w.title}
+                    </Link>
                     <span className="text-xs text-muted">
                       {t(`programs.type.${w.type}` as Parameters<typeof t>[0])}
                     </span>

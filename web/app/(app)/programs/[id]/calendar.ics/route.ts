@@ -73,20 +73,23 @@ function buildIcs(cal: Cal, locale: string): string {
   // 반복이면 사이클로 전개 — 종료일이 없으면(개인 등록) 오늘+60일까지
   // 굴리며 전개한다(구독 갱신 때마다 창이 앞으로 이동). 비반복은 일차별 1회.
   const repeat = cal.repeat_enabled && cycleLen > 0;
+  const startMs = Date.parse(`${cal.start_date}T00:00:00Z`);
   const horizonEnd = cal.end_date
     ? Date.parse(`${cal.end_date}T00:00:00Z`)
     : Date.now() + 60 * 86400000;
-  const totalDays = repeat
+  // 반복 전개는 시작일이 아니라 "지금"을 기준으로 굴린다. 시작 기준으로 400일을
+  // 잘라내면 오래된 무기한 등록은 창이 과거에 머물러 현재 일정이 하나도 안 나온다.
+  const daysSinceStart = Math.floor((Date.now() - startMs) / 86400000);
+  const firstOffset = repeat ? Math.max(0, daysSinceStart - 7) : 0;
+  const lastOffset = repeat
     ? Math.min(
-        400,
+        firstOffset + 400,
         Math.max(
-          cycleLen,
-          Math.floor(
-            (horizonEnd - Date.parse(`${cal.start_date}T00:00:00Z`)) / 86400000,
-          ) + 1,
+          firstOffset + cycleLen - 1,
+          Math.floor((horizonEnd - startMs) / 86400000),
         ),
       )
-    : cycleLen;
+    : cycleLen - 1;
 
   const emit = (d: CalDay, offset: number, occurrence: number) => {
     const date = icsDate(cal.start_date!, offset);
@@ -118,13 +121,23 @@ function buildIcs(cal: Cal, locale: string): string {
     );
   };
 
+  // 등록 종료일이 지난 일차는 반복·비반복 모두 내보내지 않는다
+  // (크루 바인딩은 비반복이어도 end_date 를 가질 수 있다)
+  const endOffset = cal.end_date
+    ? Math.floor((Date.parse(`${cal.end_date}T00:00:00Z`) - startMs) / 86400000)
+    : null;
+  const withinEnd = (offset: number) => endOffset == null || offset <= endOffset;
+
   if (repeat) {
-    for (let offset = 0; offset < totalDays; offset++) {
+    for (let offset = firstOffset; offset <= lastOffset; offset++) {
+      if (!withinEnd(offset)) break;
       const d = byIndex.get((offset % cycleLen) + 1);
       if (d) emit(d, offset, Math.floor(offset / cycleLen));
     }
   } else {
-    for (const d of days) emit(d, d.day_index - 1, 0);
+    for (const d of days) {
+      if (withinEnd(d.day_index - 1)) emit(d, d.day_index - 1, 0);
+    }
   }
   lines.push("END:VCALENDAR");
   return lines.join("\r\n") + "\r\n";

@@ -33,13 +33,13 @@ export default async function DownloadPage() {
       <div className="flex items-center justify-between px-6 pt-4">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/roxlogy-mark.svg" alt="Roxlogy" width={28} height={28} />
-          <span className="text-sm font-black tracking-widest">ROXLOGY</span>
+          <span className="text-sm font-black tracking-tightst">ROXLOGY</span>
         </Link>
         <LocaleSwitcher compact />
       </div>
 
       <section className="mx-auto w-full max-w-lg px-6 pb-24 pt-12">
-        <h1 className="text-3xl font-black tracking-wide">{t("download.title")}</h1>
+        <h1 className="text-3xl font-black tracking-tight">{t("download.title")}</h1>
         <p className="mt-3 text-muted">{t("download.desc")}</p>
 
         {/* 안드로이드 */}

@@ -43,7 +43,7 @@ export function AiProgramButton() {
         type="button"
         onClick={request}
         disabled={state === "busy" || state === "queued"}
-        className="rounded-md border border-accent/50 px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 disabled:opacity-50"
+        className="rounded-md border border-accent/50 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
       >
         {state === "busy" ? t("ai.program.requesting") : t("ai.program.button")}
       </button>
