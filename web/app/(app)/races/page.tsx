@@ -27,6 +27,7 @@ export default async function RacesPage() {
   ]);
   const bms = (benchmarks ?? []) as Benchmark[];
   const gender = profile?.gender ?? null;
+  const linkedName = profile?.hyrox_athlete_name ?? null;
 
   return (
     <main>
@@ -43,17 +44,45 @@ export default async function RacesPage() {
         </div>
       </div>
 
+      {/* 공식 기록 연동 안내 — 연동 여부에 따라 문구·행동이 달라진다.
+          연동은 이미 동작하는 기능이다(설정 → 선수 연동 → 주간 자동 등록). */}
       <section className="mt-4 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm">
-        <p className="font-semibold">{t("races.findTitle")}</p>
-        <p className="mt-1 text-muted">{t("races.findDesc")}</p>
-        <a
-          href="https://results.hyrox.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-block text-accent hover:underline"
-        >
-          {t("races.findLink")}
-        </a>
+        {linkedName ? (
+          <>
+            <p className="font-semibold">
+              {t("races.syncedTitle", { name: linkedName })}
+            </p>
+            <p className="mt-1 text-muted">{t("races.syncedDesc")}</p>
+            <Link
+              href="/settings/profile"
+              className="mt-2 inline-block text-accent hover:underline"
+            >
+              {t("races.syncedCta")}
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="font-semibold">{t("races.syncTitle")}</p>
+            <p className="mt-1 text-muted">{t("races.syncDesc")}</p>
+            <Link
+              href="/settings/profile"
+              className="mt-2 inline-block text-accent hover:underline"
+            >
+              {t("races.syncCta")}
+            </Link>
+            <p className="mt-2 text-xs text-muted">
+              {t("races.findManual")}{" "}
+              <a
+                href="https://results.hyrox.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent hover:underline"
+              >
+                {t("races.findLink")}
+              </a>
+            </p>
+          </>
+        )}
       </section>
 
       {!races?.length ? (

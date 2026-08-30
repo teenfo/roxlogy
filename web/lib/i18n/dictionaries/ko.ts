@@ -486,9 +486,15 @@ const ko: Record<DictKey, string> = {
 
   "races.title": "레이스",
   "races.register": "결과 등록",
-  "races.findTitle": "공식 결과 찾기",
-  "races.findDesc":
-    "공식 결과 사이트에서 이름으로 본인 기록을 검색한 뒤, 여기에 등록해 훈련 기록과 비교하세요. 자동 연동은 준비 중입니다.",
+  "races.syncTitle": "공식 기록 자동 연동",
+  "races.syncDesc":
+    "설정에서 본인 선수를 한 번 연동하면, 이후 공식 대회 기록이 매주 자동으로 등록됩니다.",
+  "races.syncCta": "설정에서 공식 기록 연동 →",
+  "races.syncedTitle": "공식 기록 연동됨 · {name}",
+  "races.syncedDesc":
+    "새 공식 기록은 매주 자동으로 등록됩니다. 바로 가져오려면 설정에서 '공식 기록 지금 가져오기'를 누르세요.",
+  "races.syncedCta": "연동 설정 열기 →",
+  "races.findManual": "직접 찾아보려면:",
   "races.findLink": "results.hyrox.com에서 내 결과 검색 →",
   "races.empty": "등록된 레이스 결과가 없습니다. 첫 결과를 등록해 보세요.",
   "races.noDate": "날짜 미입력",

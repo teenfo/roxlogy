@@ -496,9 +496,15 @@ const en = {
   // 레이스
   "races.title": "Races",
   "races.register": "Add result",
-  "races.findTitle": "Find your official result",
-  "races.findDesc":
-    "Search your record by name on the official results site, then register it here to compare against training. Automatic sync is in the works.",
+  "races.syncTitle": "Sync official results automatically",
+  "races.syncDesc":
+    "Link your athlete once in Settings and every new official race result is registered automatically each week.",
+  "races.syncCta": "Link official results in Settings →",
+  "races.syncedTitle": "Official results linked · {name}",
+  "races.syncedDesc":
+    "New official results are registered automatically each week. To pull them right now, use \u201cImport official results now\u201d in Settings.",
+  "races.syncedCta": "Open link settings →",
+  "races.findManual": "Prefer to look them up yourself:",
   "races.findLink": "Search my result on results.hyrox.com →",
   "races.empty": "No race results yet. Register your first one.",
   "races.noDate": "No date",

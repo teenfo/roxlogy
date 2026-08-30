@@ -489,9 +489,15 @@ const es: Record<DictKey, string> = {
 
   "races.title": "Carreras",
   "races.register": "Añadir resultado",
-  "races.findTitle": "Encuentra tu resultado oficial",
-  "races.findDesc":
-    "Busca tu marca por nombre en el sitio oficial de resultados y regístrala aquí para compararla con tu entrenamiento. La sincronización automática está en desarrollo.",
+  "races.syncTitle": "Sincroniza los resultados oficiales automáticamente",
+  "races.syncDesc":
+    "Vincula tu perfil de atleta una vez en Ajustes y cada nuevo resultado oficial se registrará automáticamente cada semana.",
+  "races.syncCta": "Vincular resultados oficiales en Ajustes →",
+  "races.syncedTitle": "Resultados oficiales vinculados · {name}",
+  "races.syncedDesc":
+    "Los nuevos resultados oficiales se registran automáticamente cada semana. Para traerlos ahora mismo, usa «Importar resultados oficiales ahora» en Ajustes.",
+  "races.syncedCta": "Abrir ajustes de vinculación →",
+  "races.findManual": "¿Prefieres buscarlos tú?:",
   "races.findLink": "Buscar mi resultado en results.hyrox.com →",
   "races.empty": "Sin resultados de carrera. Registra el primero.",
   "races.noDate": "Sin fecha",
