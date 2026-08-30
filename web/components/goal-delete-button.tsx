@@ -11,12 +11,18 @@ export function GoalDeleteButton({ goalId }: { goalId: string }) {
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function del() {
     setPending(true);
+    setErr(null);
     const supabase = createClient();
-    await supabase.from("goal_plans").delete().eq("id", goalId);
+    const { error } = await supabase
+      .from("goal_plans")
+      .delete()
+      .eq("id", goalId);
     setPending(false);
+    if (error) return setErr(error.message);
     router.refresh();
   }
 
@@ -43,6 +49,7 @@ export function GoalDeleteButton({ goalId }: { goalId: string }) {
       <button type="button" onClick={() => setConfirming(false)} className="text-muted">
         {t("common.cancel")}
       </button>
+      {err && <span className="text-red-400">{err}</span>}
     </span>
   );
 }

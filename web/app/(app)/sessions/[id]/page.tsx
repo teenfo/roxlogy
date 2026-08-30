@@ -99,6 +99,7 @@ export async function generateMetadata({
     .from("sessions")
     .select("started_at")
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
   return {
     title: data

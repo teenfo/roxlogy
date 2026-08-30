@@ -6,6 +6,7 @@ import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
+import { RaceEditForm } from "@/components/race-edit-form";
 import { PercentileBar } from "@/components/percentile-bar";
 import { RaceToSessionButton } from "@/components/race-to-session-button";
 import {
@@ -76,11 +77,13 @@ export default async function RaceDetailPage({
   }
 
   // 비교 대상: 스테이션 세그먼트가 있는 가장 최근 세션 (레이스 시뮬)
+  // 주의: shared 세션은 RLS 로 전체 공개(피드용) — 본인 필터 필수
   const { data: sims } = await supabase
     .from("sessions")
     .select(
       "id, started_at, total_time_ms, session_segments ( kind, exercise_id, split_time_ms )",
     )
+    .eq("user_id", race.user_id)
     .is("deleted_at", null)
     .order("started_at", { ascending: false })
     .limit(10);
@@ -158,6 +161,14 @@ export default async function RaceDetailPage({
             eventDate={race.event_date ?? null}
             bib={splits.bib ?? null}
             splits={splits}
+          />
+          <RaceEditForm
+            raceId={race.id}
+            event={race.event}
+            eventDate={race.event_date ?? null}
+            division={race.division ?? null}
+            totalMs={race.total_time_ms ?? null}
+            bib={splits.bib ?? null}
           />
           <DeleteButton kind="race" id={race.id} redirectTo="/races" />
         </div>

@@ -6,6 +6,11 @@ import { getT } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
 import { CrewLikeButton } from "@/components/crew-like-button";
 import { CrewCommentForm } from "@/components/crew-comment-form";
+import {
+  CrewPostActions,
+  CrewCommentDelete,
+} from "@/components/crew-post-actions";
+import { getCachedUser } from "@/lib/supabase/auth";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 export default async function CrewPostPage({
@@ -14,7 +19,11 @@ export default async function CrewPostPage({
   params: Promise<{ slug: string; postId: string }>;
 }) {
   const { slug, postId } = await params;
-  const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
+  const [crew, user, { t, tag, tz }] = await Promise.all([
+    getCrew(slug),
+    getCachedUser(),
+    getT(),
+  ]);
   if (!crew) notFound();
 
   const supabase = await createClient();
@@ -23,6 +32,8 @@ export default async function CrewPostPage({
   if (!post) notFound();
 
   const canInteract = isActiveMember(crew);
+  const isStaff = crew.my_role === "owner" || crew.my_role === "coach";
+  const canEditPost = !!user && (post.author_id === user.id || isStaff);
 
   return (
     <main>
@@ -34,7 +45,7 @@ export default async function CrewPostPage({
       </Link>
 
       <article className="mt-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-muted/40 px-2 py-0.5 text-[10px] text-muted">
             {t(`crew.cat.${post.category}` as DictKey)}
           </span>
@@ -46,6 +57,7 @@ export default async function CrewPostPage({
               {t("crew.fullOnly")}
             </span>
           )}
+          {canEditPost && <CrewPostActions slug={slug} postId={post.id} />}
         </div>
         <h1 className="mt-2 text-2xl font-bold leading-snug">{post.title}</h1>
         <p className="mt-2 flex flex-wrap gap-x-3 text-xs text-muted">
@@ -91,6 +103,9 @@ export default async function CrewPostPage({
                   <span className="text-[11px] text-muted">
                     {formatDate(c.created_at, tag, tz)}
                   </span>
+                  {!!user && (c.author_id === user.id || isStaff) && (
+                    <CrewCommentDelete commentId={c.id} />
+                  )}
                 </div>
                 <p className="mt-1 whitespace-pre-line text-sm">{c.body}</p>
               </li>

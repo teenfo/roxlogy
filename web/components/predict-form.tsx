@@ -95,6 +95,7 @@ export function PredictForm({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
+  const [saveErr, setSaveErr] = useState<string | null>(null);
 
   // 목표 대회 선택 — 공식 대회 목록에서 고르거나 직접 입력.
   // props/수정 목표의 기존 값이 목록에 있으면 그 항목을, 아니면 직접 입력을 시드.
@@ -262,6 +263,7 @@ export function PredictForm({
 
   async function saveGoal() {
     if (!eff || adjustedMs == null) return;
+    setSaveErr(null);
     setSaveState("saving");
     const supabase = createClient();
     const {
@@ -269,6 +271,7 @@ export function PredictForm({
     } = await supabase.auth.getUser();
     if (!user) {
       setSaveState("idle");
+      setSaveErr(t("common.needLogin"));
       return;
     }
     const stationsMs = STATION_KEYS.map((k) => ({
@@ -287,11 +290,18 @@ export function PredictForm({
       roxzone_total_ms: parseTimeToMs(eff.rox) ?? 0,
       stations: stationsMs,
     };
-    if (editGoal) {
-      await supabase.from("goal_plans").update(payload).eq("id", editGoal.id);
-    } else {
-      await supabase.from("goal_plans").insert({ user_id: user.id, ...payload });
+    const { error } = editGoal
+      ? await supabase.from("goal_plans").update(payload).eq("id", editGoal.id)
+      : await supabase
+          .from("goal_plans")
+          .insert({ user_id: user.id, ...payload });
+    if (error) {
+      // 저장 실패를 성공으로 표시하면 사용자가 목표를 잃는다 — 반드시 알린다
+      setSaveState("idle");
+      setSaveErr(error.message);
+      return;
     }
+    setSaveErr(null);
     setSaveState("saved");
   }
 
@@ -637,6 +647,9 @@ export function PredictForm({
                   </Link>
                 )}
               </div>
+              {saveErr && (
+                <p className="mt-2 text-sm text-red-400">{saveErr}</p>
+              )}
             </section>
           ) : !isLoggedIn ? (
             <p className="mt-6 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm text-muted">

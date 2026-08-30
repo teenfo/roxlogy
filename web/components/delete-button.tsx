@@ -19,24 +19,30 @@ export function DeleteButton({
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function handleDelete() {
     setPending(true);
+    setErr(null);
     const supabase = createClient();
-    if (kind === "session") {
-      // soft delete — 오프라인 재동기화 부활 방지 (deleted_at tombstone)
-      await supabase
-        .from("sessions")
-        .update({
-          deleted_at: new Date().toISOString(),
-          client_updated_at: new Date().toISOString(),
-        })
-        .eq("id", id);
-    } else if (kind === "race") {
-      await supabase.from("race_results").delete().eq("id", id);
-    } else {
-      // program — 하위 days/templates/items는 on delete cascade
-      await supabase.from("programs").delete().eq("id", id);
+    const { error } =
+      kind === "session"
+        ? // soft delete — 오프라인 재동기화 부활 방지 (deleted_at tombstone)
+          await supabase
+            .from("sessions")
+            .update({
+              deleted_at: new Date().toISOString(),
+              client_updated_at: new Date().toISOString(),
+            })
+            .eq("id", id)
+        : kind === "race"
+          ? await supabase.from("race_results").delete().eq("id", id)
+          : // program — 하위 days/templates/items는 on delete cascade
+            await supabase.from("programs").delete().eq("id", id);
+    // 실패했는데 목록으로 보내면 "삭제됐다"고 오인하게 된다
+    if (error) {
+      setPending(false);
+      return setErr(error.message);
     }
     router.push(redirectTo);
     router.refresh();
@@ -65,6 +71,7 @@ export function DeleteButton({
       <button onClick={() => setConfirming(false)} className="text-muted">
         {t("common.cancel")}
       </button>
+      {err && <span className="text-xs text-red-400">{err}</span>}
     </span>
   );
 }

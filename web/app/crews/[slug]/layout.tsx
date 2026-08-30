@@ -91,6 +91,7 @@ export default async function CrewLayout({
             <CrewJoinButton
               slug={slug}
               status={crew.my_status}
+              role={crew.my_role}
               loggedIn={!!user}
             />
           ) : (

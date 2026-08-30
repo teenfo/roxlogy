@@ -19,17 +19,32 @@ function toCsv(headers: string[], rows: unknown[][]): string {
 export function ExportButton({ kind }: { kind: Kind }) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function run() {
     setBusy(true);
+    setErr(null);
     const supabase = createClient();
+    // 내보내기는 "내 데이터" — shared 세션은 RLS 로 전체 공개라 본인 필터 필수
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setBusy(false);
+      return setErr(t("common.needLogin"));
+    }
     let csv = "";
     if (kind === "sessions") {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("sessions")
         .select("id, started_at, total_time_ms, source_device, rpe, notes")
+        .eq("user_id", user.id)
         .is("deleted_at", null)
         .order("started_at", { ascending: false });
+      if (error) {
+        setBusy(false);
+        return setErr(error.message);
+      }
       csv = toCsv(
         ["id", "started_at", "total_time_ms", "source", "rpe", "notes"],
         (data ?? []).map((s) => [
@@ -42,10 +57,15 @@ export function ExportButton({ kind }: { kind: Kind }) {
         ]),
       );
     } else {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("race_results")
         .select("id, event, event_date, division, total_time_ms")
+        .eq("user_id", user.id)
         .order("event_date", { ascending: false });
+      if (error) {
+        setBusy(false);
+        return setErr(error.message);
+      }
       csv = toCsv(
         ["id", "event", "event_date", "division", "total_time_ms"],
         (data ?? []).map((r) => [
@@ -73,12 +93,15 @@ export function ExportButton({ kind }: { kind: Kind }) {
   }
 
   return (
-    <button
-      onClick={run}
-      disabled={busy}
-      className="rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:border-foreground hover:text-foreground disabled:opacity-40"
-    >
-      {busy ? t("common.saving") : t("common.exportCsv")}
-    </button>
+    <div className="flex flex-col items-end gap-1">
+      <button
+        onClick={run}
+        disabled={busy}
+        className="rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:border-foreground hover:text-foreground disabled:opacity-40"
+      >
+        {busy ? t("common.saving") : t("common.exportCsv")}
+      </button>
+      {err && <p className="text-xs text-red-400">{err}</p>}
+    </div>
   );
 }

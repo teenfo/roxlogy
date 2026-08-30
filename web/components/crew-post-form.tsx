@@ -7,22 +7,35 @@ import { useI18n } from "@/components/i18n-provider";
 import { POST_CATEGORIES, type PostCategory } from "@/lib/crew-types";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
-/** 새 글 작성 — 공지는 운영자·코치만 노출 */
+export type EditablePost = {
+  id: string;
+  category: PostCategory;
+  title: string;
+  body: string | null;
+  members_only: boolean;
+};
+
+/** 새 글 작성 / 기존 글 수정 — 공지는 운영자·코치만 노출.
+ *  edit 가 주어지면 수정 모드(작성자·운영진만 진입 가능, RLS 로도 보호). */
 export function CrewPostForm({
   slug,
   crewId,
   isStaff,
+  edit,
 }: {
   slug: string;
   crewId: string;
   isStaff: boolean;
+  edit?: EditablePost;
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const [category, setCategory] = useState<PostCategory>("free");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [membersOnly, setMembersOnly] = useState(false);
+  const [category, setCategory] = useState<PostCategory>(
+    edit?.category ?? "free",
+  );
+  const [title, setTitle] = useState(edit?.title ?? "");
+  const [body, setBody] = useState(edit?.body ?? "");
+  const [membersOnly, setMembersOnly] = useState(edit?.members_only ?? false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -44,21 +57,27 @@ export function CrewPostForm({
       setBusy(false);
       return;
     }
-    const { data, error } = await supabase
-      .from("crew_posts")
-      .insert({
-        crew_id: crewId,
-        author_id: user.id,
-        category,
-        title: title.trim(),
-        body: body.trim() || null,
-        members_only: membersOnly,
-      })
-      .select("id")
-      .single();
+    const fields = {
+      category,
+      title: title.trim(),
+      body: body.trim() || null,
+      members_only: membersOnly,
+    };
+    const { data, error } = edit
+      ? await supabase
+          .from("crew_posts")
+          .update(fields)
+          .eq("id", edit.id)
+          .select("id")
+          .single()
+      : await supabase
+          .from("crew_posts")
+          .insert({ crew_id: crewId, author_id: user.id, ...fields })
+          .select("id")
+          .single();
     setBusy(false);
     if (error || !data) {
-      setErr(t("crew.postErr"));
+      setErr(error?.message ?? t("crew.postErr"));
       return;
     }
     router.push(`/crews/${slug}/board/${data.id}`);
@@ -138,7 +157,11 @@ export function CrewPostForm({
           disabled={busy || !title.trim()}
           className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-50"
         >
-          {busy ? t("crew.publishing") : t("crew.publish")}
+          {busy
+            ? t("crew.publishing")
+            : edit
+              ? t("common.save")
+              : t("crew.publish")}
         </button>
       </div>
     </form>

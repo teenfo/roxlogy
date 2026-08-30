@@ -100,30 +100,46 @@ export function ProgramBuilder({
   const { t } = useI18n();
   const supabase = createClient();
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   // 각 워크아웃별 항목 추가 폼 상태
   const [pick, setPick] = useState<Record<string, TargetDraft>>({});
 
   const exName = (ex: { name_ko: string; name_en: string } | null) =>
     ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : "—";
 
-  async function run(fn: () => PromiseLike<unknown>) {
+  /** 모든 편집 mutation 의 공통 경로 — supabase-js 는 실패해도 throw 하지 않고
+   *  {error} 로 resolve 하므로, 여기서 받아 화면에 알리지 않으면 무음 실패가 된다.
+   *  성공(true) / 실패(false) 를 돌려 호출부가 후처리(입력 초기화)를 결정한다. */
+  async function run(fn: () => PromiseLike<unknown>): Promise<boolean> {
     setBusy(true);
-    await fn();
+    setErr(null);
+    const res = (await fn()) as { error?: { message: string } | null } | null;
+    const e = Array.isArray(res)
+      ? (res.find((r) => r?.error)?.error ?? null)
+      : (res?.error ?? null);
     setBusy(false);
+    if (e) {
+      setErr(e.message);
+      return false;
+    }
     router.refresh();
+    return true;
   }
 
   const addDay = () =>
     run(async () => {
       const nextIndex =
         initialDays.reduce((m, d) => Math.max(m, d.day_index), 0) + 1;
-      await supabase
+      return await supabase
         .from("program_days")
         .insert({ program_id: programId, day_index: nextIndex });
     });
 
-  const delDay = (id: string) =>
-    run(() => supabase.from("program_days").delete().eq("id", id));
+  // Day 삭제는 그 날의 워크아웃·항목까지 cascade 로 지운다 — 확인을 받는다
+  const delDay = (id: string, dayIndex: number) => {
+    if (!window.confirm(t("programs.confirmDelDay", { n: dayIndex }))) return;
+    return run(() => supabase.from("program_days").delete().eq("id", id));
+  };
 
   // Day 순서 이동 — 이웃 Day 와 day_index 를 맞바꾼다 (initialDays 는 정렬 상태로 전달됨)
   const moveDay = (id: string, dir: -1 | 1) => {
@@ -131,12 +147,12 @@ export function ProgramBuilder({
     const other = initialDays[idx + dir];
     if (idx < 0 || !other) return;
     const me = initialDays[idx];
-    return run(async () => {
-      await Promise.all([
+    return run(async () =>
+      Promise.all([
         supabase.from("program_days").update({ day_index: other.day_index }).eq("id", me.id),
         supabase.from("program_days").update({ day_index: me.day_index }).eq("id", other.id),
-      ]);
-    });
+      ]),
+    );
   };
 
   const addWorkout = (
@@ -146,7 +162,7 @@ export function ProgramBuilder({
     autofillRaceSim: boolean,
   ) =>
     run(async () => {
-      const { data: created } = await supabase
+      const { data: created, error } = await supabase
         .from("workout_templates")
         .insert({
           program_day_id: dayId,
@@ -156,6 +172,7 @@ export function ProgramBuilder({
         })
         .select("id")
         .single();
+      if (error) return { error };
       // 레이스 시뮬 자동 등록: 전체 종목(런+8스테이션)을 순서대로 항목으로 추가
       if (autofillRaceSim && created?.id) {
         const rows = RACE_SIM_SEQUENCE.map((exId, i) => ({
@@ -164,12 +181,15 @@ export function ProgramBuilder({
           exercise_id: exId,
           target: null,
         }));
-        await supabase.from("workout_template_items").insert(rows);
+        return await supabase.from("workout_template_items").insert(rows);
       }
+      return { error: null };
     });
 
-  const delWorkout = (id: string) =>
-    run(() => supabase.from("workout_templates").delete().eq("id", id));
+  const delWorkout = (id: string, title: string) => {
+    if (!window.confirm(t("programs.confirmDelWorkout", { title }))) return;
+    return run(() => supabase.from("workout_templates").delete().eq("id", id));
+  };
 
   const setWorkoutType = (id: string, type: string) =>
     run(() => supabase.from("workout_templates").update({ type }).eq("id", id));
@@ -195,14 +215,16 @@ export function ProgramBuilder({
     if (p.note.trim()) target.note = p.note.trim();
     const nextSeq =
       w.workout_template_items.reduce((m, i) => Math.max(m, i.seq), 0) + 1;
-    return run(async () => {
-      await supabase.from("workout_template_items").insert({
+    return run(() =>
+      supabase.from("workout_template_items").insert({
         template_id: w.id,
         seq: nextSeq,
         exercise_id: p.ex,
         target: Object.keys(target).length ? target : null,
-      });
-      setPick((s) => ({ ...s, [w.id]: EMPTY_DRAFT }));
+      }),
+    ).then((ok) => {
+      // 실패 시 입력값을 지우지 않는다 (다시 입력하는 수고 방지)
+      if (ok) setPick((s) => ({ ...s, [w.id]: EMPTY_DRAFT }));
     });
   };
 
@@ -214,6 +236,11 @@ export function ProgramBuilder({
 
   return (
     <div className="mt-8 flex flex-col gap-4">
+      {err && (
+        <p className="rounded-md bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+          {err}
+        </p>
+      )}
       {initialDays.map((d, i) => (
         <DayCard
           key={d.id}
@@ -229,7 +256,7 @@ export function ProgramBuilder({
           canUp={i > 0}
           canDown={i < initialDays.length - 1}
           onMove={(dir) => moveDay(d.id, dir)}
-          onDelDay={() => delDay(d.id)}
+          onDelDay={() => delDay(d.id, d.day_index)}
           onAddWorkout={(title, type, autofill) =>
             addWorkout(d.id, title, type, autofill)
           }
@@ -287,7 +314,7 @@ function DayCard({
   onDelDay: () => void;
   onAddWorkout: (title: string, type: string, autofillRaceSim: boolean) => void;
   onSetWorkoutType: (id: string, type: string) => void;
-  onDelWorkout: (id: string) => void;
+  onDelWorkout: (id: string, title: string) => void;
   onAddItem: (w: Workout) => void;
   onDelItem: (id: string) => void;
 }) {
@@ -356,7 +383,7 @@ function DayCard({
               </p>
               <button
                 type="button"
-                onClick={() => onDelWorkout(w.id)}
+                onClick={() => onDelWorkout(w.id, w.title)}
                 disabled={busy}
                 className="text-xs text-muted hover:text-red-400"
               >

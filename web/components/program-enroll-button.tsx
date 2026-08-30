@@ -41,6 +41,7 @@ export function ProgramEnrollButton({
   const [repeat, setRepeat] = useState(false);
   const [repeatEnd, setRepeatEnd] = useState("");
   const [pending, setPending] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   const endPreview = repeat
     ? repeatEnd || null
@@ -56,20 +57,34 @@ export function ProgramEnrollButton({
 
   async function start() {
     setPending(true);
+    setErr(null);
     const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
       setPending(false);
-      return;
+      return setErr(t("common.needLogin"));
     }
-    // 활성 등록은 1건 — 기존 활성 해제 후 새로 시작
-    await supabase
+    // 활성 등록은 1건 — 기존 활성을 해제한 뒤 새로 시작한다.
+    // 두 단계가 원자적이지 않으므로, 삽입이 실패하면 해제한 등록을
+    // 되돌려 사용자가 진행 중인 프로그램을 잃지 않게 한다.
+    const { data: prevActive } = await supabase
       .from("program_enrollments")
-      .update({ active: false })
+      .select("id")
       .eq("user_id", user.id)
       .eq("active", true);
+    const prevIds = (prevActive ?? []).map((r) => r.id as string);
+    if (prevIds.length) {
+      const { error: offErr } = await supabase
+        .from("program_enrollments")
+        .update({ active: false })
+        .in("id", prevIds);
+      if (offErr) {
+        setPending(false);
+        return setErr(offErr.message);
+      }
+    }
     const { error } = await supabase.from("program_enrollments").insert({
       user_id: user.id,
       program_id: programId,
@@ -78,48 +93,61 @@ export function ProgramEnrollButton({
       end_date: repeat ? repeatEnd || null : null,
       active: true,
     });
-    setPending(false);
-    if (!error) {
-      setActive(true);
-      setOpen(false);
-      router.refresh();
+    if (error) {
+      if (prevIds.length) {
+        await supabase
+          .from("program_enrollments")
+          .update({ active: true })
+          .in("id", prevIds);
+      }
+      setPending(false);
+      return setErr(error.message);
     }
+    setPending(false);
+    setActive(true);
+    setOpen(false);
+    router.refresh();
   }
 
   async function stop() {
     setPending(true);
+    setErr(null);
     const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
       setPending(false);
-      return;
+      return setErr(t("common.needLogin"));
     }
-    await supabase
+    const { error } = await supabase
       .from("program_enrollments")
       .update({ active: false })
       .eq("user_id", user.id)
       .eq("program_id", programId)
       .eq("active", true);
     setPending(false);
+    if (error) return setErr(error.message);
     setActive(false);
     router.refresh();
   }
 
   if (active) {
     return (
-      <div className="flex items-center gap-3">
-        <span className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track">
-          {t("programs.enrolled")}
-        </span>
-        <button
-          onClick={stop}
-          disabled={pending}
-          className="text-xs text-muted hover:text-foreground disabled:opacity-40"
-        >
-          {t("programs.stop")}
-        </button>
+      <div className="flex flex-col items-start gap-1">
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track">
+            {t("programs.enrolled")}
+          </span>
+          <button
+            onClick={stop}
+            disabled={pending}
+            className="text-xs text-muted hover:text-foreground disabled:opacity-40"
+          >
+            {t("programs.stop")}
+          </button>
+        </div>
+        {err && <p className="text-xs text-red-400">{err}</p>}
       </div>
     );
   }
@@ -131,6 +159,7 @@ export function ProgramEnrollButton({
           setStartDate(todayLocal());
           setRepeat(false);
           setRepeatEnd("");
+          setErr(null);
           setOpen(true);
         }}
         className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
@@ -205,6 +234,8 @@ export function ProgramEnrollButton({
                 <span className="text-muted">{t("programs.emptyDays")}</span>
               )}
             </p>
+
+            {err && <p className="mt-3 text-sm text-red-400">{err}</p>}
 
             <div className="mt-5 flex justify-end gap-2">
               <button

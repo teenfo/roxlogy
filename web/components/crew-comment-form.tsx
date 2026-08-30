@@ -10,31 +10,33 @@ export function CrewCommentForm({ postId }: { postId: string }) {
   const router = useRouter();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const text = body.trim();
     if (!text) return;
     setBusy(true);
+    setErr(null);
     const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
       setBusy(false);
-      return;
+      return setErr(t("common.needLogin"));
     }
     const { error } = await supabase
       .from("crew_post_comments")
       .insert({ post_id: postId, author_id: user.id, body: text });
     setBusy(false);
-    if (!error) {
-      setBody("");
-      router.refresh();
-    }
+    if (error) return setErr(error.message);
+    setBody("");
+    router.refresh();
   }
 
   return (
+    <>
     <form onSubmit={submit} className="mt-4 flex gap-2">
       <input
         value={body}
@@ -51,5 +53,7 @@ export function CrewCommentForm({ postId }: { postId: string }) {
         {t("crew.commentSubmit")}
       </button>
     </form>
+    {err && <p className="mt-1 text-xs text-red-400">{err}</p>}
+    </>
   );
 }

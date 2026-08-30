@@ -9,6 +9,7 @@ export function FollowButton({ authorId }: { authorId: string }) {
   const { t } = useI18n();
   const [following, setFollowing] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,37 +39,40 @@ export function FollowButton({ authorId }: { authorId: string }) {
     } = await supabase.auth.getUser();
     if (!user) {
       setBusy(false);
-      return;
+      return setErr(t("common.needLogin"));
     }
-    if (following) {
-      await supabase
-        .from("follows")
-        .delete()
-        .eq("follower_id", user.id)
-        .eq("followee_id", authorId);
-      setFollowing(false);
-    } else {
-      await supabase
-        .from("follows")
-        .insert({ follower_id: user.id, followee_id: authorId });
-      setFollowing(true);
-    }
+    // 실패했는데 상태를 뒤집으면 화면과 서버가 어긋난 채로 남는다
+    const { error } = following
+      ? await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("followee_id", authorId)
+      : await supabase
+          .from("follows")
+          .insert({ follower_id: user.id, followee_id: authorId });
     setBusy(false);
+    if (error) return setErr(error.message);
+    setErr(null);
+    setFollowing(!following);
   }
 
   if (following === null) return null;
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      disabled={busy}
-      className={`rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${
-        following
-          ? "border-muted/40 text-muted hover:border-foreground"
-          : "border-accent text-accent hover:brightness-110"
-      }`}
-    >
-      {following ? t("feed.following") : t("feed.follow")}
-    </button>
+    <span className="inline-flex flex-col items-end gap-1">
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={busy}
+        className={`rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${
+          following
+            ? "border-muted/40 text-muted hover:border-foreground"
+            : "border-accent text-accent hover:brightness-110"
+        }`}
+      >
+        {following ? t("feed.following") : t("feed.follow")}
+      </button>
+      {err && <span className="text-xs text-red-400">{err}</span>}
+    </span>
   );
 }

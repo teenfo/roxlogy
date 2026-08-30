@@ -11,9 +11,11 @@ export function ShareToggle({ id, shared }: { id: string; shared: boolean }) {
   const { t } = useI18n();
   const [on, setOn] = useState(shared);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function toggle() {
     setBusy(true);
+    setErr(null);
     const next = !on;
     const supabase = createClient();
     const { error } = await supabase
@@ -21,21 +23,23 @@ export function ShareToggle({ id, shared }: { id: string; shared: boolean }) {
       .update({ shared: next })
       .eq("id", id);
     setBusy(false);
-    if (!error) {
-      setOn(next);
-      router.refresh();
-    }
+    if (error) return setErr(error.message);
+    setOn(next);
+    router.refresh();
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      disabled={busy}
-      className={`text-sm hover:underline disabled:opacity-50 ${on ? "text-track" : "text-muted"}`}
-      title={t("share.hint")}
-    >
-      {on ? t("share.shared") : t("share.share")}
-    </button>
+    <span className="inline-flex flex-col items-end gap-0.5">
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={busy}
+        className={`text-sm hover:underline disabled:opacity-50 ${on ? "text-track" : "text-muted"}`}
+        title={t("share.hint")}
+      >
+        {on ? t("share.shared") : t("share.share")}
+      </button>
+      {err && <span className="text-xs text-red-400">{err}</span>}
+    </span>
   );
 }
