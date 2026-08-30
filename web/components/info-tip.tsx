@@ -24,7 +24,7 @@ export function InfoTip({ text, label = "info" }: { text: string; label?: string
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <span className="absolute left-0 top-6 z-20 block w-60 rounded-md border border-surface bg-background px-3 py-2 text-left text-xs font-normal leading-relaxed text-foreground shadow-lg">
+          <span className="absolute right-0 top-6 z-20 block w-60 max-w-[calc(100vw-3rem)] rounded-md border border-surface bg-background px-3 py-2 text-left text-xs font-normal leading-relaxed text-foreground shadow-lg">
             {text}
           </span>
         </>

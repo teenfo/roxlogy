@@ -35,13 +35,13 @@ export default async function ProfileSettingsPage() {
         email={user!.email ?? ""}
       />
       <section className="mt-10">
-        <h2 className="text-lg font-bold">{t("hyroxLink.title")}</h2>
+        <h2 className="text-lg font-semibold">{t("hyroxLink.title")}</h2>
         <div className="mt-3 rounded-md bg-surface p-4">
           <HyroxLinkForm linkedName={profile?.hyrox_athlete_name ?? null} />
         </div>
       </section>
       <section className="mt-10">
-        <h2 className="text-lg font-bold">{t("mcp.title")}</h2>
+        <h2 className="text-lg font-semibold">{t("mcp.title")}</h2>
         <div className="mt-3 rounded-md bg-surface p-4">
           <McpConnect token={profile?.mcp_token ?? ""} />
         </div>

@@ -181,7 +181,7 @@ export function NotificationSettings() {
 
   return (
     <section className="mt-6 max-w-md">
-      <h2 className="text-lg font-bold">{t("notif.title")}</h2>
+      <h2 className="text-lg font-semibold">{t("notif.title")}</h2>
       <p className="mt-1 text-sm text-muted">{t("notif.desc")}</p>
 
       {supported || native ? (

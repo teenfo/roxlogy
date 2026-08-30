@@ -266,7 +266,7 @@ export default async function SchedulePage({
                           href={`/workouts/${w.id}`}
                           className={`inline-block rounded-full px-2.5 py-0.5 text-xs ${
                             d.isToday
-                              ? "bg-accent/20 font-semibold text-accent hover:brightness-110"
+                              ? "bg-accent/15 font-semibold text-accent hover:brightness-110"
                               : "bg-background text-muted hover:text-foreground"
                           }`}
                         >

@@ -81,7 +81,7 @@ export default async function PublicProfilePage({
       <section className="mt-8">
         <h2 className="text-lg font-semibold">{t("pub.sharedSessions")}</h2>
         {!shared?.length ? (
-          <p className="mt-3 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+          <p className="mt-3 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("pub.noShared")}
           </p>
         ) : (

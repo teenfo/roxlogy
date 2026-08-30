@@ -105,7 +105,7 @@ export function RehearsalReport({
       </p>
 
       {rows.length === 0 ? (
-        <p className="mt-3 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+        <p className="mt-3 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
           {t("dash.rehNoMatch")}
         </p>
       ) : (

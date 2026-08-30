@@ -83,7 +83,7 @@ export default async function ProgramsPage() {
       <section className="mt-6">
         <h2 className="text-lg font-semibold">{t("programs.mine")}</h2>
         {!mine.length ? (
-          <p className="mt-3 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+          <p className="mt-3 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("programs.mineEmpty")}
           </p>
         ) : (

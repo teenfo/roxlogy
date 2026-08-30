@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
-import { formatDateShort, formatMs } from "@/lib/format";
+import { formatDateOnly, formatDateShort, formatMs } from "@/lib/format";
 import { GoalDeleteButton } from "@/components/goal-delete-button";
 
 export async function generateMetadata() {
@@ -76,7 +76,9 @@ export default async function GoalsPage() {
                   </div>
                   <p className="mt-1 text-xs text-muted">
                     {g.event_name ? `${g.event_name}` : t("goals.noEvent")}
-                    {g.event_name && g.event_date ? ` · ${g.event_date}` : ""}
+                    {g.event_name && g.event_date
+                      ? ` · ${formatDateOnly(g.event_date, tag)}`
+                      : ""}
                     {" · "}
                     {t("goals.savedOn", {
                       date: formatDateShort(g.created_at, tag, tz),

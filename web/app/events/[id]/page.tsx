@@ -129,7 +129,7 @@ export default async function EventDetailPage({
         {live && live.divisions.length > 0 ? (
           <section className="mt-8">
             <div className="flex items-baseline justify-between">
-              <h2 className="text-lg font-bold">{t("events.divStats")}</h2>
+              <h2 className="text-lg font-semibold">{t("events.divStats")}</h2>
               <span className="text-xs text-muted">
                 {t("events.finishers", {
                   n: live.totalFinishers.toLocaleString(tag),
@@ -187,7 +187,7 @@ export default async function EventDetailPage({
             <p className="mt-2 text-[11px] text-muted">{t("events.statsNote")}</p>
           </section>
         ) : (
-          <p className="mt-8 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+          <p className="mt-8 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("events.noLive")}
           </p>
         )}

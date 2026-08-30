@@ -171,7 +171,7 @@ export function CrewInfoForm({
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background disabled:opacity-50"
+        className="mt-5 rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
       >
         {t("crew.save")}
       </button>

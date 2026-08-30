@@ -173,10 +173,10 @@ export function ProgramEnrollButton({
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-sm rounded-lg bg-background p-5 shadow-xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-lg bg-surface p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold">{t("programs.enrollTitle")}</h2>
+            <h2 className="text-lg font-semibold">{t("programs.enrollTitle")}</h2>
             <p className="mt-1 text-xs text-muted">{t("programs.enrollDesc")}</p>
 
             <label className="mt-4 flex flex-col gap-1.5 text-sm text-muted">

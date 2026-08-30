@@ -183,7 +183,7 @@ export function CrewDuesLinksManage({
                     <button
                       type="submit"
                       disabled={busy || !eLabel.trim() || !urlOk(eUrl)}
-                      className="rounded-md bg-accent px-4 py-1.5 text-xs font-bold text-background disabled:opacity-40"
+                      className="rounded-md bg-accent px-4 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
                     >
                       {t("common.save")}
                     </button>
@@ -200,14 +200,14 @@ export function CrewDuesLinksManage({
             ) : (
               <li
                 key={l.id}
-                className="flex min-w-0 items-center gap-2 rounded-md bg-surface px-3 py-2.5"
+                className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-surface px-3 py-2.5"
               >
                 <span
                   className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${audBadge[l.audience]}`}
                 >
                   {audLabel[l.audience]}
                 </span>
-                <span className="shrink-0 text-sm font-semibold">{l.label}</span>
+                <span className="min-w-0 truncate text-sm font-semibold">{l.label}</span>
                 {l.amount != null && (
                   <span className="shrink-0 font-mono text-xs font-semibold text-track">
                     {won(l.amount)}
@@ -239,7 +239,7 @@ export function CrewDuesLinksManage({
                   type="button"
                   onClick={() => del(l.id)}
                   disabled={busy}
-                  className="shrink-0 text-muted hover:text-red-400 disabled:opacity-50"
+                  className="-m-2 shrink-0 p-2 text-muted hover:text-red-400 disabled:opacity-50"
                   aria-label={t("common.delete")}
                 >
                   ✕
@@ -295,7 +295,7 @@ export function CrewDuesLinksManage({
           <button
             type="submit"
             disabled={busy || !label.trim() || !urlOk(url)}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background disabled:opacity-40"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
           >
             + {t("crew.duesAdd")}
           </button>

@@ -23,7 +23,7 @@ export default async function CrewNewPage() {
         {user ? (
           <CrewCreateForm />
         ) : (
-          <p className="mt-6 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+          <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             <Link
               href="/login?next=/crews/new"
               className="text-accent hover:underline"

@@ -11,7 +11,7 @@ import { useI18n } from "@/components/i18n-provider";
 
 export function LocaleSwitcher({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const [pending, setPending] = useState(false);
 
   async function change(next: Locale) {
@@ -31,7 +31,7 @@ export function LocaleSwitcher({ compact = false }: { compact?: boolean }) {
       value={locale}
       disabled={pending}
       onChange={(e) => change(e.target.value as Locale)}
-      aria-label="Language"
+      aria-label={t("a11y.language")}
       className={
         compact
           ? "rounded-md border border-muted/30 bg-transparent px-2 py-1 text-xs text-muted outline-none focus:border-accent"

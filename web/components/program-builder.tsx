@@ -337,8 +337,8 @@ function DayCard({
             type="button"
             onClick={() => onMove(-1)}
             disabled={busy || !canUp}
-            aria-label="move up"
-            className="rounded px-1.5 py-0.5 text-sm text-muted hover:bg-background hover:text-foreground disabled:opacity-25"
+            aria-label={t("a11y.moveUp")}
+            className="rounded p-2 text-sm leading-none text-muted hover:bg-background hover:text-foreground disabled:opacity-25"
           >
             ▲
           </button>
@@ -346,8 +346,8 @@ function DayCard({
             type="button"
             onClick={() => onMove(1)}
             disabled={busy || !canDown}
-            aria-label="move down"
-            className="rounded px-1.5 py-0.5 text-sm text-muted hover:bg-background hover:text-foreground disabled:opacity-25"
+            aria-label={t("a11y.moveDown")}
+            className="rounded p-2 text-sm leading-none text-muted hover:bg-background hover:text-foreground disabled:opacity-25"
           >
             ▼
           </button>
@@ -413,7 +413,7 @@ function DayCard({
                           onClick={() => onDelItem(it.id)}
                           disabled={busy}
                           aria-label={t("common.delete")}
-                          className="shrink-0 text-sm text-muted hover:text-red-400"
+                          className="-m-2 shrink-0 p-2 text-sm text-muted hover:text-red-400"
                         >
                           ✕
                         </button>

@@ -350,7 +350,7 @@ export function PredictForm({
       </div>
 
       {!result ? (
-        <p className="mt-8 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+        <p className="mt-8 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
           {t("predict.invalid")}
         </p>
       ) : (
@@ -402,7 +402,7 @@ export function PredictForm({
             </div>
           )}
 
-          <section className="mt-6 grid grid-cols-3 gap-3">
+          <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-md bg-surface px-4 py-3">
               <p className="text-xs text-muted">{t("predict.runPerKm")}</p>
               <p className="mt-1 font-mono text-xl font-bold text-track">
@@ -628,7 +628,7 @@ export function PredictForm({
                   type="button"
                   onClick={saveGoal}
                   disabled={saveState !== "idle"}
-                  className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-50"
+                  className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
                 >
                   {saveState === "saving"
                     ? t("common.saving")

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
 import { getRaceBenchmarks } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
-import { formatMs } from "@/lib/format";
+import { formatDateOnly, formatMs } from "@/lib/format";
 import { percentileOf, type Benchmark } from "@/lib/percentile";
 import { ExportButton } from "@/components/export-button";
 
@@ -14,7 +14,7 @@ export async function generateMetadata() {
 
 export default async function RacesPage() {
   const supabase = await createClient();
-  const { t } = await getT();
+  const { t, tag } = await getT();
   const user = await getCachedUser();
   const [{ data: races }, profile, benchmarks] = await Promise.all([
     supabase
@@ -73,7 +73,7 @@ export default async function RacesPage() {
                   <div className="flex flex-col gap-0.5">
                     <span className="text-sm font-semibold">{r.event}</span>
                     <span className="text-xs text-muted">
-                      {r.event_date ?? t("races.noDate")} ·{" "}
+                      {r.event_date ? formatDateOnly(r.event_date, tag) : t("races.noDate")} ·{" "}
                       {r.division
                         ? t(`division.${r.division}` as Parameters<typeof t>[0])
                         : "—"}

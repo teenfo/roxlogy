@@ -88,28 +88,28 @@ export default async function CrewManagePage({
   return (
     <main className="flex flex-col gap-10">
       <section>
-        <h2 className="text-lg font-bold">{t("crew.logoTitle")}</h2>
+        <h2 className="text-lg font-semibold">{t("crew.logoTitle")}</h2>
         <div className="mt-3">
           <CrewImageUpload crewId={crew.id} url={row.logo_url} kind="logo" />
         </div>
       </section>
 
       <section>
-        <h2 className="text-lg font-bold">{t("crew.coverTitle")}</h2>
+        <h2 className="text-lg font-semibold">{t("crew.coverTitle")}</h2>
         <div className="mt-3">
           <CrewImageUpload crewId={crew.id} url={row.cover_url} kind="cover" />
         </div>
       </section>
 
       <section>
-        <h2 className="text-lg font-bold">{t("crew.manageInfo")}</h2>
+        <h2 className="text-lg font-semibold">{t("crew.manageInfo")}</h2>
         <div className="mt-3 max-w-lg">
           <CrewInfoForm crew={row} />
         </div>
       </section>
 
       <section>
-        <h2 className="text-lg font-bold">{t("crew.duesTitle")}</h2>
+        <h2 className="text-lg font-semibold">{t("crew.duesTitle")}</h2>
         <div className="mt-3 max-w-lg">
           <CrewDuesLinksManage
             crewId={crew.id}
@@ -119,7 +119,7 @@ export default async function CrewManagePage({
       </section>
 
       <section>
-        <h2 className="text-lg font-bold">{t("crew.progAttach")}</h2>
+        <h2 className="text-lg font-semibold">{t("crew.progAttach")}</h2>
         <div className="mt-3">
           <CrewProgramAttach
             crewId={crew.id}
@@ -130,7 +130,7 @@ export default async function CrewManagePage({
       </section>
 
       <section>
-        <h2 className="text-lg font-bold">{t("crew.manageMembers")}</h2>
+        <h2 className="text-lg font-semibold">{t("crew.manageMembers")}</h2>
         <div className="mt-3">
           <CrewMemberManage
             slug={slug}
@@ -144,7 +144,7 @@ export default async function CrewManagePage({
 
       {myRole === "owner" && (
         <section>
-          <h2 className="text-lg font-bold text-red-400">{t("crew.dangerZone")}</h2>
+          <h2 className="text-lg font-semibold text-red-400">{t("crew.dangerZone")}</h2>
           <p className="mt-1 text-sm text-muted">{t("crew.deleteCrewDesc")}</p>
           <div className="mt-3">
             <CrewDeleteButton crewId={crew.id} />

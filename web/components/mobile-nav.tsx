@@ -31,7 +31,7 @@ export function MobileNav({ isAdmin = false }: { isAdmin?: boolean }) {
     <div className="relative ml-auto sm:hidden">
       <button
         type="button"
-        aria-label="Menu"
+        aria-label={t("a11y.menu")}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className="flex h-9 w-9 items-center justify-center rounded-md text-muted hover:text-foreground"
@@ -60,7 +60,7 @@ export function MobileNav({ isAdmin = false }: { isAdmin?: boolean }) {
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <nav className="absolute right-0 z-20 mt-2 flex w-48 flex-col rounded-md border border-surface bg-background py-2 shadow-lg">
+          <nav className="absolute right-0 max-h-[calc(100vh-5rem)] overflow-y-auto z-20 mt-2 flex w-48 flex-col rounded-md border border-surface bg-background py-2 shadow-lg">
             {links.map((l) => (
               <Link
                 key={l.href}

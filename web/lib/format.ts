@@ -77,6 +77,26 @@ export function programDayDate(
 }
 
 /**
+ * 날짜만 있는 값(YYYY-MM-DD: 대회일·목표일)의 로케일 표기.
+ * 시각이 없으므로 UTC 로 고정해 시간대에 따라 하루 밀리는 것을 막는다.
+ * (DB 의 date 컬럼을 그대로 화면에 뿌리면 ko/es 사용자에게 ISO 원문이 보인다)
+ */
+export function formatDateOnly(
+  date: string | null | undefined,
+  tag: string = "en-US",
+): string {
+  if (!date) return "—";
+  const d = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return date;
+  return d.toLocaleDateString(tag, {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
  * 사용자 시간대 기준 "오늘" 날짜 (YYYY-MM-DD).
  * 서버는 UTC 로 도므로 new Date() 를 그대로 쓰면 KST 사용자는 자정~오전 9시
  * 사이에 전날 일차를 보게 된다. 크루 일정·회비가 Asia/Seoul 을 쓰므로

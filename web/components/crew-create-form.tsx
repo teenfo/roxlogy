@@ -160,7 +160,7 @@ export function CrewCreateForm() {
       <button
         type="submit"
         disabled={busy || !name.trim() || !slugOk}
-        className="mt-6 w-full rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background disabled:opacity-50"
+        className="mt-6 w-full rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
       >
         {t("crew.submitCreate")}
       </button>

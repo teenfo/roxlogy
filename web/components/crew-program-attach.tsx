@@ -88,7 +88,7 @@ export function CrewProgramAttach({
               className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-surface px-4 py-2.5"
             >
               <span className="min-w-0">
-                <span className="truncate text-sm font-semibold">{a.title}</span>
+                <span className="block truncate text-sm font-semibold">{a.title}</span>
                 <span className="ml-2 text-xs text-muted">
                   {a.start_date}
                   {a.end_date ? ` ~ ${a.end_date}` : ""}
@@ -145,7 +145,7 @@ export function CrewProgramAttach({
         <button
           type="submit"
           disabled={busy || !pick || !start}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background disabled:opacity-40"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
         >
           {t("crew.progAttachBtn")}
         </button>

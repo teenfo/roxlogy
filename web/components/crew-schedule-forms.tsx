@@ -134,7 +134,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
         <button
           type="submit"
           disabled={busy || !title.trim() || !when}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background disabled:opacity-40"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
         >
           {t("crew.meetupCreate")}
         </button>

@@ -248,7 +248,7 @@ export default async function SessionsPage({
                       <>
                         <span className="flex items-center gap-2 text-sm font-semibold">
                           <span className="truncate">{race?.event}</span>
-                          <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
+                          <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
                             {t("sessions.race")}
                           </span>
                         </span>
@@ -267,7 +267,7 @@ export default async function SessionsPage({
                             {formatDate(s.started_at, tag, tz)}
                           </span>
                           {erg && (
-                            <span className="shrink-0 rounded-full bg-track/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-track">
+                            <span className="shrink-0 rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-track">
                               ⚡ {ergLabel(erg)}
                             </span>
                           )}

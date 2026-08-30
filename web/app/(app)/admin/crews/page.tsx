@@ -39,7 +39,7 @@ export default async function AdminCrewsPage() {
         {t("admin.crewsPending")} ({pending.length})
       </h2>
       {!pending.length ? (
-        <p className="mt-2 rounded-md bg-surface px-4 py-6 text-center text-sm text-muted">
+        <p className="mt-2 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
           {t("admin.crewsEmpty")}
         </p>
       ) : (

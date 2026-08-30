@@ -127,14 +127,16 @@ export default async function CrewSchedulePage({
       <div className="flex items-center justify-between">
         <Link
           href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
-          className="text-sm text-accent hover:underline"
+          aria-label={t("crew.prevMonth")}
+          className="flex h-9 w-9 items-center justify-center rounded-md text-sm text-accent hover:bg-surface"
         >
           ←
         </Link>
         <span className="text-sm font-bold">{monthLabel}</span>
         <Link
           href={`/crews/${slug}/schedule?m=${shiftMonth(month, 1)}`}
-          className="text-sm text-accent hover:underline"
+          aria-label={t("crew.nextMonth")}
+          className="flex h-9 w-9 items-center justify-center rounded-md text-sm text-accent hover:bg-surface"
         >
           →
         </Link>

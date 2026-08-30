@@ -33,7 +33,7 @@ export function AdminCrewStatus({ crewId }: { crewId: string }) {
       <button
         onClick={() => setStatus("active")}
         disabled={busy}
-        className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background disabled:opacity-50"
+        className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
       >
         {t("admin.approve")}
       </button>

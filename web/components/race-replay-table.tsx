@@ -308,7 +308,7 @@ export function RaceReplayTable({
           onClick={() => setSel(null)}
         >
           <div
-            className="w-full max-w-sm rounded-lg bg-surface p-5 shadow-xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-lg bg-surface p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

@@ -154,7 +154,7 @@ export function CrewLedgerDelete({ id }: { id: string }) {
       type="button"
       onClick={del}
       disabled={busy}
-      className="shrink-0 text-xs text-muted hover:text-red-400 disabled:opacity-40"
+      className="-m-2 shrink-0 p-2 text-xs text-muted hover:text-red-400 disabled:opacity-40"
       aria-label={t("crew.finDelete")}
     >
       ✕

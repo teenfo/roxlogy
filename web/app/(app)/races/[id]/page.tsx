@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AiInsight } from "@/components/ai-insight";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
-import { formatDate, formatMs } from "@/lib/format";
+import { formatDate, formatDateOnly, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
 import { RaceEditForm } from "@/components/race-edit-form";
@@ -181,7 +181,7 @@ export default async function RaceDetailPage({
         </span>
       </div>
       <p className="mt-1 text-sm text-muted">
-        {race.event_date ?? t("races.noDate")} ·{" "}
+        {race.event_date ? formatDateOnly(race.event_date, tag) : t("races.noDate")} ·{" "}
         {race.division
           ? t(`division.${race.division}` as Parameters<typeof t>[0])
           : "—"}
@@ -219,14 +219,14 @@ export default async function RaceDetailPage({
         </h2>
 
         {!sim ? (
-          <p className="mt-4 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+          <p className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("races.noSim")}{" "}
             <Link href="/sessions/new" className="text-accent hover:underline">
               {t("races.noSimLink")}
             </Link>
           </p>
         ) : !hasStationSplits ? (
-          <p className="mt-4 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+          <p className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("races.totalOnlyCompare", {
               race: formatMs(race.total_time_ms),
               sim: formatMs(sim.total_time_ms),

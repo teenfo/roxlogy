@@ -96,7 +96,7 @@ export function CrewDuesSelfReport({
             type="button"
             onClick={report}
             disabled={busy}
-            className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-50"
+            className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
           >
             {t("crew.duesReport")}
           </button>
@@ -224,7 +224,7 @@ export function CrewDuesMatrix({
                   type="button"
                   onClick={() => confirm(r.user_id)}
                   disabled={busy != null}
-                  className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-50"
+                  className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
                 >
                   {busy === r.user_id
                     ? "…"

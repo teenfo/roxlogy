@@ -35,7 +35,7 @@ export default async function CrewDirectoryPage() {
         </div>
 
         {!crews.length ? (
-          <p className="mt-8 rounded-md bg-surface px-4 py-12 text-center text-sm text-muted">
+          <p className="mt-8 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("crew.directoryEmpty")}
           </p>
         ) : (

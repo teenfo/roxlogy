@@ -78,7 +78,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
           <button
             onClick={() => resolve(r, true)}
             disabled={busy != null}
-            className="shrink-0 rounded-md bg-accent px-3 py-1 text-xs font-bold text-background disabled:opacity-40"
+            className="shrink-0 rounded-md bg-accent px-3 py-1 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
           >
             {t("admin.exReqApprove")}
           </button>

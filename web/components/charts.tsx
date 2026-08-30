@@ -47,7 +47,7 @@ function DarkTooltip({
 function LegendChips({ kinds }: { kinds: ("run" | "station" | "roxzone")[] }) {
   const { t } = useI18n();
   return (
-    <div className="mt-2 flex gap-4 text-xs text-muted">
+    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
       {kinds.map((k) => (
         <span key={k} className="flex items-center gap-1.5">
           <span
@@ -170,7 +170,7 @@ export function BreakdownStackBar({
           />
         ))}
       </div>
-      <div className="mt-2 flex gap-4 text-xs text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         {parts.map((p) => (
           <span key={p.kind} className="flex items-center gap-1.5">
             <span
@@ -267,7 +267,7 @@ export function CorrelationLine({
           />
         </LineChart>
       </ResponsiveContainer>
-      <div className="mt-2 flex gap-4 text-xs text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         <span className="flex items-center gap-1.5">
           <span
             className="inline-block h-2.5 w-2.5 rounded-sm"
@@ -431,7 +431,7 @@ export function StrokeForceChart({
           />
         </LineChart>
       </ResponsiveContainer>
-      <div className="mt-2 flex gap-4 text-xs text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: CHART_COLORS.station }} />
           {peakLabel}
@@ -502,7 +502,7 @@ export function DriveChart({
           />
         </LineChart>
       </ResponsiveContainer>
-      <div className="mt-2 flex gap-4 text-xs text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: CHART_COLORS.station }} />
           {driveLabel}

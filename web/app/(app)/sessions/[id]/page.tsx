@@ -327,7 +327,7 @@ export default async function SessionDetailPage({
       </div>
       <p className="mt-1 text-sm text-muted">
         {isErg && (
-          <span className="mr-2 rounded-full bg-track/20 px-2 py-0.5 text-xs font-semibold text-track">
+          <span className="mr-2 rounded-full bg-track/15 px-2 py-0.5 text-xs font-semibold text-track">
             ⚡ {t("sessions.ergDedicated")}
           </span>
         )}
@@ -550,7 +550,7 @@ export default async function SessionDetailPage({
       {isErg && ergStrokesAll.length > 1 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("sessions.strokeSection")}</h2>
-          <div className="mt-3 grid grid-cols-3 gap-3">
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-md bg-surface px-4 py-3">
               <p className="text-xs text-muted">{t("sessions.avgDriveLen")}</p>
               <p className="mt-1 font-mono text-lg font-semibold">
@@ -605,7 +605,7 @@ export default async function SessionDetailPage({
       <section className="mt-8">
         <h2 className="text-lg font-semibold">{t("sessions.segments")}</h2>
         {!segments.length ? (
-          <p className="mt-4 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+          <p className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("sessions.noSegments")}
           </p>
         ) : (

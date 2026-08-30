@@ -105,7 +105,7 @@ export function ExerciseDrills({
       )}
 
       {drills.length === 0 ? (
-        <p className="mt-3 rounded-md bg-surface px-4 py-6 text-center text-sm text-muted">
+        <p className="mt-3 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
           {t("exercises.drillEmpty")}
         </p>
       ) : (
@@ -127,7 +127,7 @@ export function ExerciseDrills({
                 type="button"
                 onClick={() => remove(d.id)}
                 aria-label={t("common.delete")}
-                className="shrink-0 text-muted hover:text-red-400"
+                className="-m-2 shrink-0 p-2 text-muted hover:text-red-400"
               >
                 ✕
               </button>

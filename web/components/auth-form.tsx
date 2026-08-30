@@ -146,7 +146,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           <button
             type="submit"
             disabled={pending}
-            className="mt-2 rounded-md bg-accent px-4 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-50"
+            className="mt-2 rounded-md bg-accent px-4 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
           >
             {pending
               ? t("auth.processing")

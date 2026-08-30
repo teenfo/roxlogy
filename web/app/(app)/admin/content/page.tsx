@@ -103,7 +103,7 @@ export default async function AdminContentPage({
             />
           ))}
           {!exs.length && (
-            <p className="rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+            <p className="rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
               {t("admin.noExercises")}
             </p>
           )}
@@ -111,7 +111,7 @@ export default async function AdminContentPage({
       </section>
 
       <section>
-        <h2 className="text-xl font-bold">{t("admin.exReqTitle")}</h2>
+        <h2 className="text-lg font-semibold">{t("admin.exReqTitle")}</h2>
         <p className="mt-1 text-sm text-muted">{t("admin.exReqDesc")}</p>
         <div className="mt-4">
           <AdminExerciseRequests items={requests} />
@@ -119,7 +119,7 @@ export default async function AdminContentPage({
       </section>
 
       <section>
-        <h2 className="text-xl font-bold">{t("admin.publicProgramsTitle")}</h2>
+        <h2 className="text-lg font-semibold">{t("admin.publicProgramsTitle")}</h2>
         <div className="mt-4 flex flex-col gap-2">
           {(programs ?? []).map((p) => (
             <div
@@ -136,7 +136,7 @@ export default async function AdminContentPage({
             </div>
           ))}
           {!programs?.length && (
-            <p className="rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+            <p className="rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
               {t("admin.noPublicPrograms")}
             </p>
           )}

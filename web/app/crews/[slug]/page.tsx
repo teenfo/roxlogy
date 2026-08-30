@@ -125,7 +125,7 @@ export default async function CrewHomePage({
       {/* 회비 납부 링크 — 본인 등급에 해당하는 링크만 (RLS) */}
       {duesLinks.length > 0 && (
         <section>
-          <h2 className="text-lg font-bold">{t("crew.duesPayTitle")}</h2>
+          <h2 className="text-lg font-semibold">{t("crew.duesPayTitle")}</h2>
           {/* 이번 달 본인 납부 상태 + 셀프 신고 */}
           <div className="mt-3">
             <CrewDuesSelfReport
@@ -167,7 +167,7 @@ export default async function CrewHomePage({
       {/* 운영 정책 */}
       {links.policy && (
         <section>
-          <h2 className="text-lg font-bold">{t("crew.rulesTitle")}</h2>
+          <h2 className="text-lg font-semibold">{t("crew.rulesTitle")}</h2>
           <p className="mt-3 whitespace-pre-line rounded-md bg-surface px-4 py-4 text-sm leading-relaxed text-foreground/90">
             {links.policy}
           </p>
@@ -177,7 +177,7 @@ export default async function CrewHomePage({
       {/* 최근 글 */}
       <section>
         <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-bold">{t("crew.board")}</h2>
+          <h2 className="text-lg font-semibold">{t("crew.board")}</h2>
           <Link
             href={`/crews/${slug}/board`}
             className="text-xs text-muted hover:text-accent"
@@ -186,7 +186,7 @@ export default async function CrewHomePage({
           </Link>
         </div>
         {!posts.length ? (
-          <p className="mt-3 rounded-md bg-surface px-4 py-8 text-center text-sm text-muted">
+          <p className="mt-3 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("crew.emptyBoard")}
           </p>
         ) : (
