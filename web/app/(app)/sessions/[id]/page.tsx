@@ -9,6 +9,7 @@ import { getRaceBenchmarks } from "@/lib/cache";
 import {
   hyroxAgeGroup,
   percentileOfBest,
+  pickBenchmark,
   type Benchmark,
 } from "@/lib/percentile";
 import { DistributionCurve } from "@/components/distribution-curve";
@@ -240,11 +241,14 @@ export default async function SessionDetailPage({
     );
     if (best) {
       const scope = best.byAge ? `age:${ageGroup}` : "overall";
-      const pickBm = (g: string) =>
-        (benchmarks as Benchmark[]).find(
-          (b) => b.division === division && b.gender === g && b.scope === scope,
-        );
-      const bm = pickBm(myProfile?.gender ?? "x") ?? pickBm("all");
+      // 백분위와 같은 규칙(표본 하한 포함)으로 고른다 — 다른 행을 쓰면
+      // 곡선과 숫자가 서로 다른 분포를 가리킨다
+      const bm = pickBenchmark(
+        benchmarks as Benchmark[],
+        division,
+        myProfile?.gender ?? null,
+        scope,
+      );
       if (bm) {
         dist = {
           percentiles: bm.percentiles,

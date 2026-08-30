@@ -7,10 +7,44 @@ export type Benchmark = {
   gender: string;
   scope: string;
   percentiles: Record<string, number>;
+  /** 이 분포를 만든 완주 기록 수. null = 실측이 아닌 근사 베이스라인 */
+  sample_size: number | null;
 };
 
 const LABELS = ["p10", "p25", "p50", "p75", "p90", "p99"] as const;
 const PTILE = [10, 25, 50, 75, 90, 99];
+
+/** 백분위를 보여줄 최소 표본 수.
+ *
+ *  분포는 p10~p99 여섯 앵커의 보간이라 표본이 얇으면 양 끝이 사실상 한두 명의
+ *  기록에 좌우된다. 특히 pro·pro_doubles 는 실측이 아니라 근사 베이스라인
+ *  (source='public-aggregate-baseline-v1 (approx)', sample_size=null)이어서
+ *  "상위 99%" 같은 숫자가 근거 없이 나온다. 기준 미만이면 배지를 숨긴다. */
+export const MIN_BENCHMARK_SAMPLE = 100;
+
+/** 표본이 충분한 분포인가 (근사 베이스라인은 sample_size 가 null) */
+function usable(b: Benchmark | undefined): b is Benchmark {
+  return !!b && (b.sample_size ?? 0) >= MIN_BENCHMARK_SAMPLE;
+}
+
+/** 표본이 충분한 분포 고르기 — 성별 분포가 얇으면 'all' 로 내려간다.
+ *  둘 다 기준 미달이면 undefined (백분위·분포곡선 모두 숨긴다).
+ *  백분위와 곡선이 서로 다른 행을 쓰지 않도록 한 곳에서만 고른다. */
+export function pickBenchmark(
+  benchmarks: Benchmark[],
+  division: string,
+  gender: string | null | undefined,
+  scope = "overall",
+): Benchmark | undefined {
+  const pick = (g: string) =>
+    benchmarks.find(
+      (b) => b.division === division && b.gender === g && b.scope === scope,
+    );
+  const byGender = pick(gender || "x");
+  if (usable(byGender)) return byGender;
+  const all = pick("all");
+  return usable(all) ? all : undefined;
+}
 
 export function percentileOf(
   totalMs: number | null | undefined,
@@ -21,11 +55,7 @@ export function percentileOf(
 ): number | null {
   if (totalMs == null || !division) return null;
 
-  const pick = (g: string) =>
-    benchmarks.find(
-      (b) => b.division === division && b.gender === g && b.scope === scope,
-    );
-  const bm = pick(gender || "x") ?? pick("all");
+  const bm = pickBenchmark(benchmarks, division, gender, scope);
   if (!bm) return null;
   const p = bm.percentiles;
 

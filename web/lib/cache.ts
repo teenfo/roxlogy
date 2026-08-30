@@ -38,7 +38,7 @@ export const getRaceBenchmarks = unstable_cache(
   async () => {
     const { data } = await anonClient()
       .from("race_benchmarks")
-      .select("division, gender, scope, percentiles");
+      .select("division, gender, scope, percentiles, sample_size");
     return data ?? [];
   },
   ["race-benchmarks-all"],
