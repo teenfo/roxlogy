@@ -320,6 +320,41 @@ const handler = createMcpHandler(
     // ---------- 훈련 프로그램
 
     server.registerTool(
+      "list_exercises",
+      {
+        title: "운동 DB 목록",
+        description:
+          "Roxlogy 운동 DB — 프로그램 워크아웃 아이템에 쓸 수 있는 운동 목록(name_ko/name_en, 스테이션 타입). 워크아웃을 만들기 전에 먼저 조회해서 이 목록의 이름만 사용하라.",
+        inputSchema: z.object({}),
+      },
+      async (_a, ctx) =>
+        out(await rpc("mcp_exercises", { p_token: tok(ctx) })),
+    );
+
+    server.registerTool(
+      "request_exercise",
+      {
+        title: "운동 등록 요청",
+        description:
+          "운동 DB 에 없는 운동의 등록을 요청한다 (관리자 승인 후 추가됨 — 승인 전에는 워크아웃에 쓸 수 없다). 이미 있는 운동이면 already_exists 로 알려준다. 요청 전 사용자에게 운동명을 확인받아라.",
+        inputSchema: z.object({
+          name_ko: z.string().min(1).max(60),
+          name_en: z.string().max(60).optional(),
+          note: z.string().max(300).optional(),
+        }),
+      },
+      async ({ name_ko, name_en, note }, ctx) =>
+        out(
+          await rpc("mcp_request_exercise", {
+            p_token: tok(ctx),
+            p_name_ko: name_ko,
+            p_name_en: name_en ?? null,
+            p_note: note ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
       "list_my_programs",
       {
         title: "내 훈련 프로그램 목록",
@@ -348,7 +383,8 @@ const handler = createMcpHandler(
       {
         title: "훈련 프로그램 생성",
         description:
-          "훈련 프로그램(템플릿)을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드)}] 배열. " +
+          "훈련 프로그램(템플릿)을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드), workouts?}] 배열. " +
+          "workouts 아이템의 exercise 는 운동 DB(list_exercises)에 등록된 이름(한/영)만 허용 — 미등록 이름이 있으면 unknown_exercises 로 전체 거부되니 먼저 list_exercises 로 확인하고, 없는 운동은 request_exercise 로 등록을 요청하라. " +
           "프로그램은 날짜 없는 템플릿이다 — 시작일은 개인이 웹에서 시작하거나 attach_crew_program 으로 크루에 연결할 때 정한다. 생성 전 사용자에게 구성을 확인받아라.",
         inputSchema: z.object({
           title: z.string().min(1).max(120),
@@ -359,6 +395,26 @@ const handler = createMcpHandler(
                 day_index: z.number().int().min(1),
                 focus: z.string().max(200).optional(),
                 notes: z.string().max(2000).optional(),
+          workouts: z
+            .array(
+              z.object({
+                title: z.string().max(80).optional(),
+                type: z
+                  .enum(["race_sim", "wod", "run", "strength"])
+                  .optional(),
+                items: z
+                  .array(
+                    z.object({
+                      exercise: z.string().min(1).max(80),
+                      note: z.string().max(80).optional(),
+                    }),
+                  )
+                  .min(1)
+                  .max(15),
+              }),
+            )
+            .max(5)
+            .optional(),
               }),
             )
             .min(1)
@@ -387,15 +443,35 @@ const handler = createMcpHandler(
       {
         title: "프로그램 일차 수정",
         description:
-          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. focus 와 notes 를 모두 생략하면 그 일차를 삭제한다.",
+          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. workouts 를 주면 그 일차의 워크아웃을 통째로 교체한다(운동은 list_exercises 의 등록 이름만). focus·notes·workouts 를 모두 생략하면 그 일차를 삭제한다.",
         inputSchema: z.object({
           program_id: z.string().uuid(),
           day_index: z.number().int().min(1),
           focus: z.string().max(200).optional(),
           notes: z.string().max(2000).optional(),
+          workouts: z
+            .array(
+              z.object({
+                title: z.string().max(80).optional(),
+                type: z
+                  .enum(["race_sim", "wod", "run", "strength"])
+                  .optional(),
+                items: z
+                  .array(
+                    z.object({
+                      exercise: z.string().min(1).max(80),
+                      note: z.string().max(80).optional(),
+                    }),
+                  )
+                  .min(1)
+                  .max(15),
+              }),
+            )
+            .max(5)
+            .optional(),
         }),
       },
-      async ({ program_id, day_index, focus, notes }, ctx) =>
+      async ({ program_id, day_index, focus, notes, workouts }, ctx) =>
         out(
           await rpc("mcp_set_program_day", {
             p_token: tok(ctx),
@@ -403,6 +479,7 @@ const handler = createMcpHandler(
             p_day_index: day_index,
             p_focus: focus ?? null,
             p_notes: notes ?? null,
+            p_workouts: workouts ?? null,
           }),
         ),
     );

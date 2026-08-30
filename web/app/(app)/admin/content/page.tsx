@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { AdminExerciseEditor } from "@/components/admin-exercise-editor";
 import { AdminProgramActions } from "@/components/admin-program-actions";
+import {
+  AdminExerciseRequests,
+  type ExerciseRequest,
+} from "@/components/admin-exercise-requests";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -25,6 +29,31 @@ export default async function AdminContentPage({
     .limit(40);
   if (q) exQuery = exQuery.or(`name_ko.ilike.%${q}%,name_en.ilike.%${q}%`);
   const { data: exercises } = await exQuery;
+
+  // 운동 등록 요청 (pending) — 관리자 RLS
+  const { data: reqRows } = await supabase
+    .from("exercise_requests")
+    .select("id, name_ko, name_en, note, created_at, profiles ( display_name )")
+    .eq("status", "pending")
+    .order("created_at");
+  type ReqRow = {
+    id: string;
+    name_ko: string;
+    name_en: string | null;
+    note: string | null;
+    created_at: string;
+    profiles: { display_name: string | null } | null;
+  };
+  const requests: ExerciseRequest[] = (
+    (reqRows ?? []) as unknown as ReqRow[]
+  ).map((r) => ({
+    id: r.id,
+    name_ko: r.name_ko,
+    name_en: r.name_en,
+    note: r.note,
+    created_at: r.created_at,
+    requester: r.profiles?.display_name ?? "—",
+  }));
 
   const { data: programs } = await supabase
     .from("programs")
@@ -72,6 +101,14 @@ export default async function AdminContentPage({
               {t("admin.noExercises")}
             </p>
           )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-xl font-bold">{t("admin.exReqTitle")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("admin.exReqDesc")}</p>
+        <div className="mt-4">
+          <AdminExerciseRequests items={requests} />
         </div>
       </section>
 
