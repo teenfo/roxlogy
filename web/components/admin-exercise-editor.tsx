@@ -4,12 +4,18 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 
-/** 관리자: 운동 DB 편집 (타겟 부위·설명·미디어). exercises admin RLS로 허용. */
+const CATEGORIES = ["strength", "conditioning", "running", "mobility"] as const;
+const STATIONS = Array.from({ length: 8 }, (_, i) => `station_${i + 1}`);
+
+/** 관리자: 운동 DB 편집 (분류·스테이션 매핑·타겟 부위·별칭·설명·미디어).
+ *  exercises admin RLS로 허용. */
 export function AdminExerciseEditor({
   id,
   name,
   muscles,
   aliases,
+  category,
+  stationType,
   description,
   mediaUrl,
 }: {
@@ -17,6 +23,8 @@ export function AdminExerciseEditor({
   name: string;
   muscles: string[];
   aliases: string[];
+  category: string | null;
+  stationType: string | null;
   description: string | null;
   mediaUrl: string | null;
 }) {
@@ -24,6 +32,8 @@ export function AdminExerciseEditor({
   const [open, setOpen] = useState(false);
   const [m, setM] = useState(muscles.join(", "));
   const [al, setAl] = useState(aliases.join(", "));
+  const [cat, setCat] = useState(category ?? "");
+  const [station, setStation] = useState(stationType ?? "");
   const [desc, setDesc] = useState(description ?? "");
   const [media, setMedia] = useState(mediaUrl ?? "");
   const [state, setState] = useState<"idle" | "saving" | "saved" | "err">("idle");
@@ -44,6 +54,8 @@ export function AdminExerciseEditor({
       .update({
         muscles: musclesArr.length ? musclesArr : null,
         aliases: aliasesArr,
+        category: cat || null,
+        station_type: station || null,
         description_ko: desc.trim() || null,
         media_url: media.trim() || null,
       })
@@ -66,6 +78,44 @@ export function AdminExerciseEditor({
       </button>
       {open && (
         <div className="mt-3 grid gap-2">
+          <div className="flex gap-2">
+            <label className="flex-1 text-xs text-muted">
+              {t("exercises.detCategory")}
+              <select
+                value={cat}
+                onChange={(e) => {
+                  setCat(e.target.value);
+                  setState("idle");
+                }}
+                className={inputCls}
+              >
+                <option value="">—</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {t(`exercises.cat.${c}` as Parameters<typeof t>[0])}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex-1 text-xs text-muted">
+              {t("exercises.detStation")}
+              <select
+                value={station}
+                onChange={(e) => {
+                  setStation(e.target.value);
+                  setState("idle");
+                }}
+                className={inputCls}
+              >
+                <option value="">—</option>
+                {STATIONS.map((st, i) => (
+                  <option key={st} value={st}>
+                    {`Station ${i + 1}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <label className="text-xs text-muted">
             {t("exercises.detTarget")} ({t("admin.commaKeys")})
             <input

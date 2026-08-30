@@ -24,7 +24,7 @@ export default async function AdminContentPage({
 
   let exQuery = supabase
     .from("exercises")
-    .select("id, name_ko, name_en, muscles, aliases, description_ko, media_url")
+    .select("id, name_ko, name_en, muscles, aliases, category, station_type, description_ko, media_url")
     .order("station_type", { ascending: true, nullsFirst: false })
     .limit(40);
   if (q) exQuery = exQuery.or(`name_ko.ilike.%${q}%,name_en.ilike.%${q}%`);
@@ -68,6 +68,8 @@ export default async function AdminContentPage({
     name_en: string;
     muscles: string[] | null;
     aliases: string[] | null;
+    category: string | null;
+    station_type: string | null;
     description_ko: string | null;
     media_url: string | null;
   };
@@ -94,6 +96,8 @@ export default async function AdminContentPage({
               name={locale === "ko" ? ex.name_ko : ex.name_en}
               muscles={ex.muscles ?? []}
               aliases={ex.aliases ?? []}
+              category={ex.category}
+              stationType={ex.station_type}
               description={ex.description_ko}
               mediaUrl={ex.media_url}
             />
