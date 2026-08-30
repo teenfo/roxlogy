@@ -2,43 +2,11 @@
 -- 시드 04 — 운동 확장 세트 (HYROX 훈련 종목: 근력·컨디셔닝·러닝·모빌리티)
 -- id는 uuid5(고정 네임스페이스, 영문명) — 재실행/재생성 안전.
 -- 생성기: scratchpad/gen_exercises.py (분류 열거). 재생성 시 동일 UUID.
+-- 스테이션 운동은 시드 01의 정규 8종만 사용 — 구간/강도는 워크아웃
+-- 아이템의 target(note)로 표현한다 (구간 변형 시드는 제거됨).
 -- ============================================================
 
 insert into public.exercises (id, name_ko, name_en, category, equipment, station_type) values
-  ('6da25a69-5a6b-5325-a90f-5781a2a55133', '스키에르그 250m', 'SkiErg 250m', 'conditioning', array['skierg']::text[], 'station_1'),
-  ('2cd31c00-6b41-57c9-91e9-a3d000f2ebd0', '로잉 250m', 'Rowing 250m', 'conditioning', array['rower']::text[], 'station_5'),
-  ('1a7e6522-11e6-5190-9c9f-56a37969f12e', '스키에르그 500m', 'SkiErg 500m', 'conditioning', array['skierg']::text[], 'station_1'),
-  ('15bfe5d4-78e7-54ee-8a42-c883dedbed0e', '로잉 500m', 'Rowing 500m', 'conditioning', array['rower']::text[], 'station_5'),
-  ('49b18b71-f0c4-536f-82db-9ab977ddd5cb', '스키에르그 750m', 'SkiErg 750m', 'conditioning', array['skierg']::text[], 'station_1'),
-  ('8a249380-d031-5271-8b77-d3162196fc67', '로잉 750m', 'Rowing 750m', 'conditioning', array['rower']::text[], 'station_5'),
-  ('a4450ce5-e0da-598c-b80c-ae3f05c06ef6', '스키에르그 1000m', 'SkiErg 1000m', 'conditioning', array['skierg']::text[], 'station_1'),
-  ('51b24911-473a-57f3-81e9-5318db7fe1e1', '로잉 1000m', 'Rowing 1000m', 'conditioning', array['rower']::text[], 'station_5'),
-  ('6913d1c7-4859-5e4c-a4ed-3e7897bca859', '슬레드 푸시 (가벼운)', 'Sled Push (Light)', 'strength', array['sled']::text[], 'station_2'),
-  ('6bcd01ff-23a1-5d82-9d1f-c44e09f026fc', '슬레드 풀 (가벼운)', 'Sled Pull (Light)', 'strength', array['sled']::text[], 'station_3'),
-  ('7b41cfb4-fd2e-5eaa-8621-d6104ba7de9b', '슬레드 푸시 (중간)', 'Sled Push (Moderate)', 'strength', array['sled']::text[], 'station_2'),
-  ('b6571ae5-c2b3-593f-9d15-10f29159cbfe', '슬레드 풀 (중간)', 'Sled Pull (Moderate)', 'strength', array['sled']::text[], 'station_3'),
-  ('3fe5294c-3d95-5bbe-874c-979dcaa1c13d', '슬레드 푸시 (무거운)', 'Sled Push (Heavy)', 'strength', array['sled']::text[], 'station_2'),
-  ('598534a8-61fe-5cc7-9ee0-4282edfdc9b1', '슬레드 풀 (무거운)', 'Sled Pull (Heavy)', 'strength', array['sled']::text[], 'station_3'),
-  ('180165f1-9ae8-55d9-aeea-6d1ad1854c1e', '슬레드 푸시 (레이스)', 'Sled Push (Race)', 'strength', array['sled']::text[], 'station_2'),
-  ('145250af-1af7-57bc-8c53-176727a20579', '슬레드 풀 (레이스)', 'Sled Pull (Race)', 'strength', array['sled']::text[], 'station_3'),
-  ('b0550237-9d17-5a31-b705-d436f777c8ae', '버피 브로드점프 20회', 'Burpee Broad Jumps 20 reps', 'conditioning', array[]::text[], 'station_4'),
-  ('20386307-3caf-58f9-b34b-570bed46ef34', '월볼 20회', 'Wall Balls 20 reps', 'conditioning', array['wallball']::text[], 'station_8'),
-  ('125b358c-c786-5660-a45e-7780dac93905', '버피 브로드점프 40회', 'Burpee Broad Jumps 40 reps', 'conditioning', array[]::text[], 'station_4'),
-  ('70c66732-417e-5063-a1fa-7a0dd8b15961', '월볼 40회', 'Wall Balls 40 reps', 'conditioning', array['wallball']::text[], 'station_8'),
-  ('01e360cf-6511-53e8-8f96-eaa1f09bfe65', '버피 브로드점프 60회', 'Burpee Broad Jumps 60 reps', 'conditioning', array[]::text[], 'station_4'),
-  ('a10a822a-062b-5dc7-bf21-ef62be08977f', '월볼 60회', 'Wall Balls 60 reps', 'conditioning', array['wallball']::text[], 'station_8'),
-  ('b26d3655-08e0-584b-809c-41e7070ce15c', '버피 브로드점프 80회', 'Burpee Broad Jumps 80 reps', 'conditioning', array[]::text[], 'station_4'),
-  ('536cc1ae-bb8c-5c6c-8c6a-d1f51c7c5191', '월볼 80회', 'Wall Balls 80 reps', 'conditioning', array['wallball']::text[], 'station_8'),
-  ('e86db7f3-50c8-5c3d-ae27-e2fbc6b3e67e', '버피 브로드점프 100회', 'Burpee Broad Jumps 100 reps', 'conditioning', array[]::text[], 'station_4'),
-  ('126eb963-7502-57d9-95e7-1744159232f9', '월볼 100회', 'Wall Balls 100 reps', 'conditioning', array['wallball']::text[], 'station_8'),
-  ('d811c980-1a69-5723-a9be-3a84bb630e17', '파머스 캐리 50m', 'Farmers Carry 50m', 'strength', array['kettlebell']::text[], 'station_6'),
-  ('dc1b7c0a-7a90-5fe7-a653-57c7cd3fa7c7', '샌드백 런지 50m', 'Sandbag Lunges 50m', 'strength', array['sandbag']::text[], 'station_7'),
-  ('44815f4c-40c5-572b-86c1-67ce99e6cede', '파머스 캐리 100m', 'Farmers Carry 100m', 'strength', array['kettlebell']::text[], 'station_6'),
-  ('b3a2e794-ce08-59a3-9ceb-472b1c59ba46', '샌드백 런지 100m', 'Sandbag Lunges 100m', 'strength', array['sandbag']::text[], 'station_7'),
-  ('c3aed302-ee7d-539b-bd3e-ea4f5b4d1230', '파머스 캐리 150m', 'Farmers Carry 150m', 'strength', array['kettlebell']::text[], 'station_6'),
-  ('ce12fba4-a091-50f4-b18a-57e57e80821a', '샌드백 런지 150m', 'Sandbag Lunges 150m', 'strength', array['sandbag']::text[], 'station_7'),
-  ('4dd93147-102f-5c17-9055-cd36c230cf3e', '파머스 캐리 200m', 'Farmers Carry 200m', 'strength', array['kettlebell']::text[], 'station_6'),
-  ('9062fd3e-70c3-5c72-920c-295810e85bdc', '샌드백 런지 200m', 'Sandbag Lunges 200m', 'strength', array['sandbag']::text[], 'station_7'),
   ('6fef3101-ff72-5cfa-ba4c-124988e47769', '러닝 400m', 'Run 400m', 'running', array[]::text[], null),
   ('a36a34d8-c47f-5506-a915-238062152052', '러닝 800m', 'Run 800m', 'running', array[]::text[], null),
   ('fb0cda98-f4a6-5213-a0b9-6d9b08b35c2b', '러닝 1km', 'Run 1km', 'running', array[]::text[], null),
