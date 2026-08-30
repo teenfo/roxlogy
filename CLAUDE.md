@@ -40,7 +40,7 @@
 - Supabase **service role 키**는 서버(Edge env·CI) 내부 시크릿으로만. **클라이언트에 절대 노출 금지.** hosub·Mac은 Supabase 키를 갖지 않는다.
 - hosub 인바운드는 **llm-gateway(Caddy TLS + Bearer 토큰 + 소비자별 rate limit) 하나만** 예외적으로 허용. LLMGW 토큰은 Edge 시크릿/게이트웨이 .env 전용(커밋 금지).
 - 클라이언트는 anon 키 + RLS로만 접근.
-- **함수 실행 권한은 기본 차단**(2026-08-30, 마이그레이션 013). 새로 만든 함수는 anon·authenticated·PUBLIC 어디에도 EXECUTE가 붙지 않는다. 클라이언트(웹 anon 키·MCP)가 호출할 RPC는 정의 직후 반드시 `grant execute on function public.<name>(<args>) to anon, authenticated;` 를 붙일 것. 반대로 **호출자 검증이 없는 SECURITY DEFINER 함수(내부 헬퍼·크론·트리거용)에는 절대 grant하지 말 것** — 과거 `enqueue_notification`·`_mcp_insert_workouts`가 익명 호출 가능한 상태였다.
+- **함수 실행 권한은 기본 차단**(2026-08-30, 마이그레이션 013·024). anon·authenticated는 기본 권한에서 회수했고, PUBLIC은 이벤트 트리거 `rox_lock_new_functions_trg`가 함수 생성 직후 회수한다(`alter default privileges … from public`은 실제로 적용되지 않아 이벤트 트리거로 대체). 클라이언트(웹 anon 키·MCP)가 호출할 RPC는 정의 직후 반드시 `grant execute on function public.<name>(<args>) to anon, authenticated;` 를 붙일 것 — 빠뜨리면 permission denied로 시끄럽게 실패한다. 반대로 **호출자 검증이 없는 SECURITY DEFINER 함수(내부 헬퍼·크론·트리거용)에는 절대 grant하지 말 것** — 과거 `enqueue_notification`·`_mcp_insert_workouts`가 익명 호출 가능한 상태였다.
 - 컬럼을 드롭하는 마이그레이션은 그 컬럼을 참조하는 함수를 함께 재정의할 것 (`language sql` 함수는 의존성이 추적되지 않아 드롭이 성공하고 호출 시점에 터진다).
 
 ## 디렉토리 구조
