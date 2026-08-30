@@ -904,7 +904,7 @@ const es: Record<DictKey, string> = {
   "programs.tokenRegenConfirm": "¿Emitir una nueva URL de suscripción? Las suscripciones existentes dejarán de actualizarse y habrá que añadirlas de nuevo.",
   "programs.clone": "Clonar",
   "programs.copySuffix": "copia",
-  "programs.start": "Empezar (desde hoy)",
+  "programs.start": "Empezar",
   "programs.stop": "Detener",
   "programs.enrolled": "En curso",
   "programs.newTitle": "Nuevo programa de entrenamiento",

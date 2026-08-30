@@ -917,7 +917,7 @@ const en = {
   "programs.tokenRegenConfirm": "Issue a new subscribe URL? Existing calendar subscriptions will stop updating and must be re-added.",
   "programs.clone": "Clone",
   "programs.copySuffix": "copy",
-  "programs.start": "Start (from today)",
+  "programs.start": "Start",
   "programs.stop": "Stop",
   "programs.enrolled": "In progress",
   "programs.newTitle": "New training program",

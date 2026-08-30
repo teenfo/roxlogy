@@ -896,7 +896,7 @@ const ko: Record<DictKey, string> = {
   "programs.tokenRegenConfirm": "구독 URL을 새로 발급할까요? 기존에 등록한 캘린더 구독은 더 이상 갱신되지 않으며 다시 추가해야 합니다.",
   "programs.clone": "복제",
   "programs.copySuffix": "복사",
-  "programs.start": "시작하기 (오늘부터)",
+  "programs.start": "시작하기",
   "programs.stop": "중단",
   "programs.enrolled": "진행 중",
   "programs.newTitle": "새 훈련 프로그램",
