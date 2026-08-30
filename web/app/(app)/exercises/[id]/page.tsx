@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
+import { dictLabel } from "@/lib/dict-label";
 import { formatDateShort, formatMs } from "@/lib/format";
 import { RunLapLine } from "@/components/charts";
 import { ExerciseDrills, type Drill } from "@/components/exercise-drills";
@@ -112,7 +113,9 @@ export default async function ExerciseDetailPage({
   if (ex.equipment?.length)
     meta.push({
       label: t("exercises.detEquipment"),
-      value: ex.equipment.join(", "),
+      value: ex.equipment
+        .map((q: string) => dictLabel(t, `equipment.${q}`, q))
+        .join(", "),
     });
 
   return (
@@ -186,7 +189,7 @@ export default async function ExerciseDetailPage({
                 key={m}
                 className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track"
               >
-                {t(`muscle.${m}` as Parameters<typeof t>[0])}
+                {dictLabel(t, `muscle.${m}`, m)}
               </span>
             ))}
           </div>
@@ -202,7 +205,7 @@ export default async function ExerciseDetailPage({
                 key={h}
                 className="rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent"
               >
-                {t(`hstation.${h}` as Parameters<typeof t>[0])}
+                {dictLabel(t, `hstation.${h}`, h)}
               </span>
             ))}
           </div>
@@ -228,14 +231,35 @@ export default async function ExerciseDetailPage({
         </section>
       )}
 
-      {ex.description_ko && (
-        <section className="mt-6">
-          <h2 className="text-lg font-semibold">{t("exercises.detHowTo")}</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/90">
-            {ex.description_ko}
-          </p>
-        </section>
-      )}
+      {(() => {
+        // 로케일 설명 우선, 없으면 영어 → 한국어 순 폴백.
+        // 한국어로 폴백한 경우에만 '한국어 원문' 표시를 붙인다.
+        const desc =
+          (locale === "ko"
+            ? ex.description_ko
+            : locale === "es"
+              ? ex.description_es
+              : ex.description_en) ||
+          ex.description_en ||
+          ex.description_ko;
+        if (!desc) return null;
+        const isKoFallback = locale !== "ko" && desc === ex.description_ko;
+        return (
+          <section className="mt-6">
+            <h2 className="text-lg font-semibold">
+              {t("exercises.detHowTo")}
+              {isKoFallback && (
+                <span className="ml-2 text-xs font-normal text-muted">
+                  {t("exercises.howToKoOnly")}
+                </span>
+              )}
+            </h2>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/90">
+              {desc}
+            </p>
+          </section>
+        );
+      })()}
 
       <ExerciseDrills exerciseId={id} initial={drills} />
     </main>

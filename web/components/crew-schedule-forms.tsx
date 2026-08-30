@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { dictLabel } from "@/lib/dict-label";
 
 const input =
   "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
@@ -468,7 +469,11 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
               <li key={p.id} className="flex items-center gap-2 text-xs text-muted">
                 <span className="font-mono">{p.race_date}</span>
                 <span className="truncate text-foreground">{p.title}</span>
-                {p.division && <span className="shrink-0">{p.division}</span>}
+                {p.division && (
+                  <span className="min-w-0 truncate">
+                    {dictLabel(t, `division.${p.division}`, p.division)}
+                  </span>
+                )}
                 {p.bib && (
                   <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 font-mono text-[10px] font-bold text-track">
                     BIB {p.bib}

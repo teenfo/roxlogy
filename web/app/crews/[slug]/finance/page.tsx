@@ -20,6 +20,7 @@ type LedgerRow = {
   kind: "income" | "expense";
   amount: number;
   title: string;
+  source: string | null;
   memo: string | null;
 };
 
@@ -80,7 +81,7 @@ export default async function CrewFinancePage({
     await Promise.all([
     supabase
       .from("crew_ledger")
-      .select("id, entry_date, kind, amount, title, memo")
+      .select("id, entry_date, kind, amount, title, memo, source")
       .eq("crew_id", crew.id)
       .gte("entry_date", from)
       .lte("entry_date", to)
@@ -239,7 +240,7 @@ export default async function CrewFinancePage({
                   : t("crew.finKindExpense")}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm">
-                {r.title}
+                {r.source === "dues" ? t("crew.duesEntry", { detail: r.title }) : r.title}
                 {r.memo && (
                   <span className="ml-2 text-xs text-muted">{r.memo}</span>
                 )}

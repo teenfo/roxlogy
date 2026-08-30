@@ -53,12 +53,6 @@ export function pacingGrade(deviationMs: number): PacingGrade {
   return "erratic";
 }
 
-export const PACING_GRADE_LABEL: Record<PacingGrade, string> = {
-  very_consistent: "매우 일정",
-  consistent: "일정",
-  variable: "기복 있음",
-  erratic: "불안정",
-};
 
 /** 가장 긴 록스존 트랜지션 (없으면 null) */
 export function longestRoxzone(

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { duesErrText } from "@/lib/dues-error";
 
 export type DuesPaymentStatus = "reported" | "confirmed" | null;
 
@@ -43,7 +44,7 @@ export function CrewDuesSelfReport({
       reported_at: new Date().toISOString(),
     });
     setBusy(false);
-    if (error) setErr(error.message);
+    if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 
@@ -146,7 +147,7 @@ export function CrewDuesMatrix({
       p_amount: amount,
     });
     setBusy(null);
-    if (error) setErr(error.message);
+    if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 
@@ -162,7 +163,7 @@ export function CrewDuesMatrix({
       .eq("user_id", userId)
       .eq("period", period);
     setBusy(null);
-    if (error) setErr(error.message);
+    if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 

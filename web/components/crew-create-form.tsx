@@ -95,7 +95,7 @@ export function CrewCreateForm() {
         required
       />
       {slug && !slugOk && (
-        <p className="mt-1 text-xs text-red-400">a-z, 0-9, - (3~30자)</p>
+        <p className="mt-1 text-xs text-red-400">{t("crew.slugHint")}</p>
       )}
 
       <label className={label}>{t("crew.fTagline")}</label>

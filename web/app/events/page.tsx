@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getRaceEvents } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
+import { eventDateNote, eventPlace } from "@/lib/event-display";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 
 export async function generateMetadata() {
@@ -44,7 +45,7 @@ export default async function EventsPage({
   searchParams: Promise<{ q?: string; region?: string }>;
 }) {
   const { q, region } = await searchParams;
-  const { t, tag } = await getT();
+  const { t, tag, locale } = await getT();
 
   // 공개 대회 일정은 전역 캐시(1시간) — 검색·지역 필터는 메모리에서 처리
   const all = await getRaceEvents();
@@ -53,7 +54,8 @@ export default async function EventsPage({
     if (region && (REGIONS as readonly string[]).includes(region) && e.region !== region)
       return false;
     if (!term) return true;
-    return [e.name, e.city, e.country].some((v) =>
+    // 검색은 한국어·영문 표기 양쪽에 매칭 (Seoul / 서울 둘 다 찾히도록)
+    return [e.name, e.city, e.city_en, e.country, e.country_code].some((v) =>
       (v ?? "").toLowerCase().includes(term),
     );
   });
@@ -137,14 +139,14 @@ export default async function EventsPage({
                           >
                             {e.name}
                           </Link>
-                          {e.country === "대한민국" && (
+                          {e.country_code === "KR" && (
                             <span className="ml-2 rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent">
                               {t("events.koreaBadge")}
                             </span>
                           )}
                         </p>
                         <p className="mt-0.5 text-xs text-muted">
-                          {e.city}, {e.country}
+                          {eventPlace(t, e, locale)}
                           {e.venue ? ` · ${e.venue}` : ""}
                           {e.region
                             ? ` · ${t(`events.region.${e.region}` as Parameters<typeof t>[0])}`
@@ -156,7 +158,7 @@ export default async function EventsPage({
                           {formatRange(
                             e.start_date,
                             e.end_date,
-                            e.date_note,
+                            eventDateNote(t, e, tag),
                             tag,
                             t("events.tbd"),
                           )}

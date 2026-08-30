@@ -234,8 +234,10 @@ function aggregateResultApi(rawRows, seasonLabelById) {
       rows.push({
         name,
         city: cityKo,
+        city_en: g.cityRaw, // en/es 화면 표기 (ko 는 city)
         api_city: g.cityRaw, // 상세 페이지의 API 이벤트 매칭용 (영문 원문)
         country: ISO2_KO[g.countryCode] ?? g.countryCode,
+        country_code: g.countryCode || null, // 화면은 country.<ISO2> 사전으로 번역
         region: REGION_BY_ISO2[g.countryCode] ?? null,
         venue: null,
         start_date: g.start,

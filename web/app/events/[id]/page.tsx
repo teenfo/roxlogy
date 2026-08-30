@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
+import { eventDateNote, eventPlace } from "@/lib/event-display";
 import { formatMs } from "@/lib/format";
 import {
   getEventLiveDetail,
@@ -32,7 +33,7 @@ export default async function EventDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ t, tag }, user] = await Promise.all([getT(), getCachedUser()]);
+  const [{ t, tag, locale }, user] = await Promise.all([getT(), getCachedUser()]);
 
   const { data: ev } = await supabase
     .from("race_events")
@@ -64,7 +65,7 @@ export default async function EventDetailPage({
 
   const dateRange = ev.start_date
     ? `${ev.start_date}${ev.end_date && ev.end_date !== ev.start_date ? ` ~ ${ev.end_date}` : ""}`
-    : (ev.date_note ?? t("events.tbd"));
+    : (eventDateNote(t, ev, tag) ?? t("events.tbd"));
 
   const phaseBadge =
     live?.phase === "finished"
@@ -95,7 +96,7 @@ export default async function EventDetailPage({
         </div>
         <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
           <span>
-            {ev.city}, {ev.country}
+            {eventPlace(t, ev, locale)}
           </span>
           <span className="font-medium text-track">{dateRange}</span>
           {ev.venue && <span>{ev.venue}</span>}

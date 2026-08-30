@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import { dictLabel } from "@/lib/dict-label";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -84,7 +85,7 @@ export default async function ExercisesPage({
           <option value="">{t("exercises.allEquipment")}</option>
           {EQUIPMENT.map((e) => (
             <option key={e} value={e}>
-              {e}
+              {dictLabel(t, `equipment.${e}`, e)}
             </option>
           ))}
         </select>
@@ -126,7 +127,9 @@ export default async function ExercisesPage({
                     {ex.category
                       ? ` · ${t(`exercises.cat.${ex.category}` as Parameters<typeof t>[0])}`
                       : ""}
-                    {ex.equipment?.length ? ` · ${ex.equipment.join(", ")}` : ""}
+                    {ex.equipment?.length
+                      ? ` · ${ex.equipment.map((q: string) => dictLabel(t, `equipment.${q}`, q)).join(", ")}`
+                      : ""}
                   </p>
                   {((Array.isArray(ex.muscles) && ex.muscles.length > 0) ||
                     (Array.isArray(ex.helps_stations) &&
@@ -137,7 +140,7 @@ export default async function ExercisesPage({
                           key={`m-${m}`}
                           className="rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-semibold text-track"
                         >
-                          {t(`muscle.${m}` as Parameters<typeof t>[0])}
+                          {dictLabel(t, `muscle.${m}`, m)}
                         </span>
                       ))}
                       {(ex.helps_stations ?? []).map((h: string) => (
@@ -145,7 +148,7 @@ export default async function ExercisesPage({
                           key={`h-${h}`}
                           className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent"
                         >
-                          {t(`hstation.${h}` as Parameters<typeof t>[0])}
+                          {dictLabel(t, `hstation.${h}`, h)}
                         </span>
                       ))}
                     </div>

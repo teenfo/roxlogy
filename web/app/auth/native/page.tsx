@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/components/i18n-provider";
 
 /**
  * 네이티브 앱 → 웹 자동 로그인 핸드셰이크.
@@ -12,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
  */
 export default function NativeAuthPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export default function NativeAuthPage() {
       }}
     >
       <p style={{ fontSize: 14, color: "#9A9A96" }}>
-        {failed ? "로그인 처리에 실패했습니다. 다시 시도해 주세요." : "로그인 중…"}
+        {failed ? t("auth.nativeFailed") : t("auth.nativeLoading")}
       </p>
     </div>
   );
