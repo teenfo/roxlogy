@@ -372,28 +372,32 @@ function DayCard({
                   .map((it, i) => (
                     <li
                       key={it.id}
-                      className="flex items-center gap-3 rounded-md bg-surface px-3 py-2"
+                      className="rounded-md bg-surface px-3 py-2"
                     >
-                      <span className="w-5 shrink-0 text-right font-mono text-xs text-muted">
-                        {i + 1}
-                      </span>
-                      <span className="flex-1 truncate text-sm font-medium text-foreground">
-                        {exName(it.exercises)}
-                      </span>
-                      {formatTarget(it.target, locale) && (
-                        <span className="shrink-0 rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
-                          {formatTarget(it.target, locale)}
+                      <div className="flex items-center gap-3">
+                        <span className="w-5 shrink-0 text-right font-mono text-xs text-muted">
+                          {i + 1}
                         </span>
+                        <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
+                          {exName(it.exercises)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onDelItem(it.id)}
+                          disabled={busy}
+                          aria-label={t("common.delete")}
+                          className="shrink-0 text-sm text-muted hover:text-red-400"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {formatTarget(it.target, locale) && (
+                        <p className="mt-1 pl-8">
+                          <span className="inline-block rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
+                            {formatTarget(it.target, locale)}
+                          </span>
+                        </p>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => onDelItem(it.id)}
-                        disabled={busy}
-                        aria-label={t("common.delete")}
-                        className="shrink-0 text-sm text-muted hover:text-red-400"
-                      >
-                        ✕
-                      </button>
                     </li>
                   ))}
               </ul>
