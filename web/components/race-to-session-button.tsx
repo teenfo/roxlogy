@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import {
   buildSessionRows,
+  toIngestPayload,
+  type IngestResult,
   raceSplitsToForms,
   type RaceSplits,
 } from "@/lib/session-builder";
@@ -79,17 +81,17 @@ export function RaceToSessionButton({
       return setError(t("races.toSessionEmpty"));
     }
 
-    const { error: sErr } = await supabase
-      .from("sessions")
-      .upsert(built.session, { onConflict: "id" });
-    const { error: gErr } = sErr
-      ? { error: sErr }
-      : await supabase
-          .from("session_segments")
-          .upsert(built.segments, { onConflict: "session_id,seq" });
-    if (sErr || gErr) {
+    // ingest_session 단일 진입점 (LWW 가드 + 세그먼트 스냅샷)
+    const { data: res, error: rErr } = await supabase.rpc("ingest_session", {
+      p: toIngestPayload(built),
+    });
+    if (rErr) {
       setPending(false);
-      return setError((sErr ?? gErr)!.message);
+      return setError(rErr.message);
+    }
+    if (!(res as IngestResult | null)?.applied) {
+      setPending(false);
+      return setError(t("session.staleConflict"));
     }
     router.push(`/sessions/${built.session.id}`);
     router.refresh();

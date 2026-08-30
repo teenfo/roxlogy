@@ -479,6 +479,8 @@ const es: Record<DictKey, string> = {
   "newSession.errStartedAt": "Introduce la hora de inicio.",
   "newSession.errEmpty": "Introduce al menos un registro.",
   "newSession.errSession": "Error al guardar la sesión: {msg}",
+  "session.staleConflict":
+    "Otro dispositivo sincronizó una versión más reciente de esta sesión, así que no se sobrescribió nada. Actualiza y vuelve a intentarlo.",
   "newSession.errSegments": "Error al guardar segmentos: {msg}",
   "newSession.editTitle": "Editar sesión",
   "newSession.editDesc":

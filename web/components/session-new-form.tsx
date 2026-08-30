@@ -8,6 +8,8 @@ import { formatMs } from "@/lib/format";
 import { DIVISIONS } from "@/lib/divisions";
 import {
   buildSessionRows,
+  toIngestPayload,
+  type IngestResult,
   raceSimTemplate,
   type SegmentForm,
 } from "@/lib/session-builder";
@@ -177,32 +179,19 @@ export function SessionNewForm({
       return setError(t("newSession.errEmpty"));
     }
 
-    // 멱등 업서트 — 워치/폰과 동일 계약 (003 충돌 키)
-    const { error: sErr } = await supabase
-      .from("sessions")
-      .upsert(built.session, { onConflict: "id" });
-    if (sErr) {
+    // 워치·폰과 같은 진입점(ingest_session) — client_updated_at LWW 가드와
+    // 세그먼트 꼬리 삭제(전체 스냅샷)를 한 트랜잭션으로 처리한다.
+    // 직접 upsert 는 가드를 표현할 수 없어 최신 동기화분을 되돌릴 수 있다.
+    const { data: res, error: rErr } = await supabase.rpc("ingest_session", {
+      p: toIngestPayload(built),
+    });
+    if (rErr) {
       setPending(false);
-      return setError(t("newSession.errSession", { msg: sErr.message }));
+      return setError(t("newSession.errSession", { msg: rErr.message }));
     }
-    const { error: gErr } = await supabase
-      .from("session_segments")
-      .upsert(built.segments, { onConflict: "session_id,seq" });
-    if (gErr) {
+    if (!(res as IngestResult | null)?.applied) {
       setPending(false);
-      return setError(t("newSession.errSegments", { msg: gErr.message }));
-    }
-    // 수정에서 칸을 비워 세그먼트 수가 줄면 남은 꼬리 행 제거
-    if (initial && initial.segments.length > built.segments.length) {
-      const { error: dErr } = await supabase
-        .from("session_segments")
-        .delete()
-        .eq("session_id", built.session.id)
-        .gt("seq", built.segments.length);
-      if (dErr) {
-        setPending(false);
-        return setError(t("newSession.errSegments", { msg: dErr.message }));
-      }
+      return setError(t("session.staleConflict"));
     }
 
     router.push(`/sessions/${built.session.id}`);

@@ -155,3 +155,28 @@ export function buildSessionRows(
     })),
   };
 }
+
+/** SessionRows → ingest_session RPC 페이로드.
+ *
+ *  웹도 워치·폰과 같은 진입점을 쓴다. PostgREST 직접 upsert 로는 계약이 요구하는
+ *  `where excluded.client_updated_at > sessions.client_updated_at` 가드를 표현할 수
+ *  없어, 오래 열어둔 수정 탭이 그 사이 워치로 동기화된 최신 기록을 되돌릴 수 있다.
+ *  RPC 는 가드 + 세그먼트 꼬리 삭제(전체 스냅샷)까지 한 트랜잭션으로 처리한다.
+ *
+ *  user_id 는 보내지 않는다 — RPC 내부에서 auth.uid() 로 채운다. */
+export function toIngestPayload(rows: SessionRows) {
+  const { user_id: _userId, ...session } = rows.session;
+  return {
+    session,
+    segments: rows.segments.map(({ session_id: _sessionId, ...seg }) => seg),
+  };
+}
+
+/** ingest_session 반환값. applied=false 는 LWW 가드에 막힌 것(더 최신 기록 존재). */
+export type IngestResult = {
+  applied: boolean;
+  session_id: string;
+  segments_upserted: number;
+  samples_upserted: number;
+  reason?: "stale";
+};

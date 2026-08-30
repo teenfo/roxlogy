@@ -485,6 +485,8 @@ const en = {
   "newSession.errStartedAt": "Enter the start time.",
   "newSession.errEmpty": "Enter at least one record.",
   "newSession.errSession": "Failed to save session: {msg}",
+  "session.staleConflict":
+    "A newer version of this session was synced from another device, so nothing was overwritten. Refresh and try again.",
   "newSession.errSegments": "Failed to save segments: {msg}",
   "newSession.editTitle": "Edit session",
   "newSession.editDesc":

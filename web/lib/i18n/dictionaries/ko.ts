@@ -477,6 +477,8 @@ const ko: Record<DictKey, string> = {
   "newSession.errStartedAt": "시작 시각을 입력해 주세요.",
   "newSession.errEmpty": "기록을 1개 이상 입력해 주세요.",
   "newSession.errSession": "세션 저장 실패: {msg}",
+  "session.staleConflict":
+    "다른 기기에서 더 최신 기록이 저장돼 있어 덮어쓰지 않았습니다. 새로고침 후 다시 시도하세요.",
   "newSession.errSegments": "세그먼트 저장 실패: {msg}",
   "newSession.editTitle": "세션 수정",
   "newSession.editDesc": "기록을 고친 뒤 저장하세요 — 비운 칸은 삭제됩니다.",
