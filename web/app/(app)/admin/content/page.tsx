@@ -25,7 +25,7 @@ export default async function AdminContentPage({
   let exQuery = supabase
     .from("exercises")
     .select("id, name_ko, name_en, muscles, aliases, category, station_type, description_ko, media_url")
-    .order("station_type", { ascending: true, nullsFirst: false })
+    .order(locale === "ko" ? "name_ko" : "name_en")
     .limit(40);
   if (q) exQuery = exQuery.or(`name_ko.ilike.%${q}%,name_en.ilike.%${q}%`);
   const { data: exercises } = await exQuery;

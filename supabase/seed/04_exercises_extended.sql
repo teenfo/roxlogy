@@ -11,8 +11,7 @@
 
 insert into public.exercises (id, name_ko, name_en, category, equipment, station_type) values
   ('3b25a2ec-0e81-5176-ad5f-d1860fb3dacc', '템포런', 'Tempo Run', 'running', array[]::text[], null),
-  ('6cbab937-b363-5fee-8944-ad63091ad977', '인터벌 400m×8', '400m Intervals x8', 'running', array[]::text[], null),
-  ('b617a7c5-6d4a-565d-9313-f875fc8990a1', '인터벌 1km×5', '1km Intervals x5', 'running', array[]::text[], null),
+  ('b617a7c5-6d4a-565d-9313-f875fc8990a1', '인터벌 러닝', 'Interval Run', 'running', array[]::text[], null),
   ('cfe81ff9-4c8b-502c-a3cf-6a66309396ad', '힐 스프린트', 'Hill Sprints', 'running', array[]::text[], null),
   ('24ac2b78-fd98-54bb-96d0-75c54dcf12b9', '컴프로미스드 런', 'Compromised Run', 'running', array[]::text[], null),
   ('ac4aaae7-4fb0-551d-b509-03976103f96a', '지속주', 'Steady State Run', 'running', array[]::text[], null),

@@ -73,7 +73,7 @@ export default async function ProgramDetailPage({
     ? await supabase
         .from("exercises")
         .select("id, name_ko, name_en, station_type")
-        .order("station_type", { ascending: true, nullsFirst: false })
+        .order(locale === "ko" ? "name_ko" : "name_en")
     : { data: null };
 
   type Day = {

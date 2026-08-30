@@ -27,10 +27,7 @@ export default async function ExercisesPage({
   // 운동 DB 는 authenticated 전용 RLS 라 전역 캐시(무세션 클라이언트) 대상이 아니다.
   // 한 번에 받아 필터는 메모리에서 처리 — 조건이 바뀌어도 왕복은 1회.
   const supabase = await createClient();
-  const { data: allExercises } = await supabase
-    .from("exercises")
-    .select("*")
-    .order("station_type", { ascending: true, nullsFirst: false });
+  const { data: allExercises } = await supabase.from("exercises").select("*");
   const term = q?.trim().toLowerCase();
   const exercises = (allExercises ?? []).filter((e) => {
     if (category && (CATEGORIES as readonly string[]).includes(category) && e.category !== category)
@@ -46,6 +43,13 @@ export default async function ExercisesPage({
       (v ?? "").toLowerCase().includes(term),
     );
   });
+  // 표시 이름(로케일) 기준 알파벳·가나다순 정렬
+  exercises.sort((a, b) =>
+    String(locale === "ko" ? a.name_ko : a.name_en).localeCompare(
+      String(locale === "ko" ? b.name_ko : b.name_en),
+      locale,
+    ),
+  );
 
   return (
     <main>
