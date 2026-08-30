@@ -4,16 +4,12 @@
 -- 생성기: scratchpad/gen_exercises.py (분류 열거). 재생성 시 동일 UUID.
 -- 스테이션 운동은 시드 01의 정규 8종만 사용 — 구간/강도는 워크아웃
 -- 아이템의 target(note)로 표현한다 (구간 변형 시드는 제거됨).
+-- 러닝도 시드 01의 정규 '러닝' 1종 — 거리는 note 로 표현한다
+-- (거리 변형 시드는 제거됨). 훈련 유형이 다른 러닝(템포런·지속주·
+-- 인터벌·힐 스프린트 등)만 별도 종목으로 유지.
 -- ============================================================
 
 insert into public.exercises (id, name_ko, name_en, category, equipment, station_type) values
-  ('6fef3101-ff72-5cfa-ba4c-124988e47769', '러닝 400m', 'Run 400m', 'running', array[]::text[], null),
-  ('a36a34d8-c47f-5506-a915-238062152052', '러닝 800m', 'Run 800m', 'running', array[]::text[], null),
-  ('fb0cda98-f4a6-5213-a0b9-6d9b08b35c2b', '러닝 1km', 'Run 1km', 'running', array[]::text[], null),
-  ('07755336-e51a-51b9-b838-764030def190', '러닝 1.6km', 'Run 1.6km', 'running', array[]::text[], null),
-  ('be81ce87-c649-5bc4-8ba3-026e17623804', '러닝 3km', 'Run 3km', 'running', array[]::text[], null),
-  ('cd15e7e2-c0dc-53f5-ba2a-383042a99b84', '러닝 5km', 'Run 5km', 'running', array[]::text[], null),
-  ('75feb593-d762-50ea-baaa-90acf075cc5a', '러닝 10km', 'Run 10km', 'running', array[]::text[], null),
   ('3b25a2ec-0e81-5176-ad5f-d1860fb3dacc', '템포런', 'Tempo Run', 'running', array[]::text[], null),
   ('6cbab937-b363-5fee-8944-ad63091ad977', '인터벌 400m×8', '400m Intervals x8', 'running', array[]::text[], null),
   ('b617a7c5-6d4a-565d-9313-f875fc8990a1', '인터벌 1km×5', '1km Intervals x5', 'running', array[]::text[], null),

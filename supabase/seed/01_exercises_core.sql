@@ -13,7 +13,7 @@ insert into public.exercises (id, name_ko, name_en, category, equipment, station
   ('e0000000-0000-0000-0000-000000000006', '파머스 캐리',             'Farmers Carry',      'strength',     array['kettlebell'],'station_6'),
   ('e0000000-0000-0000-0000-000000000007', '샌드백 런지',             'Sandbag Lunges',     'strength',     array['sandbag'],  'station_7'),
   ('e0000000-0000-0000-0000-000000000008', '월볼',                    'Wall Balls',     'conditioning', array['wallball'], 'station_8'),
-  ('e0000000-0000-0000-0000-000000000009', '러닝 1km',                'Run 1km',                 'running',      array[]::text[],   null)
+  ('e0000000-0000-0000-0000-000000000009', '러닝',                    'Running',           'running',      array[]::text[],   null)
 on conflict (id) do update set
   name_ko      = excluded.name_ko,
   name_en      = excluded.name_en,
