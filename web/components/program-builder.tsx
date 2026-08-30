@@ -131,6 +131,9 @@ export function ProgramBuilder({
   const delWorkout = (id: string) =>
     run(() => supabase.from("workout_templates").delete().eq("id", id));
 
+  const setWorkoutType = (id: string, type: string) =>
+    run(() => supabase.from("workout_templates").update({ type }).eq("id", id));
+
   const addItem = (w: Workout) => {
     const p = pick[w.id];
     if (!p?.ex) return;
@@ -173,6 +176,7 @@ export function ProgramBuilder({
           onAddWorkout={(title, type, autofill) =>
             addWorkout(d.id, title, type, autofill)
           }
+          onSetWorkoutType={setWorkoutType}
           onDelWorkout={delWorkout}
           onAddItem={addItem}
           onDelItem={delItem}
@@ -205,6 +209,7 @@ function DayCard({
   onMove,
   onDelDay,
   onAddWorkout,
+  onSetWorkoutType,
   onDelWorkout,
   onAddItem,
   onDelItem,
@@ -224,6 +229,7 @@ function DayCard({
   onMove: (dir: -1 | 1) => void;
   onDelDay: () => void;
   onAddWorkout: (title: string, type: string, autofillRaceSim: boolean) => void;
+  onSetWorkoutType: (id: string, type: string) => void;
   onDelWorkout: (id: string) => void;
   onAddItem: (w: Workout) => void;
   onDelItem: (id: string) => void;
@@ -276,11 +282,20 @@ function DayCard({
         {day.workout_templates.map((w) => (
           <div key={w.id} className="rounded-md bg-background px-3 py-2.5">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">
+              <p className="flex items-center gap-2 text-sm font-semibold">
                 {w.title}
-                <span className="ml-2 text-xs text-muted">
-                  {t(`programs.type.${w.type}` as Parameters<typeof t>[0])}
-                </span>
+                <select
+                  value={w.type}
+                  disabled={busy}
+                  onChange={(e) => onSetWorkoutType(w.id, e.target.value)}
+                  className="rounded border border-muted/30 bg-surface px-1.5 py-0.5 text-xs font-normal text-muted outline-none focus:border-accent"
+                >
+                  {WORKOUT_TYPES.map((ty) => (
+                    <option key={ty} value={ty}>
+                      {t(`programs.type.${ty}` as Parameters<typeof t>[0])}
+                    </option>
+                  ))}
+                </select>
               </p>
               <button
                 type="button"
