@@ -197,6 +197,7 @@ const en = {
   "crew.meetupTitlePh": "Meetup title",
   "crew.meetupLocationPh": "Location (optional)",
   "crew.meetupDescPh": "Details (optional)",
+  "crew.allowComments": "Allow comments",
   "crew.meetupCreate": "Create",
   "crew.meetupCancel": "Cancel meetup",
   "crew.meetupCancelConfirm": "Cancel this meetup? It will disappear from the schedule.",

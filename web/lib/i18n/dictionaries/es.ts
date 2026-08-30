@@ -195,6 +195,7 @@ const es: Record<DictKey, string> = {
   "crew.meetupTitlePh": "Nombre del encuentro",
   "crew.meetupLocationPh": "Lugar (opcional)",
   "crew.meetupDescPh": "Detalles (opcional)",
+  "crew.allowComments": "Permitir comentarios",
   "crew.meetupCreate": "Crear",
   "crew.meetupCancel": "Cancelar encuentro",
   "crew.meetupCancelConfirm": "¿Cancelar este encuentro? Desaparecerá de la agenda.",

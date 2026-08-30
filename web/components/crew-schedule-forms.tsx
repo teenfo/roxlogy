@@ -18,6 +18,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
   const [location, setLocation] = useState("");
   const [desc, setDesc] = useState("");
   const [membersOnly, setMembersOnly] = useState(false);
+  const [commentsAllowed, setCommentsAllowed] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -36,6 +37,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
       location: location.trim() || null,
       description: desc.trim() || null,
       members_only: membersOnly,
+      comments_allowed: commentsAllowed,
       created_by: u.user?.id ?? null,
     });
     setBusy(false);
@@ -48,6 +50,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
     setLocation("");
     setDesc("");
     setMembersOnly(false);
+    setCommentsAllowed(true);
     setOpen(false);
     router.refresh();
   }
@@ -102,6 +105,15 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
         />
         <span>{t("crew.fullOnly")}</span>
         <span className="text-muted">{t("crew.fullOnlyMeetupHint")}</span>
+      </label>
+      <label className="flex cursor-pointer items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={commentsAllowed}
+          onChange={(e) => setCommentsAllowed(e.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        <span>{t("crew.allowComments")}</span>
       </label>
       {err && <p className="text-xs text-red-400">{err}</p>}
       <div className="flex gap-2">
@@ -541,6 +553,55 @@ export function CrewRsvpButtons({
       </div>
       {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
     </div>
+  );
+}
+
+/** 모임 댓글 입력 — 크루원 전용, 댓글 허용 모임에만 렌더된다.
+ *  권한(멤버·comments_allowed·members_only)은 RLS 가 최종 강제. */
+export function CrewEventCommentForm({ eventId }: { eventId: string }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const text = body.trim();
+    if (!text) return;
+    setBusy(true);
+    const supabase = createClient();
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) {
+      setBusy(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("crew_event_comments")
+      .insert({ event_id: eventId, author_id: u.user.id, body: text });
+    setBusy(false);
+    if (!error) {
+      setBody("");
+      router.refresh();
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-4 flex gap-2">
+      <input
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder={t("crew.commentPlaceholder")}
+        maxLength={500}
+        className="flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+      />
+      <button
+        type="submit"
+        disabled={busy || !body.trim()}
+        className="shrink-0 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
+      >
+        {t("crew.commentSubmit")}
+      </button>
+    </form>
   );
 }
 

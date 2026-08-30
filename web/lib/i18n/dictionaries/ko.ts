@@ -195,6 +195,7 @@ const ko: Record<DictKey, string> = {
   "crew.meetupTitlePh": "모임 이름",
   "crew.meetupLocationPh": "장소 (선택)",
   "crew.meetupDescPh": "상세 내용 (선택)",
+  "crew.allowComments": "댓글 허용",
   "crew.meetupCreate": "등록",
   "crew.meetupCancel": "모임 취소",
   "crew.meetupCancelConfirm": "이 모임을 취소할까요? 일정표에서 사라집니다.",

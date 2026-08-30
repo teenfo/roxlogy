@@ -4,9 +4,19 @@ import { getCrew } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import {
+  CrewEventCommentForm,
   CrewMeetupCancel,
   CrewRsvpButtons,
 } from "@/components/crew-schedule-forms";
+import { formatDate } from "@/lib/format";
+
+type EventComment = {
+  id: string;
+  author_id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+};
 
 type EventDetail = {
   id: string;
@@ -23,6 +33,8 @@ type EventDetail = {
   declined_count: number;
   my_status: string | null;
   is_staff: boolean;
+  comments_allowed: boolean;
+  comments: EventComment[];
 };
 
 export default async function CrewEventPage({
@@ -31,7 +43,7 @@ export default async function CrewEventPage({
   params: Promise<{ slug: string; eventId: string }>;
 }) {
   const { slug, eventId } = await params;
-  const [crew, { t, tag }] = await Promise.all([getCrew(slug), getT()]);
+  const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
 
   const supabase = await createClient();
@@ -110,6 +122,45 @@ export default async function CrewEventPage({
           </p>
         )}
       </section>
+
+      {/* 댓글 — 허용된 모임만. 입력은 크루원, 권한은 RLS 가 최종 강제 */}
+      {ev.comments_allowed && (
+        <section className="mt-8">
+          <h3 className="text-sm font-semibold text-muted">
+            {t("crew.comments")}{" "}
+            <span className="font-normal">{ev.comments.length}</span>
+          </h3>
+
+          {!!ev.comments.length && (
+            <ul className="mt-3 flex flex-col gap-px overflow-hidden rounded-md bg-muted/20">
+              {ev.comments.map((c) => (
+                <li key={c.id} className="bg-surface px-4 py-3">
+                  <div className="flex items-baseline gap-2">
+                    <Link
+                      href={`/u/${c.author_id}`}
+                      className="text-xs font-semibold hover:text-accent"
+                    >
+                      {c.author_name}
+                    </Link>
+                    <span className="text-[11px] text-muted">
+                      {formatDate(c.created_at, tag, tz)}
+                    </span>
+                  </div>
+                  <p className="mt-1 whitespace-pre-line text-sm">{c.body}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {isMember ? (
+            <CrewEventCommentForm eventId={ev.id} />
+          ) : (
+            <p className="mt-4 text-center text-xs text-muted">
+              {t("crew.memberOnly")}
+            </p>
+          )}
+        </section>
+      )}
     </main>
   );
 }
