@@ -2,7 +2,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { formatDateShort, programDayNumber } from "@/lib/format";
+import {
+  formatDateShort,
+  programDayNumber,
+  todayMidnightIn,
+} from "@/lib/format";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -118,7 +122,8 @@ export default async function SchedulePage({
       wodDoneTemplates.add(tid);
 
   const start = midnight(new Date(enroll.start_date + "T00:00:00"));
-  const today = midnight(new Date());
+  // 서버는 UTC — 사용자 시간대(폴백 KST) 기준 오늘
+  const today = midnight(todayMidnightIn(tz));
   const cycleLen = enroll.programs.program_days.reduce(
     (m, d) => Math.max(m, d.day_index),
     0,

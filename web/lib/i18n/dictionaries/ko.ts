@@ -462,6 +462,7 @@ const ko: Record<DictKey, string> = {
   "newSession.roxzoneLabel": "록스존 {n}",
   "newSession.totalLabel": "합계",
   "newSession.save": "저장",
+  "newSession.errStartedAt": "시작 시각을 입력해 주세요.",
   "newSession.errEmpty": "기록을 1개 이상 입력해 주세요.",
   "newSession.errSession": "세션 저장 실패: {msg}",
   "newSession.errSegments": "세그먼트 저장 실패: {msg}",

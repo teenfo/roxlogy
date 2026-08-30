@@ -9,6 +9,7 @@ import {
   formatDateShortYear,
   formatMs,
   programDayNumber,
+  todayMidnightIn,
 } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { CorrelationLine, TrendBars } from "@/components/charts";
@@ -172,8 +173,8 @@ export default async function DashboardPage() {
   } | null = null;
   if (enroll?.programs) {
     const start = new Date(enroll.start_date + "T00:00:00");
-    const nowMid = new Date();
-    nowMid.setHours(0, 0, 0, 0);
+    // 서버는 UTC — 사용자 시간대(폴백 KST) 기준 오늘로 일차를 계산한다
+    const nowMid = todayMidnightIn(tz);
     const daysSince = Math.floor((nowMid.getTime() - start.getTime()) / 86400000);
     const cycleLen = enroll.programs.program_days.reduce(
       (m, d) => Math.max(m, d.day_index),

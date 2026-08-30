@@ -470,6 +470,7 @@ const en = {
   "newSession.roxzoneLabel": "Roxzone {n}",
   "newSession.totalLabel": "Total",
   "newSession.save": "Save",
+  "newSession.errStartedAt": "Enter the start time.",
   "newSession.errEmpty": "Enter at least one record.",
   "newSession.errSession": "Failed to save session: {msg}",
   "newSession.errSegments": "Failed to save segments: {msg}",

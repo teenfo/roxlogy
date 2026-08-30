@@ -464,6 +464,7 @@ const es: Record<DictKey, string> = {
   "newSession.roxzoneLabel": "Roxzone {n}",
   "newSession.totalLabel": "Total",
   "newSession.save": "Guardar",
+  "newSession.errStartedAt": "Introduce la hora de inicio.",
   "newSession.errEmpty": "Introduce al menos un registro.",
   "newSession.errSession": "Error al guardar la sesión: {msg}",
   "newSession.errSegments": "Error al guardar segmentos: {msg}",

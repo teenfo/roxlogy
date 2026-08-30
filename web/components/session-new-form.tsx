@@ -134,6 +134,11 @@ export function SessionNewForm({
 
   async function handleSave() {
     setError(null);
+    // 시작 시각을 비우면 Invalid Date → toISOString() 이 던져서
+    // pending 이 true 로 남아 저장 버튼이 영구 잠긴다. 먼저 검증한다.
+    const startedDate = new Date(startedAt);
+    if (!startedAt || Number.isNaN(startedDate.getTime()))
+      return setError(t("newSession.errStartedAt"));
     setPending(true);
     const supabase = createClient();
     const {
@@ -146,12 +151,11 @@ export function SessionNewForm({
 
     const built = buildSessionRows(
       user.id,
-      new Date(startedAt).toISOString(),
+      startedDate.toISOString(),
       rows,
       initial
         ? {
             sessionId: initial.id,
-            segmentIds: initial.segments.map((s) => s.id),
             notes,
             rpe,
             templateId,

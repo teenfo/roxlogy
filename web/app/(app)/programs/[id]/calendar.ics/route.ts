@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import { formatTarget, type WorkoutTarget } from "@/lib/target";
 
 /** 프로그램 일정 .ics — start_date 기준 일차별 종일 이벤트.
  *
@@ -25,7 +26,12 @@ function icsDate(startIso: string, addDays: number): string {
   return d.toISOString().slice(0, 10).replace(/-/g, "");
 }
 
-type CalItem = { note: string | null; name_ko: string | null; name_en: string | null };
+type CalItem = {
+  /** 구조화 처방 (거리·무게·횟수·세트·시간·메모) — note 만 쓰면 수치가 사라진다 */
+  target: WorkoutTarget | null;
+  name_ko: string | null;
+  name_en: string | null;
+};
 type CalWorkout = { title: string; items: CalItem[] };
 type CalDay = {
   id: string;
@@ -91,7 +97,10 @@ function buildIcs(cal: Cal, locale: string): string {
     const desc = d.workouts
       .map((w) => {
         const items = w.items
-          .map((it) => `- ${exName(it)}${it.note ? ` (${it.note})` : ""}`)
+          .map((it) => {
+            const tgt = formatTarget(it.target, locale);
+            return `- ${exName(it)}${tgt ? ` (${tgt})` : ""}`;
+          })
           .join("\n");
         return items ? `${w.title}\n${items}` : w.title;
       })
@@ -170,7 +179,7 @@ export async function GET(
           title: string;
           workout_template_items: {
             seq: number;
-            target: { note?: string } | null;
+            target: WorkoutTarget | null;
             exercises: { name_ko: string; name_en: string } | null;
           }[];
         }[];
@@ -192,7 +201,7 @@ export async function GET(
               .slice()
               .sort((a, b) => a.seq - b.seq)
               .map((it) => ({
-                note: it.target?.note ?? null,
+                target: it.target,
                 name_ko: it.exercises?.name_ko ?? null,
                 name_en: it.exercises?.name_en ?? null,
               })),

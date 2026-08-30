@@ -77,6 +77,26 @@ export function programDayDate(
 }
 
 /**
+ * 사용자 시간대 기준 "오늘" 날짜 (YYYY-MM-DD).
+ * 서버는 UTC 로 도므로 new Date() 를 그대로 쓰면 KST 사용자는 자정~오전 9시
+ * 사이에 전날 일차를 보게 된다. 크루 일정·회비가 Asia/Seoul 을 쓰므로
+ * 시간대 쿠키가 없을 때의 폴백도 Asia/Seoul 로 맞춘다.
+ */
+export function todayISOIn(tz?: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz || "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+/** 사용자 시간대 기준 오늘 자정 Date (프로그램 일차 계산용) */
+export function todayMidnightIn(tz?: string): Date {
+  return new Date(`${todayISOIn(tz)}T00:00:00`);
+}
+
+/**
  * 시작일로부터 daysSince(0-based)일째의 프로그램 일차(1-based).
  * repeat 면 사이클(max day_index)로 순환한다. 시작 전이면 null.
  * 스케줄·대시보드·오늘의 WOD·캘린더가 모두 이 규칙을 공유한다.

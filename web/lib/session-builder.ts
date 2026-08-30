@@ -72,6 +72,9 @@ export type SessionRows = {
     user_id: string;
     source_device: "web";
     sync_status: "synced";
+    /** 수정 시 파생 지표·AI 인사이트가 옛 값으로 남지 않도록 항상 재큐잉
+     *  (ingest_session RPC 도 업서트마다 pending 으로 되돌린다) */
+    analysis_status: "pending";
     started_at: string;
     ended_at: string;
     total_time_ms: number;
@@ -84,7 +87,6 @@ export type SessionRows = {
     leaderboard_excluded: boolean;
   };
   segments: {
-    id: string;
     session_id: string;
     seq: number;
     kind: string;
@@ -101,8 +103,6 @@ export function buildSessionRows(
   opts?: {
     /** 수정 모드: 기존 세션 id 재사용 (충돌 키 sessions(id)로 업서트) */
     sessionId?: string;
-    /** 수정 모드: seq 순서대로 재사용할 기존 세그먼트 id */
-    segmentIds?: string[];
     /** 주관적 훈련 로그 (선택) */
     notes?: string | null;
     rpe?: number | null;
@@ -130,6 +130,7 @@ export function buildSessionRows(
       user_id: userId,
       source_device: "web",
       sync_status: "synced",
+      analysis_status: "pending",
       started_at: started.toISOString(),
       ended_at: new Date(started.getTime() + totalMs).toISOString(),
       total_time_ms: totalMs,
@@ -141,10 +142,10 @@ export function buildSessionRows(
       race_result_id: opts?.raceResultId ?? null,
       leaderboard_excluded: opts?.leaderboardExcluded ?? false,
     },
+    // id 는 보내지 않는다 — (session_id, seq) 충돌 업데이트가 기존 행의 PK 를
+    // 바꾸면 erg_samples·segment_metrics 참조가 엉뚱한 세그먼트에 붙는다.
+    // 새 행은 DB 기본값(uuid_generate_v4)이 채우고, 기존 행은 id 를 유지한다.
     segments: filled.map((s, idx) => ({
-      // 같은 seq 자리의 기존 id를 재사용해야 erg_samples 참조가 유지되고
-      // (session_id, seq) 충돌 업데이트가 PK 변경을 시도하지 않는다
-      id: opts?.segmentIds?.[idx] ?? crypto.randomUUID(),
       session_id: sessionId,
       seq: idx + 1,
       kind: s.kind,

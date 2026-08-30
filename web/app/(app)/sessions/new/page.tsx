@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
-import { programDayNumber } from "@/lib/format";
+import { programDayNumber, todayMidnightIn } from "@/lib/format";
 import {
   SessionNewForm,
   type TodayWorkout,
@@ -25,6 +25,7 @@ type EnrollProgram = {
 
 export default async function SessionNewPage() {
   const supabase = await createClient();
+  const { tz } = await getT();
 
   // 활성 프로그램의 오늘 워크아웃 → 세션에 연결(태깅)할 수 있게 전달
   const { data: enrollment } = await supabase
@@ -41,8 +42,8 @@ export default async function SessionNewPage() {
   let todayWorkouts: TodayWorkout[] = [];
   if (enroll?.programs) {
     const start = new Date(enroll.start_date + "T00:00:00");
-    const nowMid = new Date();
-    nowMid.setHours(0, 0, 0, 0);
+    // 서버는 UTC — 사용자 시간대(폴백 KST) 기준 오늘로 일차를 계산한다
+    const nowMid = todayMidnightIn(tz);
     const daysSince = Math.floor((nowMid.getTime() - start.getTime()) / 86400000);
     const cycleLen = enroll.programs.program_days.reduce(
       (m, d) => Math.max(m, d.day_index),
