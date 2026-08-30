@@ -23,7 +23,13 @@ export default async function CrewBoardPage({
 
   const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
-  const posts = await getCrewBoard(slug, category, 30);
+  const [posts, notices] = await Promise.all([
+    getCrewBoard(slug, category, 30),
+    // 상단 고정 공지 영역 — 최신 공지 5건 (공지 필터 화면에서는 목록과 중복이라 생략)
+    category === "notice"
+      ? Promise.resolve([])
+      : getCrewBoard(slug, "notice", 5),
+  ]);
   const canPost = isActiveMember(crew);
 
   const chip = (active: boolean) =>
@@ -59,6 +65,37 @@ export default async function CrewBoardPage({
           </Link>
         )}
       </div>
+
+      {/* 최신 공지 5건 — 목록 상단 고정 영역 */}
+      {notices.length > 0 && (
+        <section className="mt-6 rounded-md border border-accent/25 bg-accent/5">
+          <ul className="flex flex-col gap-px">
+            {notices.map((n) => (
+              <li key={n.id}>
+                <Link
+                  href={`/crews/${slug}/board/${n.id}`}
+                  className="flex items-center gap-2 px-4 py-2.5 hover:bg-accent/10"
+                >
+                  <span className="shrink-0 text-[11px] font-bold text-accent">
+                    📢 {t("crew.cat.notice")}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {n.title}
+                  </span>
+                  {n.members_only && (
+                    <span className="shrink-0 rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
+                      {t("crew.fullOnly")}
+                    </span>
+                  )}
+                  <span className="shrink-0 text-xs text-muted">
+                    {formatDateShort(n.created_at, tag, tz)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {!posts.length ? (
         <p className="mt-6 rounded-md bg-surface px-4 py-12 text-center text-sm text-muted">
