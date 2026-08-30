@@ -71,6 +71,11 @@ Deno.serve(async (req) => {
     if (/too_many_samples/.test(msg)) return json({ error: "too_many_samples" }, 413);
     if (/invalid_session|invalid_segments/.test(msg))
       return json({ error: msg.match(/invalid_\w+/)?.[0] ?? "invalid" }, 400);
+    // 형식이 틀린 uuid·타임스탬프·정수는 RPC 의 캐스트에서 22P02 로 터진다.
+    // 계약상 스키마 위반은 4xx(수정 필요) — 500 으로 내리면 클라이언트가
+    // 영구 실패 페이로드에 백오프 재시도를 전부 소모한다.
+    if (/invalid input syntax|invalid input value|22P02|date\/time field value out of range/i.test(msg))
+      return json({ error: "invalid_payload", detail: msg.slice(0, 200) }, 400);
     console.error("ingest_session rpc error:", msg);
     return json({ error: "internal" }, 500);
   }

@@ -37,10 +37,14 @@ const PROGRAM_SYSTEM =
   "출력은 반드시 아래 스키마의 JSON 하나만 — 설명·마크다운·코드펜스 금지. " +
   '{"title":"...", "description":"...", "level":"beginner|intermediate|advanced|elite", ' +
   '"days":[{"day_index":1, "focus":"...", "title":"...", ' +
-  '"items":[{"exercise":"운동이름", "note":"세트·횟수·강도 등 수행 지시"}]}]} ' +
+  '"items":[{"exercise":"운동이름", "distance_m":400, "weight_kg":24, "reps":12, ' +
+  '"sets":4, "duration_s":60, "note":"휴식·강도 등 숫자로 담기지 않는 지시"}]}]} ' +
   "규칙: days 는 정확히 7개(day_index 1~7), 주 1~2일은 휴식/회복(items 빈 배열, focus '휴식'), " +
   "훈련일은 items 4~8개. exercise 값은 반드시 제공된 운동 목록의 이름을 그대로 사용. " +
-  "note 는 한국어로 구체적으로(예: '4세트 × 12회, 세트간 90초 휴식'). " +
+  "처방은 반드시 숫자 필드로 나눠 담는다 — 거리는 distance_m(미터), 무게는 weight_kg, " +
+  "세트당 횟수는 reps, 세트 수는 sets, 시간은 duration_s(초). 해당 없는 필드는 생략. " +
+  "'400m 8세트' 를 note 에 문장으로 쓰지 말고 distance_m:400, sets:8 로 넣어라 " +
+  "(주간 볼륨 통계가 이 숫자로 집계된다). note 에는 '세트간 90초 휴식' 같은 나머지만. " +
   "인사이트에서 드러난 약점 구간을 우선 보강하고, title/description/focus 는 한국어.";
 
 // ---------------------------------------------------------------- 지표 (analyze.py 이식)
@@ -340,14 +344,27 @@ async function materializeProgram(db: any, userId: string, raw: string): Promise
   let plan: {
     title?: string; description?: string; level?: string;
     days?: { day_index?: number; focus?: string; title?: string;
-      items?: { exercise?: string; note?: string }[] }[];
+      items?: {
+        exercise?: string; note?: string;
+        distance_m?: number; weight_kg?: number;
+        reps?: number; sets?: number; duration_s?: number;
+      }[] }[];
   };
   try { plan = JSON.parse(raw.slice(s, e + 1)); } catch { return null; }
   if (!plan.title || !Array.isArray(plan.days) || plan.days.length === 0) return null;
 
-  // 운동 이름 → id 매핑 (미매칭은 exercise_id null + note 에 이름 보존)
-  const { data: exs } = await db.from("exercises").select("id,name_ko");
-  const exMap = new Map<string, string>((exs ?? []).map((x: { id: string; name_ko: string }) => [x.name_ko, x.id]));
+  // 운동 이름 → id 해석. name_ko 완전일치만 보면 '스키에르그'(별칭)·표기 차이가
+  // 전부 미매칭이 되므로, 서버의 resolve_exercise(정규화 + aliases)를 쓴다.
+  const resolveCache = new Map<string, string | null>();
+  const resolveExercise = async (name?: string): Promise<string | null> => {
+    const key = (name ?? "").trim();
+    if (!key) return null;
+    if (resolveCache.has(key)) return resolveCache.get(key) ?? null;
+    const { data } = await db.rpc("resolve_exercise", { p_name: key });
+    const id = (data as string | null) ?? null;
+    resolveCache.set(key, id);
+    return id;
+  };
 
   const level = ["beginner", "intermediate", "advanced", "elite"].includes(plan.level ?? "")
     ? plan.level : null;
@@ -374,11 +391,35 @@ async function materializeProgram(db: any, userId: string, raw: string): Promise
       type: "wod", structure: {},
     }).select("id").single();
     if (!tmpl) continue;
-    const rows = items.map((it, i) => {
-      const exId = it.exercise ? exMap.get(it.exercise) ?? null : null;
-      const note = [exId ? null : it.exercise, it.note].filter(Boolean).join(" — ").slice(0, 300);
-      return { template_id: tmpl.id, seq: i + 1, exercise_id: exId, target: note ? { note } : null };
-    });
+    // 처방은 구조화 필드로 저장한다 (20260830000011 계약) — note-only 로 넣으면
+    // 주간 볼륨·계획 대비 수행 통계에서 이 프로그램만 빠진다.
+    const num = (v: unknown, max: number): number | undefined => {
+      const n = typeof v === "number" ? v : Number(v);
+      return Number.isFinite(n) && n > 0 && n <= max ? Math.round(n * 100) / 100 : undefined;
+    };
+    const rows: Record<string, unknown>[] = [];
+    for (const [i, it] of items.entries()) {
+      const exId = await resolveExercise(it.exercise);
+      const target: Record<string, unknown> = {};
+      const dist = num(it.distance_m, 200000);
+      if (dist) target.distance_m = Math.round(dist);
+      const kg = num(it.weight_kg, 1000);
+      if (kg) target.weight_kg = kg;
+      const reps = num(it.reps, 10000);
+      if (reps) target.reps = Math.round(reps);
+      const sets = num(it.sets, 100);
+      if (sets) target.sets = Math.round(sets);
+      const dur = num(it.duration_s, 86400);
+      if (dur) target.duration_s = Math.round(dur);
+      // 매칭 실패한 운동 이름은 잃지 않도록 note 앞에 남긴다
+      const note = [exId ? null : it.exercise, it.note]
+        .filter(Boolean).join(" — ").slice(0, 300);
+      if (note) target.note = note;
+      rows.push({
+        template_id: tmpl.id, seq: i + 1, exercise_id: exId,
+        target: Object.keys(target).length ? target : null,
+      });
+    }
     if (rows.length) await db.from("workout_template_items").insert(rows);
   }
   return prog.id;

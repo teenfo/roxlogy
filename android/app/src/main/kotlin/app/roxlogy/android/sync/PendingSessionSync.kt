@@ -1,8 +1,10 @@
 package app.roxlogy.android.sync
 
 import android.content.Context
+import android.net.Uri
 import app.roxlogy.shared.sync.WearPaths
 import com.google.android.gms.tasks.Tasks
+import com.google.android.gms.wearable.Asset
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.Dispatchers
@@ -31,29 +33,48 @@ class PendingSessionSync(
         } catch (_: Exception) {
             return@withContext 0
         }
-        val payloads = mutableListOf<String>()
+        // uri 를 함께 들고 있어야 업로드 성공 후 DataItem 을 지울 수 있다.
+        // 지우지 않으면 앱에 들어올 때마다 이미 반영된 세션까지 다시 POST 한다
+        // (멱등이라 오염은 없지만 트래픽·Edge 호출이 히스토리에 비례해 늘어난다).
+        val payloads = mutableListOf<Pair<Uri, String>>()
         try {
             for (item in buffer) {
                 val path = item.uri.path ?: continue
                 if (!path.startsWith(WearPaths.SESSION_PATH_PREFIX)) continue
-                DataMapItem.fromDataItem(item).dataMap
-                    .getByteArray(WearPaths.KEY_PAYLOAD)
-                    ?.decodeToString()
-                    ?.let { payloads.add(it) }
+                val map = DataMapItem.fromDataItem(item).dataMap
+                val inline = map.getByteArray(WearPaths.KEY_PAYLOAD)?.decodeToString()
+                val asset = map.getAsset(WearPaths.KEY_PAYLOAD_ASSET)
+                val json = inline ?: asset?.let { readAsset(context, it) }
+                if (json != null) payloads.add(item.uri to json)
             }
         } finally {
             buffer.release()
         }
 
         var ok = 0
-        for (json in payloads) {
+        for ((uri, json) in payloads) {
             val sent = uploader.upload(
                 json = json,
                 initialToken = token,
                 tokenRefresh = { auth.refreshAccessToken() },
             )
-            if (sent) ok++
+            if (sent) {
+                ok++
+                try {
+                    Tasks.await(Wearable.getDataClient(context).deleteDataItems(uri))
+                } catch (_: Exception) {
+                    /* 삭제 실패는 다음 진입에서 재시도된다 (업서트는 멱등) */
+                }
+            }
         }
         ok
+    }
+
+    /** DataItem 한도를 넘어 Asset 으로 온 페이로드 읽기 (IO 컨텍스트에서 호출) */
+    private fun readAsset(context: Context, asset: Asset): String? = try {
+        val fd = Tasks.await(Wearable.getDataClient(context).getFdForAsset(asset))
+        fd.inputStream.use { it.readBytes().decodeToString() }
+    } catch (_: Exception) {
+        null
     }
 }

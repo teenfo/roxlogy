@@ -43,7 +43,13 @@ Content-Type: application/json
       "ended_at": "ISO8601 | null",
       "erg": {                       // 선택 — PM5 raw (세그먼트당 한 덩어리)
         "machine_type": "ski|row",
-        "samples": [ { "t": 0, "dist": 0, "pace": 120.5, "spm": 32, "watts": 210, "cal": 0 } ]
+        "samples": [ { "t": 0, "dist": 0, "pace": 120.5, "spm": 32, "watts": 210, "cal": 0 } ],
+        // 아래 확장 필드는 선택 — PM5 가 주는 만큼 그대로 보관한다 (개수 상한 없음,
+        // 실질 방어선은 본문 2MB). 서버는 erg_samples 의 동명 컬럼에 저장한다.
+        "strokes":      [ { "n": 1, "drive_ms": 720, "recover_ms": 1480, "drive_len": 1.42,
+                            "stroke_dist": 9.8, "peak_force": 412, "avg_force": 260, "work_j": 320 } ],
+        "splits":       [ { "n": 1, "dist": 500, "ms": 105300, "spm": 31 } ],
+        "force_curves": [ { "n": 1, "points": [0, 42, 180, 380, 412, 300, 120] } ]
       }
     }
   ]
@@ -69,6 +75,7 @@ Content-Type: application/json
 | 요청 본문 | **2MB** | `413 payload_too_large` |
 | 세그먼트 수 | 64 | `400 invalid_segments` |
 | erg 샘플 총합(세션당) | **30,000** (1Hz × 8세그먼트 × ~60분 여유) | `413 too_many_samples` |
+| erg 확장(strokes·splits·force_curves) | 개수 상한 없음 — 본문 2MB 로만 제한 | `413 payload_too_large` |
 
 ## raw 다운샘플링 (확정)
 
@@ -77,8 +84,10 @@ Content-Type: application/json
 
 ## 오프라인 보관 한도 (워치 로컬, 확정)
 
-- 동기화 완료(`applied=true` 확인) 전 세션은 삭제 금지.
+- 동기화 완료 전 세션은 삭제 금지.
 - 보관 한도: **최근 20세션 또는 72시간** 중 먼저 도달하는 쪽. 초과분은 오래된 것부터 삭제하되 미동기 세션은 예외.
+- 구현 기준(2026-08-30): 워치의 `sent` 플래그는 **폰 Data Layer 전달 성공**(putDataItem 콜백)을 뜻한다. 서버 `applied=true` 를 워치로 되돌리는 ack 경로는 아직 없다 — 폰이 업로드에 성공하면 해당 DataItem 을 삭제하므로 재업로드는 일어나지 않는다.
+- 워치→폰 페이로드가 **60KB** 를 넘으면 DataItem 본문(약 100KB 한도) 대신 Asset(`payload_asset`)으로 보낸다. 폰 수신부는 두 경로를 모두 읽는다.
 
 ## 응답
 
@@ -90,7 +99,7 @@ Content-Type: application/json
 
 | HTTP | error | 의미 |
 |---|---|---|
-| 400 | `invalid_json` / `invalid_session` / `invalid_segments` | 스키마 위반 (재전송해도 실패 — 페이로드 수정 필요) |
+| 400 | `invalid_json` / `invalid_session` / `invalid_segments` / `invalid_payload` | 스키마 위반 (재전송해도 실패 — 페이로드 수정 필요). `invalid_payload` 는 uuid·타임스탬프·정수 형식 오류 |
 | 401 | `unauthenticated` | 토큰 없음/만료 — 재로그인 후 재시도 |
 | 405 | `method_not_allowed` | POST만 허용 |
 | 413 | `payload_too_large` / `too_many_samples` | 상한 초과 — 분할 불가(세션 단위 원자성)이므로 클라이언트 버그로 취급 |

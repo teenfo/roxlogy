@@ -1,4 +1,5 @@
 using Toybox.Lang;
+using Toybox.Time;
 
 // 하이록스 8스테이션 (순서·키). exerciseId는 웹 시드 UUID와 일치해야 서버에서 동일 운동 매핑.
 // :shared 의 Stations.kt / HyroxSim.kt 와 동일 개념을 Monkey C 로 이식.
@@ -56,6 +57,11 @@ class SimEngine {
     var recordedKinds;
     var recordedSplits;
     var recordedStationKeys;
+    // 업로드 페이로드에 실어야 서버가 스테이션별 분석·PR 에 잡는다
+    // (exercise_id 없는 세그먼트는 대시보드·리더보드에서 통째로 건너뛴다)
+    var recordedExerciseIds;
+    var recordedMachineTypes;
+    var startMoment;   // 세션 started_at — 전송 시각과 구분해야 날짜가 맞는다
     var idx;
 
     function initialize() {
@@ -70,6 +76,9 @@ class SimEngine {
         recordedKinds = [];
         recordedSplits = [];
         recordedStationKeys = [];
+        recordedExerciseIds = [];
+        recordedMachineTypes = [];
+        startMoment = Time.now();
         idx = 0;
     }
 
@@ -102,6 +111,8 @@ class SimEngine {
         recordedKinds.add(c.kind);
         recordedSplits.add(splitMs);
         recordedStationKeys.add(c.stationKey);
+        recordedExerciseIds.add(c.exerciseId);
+        recordedMachineTypes.add(c.machineType);
         idx++;
     }
 
