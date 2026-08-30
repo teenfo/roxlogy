@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDateShort, programDayDate } from "@/lib/format";
+import { formatTarget, type WorkoutTarget } from "@/lib/target";
 import { ProgramBuilder } from "@/components/program-builder";
 import { ProgramCalendarSubscribe } from "@/components/program-calendar-subscribe";
 import { ProgramEnrollButton } from "@/components/program-enroll-button";
@@ -72,7 +73,7 @@ export default async function ProgramDetailPage({
   const { data: exercises } = isOwner
     ? await supabase
         .from("exercises")
-        .select("id, name_ko, name_en, station_type")
+        .select("id, name_ko, name_en, station_type, category")
         .order(locale === "ko" ? "name_ko" : "name_en")
     : { data: null };
 
@@ -88,7 +89,7 @@ export default async function ProgramDetailPage({
       workout_template_items: {
         id: string;
         seq: number;
-        target: { note?: string } | null;
+        target: WorkoutTarget | null;
         exercises: { name_ko: string; name_en: string } | null;
       }[];
     }[];
@@ -216,9 +217,9 @@ export default async function ProgramDetailPage({
                             <span className="flex-1 truncate text-sm font-medium text-foreground">
                               {exName(it.exercises)}
                             </span>
-                            {it.target?.note && (
+                            {formatTarget(it.target, locale) && (
                               <span className="shrink-0 rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
-                                {it.target.note}
+                                {formatTarget(it.target, locale)}
                               </span>
                             )}
                           </li>

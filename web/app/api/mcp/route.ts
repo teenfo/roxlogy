@@ -387,6 +387,7 @@ const handler = createMcpHandler(
         description:
           "훈련 프로그램(템플릿)을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드), workouts?}] 배열. " +
           "workouts 아이템의 exercise 는 운동 DB(list_exercises)에 등록된 이름(한/영)만 허용 — 미등록 이름이 있으면 unknown_exercises 로 전체 거부되며 이름별 유사 후보(suggestions)가 함께 온다 — 표기 차이로 보이면 사용자 확인 후 후보 이름으로 재시도하고, 실제 없는 운동은 request_exercise 로 등록을 요청하라. " +
+          "아이템 처방은 숫자 필드로 구조화해 넣어라: distance_m(거리 m)·weight_kg(무게)·reps(세트당 횟수)·sets(세트)·duration_s(시간 초) — 통계 집계에 쓰이므로 '400m 8세트'는 note 가 아니라 distance_m:400, sets:8 로. note 에는 휴식·강도 등 숫자로 안 담기는 것만. " +
           "프로그램은 날짜 없는 템플릿이다 — 시작일은 개인이 웹에서 시작하거나 attach_crew_program 으로 크루에 연결할 때 정한다. 생성 전 사용자에게 구성을 확인받아라.",
         inputSchema: z.object({
           title: z.string().min(1).max(120),
@@ -408,6 +409,11 @@ const handler = createMcpHandler(
                   .array(
                     z.object({
                       exercise: z.string().min(1).max(80),
+                      distance_m: z.number().min(1).max(200000).optional(),
+                      weight_kg: z.number().gt(0).max(1000).optional(),
+                      reps: z.number().int().min(1).max(10000).optional(),
+                      sets: z.number().int().min(1).max(100).optional(),
+                      duration_s: z.number().int().min(1).max(86400).optional(),
                       note: z.string().max(80).optional(),
                     }),
                   )
@@ -445,7 +451,7 @@ const handler = createMcpHandler(
       {
         title: "프로그램 일차 수정",
         description:
-          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. workouts 를 주면 그 일차의 워크아웃을 통째로 교체한다(운동은 list_exercises 의 등록 이름만). focus·notes·workouts 를 모두 생략하면 그 일차를 삭제한다.",
+          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. workouts 를 주면 그 일차의 워크아웃을 통째로 교체한다(운동은 list_exercises 의 등록 이름만). 아이템 처방은 distance_m·weight_kg·reps·sets·duration_s 숫자 필드로 구조화하고 note 에는 휴식·강도만. focus·notes·workouts 를 모두 생략하면 그 일차를 삭제한다.",
         inputSchema: z.object({
           program_id: z.string().uuid(),
           day_index: z.number().int().min(1),
@@ -462,6 +468,11 @@ const handler = createMcpHandler(
                   .array(
                     z.object({
                       exercise: z.string().min(1).max(80),
+                      distance_m: z.number().min(1).max(200000).optional(),
+                      weight_kg: z.number().gt(0).max(1000).optional(),
+                      reps: z.number().int().min(1).max(10000).optional(),
+                      sets: z.number().int().min(1).max(100).optional(),
+                      duration_s: z.number().int().min(1).max(86400).optional(),
                       note: z.string().max(80).optional(),
                     }),
                   )

@@ -6,6 +6,7 @@ import {
   WorkoutChecklist,
   type ChecklistItem,
 } from "@/components/workout-checklist";
+import { formatTarget, type WorkoutTarget } from "@/lib/target";
 
 export async function generateMetadata({
   params,
@@ -25,7 +26,7 @@ export async function generateMetadata({
 type Item = {
   id: string;
   seq: number;
-  target: { note?: string } | null;
+  target: WorkoutTarget | null;
   exercises: { id: string; name_ko: string; name_en: string } | null;
 };
 
@@ -100,7 +101,7 @@ export default async function WorkoutPage({
       id: it.id,
       name: ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : "—",
       exerciseId: ex?.id ?? null,
-      targetNote: it.target?.note ?? null,
+      targetNote: formatTarget(it.target, locale),
     };
   });
 

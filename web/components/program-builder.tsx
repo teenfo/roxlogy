@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { RUN_EXERCISE_ID, STATIONS } from "@/lib/hyrox";
 import { programDayDate } from "@/lib/format";
+import { formatTarget, type WorkoutTarget } from "@/lib/target";
 
 /** 레이스 시뮬 전체 종목 순서: (런 → 스테이션) × 8 = 16 */
 const RACE_SIM_SEQUENCE: string[] = STATIONS.flatMap((s) => [
@@ -16,7 +17,7 @@ const RACE_SIM_SEQUENCE: string[] = STATIONS.flatMap((s) => [
 type Item = {
   id: string;
   seq: number;
-  target: { note?: string } | null;
+  target: WorkoutTarget | null;
   exercises: { name_ko: string; name_en: string } | null;
 };
 type Workout = {
@@ -37,9 +38,50 @@ type Exercise = {
   name_ko: string;
   name_en: string;
   station_type: string | null;
+  category: string | null;
 };
 
 const WORKOUT_TYPES = ["race_sim", "wod", "run", "strength"] as const;
+
+/** 항목 추가 폼 초안 — 처방은 숫자 필드로 입력받아 target 으로 구조화한다 */
+type TargetDraft = {
+  ex: string;
+  distance: string;
+  weight: string;
+  reps: string;
+  sets: string;
+  duration: string;
+  note: string;
+};
+const EMPTY_DRAFT: TargetDraft = {
+  ex: "",
+  distance: "",
+  weight: "",
+  reps: "",
+  sets: "",
+  duration: "",
+  note: "",
+};
+
+type TargetField = "distance" | "weight" | "reps" | "sets" | "duration";
+
+/** 종목 성격에 맞는 처방 칸만 노출 */
+function fieldsFor(ex: Exercise | undefined): TargetField[] {
+  if (!ex) return [];
+  if (ex.station_type) return ["distance", "weight", "reps", "sets"];
+  switch (ex.category) {
+    case "running":
+      return ["distance", "sets", "duration"];
+    case "strength":
+      return ["weight", "reps", "sets"];
+    case "conditioning":
+      return ["distance", "reps", "sets", "duration"];
+    case "mobility":
+      return ["duration", "sets"];
+    default:
+      return ["distance", "weight", "reps", "sets", "duration"];
+  }
+}
 
 export function ProgramBuilder({
   programId,
@@ -59,9 +101,7 @@ export function ProgramBuilder({
   const supabase = createClient();
   const [busy, setBusy] = useState(false);
   // 각 워크아웃별 항목 추가 폼 상태
-  const [pick, setPick] = useState<Record<string, { ex: string; note: string }>>(
-    {},
-  );
+  const [pick, setPick] = useState<Record<string, TargetDraft>>({});
 
   const exName = (ex: { name_ko: string; name_en: string } | null) =>
     ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : "—";
@@ -137,6 +177,22 @@ export function ProgramBuilder({
   const addItem = (w: Workout) => {
     const p = pick[w.id];
     if (!p?.ex) return;
+    const num = (v: string) => {
+      const n = Number(v.trim());
+      return v.trim() && Number.isFinite(n) && n > 0 ? n : undefined;
+    };
+    const target: WorkoutTarget = {};
+    const d = num(p.distance);
+    if (d) target.distance_m = Math.round(d);
+    const kg = num(p.weight);
+    if (kg) target.weight_kg = kg;
+    const reps = num(p.reps);
+    if (reps) target.reps = Math.round(reps);
+    const sets = num(p.sets);
+    if (sets) target.sets = Math.round(sets);
+    const dur = num(p.duration);
+    if (dur) target.duration_s = Math.round(dur);
+    if (p.note.trim()) target.note = p.note.trim();
     const nextSeq =
       w.workout_template_items.reduce((m, i) => Math.max(m, i.seq), 0) + 1;
     return run(async () => {
@@ -144,9 +200,9 @@ export function ProgramBuilder({
         template_id: w.id,
         seq: nextSeq,
         exercise_id: p.ex,
-        target: p.note.trim() ? { note: p.note.trim() } : null,
+        target: Object.keys(target).length ? target : null,
       });
-      setPick((s) => ({ ...s, [w.id]: { ex: "", note: "" } }));
+      setPick((s) => ({ ...s, [w.id]: EMPTY_DRAFT }));
     });
   };
 
@@ -165,6 +221,7 @@ export function ProgramBuilder({
           dayDate={programDayDate(startDate, d.day_index, locale)}
           exercises={exercises}
           exName={exName}
+          locale={locale}
           pick={pick}
           setPick={setPick}
           busy={busy}
@@ -200,6 +257,7 @@ function DayCard({
   dayDate,
   exercises,
   exName,
+  locale,
   pick,
   setPick,
   busy,
@@ -218,10 +276,9 @@ function DayCard({
   dayDate: string | null;
   exercises: Exercise[];
   exName: (ex: { name_ko: string; name_en: string } | null) => string;
-  pick: Record<string, { ex: string; note: string }>;
-  setPick: React.Dispatch<
-    React.SetStateAction<Record<string, { ex: string; note: string }>>
-  >;
+  locale: string;
+  pick: Record<string, TargetDraft>;
+  setPick: React.Dispatch<React.SetStateAction<Record<string, TargetDraft>>>;
   busy: boolean;
   inputCls: string;
   canUp: boolean;
@@ -323,9 +380,9 @@ function DayCard({
                       <span className="flex-1 truncate text-sm font-medium text-foreground">
                         {exName(it.exercises)}
                       </span>
-                      {it.target?.note && (
+                      {formatTarget(it.target, locale) && (
                         <span className="shrink-0 rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
-                          {it.target.note}
+                          {formatTarget(it.target, locale)}
                         </span>
                       )}
                       <button
@@ -346,14 +403,14 @@ function DayCard({
               </p>
             )}
 
-            {/* 항목 추가 */}
+            {/* 항목 추가 — 처방은 종목 성격에 맞는 숫자 칸으로 입력 */}
             <div className="mt-2 flex flex-wrap gap-2">
               <select
                 value={pick[w.id]?.ex ?? ""}
                 onChange={(e) =>
                   setPick((s) => ({
                     ...s,
-                    [w.id]: { ex: e.target.value, note: s[w.id]?.note ?? "" },
+                    [w.id]: { ...EMPTY_DRAFT, ...s[w.id], ex: e.target.value },
                   }))
                 }
                 className={`${inputCls} min-w-40 flex-1`}
@@ -365,16 +422,39 @@ function DayCard({
                   </option>
                 ))}
               </select>
+              {fieldsFor(exercises.find((ex) => ex.id === pick[w.id]?.ex)).map(
+                (f) => (
+                  <input
+                    key={f}
+                    value={pick[w.id]?.[f] ?? ""}
+                    onChange={(e) =>
+                      setPick((s) => ({
+                        ...s,
+                        [w.id]: {
+                          ...EMPTY_DRAFT,
+                          ...s[w.id],
+                          [f]: e.target.value.replace(/[^0-9.]/g, ""),
+                        },
+                      }))
+                    }
+                    inputMode="decimal"
+                    placeholder={t(
+                      `programs.tgt.${f}` as Parameters<typeof t>[0],
+                    )}
+                    className={`${inputCls} w-20`}
+                  />
+                ),
+              )}
               <input
                 value={pick[w.id]?.note ?? ""}
                 onChange={(e) =>
                   setPick((s) => ({
                     ...s,
-                    [w.id]: { ex: s[w.id]?.ex ?? "", note: e.target.value },
+                    [w.id]: { ...EMPTY_DRAFT, ...s[w.id], note: e.target.value },
                   }))
                 }
                 placeholder={t("programs.targetPh")}
-                className={`${inputCls} w-28`}
+                className={`${inputCls} w-32`}
               />
               <button
                 type="button"
