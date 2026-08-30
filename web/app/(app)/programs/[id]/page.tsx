@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDateShort, programDayDate } from "@/lib/format";
-import { formatTarget, type WorkoutTarget } from "@/lib/target";
+import { targetParts, type WorkoutTarget } from "@/lib/target";
 import { ProgramBuilder } from "@/components/program-builder";
 import { ProgramCalendarSubscribe } from "@/components/program-calendar-subscribe";
 import { ProgramEnrollButton } from "@/components/program-enroll-button";
@@ -219,11 +219,18 @@ export default async function ProgramDetailPage({
                                 {exName(it.exercises)}
                               </span>
                             </div>
-                            {formatTarget(it.target, locale) && (
-                              <p className="mt-1 pl-8">
-                                <span className="inline-block rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
-                                  {formatTarget(it.target, locale)}
-                                </span>
+                            {targetParts(it.target, locale).length > 0 && (
+                              <p className="mt-1 flex flex-wrap gap-1 pl-8">
+                                {targetParts(it.target, locale).map(
+                                  (part, j) => (
+                                    <span
+                                      key={j}
+                                      className="rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent"
+                                    >
+                                      {part}
+                                    </span>
+                                  ),
+                                )}
                               </p>
                             )}
                           </li>

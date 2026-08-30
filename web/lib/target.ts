@@ -15,12 +15,14 @@ const LABELS: Record<string, { reps: string; sets: string; min: string; sec: str
   es: { reps: " reps", sets: " series", min: "min", sec: "s" },
 };
 
-/** 예: {distance_m:400, sets:8, note:"세트간 90초 휴식"} → "400m × 8세트 — 세트간 90초 휴식" */
-export function formatTarget(
+/** 처방을 개별 배지 문자열 배열로.
+ *  예: {distance_m:400, sets:8, note:"세트간 90초 휴식"}
+ *    → ["400m", "8세트", "세트간 90초 휴식"] */
+export function targetParts(
   target: WorkoutTarget | null | undefined,
   locale: string,
-): string | null {
-  if (!target) return null;
+): string[] {
+  if (!target) return [];
   const l = LABELS[locale] ?? LABELS.en;
   const parts: string[] = [];
   if (target.distance_m)
@@ -37,7 +39,25 @@ export function formatTarget(
         ? `${target.duration_s / 60}${l.min}`
         : `${target.duration_s}${l.sec}`,
     );
-  let main = parts.join(" · ");
+  if (target.sets) parts.push(`${target.sets}${l.sets}`);
+  const note = target.note?.trim();
+  if (note) parts.push(note);
+  return parts;
+}
+
+/** 처방을 한 문장으로 (배지 분리가 어려운 자리용).
+ *  예: "400m × 8세트 — 세트간 90초 휴식" */
+export function formatTarget(
+  target: WorkoutTarget | null | undefined,
+  locale: string,
+): string | null {
+  if (!target) return null;
+  const l = LABELS[locale] ?? LABELS.en;
+  const scale = targetParts(
+    { ...target, sets: undefined, note: undefined },
+    locale,
+  );
+  let main = scale.join(" · ");
   if (target.sets)
     main = main ? `${main} × ${target.sets}${l.sets}` : `${target.sets}${l.sets}`;
   const note = target.note?.trim();

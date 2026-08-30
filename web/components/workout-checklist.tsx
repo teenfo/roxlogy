@@ -9,7 +9,8 @@ export type ChecklistItem = {
   id: string;
   name: string;
   exerciseId: string | null;
-  targetNote: string | null;
+  /** 처방 배지들 — 서버에서 targetParts 로 조립해 전달 */
+  targetParts: string[];
 };
 
 export type ItemLog = {
@@ -234,9 +235,16 @@ export function WorkoutChecklist({
                     </p>
                   )}
                 </div>
-                {it.targetNote && (
-                  <span className="shrink-0 rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
-                    {it.targetNote}
+                {it.targetParts.length > 0 && (
+                  <span className="flex max-w-[55%] shrink-0 flex-wrap justify-end gap-1">
+                    {it.targetParts.map((part, j) => (
+                      <span
+                        key={j}
+                        className="rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent"
+                      >
+                        {part}
+                      </span>
+                    ))}
                   </span>
                 )}
                 <button

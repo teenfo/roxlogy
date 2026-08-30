@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { RUN_EXERCISE_ID, STATIONS } from "@/lib/hyrox";
 import { programDayDate } from "@/lib/format";
-import { formatTarget, type WorkoutTarget } from "@/lib/target";
+import { targetParts, type WorkoutTarget } from "@/lib/target";
 
 /** 레이스 시뮬 전체 종목 순서: (런 → 스테이션) × 8 = 16 */
 const RACE_SIM_SEQUENCE: string[] = STATIONS.flatMap((s) => [
@@ -391,11 +391,16 @@ function DayCard({
                           ✕
                         </button>
                       </div>
-                      {formatTarget(it.target, locale) && (
-                        <p className="mt-1 pl-8">
-                          <span className="inline-block rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
-                            {formatTarget(it.target, locale)}
-                          </span>
+                      {targetParts(it.target, locale).length > 0 && (
+                        <p className="mt-1 flex flex-wrap gap-1 pl-8">
+                          {targetParts(it.target, locale).map((part, j) => (
+                            <span
+                              key={j}
+                              className="rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent"
+                            >
+                              {part}
+                            </span>
+                          ))}
                         </p>
                       )}
                     </li>
