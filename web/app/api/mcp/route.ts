@@ -314,15 +314,304 @@ const handler = createMcpHandler(
           }),
         ),
     );
+
+    // ---------- 훈련 프로그램
+
+    server.registerTool(
+      "list_my_programs",
+      {
+        title: "내 훈련 프로그램 목록",
+        description:
+          "내가 만든 훈련 프로그램 목록 — 제목, 주수, 레벨, 시작일, 일차 수, 연결된 크루 slug.",
+        inputSchema: z.object({}),
+      },
+      async (_a, ctx) =>
+        out(await rpc("mcp_my_programs", { p_token: tok(ctx) })),
+    );
+
+    server.registerTool(
+      "get_program",
+      {
+        title: "프로그램 상세",
+        description:
+          "훈련 프로그램 1건의 상세 — 일차별(day_index) 포커스와 내용. 내 프로그램, 공개 프로그램, 내 크루에 연결된 프로그램을 볼 수 있다.",
+        inputSchema: z.object({ program_id: z.string().uuid() }),
+      },
+      async ({ program_id }, ctx) =>
+        out(await rpc("mcp_program", { p_token: tok(ctx), p_id: program_id })),
+    );
+
+    server.registerTool(
+      "create_program",
+      {
+        title: "훈련 프로그램 생성",
+        description:
+          "훈련 프로그램을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드)}] 배열. " +
+          "예: 10주 계획 문서를 받으면 주차별 세션을 day_index 로 배치해 등록. 생성 전 사용자에게 구성을 확인받아라.",
+        inputSchema: z.object({
+          title: z.string().min(1).max(120),
+          weeks: z.number().int().min(1).max(20),
+          days: z
+            .array(
+              z.object({
+                day_index: z.number().int().min(1),
+                focus: z.string().max(200).optional(),
+                notes: z.string().max(2000).optional(),
+              }),
+            )
+            .min(1)
+            .max(140),
+          level: z
+            .enum(["beginner", "intermediate", "advanced", "elite"])
+            .optional(),
+          description: z.string().max(2000).optional(),
+          start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          repeat: z.boolean().optional(),
+        }),
+      },
+      async ({ title, weeks, days, level, description, start_date, repeat }, ctx) =>
+        out(
+          await rpc("mcp_create_program", {
+            p_token: tok(ctx),
+            p_title: title,
+            p_weeks: weeks,
+            p_days: days,
+            p_level: level ?? "intermediate",
+            p_description: description ?? null,
+            p_start_date: start_date ?? null,
+            p_repeat: repeat ?? false,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "set_program_day",
+      {
+        title: "프로그램 일차 수정",
+        description:
+          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. focus 와 notes 를 모두 생략하면 그 일차를 삭제한다.",
+        inputSchema: z.object({
+          program_id: z.string().uuid(),
+          day_index: z.number().int().min(1),
+          focus: z.string().max(200).optional(),
+          notes: z.string().max(2000).optional(),
+        }),
+      },
+      async ({ program_id, day_index, focus, notes }, ctx) =>
+        out(
+          await rpc("mcp_set_program_day", {
+            p_token: tok(ctx),
+            p_program: program_id,
+            p_day_index: day_index,
+            p_focus: focus ?? null,
+            p_notes: notes ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "attach_crew_program",
+      {
+        title: "크루에 프로그램 연결 (운영진)",
+        description:
+          "훈련 프로그램을 크루에 연결해 크루 일정표에 일차별로 표시한다 (운영진 전용, 본인 소유/공개 프로그램만). 이미 연결돼 있으면 기간을 갱신한다. 연결 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          program_id: z.string().uuid(),
+          start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        }),
+      },
+      async ({ slug, program_id, start_date, end_date }, ctx) =>
+        out(
+          await rpc("mcp_attach_crew_program", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_program: program_id,
+            ...(start_date ? { p_start_date: start_date } : {}),
+            p_end_date: end_date ?? null,
+          }),
+        ),
+    );
+
+    // ---------- 크루 고도화
+
+    server.registerTool(
+      "list_crew_members",
+      {
+        title: "크루 멤버 목록",
+        description:
+          "크루의 활성 멤버 명단 — 이름, 역할(owner=리더/coach=부리더/member=정회원/associate=일반회원), 가입일. 운영진 토큰이면 user_id 와 가입 대기자(pending) 목록도 포함.",
+        inputSchema: z.object({ slug: z.string() }),
+      },
+      async ({ slug }, ctx) =>
+        out(
+          await rpc("mcp_crew_members", { p_token: tok(ctx), p_slug: slug }),
+        ),
+    );
+
+    server.registerTool(
+      "update_crew_meetup",
+      {
+        title: "크루 모임 수정·취소 (운영진)",
+        description:
+          "등록된 모임의 제목·시각·장소·설명·정회원 전용·댓글 허용을 부분 수정하거나 취소(cancel=true)한다 (운영진 전용). event_id 는 get_crew_schedule 에는 없으므로 웹 일정 URL 또는 사용자에게 확인. 수정 전 내용을 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          event_id: z.string().uuid(),
+          title: z.string().max(120).optional(),
+          starts_at: z.string().optional(),
+          location: z.string().max(120).optional(),
+          description: z.string().max(4000).optional(),
+          members_only: z.boolean().optional(),
+          comments_allowed: z.boolean().optional(),
+          cancel: z.boolean().optional(),
+        }),
+      },
+      async (
+        { slug, event_id, title, starts_at, location, description, members_only, comments_allowed, cancel },
+        ctx,
+      ) =>
+        out(
+          await rpc("mcp_update_meetup", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_event: event_id,
+            p_title: title ?? null,
+            p_starts_at: starts_at ?? null,
+            p_location: location ?? null,
+            p_description: description ?? null,
+            p_members_only: members_only ?? null,
+            p_comments_allowed: comments_allowed ?? null,
+            p_cancel: cancel ?? false,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "rsvp_meetup",
+      {
+        title: "모임 참석 체크",
+        description:
+          "크루 모임에 본인 참석 여부를 등록한다 (going=참석, maybe=미정, declined=불참). 정회원 전용 모임은 정회원만 가능.",
+        inputSchema: z.object({
+          event_id: z.string().uuid(),
+          status: z.enum(["going", "maybe", "declined"]),
+        }),
+      },
+      async ({ event_id, status }, ctx) =>
+        out(
+          await rpc("mcp_rsvp", {
+            p_token: tok(ctx),
+            p_event: event_id,
+            p_status: status,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "get_crew_board",
+      {
+        title: "크루 게시판",
+        description:
+          "크루 게시판 최근 글 — 카테고리(notice/free/wod/review/recruit/question), 제목, 본문(1000자), 작성자, 고정 여부, 댓글 수. 정회원 전용 글은 권한에 맞게 필터된다. limit 최대 30.",
+        inputSchema: z.object({
+          slug: z.string(),
+          limit: z.number().int().min(1).max(30).optional(),
+          category: z
+            .enum(["notice", "free", "wod", "review", "recruit", "question"])
+            .optional(),
+        }),
+      },
+      async ({ slug, limit, category }, ctx) =>
+        out(
+          await rpc("mcp_crew_board", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_limit: limit ?? 10,
+            p_category: category ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "get_crew_dues",
+      {
+        title: "크루 회비 현황",
+        description:
+          "월별 회비 납부 현황 — 본인 상태(unpaid/reported/confirmed). 운영진 토큰이면 멤버별 매트릭스와 미납 인원 수 포함. month 는 YYYY-MM, 기본 이번 달.",
+        inputSchema: z.object({
+          slug: z.string(),
+          month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+        }),
+      },
+      async ({ slug, month }, ctx) =>
+        out(
+          await rpc("mcp_dues", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_month: month ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "confirm_dues_payment",
+      {
+        title: "회비 납부 확정 (운영진)",
+        description:
+          "멤버의 월 회비 납부를 확정한다 (운영진 전용, 멱등). amount(KRW)를 넣으면 회계에 수입이 자동 기록된다. user_id 는 get_crew_dues 매트릭스에서. 확정 전 사용자에게 누구·얼마인지 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          user_id: z.string().uuid(),
+          month: z.string().regex(/^\d{4}-\d{2}$/),
+          amount: z.number().int().positive().optional(),
+        }),
+      },
+      async ({ slug, user_id, month, amount }, ctx) =>
+        out(
+          await rpc("mcp_set_dues_paid", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_user_id: user_id,
+            p_month: month,
+            p_amount: amount ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "report_my_dues",
+      {
+        title: "회비 납부 신고 (본인)",
+        description:
+          "본인이 회비를 납부했다고 신고한다 — 확인 대기(reported) 상태가 되고 운영진이 입금 대조 후 확정한다. month 기본 이번 달.",
+        inputSchema: z.object({
+          slug: z.string(),
+          month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+        }),
+      },
+      async ({ slug, month }, ctx) =>
+        out(
+          await rpc("mcp_report_dues", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_month: month ?? null,
+          }),
+        ),
+    );
   },
   {
-    serverInfo: { name: "roxlogy", version: "1.0.0" },
+    serverInfo: { name: "roxlogy", version: "2.0.0" },
     instructions:
       "Roxlogy 하이록스 훈련 데이터 API. 시간 값은 밀리초(ms). " +
       "크루 도구의 slug 는 get_profile 의 crews 목록에서 얻는다. " +
       "결과가 null 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다. " +
-      "쓰기 도구(회계 기록·모임 등록·공지·가입 승인)는 크루 운영진 토큰만 동작하며, " +
-      "실행 전 반드시 사용자에게 내용을 확인받는다.",
+      "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
+      "쓰기 도구(회계·모임 등록/수정·공지·승인·프로그램 생성/연결·회비 확정)는 " +
+      "실행 전 반드시 사용자에게 내용을 확인받는다. " +
+      "훈련 계획 문서를 받으면 create_program 으로 일차별 등록 후 " +
+      "attach_crew_program 으로 크루 일정표에 연결할 수 있다.",
   },
 );
 
