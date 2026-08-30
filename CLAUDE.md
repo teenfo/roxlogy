@@ -42,6 +42,8 @@
 - 클라이언트는 anon 키 + RLS로만 접근.
 - **함수 실행 권한은 기본 차단**(2026-08-30, 마이그레이션 013·024). anon·authenticated는 기본 권한에서 회수했고, PUBLIC은 이벤트 트리거 `rox_lock_new_functions_trg`가 함수 생성 직후 회수한다(`alter default privileges … from public`은 실제로 적용되지 않아 이벤트 트리거로 대체). 클라이언트(웹 anon 키·MCP)가 호출할 RPC는 정의 직후 반드시 `grant execute on function public.<name>(<args>) to anon, authenticated;` 를 붙일 것 — 빠뜨리면 permission denied로 시끄럽게 실패한다. 반대로 **호출자 검증이 없는 SECURITY DEFINER 함수(내부 헬퍼·크론·트리거용)에는 절대 grant하지 말 것** — 과거 `enqueue_notification`·`_mcp_insert_workouts`가 익명 호출 가능한 상태였다.
 - 컬럼을 드롭하는 마이그레이션은 그 컬럼을 참조하는 함수를 함께 재정의할 것 (`language sql` 함수는 의존성이 추적되지 않아 드롭이 성공하고 호출 시점에 터진다).
+- **인자 DEFAULT 식은 호출자 권한으로 평가된다** — SECURITY DEFINER 함수라도 `p_from date default app_today()` 처럼 쓰면 anon·authenticated 가 그 함수를 실행할 수 있어야 한다(없으면 인자를 생략한 RPC 호출만 permission denied 로 죽는다). 그래서 `app_today()` 에는 예외적으로 execute 를 부여했다.
+- RLS 정책은 명령별로 **하나씩만** 둘 것 — `for all` 쓰기 정책은 SELECT 분기를 하나 더 만들고, 같은 명령에 정책이 여러 개면 매 쿼리마다 OR 분기가 늘어난다. 관리자·공유 같은 예외는 새 정책이 아니라 기존 정책에 OR 로 합칠 것. `is_admin()` 등 인자 없는 함수는 `(select is_admin())` 로 감싸 initplan 으로 한 번만 평가되게 한다.
 
 ## 디렉토리 구조
 ```
