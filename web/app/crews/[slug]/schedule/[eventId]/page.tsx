@@ -35,6 +35,7 @@ type EventDetail = {
   is_staff: boolean;
   comments_allowed: boolean;
   comments: EventComment[];
+  waitlist_names: string[];
 };
 
 export default async function CrewEventPage({
@@ -110,6 +111,12 @@ export default async function CrewEventPage({
           </ul>
         ) : (
           <p className="mt-2 text-xs text-muted">—</p>
+        )}
+        {ev.waitlist_names.length > 0 && (
+          <p className="mt-3 text-xs text-accent">
+            ⏳ {t("crew.waitlistTitle")} ({ev.waitlist_names.length}):{" "}
+            {ev.waitlist_names.join(", ")}
+          </p>
         )}
         {ev.maybe_names.length > 0 && (
           <p className="mt-3 text-xs text-muted">

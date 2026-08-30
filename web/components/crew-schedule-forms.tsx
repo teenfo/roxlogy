@@ -17,6 +17,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
   const [when, setWhen] = useState("");
   const [location, setLocation] = useState("");
   const [desc, setDesc] = useState("");
+  const [capacity, setCapacity] = useState("");
   const [membersOnly, setMembersOnly] = useState(false);
   const [commentsAllowed, setCommentsAllowed] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -36,6 +37,10 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
       starts_at: new Date(when).toISOString(),
       location: location.trim() || null,
       description: desc.trim() || null,
+      capacity:
+        /^\d+$/.test(capacity.trim()) && parseInt(capacity, 10) > 0
+          ? parseInt(capacity, 10)
+          : null,
       members_only: membersOnly,
       comments_allowed: commentsAllowed,
       created_by: u.user?.id ?? null,
@@ -49,6 +54,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
     setWhen("");
     setLocation("");
     setDesc("");
+    setCapacity("");
     setMembersOnly(false);
     setCommentsAllowed(true);
     setOpen(false);
@@ -95,6 +101,14 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
         onChange={(e) => setDesc(e.target.value)}
         placeholder={t("crew.meetupDescPh")}
         maxLength={1000}
+      />
+      <input
+        className={input}
+        value={capacity}
+        onChange={(e) => setCapacity(e.target.value)}
+        placeholder={t("crew.meetupCapacityPh")}
+        inputMode="numeric"
+        maxLength={4}
       />
       <label className="flex cursor-pointer items-center gap-2 text-xs">
         <input
@@ -524,8 +538,10 @@ export function CrewRsvpButtons({
     else router.refresh();
   }
 
+  // 정원 초과로 참석 신청이 대기로 전환된 상태 — 참석 버튼을 대기 스타일로
+  const waitlisted = myStatus === "waitlisted";
   const opts = [
-    ["going", t("crew.rsvpGoing")],
+    ["going", waitlisted ? `⏳ ${t("crew.rsvpWaitlisted")}` : t("crew.rsvpGoing")],
     ["maybe", t("crew.rsvpMaybe")],
     ["declined", t("crew.rsvpDeclined")],
   ] as const;
@@ -540,10 +556,12 @@ export function CrewRsvpButtons({
             disabled={busy}
             onClick={() => set(v)}
             className={`rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-50 ${
-              myStatus === v
+              myStatus === v || (v === "going" && waitlisted)
                 ? v === "declined"
                   ? "bg-red-400/20 text-red-400"
-                  : "bg-accent text-background"
+                  : waitlisted && v === "going"
+                    ? "bg-accent/25 text-accent ring-1 ring-accent/50"
+                    : "bg-accent text-background"
                 : "bg-surface text-muted hover:text-foreground"
             }`}
           >
@@ -551,6 +569,9 @@ export function CrewRsvpButtons({
           </button>
         ))}
       </div>
+      {waitlisted && (
+        <p className="mt-2 text-xs text-accent">{t("crew.waitlistNote")}</p>
+      )}
       {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
     </div>
   );

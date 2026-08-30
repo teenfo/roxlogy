@@ -205,7 +205,7 @@ const handler = createMcpHandler(
       {
         title: "크루 모임 등록 (운영진)",
         description:
-          "크루 모임 일정을 등록한다 (운영진 전용). starts_at 은 ISO8601 + 타임존 오프셋 (예: 2026-09-01T19:30:00+09:00). kind: wod|race_sim|run|strength|social|race (기본 social). 등록 전 사용자에게 내용을 확인받아라.",
+          "크루 모임 일정을 등록한다 (운영진 전용). starts_at 은 ISO8601 + 타임존 오프셋 (예: 2026-09-01T19:30:00+09:00). kind: wod|race_sim|run|strength|social|race (기본 social). capacity(정원)를 주면 초과 참석 신청은 자동으로 대기열에 들어가고, 공석이 생기면 순서대로 자동 참석된다. 등록 전 사용자에게 내용을 확인받아라.",
         inputSchema: z.object({
           slug: z.string(),
           title: z.string().min(1).max(120),
@@ -215,9 +215,10 @@ const handler = createMcpHandler(
           kind: z
             .enum(["wod", "race_sim", "run", "strength", "social", "race"])
             .optional(),
+          capacity: z.number().int().min(1).optional(),
         }),
       },
-      async ({ slug, title, starts_at, location, description, kind }, ctx) =>
+      async ({ slug, title, starts_at, location, description, kind, capacity }, ctx) =>
         out(
           await rpc("mcp_add_meetup", {
             p_token: tok(ctx),
@@ -227,6 +228,7 @@ const handler = createMcpHandler(
             p_location: location ?? null,
             p_description: description ?? null,
             p_kind: kind ?? "social",
+            p_capacity: capacity ?? null,
           }),
         ),
     );
@@ -455,7 +457,7 @@ const handler = createMcpHandler(
       {
         title: "크루 모임 수정·취소 (운영진)",
         description:
-          "등록된 모임의 제목·시각·장소·설명·정회원 전용·댓글 허용을 부분 수정하거나 취소(cancel=true)한다 (운영진 전용). event_id 는 get_crew_schedule 에는 없으므로 웹 일정 URL 또는 사용자에게 확인. 수정 전 내용을 확인받아라.",
+          "등록된 모임의 제목·시각·장소·설명·정원·정회원 전용·댓글 허용을 부분 수정하거나 취소(cancel=true)한다 (운영진 전용). capacity=0 은 정원 해제(무제한 — 대기자 전원 자동 참석), 정원을 늘리면 대기자가 순서대로 자동 승격된다. event_id 는 get_crew_schedule 에는 없으므로 웹 일정 URL 또는 사용자에게 확인. 수정 전 내용을 확인받아라.",
         inputSchema: z.object({
           slug: z.string(),
           event_id: z.string().uuid(),
@@ -466,10 +468,11 @@ const handler = createMcpHandler(
           members_only: z.boolean().optional(),
           comments_allowed: z.boolean().optional(),
           cancel: z.boolean().optional(),
+          capacity: z.number().int().min(0).optional(),
         }),
       },
       async (
-        { slug, event_id, title, starts_at, location, description, members_only, comments_allowed, cancel },
+        { slug, event_id, title, starts_at, location, description, members_only, comments_allowed, cancel, capacity },
         ctx,
       ) =>
         out(
@@ -484,6 +487,7 @@ const handler = createMcpHandler(
             p_members_only: members_only ?? null,
             p_comments_allowed: comments_allowed ?? null,
             p_cancel: cancel ?? false,
+            p_capacity: capacity ?? null,
           }),
         ),
     );
@@ -493,7 +497,7 @@ const handler = createMcpHandler(
       {
         title: "모임 참석 체크",
         description:
-          "크루 모임에 본인 참석 여부를 등록한다 (going=참석, maybe=미정, declined=불참). 정회원 전용 모임은 정회원만 가능.",
+          "크루 모임에 본인 참석 여부를 등록한다 (going=참석, maybe=미정, declined=불참). 정회원 전용 모임은 정회원만 가능. 정원이 찬 모임에 참석 신청하면 status=waitlisted(대기)로 응답되며 waitlist_position 이 대기 순번 — 공석이 생기면 순서대로 자동 참석 처리된다.",
         inputSchema: z.object({
           event_id: z.string().uuid(),
           status: z.enum(["going", "maybe", "declined"]),
