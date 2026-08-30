@@ -912,6 +912,11 @@ const es: Record<DictKey, string> = {
   "programs.fldWeeks": "Semanas",
   "programs.fldLevel": "Nivel",
   "programs.fldStartDate": "Fecha de inicio",
+  "programs.mySchedule": "Mi calendario",
+  "programs.enrollTitle": "Empezar este programa",
+  "programs.enrollDesc": "El programa es una plantilla — elige cuándo empieza tu calendario.",
+  "programs.enrollEndPreview": "Fin previsto:",
+  "programs.enrollRepeatNote": "Programa repetitivo — cicla hasta que lo detengas.",
   "programs.fldEndDate": "Fecha de fin",
   "programs.fldPublic": "Compartir públicamente",
   "programs.publicHint":

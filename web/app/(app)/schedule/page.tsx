@@ -14,7 +14,6 @@ type EnrollProgram = {
   programs: {
     id: string;
     title: string;
-    end_date: string | null;
     repeat_enabled: boolean;
     program_days: {
       day_index: number;
@@ -46,7 +45,7 @@ export default async function SchedulePage({
     .from("program_enrollments")
     .select(
       `start_date,
-       programs ( id, title, end_date, repeat_enabled,
+       programs ( id, title, repeat_enabled,
          program_days ( day_index, focus,
            workout_templates ( id, title, type ) ) )`,
     )
@@ -124,9 +123,6 @@ export default async function SchedulePage({
     0,
   );
   const repeat = enroll.programs.repeat_enabled;
-  const endAt = enroll.programs.end_date
-    ? midnight(new Date(enroll.programs.end_date + "T00:00:00"))
-    : null;
 
   // 이번 주(월요일 시작) + weekOffset
   const base = midnight(new Date());
@@ -135,10 +131,9 @@ export default async function SchedulePage({
     const date = midnight(new Date(base));
     date.setDate(base.getDate() + i);
     const daysSince = Math.floor((date.getTime() - start.getTime()) / 86400000);
-    const pastEnd = repeat && endAt !== null && date.getTime() > endAt.getTime();
-    const dayIndex = pastEnd
-      ? -1
-      : (programDayNumber(daysSince, cycleLen, repeat) ?? -1);
+    // 종료 판정: 비반복은 프로그램 길이를 넘으면 끝 (반복은 무기한 순환)
+    const raw = programDayNumber(daysSince, cycleLen, repeat) ?? -1;
+    const dayIndex = raw > cycleLen ? -1 : raw;
     const day = dayIndex >= 1 ? (dayMap.get(dayIndex) ?? null) : null;
     const doneSessionId = day
       ? (day.workout_templates

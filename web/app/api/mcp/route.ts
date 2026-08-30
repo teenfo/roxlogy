@@ -348,8 +348,8 @@ const handler = createMcpHandler(
       {
         title: "훈련 프로그램 생성",
         description:
-          "훈련 프로그램을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드)}] 배열. " +
-          "예: 10주 계획 문서를 받으면 주차별 세션을 day_index 로 배치해 등록. 생성 전 사용자에게 구성을 확인받아라.",
+          "훈련 프로그램(템플릿)을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드)}] 배열. " +
+          "프로그램은 날짜 없는 템플릿이다 — 시작일은 개인이 웹에서 시작하거나 attach_crew_program 으로 크루에 연결할 때 정한다. 생성 전 사용자에게 구성을 확인받아라.",
         inputSchema: z.object({
           title: z.string().min(1).max(120),
           weeks: z.number().int().min(1).max(20),
@@ -367,11 +367,10 @@ const handler = createMcpHandler(
             .enum(["beginner", "intermediate", "advanced", "elite"])
             .optional(),
           description: z.string().max(2000).optional(),
-          start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
           repeat: z.boolean().optional(),
         }),
       },
-      async ({ title, weeks, days, level, description, start_date, repeat }, ctx) =>
+      async ({ title, weeks, days, level, description, repeat }, ctx) =>
         out(
           await rpc("mcp_create_program", {
             p_token: tok(ctx),
@@ -380,7 +379,6 @@ const handler = createMcpHandler(
             p_days: days,
             p_level: level ?? "intermediate",
             p_description: description ?? null,
-            p_start_date: start_date ?? null,
             p_repeat: repeat ?? false,
           }),
         ),

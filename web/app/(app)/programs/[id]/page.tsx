@@ -40,7 +40,7 @@ export default async function ProgramDetailPage({
   const { data: program } = await supabase
     .from("programs")
     .select(
-      `id, owner_id, title, description, weeks, level, is_public, start_date, end_date, repeat_enabled, calendar_token,
+      `id, owner_id, title, description, weeks, level, is_public, repeat_enabled, calendar_token,
        program_days (
          id, day_index, focus, notes,
          workout_templates (
@@ -58,13 +58,15 @@ export default async function ProgramDetailPage({
 
   const isOwner = program.owner_id === user!.id;
 
-  // 이 프로그램에 대한 활성 등록 여부 (오늘의 운동 연결)
-  const { count: enrollCount } = await supabase
+  // 내 활성 등록 — 프로그램은 템플릿이고 날짜는 등록에 속한다 (own RLS)
+  const { data: myEnroll } = await supabase
     .from("program_enrollments")
-    .select("id", { count: "exact", head: true })
+    .select("start_date")
     .eq("program_id", program.id)
-    .eq("active", true);
-  const isEnrolled = (enrollCount ?? 0) > 0;
+    .eq("active", true)
+    .maybeSingle();
+  const isEnrolled = !!myEnroll;
+  const myStart: string | null = myEnroll?.start_date ?? null;
 
   // 소유자면 편집용 운동 목록도 함께 전달
   const { data: exercises } = isOwner
@@ -94,6 +96,17 @@ export default async function ProgramDetailPage({
   const days = ((program.program_days ?? []) as unknown as Day[])
     .slice()
     .sort((a, b) => a.day_index - b.day_index);
+  // 프로그램 길이(최대 일차)와 내 일정 종료 예정일 (비반복만)
+  const totalDays = days.reduce((m, d) => Math.max(m, d.day_index), 0);
+  const myEnd =
+    myStart && !program.repeat_enabled && totalDays > 0
+      ? (() => {
+          const d = new Date(`${myStart}T00:00:00`);
+          d.setDate(d.getDate() + totalDays - 1);
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+          return d.toISOString().slice(0, 10);
+        })()
+      : null;
   const exName = (ex: { name_ko: string; name_en: string } | null) =>
     ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : "—";
 
@@ -107,7 +120,12 @@ export default async function ProgramDetailPage({
           {!isOwner && (
             <CloneProgramButton programId={program.id} title={program.title} />
           )}
-          <ProgramEnrollButton programId={program.id} initialActive={isEnrolled} />
+          <ProgramEnrollButton
+            programId={program.id}
+            initialActive={isEnrolled}
+            totalDays={totalDays}
+            repeat={program.repeat_enabled === true}
+          />
           {isOwner && (
             <DeleteButton kind="program" id={program.id} redirectTo="/programs" />
           )}
@@ -122,30 +140,28 @@ export default async function ProgramDetailPage({
         {program.weeks ? ` · ${t("programs.weeksN", { n: program.weeks })}` : ""}
         {program.is_public ? ` · ${t("programs.public")}` : ""}
       </p>
-      {(program.start_date || program.end_date) && (
+      {/* 내 일정 — 날짜는 프로그램(템플릿)이 아니라 내 등록에 속한다 */}
+      {myStart && (
         <p className="mt-1 flex flex-wrap items-center gap-3 text-sm font-medium text-track">
           <span>
-            {formatDateShort(program.start_date, tag, tz)} –{" "}
-            {formatDateShort(program.end_date, tag, tz)}
+            {t("programs.mySchedule")}: {formatDateShort(myStart, tag, tz)}
+            {myEnd ? ` – ${formatDateShort(myEnd, tag, tz)}` : ""}
+            {program.repeat_enabled ? " 🔁" : ""}
           </span>
-          {program.start_date && (
-            <>
-              <a
-                href={`/programs/${program.id}/calendar.ics`}
-                className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent"
-              >
-                📅 {t("programs.icsDownload")}
-              </a>
-              <ProgramCalendarSubscribe
-                programId={program.id}
-                token={program.calendar_token}
-                isOwner={isOwner}
-              />
-            </>
-          )}
+          <a
+            href={`/programs/${program.id}/calendar.ics`}
+            className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent"
+          >
+            📅 {t("programs.icsDownload")}
+          </a>
+          <ProgramCalendarSubscribe
+            programId={program.id}
+            token={program.calendar_token}
+            isOwner={isOwner}
+          />
         </p>
       )}
-      {program.start_date && (
+      {myStart && (
         <p className="mt-1 text-xs text-muted">{t("programs.subscribeHint")}</p>
       )}
       {program.description && (
@@ -155,8 +171,6 @@ export default async function ProgramDetailPage({
       {isOwner && (
         <ProgramDatesEditor
           programId={program.id}
-          initialStart={program.start_date}
-          initialEnd={program.end_date}
           initialRepeat={program.repeat_enabled === true}
         />
       )}
@@ -167,7 +181,7 @@ export default async function ProgramDetailPage({
           initialDays={days}
           exercises={exercises ?? []}
           locale={locale}
-          startDate={program.start_date}
+          startDate={myStart}
         />
       ) : (
         <div className="mt-8 flex flex-col gap-4">
@@ -176,7 +190,7 @@ export default async function ProgramDetailPage({
               <h2 className="font-semibold">
                 {t("programs.dayN", { n: d.day_index })}
                 {(() => {
-                  const dt = programDayDate(program.start_date, d.day_index, tag);
+                  const dt = programDayDate(myStart, d.day_index, tag);
                   return dt ? (
                     <span className="ml-2 text-xs font-medium text-track">{dt}</span>
                   ) : null;

@@ -82,7 +82,7 @@ export default async function DashboardPage() {
       .from("program_enrollments")
       .select(
         `start_date,
-         programs ( id, title, end_date, repeat_enabled,
+         programs ( id, title, repeat_enabled,
            program_days ( day_index, focus,
              workout_templates ( id, title, type ) ) )`,
       )
@@ -153,7 +153,6 @@ export default async function DashboardPage() {
     programs: {
       id: string;
       title: string;
-      end_date: string | null;
       repeat_enabled: boolean;
       program_days: {
         day_index: number;
@@ -179,19 +178,11 @@ export default async function DashboardPage() {
       (m, d) => Math.max(m, d.day_index),
       0,
     );
-    const pastEnd =
-      enroll.programs.repeat_enabled &&
-      !!enroll.programs.end_date &&
-      nowMid.getTime() >
-        new Date(enroll.programs.end_date + "T00:00:00").getTime();
-    const dayNumber = pastEnd
-      ? -1
-      : (programDayNumber(
-          daysSince,
-          cycleLen,
-          enroll.programs.repeat_enabled,
-        ) ?? -1);
-    if (dayNumber >= 1) {
+    // 종료 판정: 일차가 프로그램 길이를 넘으면 완료 (반복은 무기한 순환)
+    const dayNumber =
+      programDayNumber(daysSince, cycleLen, enroll.programs.repeat_enabled) ??
+      -1;
+    if (dayNumber >= 1 && dayNumber <= cycleLen) {
       const day = enroll.programs.program_days.find(
         (d) => d.day_index === dayNumber,
       );

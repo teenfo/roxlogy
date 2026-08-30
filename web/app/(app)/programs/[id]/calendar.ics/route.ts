@@ -64,14 +64,22 @@ function buildIcs(cal: Cal, locale: string): string {
   const byIndex = new Map(days.map((d) => [d.day_index, d]));
   const cycleLen = days.reduce((m, d) => Math.max(m, d.day_index), 0);
 
-  // 반복이면 start~end 전 기간을 사이클로 전개, 아니면 일차별 1회
-  const repeat = cal.repeat_enabled && cycleLen > 0 && !!cal.end_date;
+  // 반복이면 사이클로 전개 — 종료일이 없으면(개인 등록) 오늘+60일까지
+  // 굴리며 전개한다(구독 갱신 때마다 창이 앞으로 이동). 비반복은 일차별 1회.
+  const repeat = cal.repeat_enabled && cycleLen > 0;
+  const horizonEnd = cal.end_date
+    ? Date.parse(`${cal.end_date}T00:00:00Z`)
+    : Date.now() + 60 * 86400000;
   const totalDays = repeat
-    ? Math.floor(
-        (Date.parse(`${cal.end_date}T00:00:00Z`) -
-          Date.parse(`${cal.start_date}T00:00:00Z`)) /
-          86400000,
-      ) + 1
+    ? Math.min(
+        400,
+        Math.max(
+          cycleLen,
+          Math.floor(
+            (horizonEnd - Date.parse(`${cal.start_date}T00:00:00Z`)) / 86400000,
+          ) + 1,
+        ),
+      )
     : cycleLen;
 
   const emit = (d: CalDay, offset: number, occurrence: number) => {
@@ -130,11 +138,11 @@ export async function GET(
     });
     cal = (data as Cal | null) ?? null;
   } else {
-    // 다운로드 경로 — 세션 + RLS
+    // 다운로드 경로 — 세션 + RLS. 날짜는 요청자 본인의 활성 등록에서.
     const { data } = await supabase
       .from("programs")
       .select(
-        `id, title, start_date, end_date, repeat_enabled,
+        `id, title, repeat_enabled,
          program_days (
            id, day_index, focus, notes,
            workout_templates (
@@ -144,6 +152,13 @@ export async function GET(
          )`,
       )
       .eq("id", id)
+      .maybeSingle();
+    // 요청자 본인의 활성 등록 시작일 (own RLS — 남의 일정은 안 보임)
+    const { data: myEnroll } = await supabase
+      .from("program_enrollments")
+      .select("start_date")
+      .eq("program_id", id)
+      .eq("active", true)
       .maybeSingle();
     if (data) {
       type Row = {
@@ -163,8 +178,8 @@ export async function GET(
       cal = {
         id: data.id,
         title: data.title,
-        start_date: data.start_date,
-        end_date: data.end_date,
+        start_date: myEnroll?.start_date ?? null,
+        end_date: null,
         repeat_enabled: data.repeat_enabled === true,
         days: ((data.program_days ?? []) as unknown as Row[]).map((d) => ({
           id: d.id,
