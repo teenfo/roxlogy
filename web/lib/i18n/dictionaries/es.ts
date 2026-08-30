@@ -83,6 +83,7 @@ const es: Record<DictKey, string> = {
   "admin.exReqNone": "Sin solicitudes pendientes.",
   "admin.exReqApprove": "Aprobar",
   "admin.exReqReject": "Rechazar",
+  "admin.exAliases": "Alias (para coincidencias)",
   "admin.edit": "Editar",
   "admin.commaKeys": "claves separadas por comas",
   "admin.mediaUrl": "URL de media",

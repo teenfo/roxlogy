@@ -83,6 +83,7 @@ const ko: Record<DictKey, string> = {
   "admin.exReqNone": "대기 중인 요청이 없습니다.",
   "admin.exReqApprove": "승인",
   "admin.exReqReject": "거절",
+  "admin.exAliases": "별칭 (매칭에 사용)",
   "admin.edit": "편집",
   "admin.commaKeys": "쉼표로 구분된 키",
   "admin.mediaUrl": "미디어 URL",

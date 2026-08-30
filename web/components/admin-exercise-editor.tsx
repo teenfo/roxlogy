@@ -9,18 +9,21 @@ export function AdminExerciseEditor({
   id,
   name,
   muscles,
+  aliases,
   description,
   mediaUrl,
 }: {
   id: string;
   name: string;
   muscles: string[];
+  aliases: string[];
   description: string | null;
   mediaUrl: string | null;
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [m, setM] = useState(muscles.join(", "));
+  const [al, setAl] = useState(aliases.join(", "));
   const [desc, setDesc] = useState(description ?? "");
   const [media, setMedia] = useState(mediaUrl ?? "");
   const [state, setState] = useState<"idle" | "saving" | "saved" | "err">("idle");
@@ -32,10 +35,15 @@ export function AdminExerciseEditor({
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+    const aliasesArr = al
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const { error } = await supabase
       .from("exercises")
       .update({
         muscles: musclesArr.length ? musclesArr : null,
+        aliases: aliasesArr,
         description_ko: desc.trim() || null,
         media_url: media.trim() || null,
       })
@@ -64,6 +72,17 @@ export function AdminExerciseEditor({
               value={m}
               onChange={(e) => {
                 setM(e.target.value);
+                setState("idle");
+              }}
+              className={inputCls}
+            />
+          </label>
+          <label className="text-xs text-muted">
+            {t("admin.exAliases")} ({t("admin.commaKeys")})
+            <input
+              value={al}
+              onChange={(e) => {
+                setAl(e.target.value);
                 setState("idle");
               }}
               className={inputCls}

@@ -324,7 +324,7 @@ const handler = createMcpHandler(
       {
         title: "운동 DB 목록",
         description:
-          "Roxlogy 운동 DB — 프로그램 워크아웃 아이템에 쓸 수 있는 운동 목록(name_ko/name_en, 스테이션 타입). 워크아웃을 만들기 전에 먼저 조회해서 이 목록의 이름만 사용하라.",
+          "Roxlogy 운동 DB — 프로그램 워크아웃 아이템에 쓸 수 있는 운동 목록(name_ko/name_en/aliases, 스테이션 타입). 매칭은 대소문자·공백을 무시하고 별칭도 인정한다. 워크아웃을 만들기 전에 먼저 조회해서 이 목록의 이름만 사용하라.",
         inputSchema: z.object({}),
       },
       async (_a, ctx) =>
@@ -336,20 +336,22 @@ const handler = createMcpHandler(
       {
         title: "운동 등록 요청",
         description:
-          "운동 DB 에 없는 운동의 등록을 요청한다 (관리자 승인 후 추가됨 — 승인 전에는 워크아웃에 쓸 수 없다). 이미 있는 운동이면 already_exists 로 알려준다. 요청 전 사용자에게 운동명을 확인받아라.",
+          "운동 DB 에 없는 운동의 등록을 요청한다 (관리자 승인 후 추가됨 — 승인 전에는 워크아웃에 쓸 수 없다). 이미 있는 운동이면 already_exists, 표기만 다를 수 있는 유사 운동이 있으면 similar_existing 후보를 돌려준다 — 사용자에게 같은 운동인지 확인하고, 같은 운동이면 그 등록 이름을 쓰고, 정말 새 운동이면 confirm_new=true 로 재요청하라.",
         inputSchema: z.object({
           name_ko: z.string().min(1).max(60),
           name_en: z.string().max(60).optional(),
           note: z.string().max(300).optional(),
+          confirm_new: z.boolean().optional(),
         }),
       },
-      async ({ name_ko, name_en, note }, ctx) =>
+      async ({ name_ko, name_en, note, confirm_new }, ctx) =>
         out(
           await rpc("mcp_request_exercise", {
             p_token: tok(ctx),
             p_name_ko: name_ko,
             p_name_en: name_en ?? null,
             p_note: note ?? null,
+            p_confirm_new: confirm_new ?? false,
           }),
         ),
     );
@@ -384,7 +386,7 @@ const handler = createMcpHandler(
         title: "훈련 프로그램 생성",
         description:
           "훈련 프로그램(템플릿)을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드), workouts?}] 배열. " +
-          "workouts 아이템의 exercise 는 운동 DB(list_exercises)에 등록된 이름(한/영)만 허용 — 미등록 이름이 있으면 unknown_exercises 로 전체 거부되니 먼저 list_exercises 로 확인하고, 없는 운동은 request_exercise 로 등록을 요청하라. " +
+          "workouts 아이템의 exercise 는 운동 DB(list_exercises)에 등록된 이름(한/영)만 허용 — 미등록 이름이 있으면 unknown_exercises 로 전체 거부되며 이름별 유사 후보(suggestions)가 함께 온다 — 표기 차이로 보이면 사용자 확인 후 후보 이름으로 재시도하고, 실제 없는 운동은 request_exercise 로 등록을 요청하라. " +
           "프로그램은 날짜 없는 템플릿이다 — 시작일은 개인이 웹에서 시작하거나 attach_crew_program 으로 크루에 연결할 때 정한다. 생성 전 사용자에게 구성을 확인받아라.",
         inputSchema: z.object({
           title: z.string().min(1).max(120),

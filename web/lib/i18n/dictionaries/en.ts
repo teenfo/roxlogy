@@ -84,6 +84,7 @@ const en = {
   "admin.exReqNone": "No pending requests.",
   "admin.exReqApprove": "Approve",
   "admin.exReqReject": "Reject",
+  "admin.exAliases": "Aliases (used for matching)",
   "admin.edit": "Edit",
   "admin.commaKeys": "comma-separated keys",
   "admin.mediaUrl": "Media URL",
