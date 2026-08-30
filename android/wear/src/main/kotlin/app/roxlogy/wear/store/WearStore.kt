@@ -40,6 +40,15 @@ object WearStore {
         p(c).edit().putString(KEY_SESSIONS, WearStoreCodec.encodeSessions(next)).apply()
     }
 
+    /** 폰 전달 결과 반영 — WearDataSender 의 putDataItem 성공/실패 콜백이 호출한다.
+     *  sent=false 인 세션은 보관 한도와 무관하게 남아 재전송할 수 있다. */
+    fun markSent(c: Context, sessionId: String, sent: Boolean) {
+        val cur = sessions(c)
+        if (cur.none { it.id == sessionId }) return
+        val next = cur.map { if (it.id == sessionId) it.copy(sent = sent) else it }
+        p(c).edit().putString(KEY_SESSIONS, WearStoreCodec.encodeSessions(next)).apply()
+    }
+
     fun hapticEnabled(c: Context): Boolean = p(c).getBoolean(KEY_HAPTIC, true)
     fun setHaptic(c: Context, on: Boolean) = p(c).edit().putBoolean(KEY_HAPTIC, on).apply()
 

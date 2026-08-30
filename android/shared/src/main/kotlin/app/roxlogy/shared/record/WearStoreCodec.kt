@@ -1,5 +1,7 @@
 package app.roxlogy.shared.record
 
+import app.roxlogy.shared.sync.LocalSessionMeta
+import app.roxlogy.shared.sync.RetentionPolicy
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -65,9 +67,19 @@ object WearStoreCodec {
         SnapSeg(it.kind, it.splitTimeMs, it.exerciseId, it.machineType, it.avgHr, it.maxHr)
     }
 
-    /** 보관 정책 적용: 최신순 20개, 72시간 이내만 유지. */
-    fun prune(list: List<StoredSession>, nowMs: Long): List<StoredSession> =
-        list.sortedByDescending { it.createdAtMs }
-            .take(MAX_SESSIONS)
-            .filter { nowMs - it.createdAtMs <= MAX_AGE_MS }
+    /**
+     * 보관 정책 적용 — 판정은 계약 구현체 RetentionPolicy 하나로 통일한다.
+     * 최신순 20개·72시간이 한도지만 **아직 폰에 전달되지 않은(sent=false)
+     * 세션은 삭제하지 않는다**(docs/API_CONTRACT.md). 오프라인이거나 전송이
+     * 실패했을 뿐이므로 지우면 그대로 유실된다.
+     */
+    fun prune(list: List<StoredSession>, nowMs: Long): List<StoredSession> {
+        val doomed = RetentionPolicy.toPrune(
+            list.map { LocalSessionMeta(it.id, it.createdAtMs, it.sent) },
+            nowMs,
+            MAX_SESSIONS,
+            MAX_AGE_MS,
+        ).toSet()
+        return list.filterNot { it.id in doomed }.sortedByDescending { it.createdAtMs }
+    }
 }

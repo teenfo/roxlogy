@@ -40,6 +40,8 @@
 - Supabase **service role 키**는 서버(Edge env·CI) 내부 시크릿으로만. **클라이언트에 절대 노출 금지.** hosub·Mac은 Supabase 키를 갖지 않는다.
 - hosub 인바운드는 **llm-gateway(Caddy TLS + Bearer 토큰 + 소비자별 rate limit) 하나만** 예외적으로 허용. LLMGW 토큰은 Edge 시크릿/게이트웨이 .env 전용(커밋 금지).
 - 클라이언트는 anon 키 + RLS로만 접근.
+- **함수 실행 권한은 기본 차단**(2026-08-30, 마이그레이션 013). 새로 만든 함수는 anon·authenticated·PUBLIC 어디에도 EXECUTE가 붙지 않는다. 클라이언트(웹 anon 키·MCP)가 호출할 RPC는 정의 직후 반드시 `grant execute on function public.<name>(<args>) to anon, authenticated;` 를 붙일 것. 반대로 **호출자 검증이 없는 SECURITY DEFINER 함수(내부 헬퍼·크론·트리거용)에는 절대 grant하지 말 것** — 과거 `enqueue_notification`·`_mcp_insert_workouts`가 익명 호출 가능한 상태였다.
+- 컬럼을 드롭하는 마이그레이션은 그 컬럼을 참조하는 함수를 함께 재정의할 것 (`language sql` 함수는 의존성이 추적되지 않아 드롭이 성공하고 호출 시점에 터진다).
 
 ## 디렉토리 구조
 ```
@@ -66,6 +68,9 @@ garmin/                  # 가민 Connect IQ(Monkey C) 시뮬 레코더 (두 링
 - 확정된 기술 스택을 임의로 바꾸지 말 것 (특히 워치를 크로스플랫폼으로 돌리지 말 것)
 - 다른 개인 프로젝트(BCL 등)의 자산·인프라를 끌어오지 말 것 — 독립 프로젝트
 - service role 키를 프론트엔드/클라이언트 코드에 넣지 말 것
+- **supabase 응답의 `error`를 무시하지 말 것** — supabase-js는 실패해도 throw하지 않고 `{error}`로 resolve한다. 확인 없이 성공 UI를 보이면 사용자가 데이터를 잃는다
+- **세션·레이스 등 "내 데이터" 조회에 `user_id` 필터를 빼먹지 말 것** — shared 세션은 RLS로 전체 공개(피드용)라 필터가 없으면 남의 기록이 섞인다
+- **"오늘" 판정에 `new Date()`/`current_date`(UTC)를 쓰지 말 것** — 웹은 `todayMidnightIn(tz)`, DB는 `app_today()`(KST)
 - RLS 없이 사용자 데이터 테이블을 만들지 말 것
 - "HYROX" 상표를 앱/패키지명에 직접 쓰지 말 것 (스토어 리젝 위험 — 네이밍 미확정)
 

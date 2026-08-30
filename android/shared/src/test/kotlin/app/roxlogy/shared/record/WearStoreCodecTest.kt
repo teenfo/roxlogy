@@ -44,19 +44,41 @@ class WearStoreCodecTest {
     }
 
     @Test
-    fun `prune keeps newest 20 within 72h`() {
+    fun `prune keeps newest 20 sent sessions within 72h`() {
         val now = 1_000_000_000_000L
         val hour = 3600_000L
         val list = (0 until 25).map {
             StoredSession(
                 id = "s$it", createdAtMs = now - it * hour, totalMs = 1,
-                clientUpdatedAt = "t", payloadJson = "{}",
+                clientUpdatedAt = "t", payloadJson = "{}", sent = true,
             )
-        } + StoredSession("old", now - 80 * hour, 1, "t", "{}")
+        } + StoredSession("old", now - 80 * hour, 1, "t", "{}", sent = true)
         val pruned = WearStoreCodec.prune(list, now)
         assertEquals(20, pruned.size)
         assertEquals("s0", pruned.first().id)
         assertTrue(pruned.none { it.id == "old" })
         assertTrue(pruned.all { now - it.createdAtMs <= WearStoreCodec.MAX_AGE_MS })
+    }
+
+    /** 계약(docs/API_CONTRACT.md): 폰에 전달되지 않은 세션은 한도·나이와 무관하게 보존. */
+    @Test
+    fun `prune never drops unsent sessions`() {
+        val now = 1_000_000_000_000L
+        val hour = 3600_000L
+        // 오래됐고 개수도 한도를 넘지만 전부 미전송
+        val unsent = (0 until 25).map {
+            StoredSession(
+                id = "u$it", createdAtMs = now - (it + 100) * hour, totalMs = 1,
+                clientUpdatedAt = "t", payloadJson = "{}", sent = false,
+            )
+        }
+        val pruned = WearStoreCodec.prune(unsent, now)
+        assertEquals(25, pruned.size)
+
+        // 전송된 오래된 세션만 정리되고 미전송은 남는다
+        val mixed = unsent + StoredSession("sentOld", now - 80 * hour, 1, "t", "{}", sent = true)
+        val pruned2 = WearStoreCodec.prune(mixed, now)
+        assertTrue(pruned2.none { it.id == "sentOld" })
+        assertEquals(25, pruned2.count { !it.sent })
     }
 }

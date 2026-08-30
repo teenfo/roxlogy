@@ -215,15 +215,16 @@ fun ErgScreen(ble: Pm5BleClient, sender: WearDataSender, ensureBle: ((() -> Unit
             segments = segments,
         )
         val payload = IngestJson.encode(req)
-        sender.sendRaw(req.session.id, payload, req.session.client_updated_at)
+        // 보관(sent=false) 후 전송 — 전송 결과는 put 콜백이 반영한다
         WearStore.addSession(
             context,
             StoredSession(
                 id = req.session.id, createdAtMs = System.currentTimeMillis(),
                 totalMs = elapsed, clientUpdatedAt = req.session.client_updated_at,
-                payloadJson = payload, sent = true,
+                payloadJson = payload, sent = false,
             ),
         )
+        sender.sendRaw(req.session.id, payload, req.session.client_updated_at)
         phase = "sent"
         buzz(120)
     }

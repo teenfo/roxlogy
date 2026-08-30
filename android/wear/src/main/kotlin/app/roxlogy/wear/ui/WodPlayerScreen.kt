@@ -128,15 +128,16 @@ fun WodPlayerScreen(
             segments = listOf(seg),
         )
         val payload = app.roxlogy.shared.ingest.IngestJson.encode(req)
-        sender.sendRaw(req.session.id, payload, req.session.client_updated_at)
+        // 보관(sent=false) 후 전송 — 전송 결과는 put 콜백이 반영한다
         app.roxlogy.wear.store.WearStore.addSession(
             context,
             app.roxlogy.shared.record.StoredSession(
                 id = req.session.id, createdAtMs = System.currentTimeMillis(),
                 totalMs = elapsedMs, clientUpdatedAt = req.session.client_updated_at,
-                payloadJson = payload, sent = true,
+                payloadJson = payload, sent = false,
             ),
         )
+        sender.sendRaw(req.session.id, payload, req.session.client_updated_at)
         ble.resetSamples()
     }
 

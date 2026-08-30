@@ -1,9 +1,12 @@
 package app.roxlogy.android.sync
 
 import app.roxlogy.shared.sync.WearPaths
+import com.google.android.gms.tasks.Tasks
+import com.google.android.gms.wearable.Asset
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
+import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,9 +34,13 @@ class PhoneDataReceiver : WearableListenerService() {
             when {
                 path.startsWith(WearPaths.SESSION_PATH_PREFIX) -> {
                     val map = DataMapItem.fromDataItem(item).dataMap
-                    val json = map.getByteArray(WearPaths.KEY_PAYLOAD)?.decodeToString() ?: continue
+                    // 인라인 payload 또는 (DataItem 한도를 넘는 긴 에르그 세션의) Asset
+                    val inline = map.getByteArray(WearPaths.KEY_PAYLOAD)?.decodeToString()
+                    val asset = map.getAsset(WearPaths.KEY_PAYLOAD_ASSET)
+                    if (inline == null && asset == null) continue
                     val token = TokenStore.accessToken() ?: continue // 로그인 전이면 보류
                     scope.launch {
+                        val json = inline ?: readAsset(asset!!) ?: return@launch
                         uploader.upload(
                             json = json,
                             initialToken = token,
@@ -60,5 +67,13 @@ class PhoneDataReceiver : WearableListenerService() {
                 }
             }
         }
+    }
+
+    /** Asset 으로 온 페이로드를 읽어 온다 (블로킹 — IO 디스패처에서 호출할 것). */
+    private fun readAsset(asset: Asset): String? = try {
+        val fd = Tasks.await(Wearable.getDataClient(this).getFdForAsset(asset))
+        fd.inputStream.use { it.readBytes().decodeToString() }
+    } catch (_: Exception) {
+        null // 실패해도 DataItem 은 남아 다음 진입 때 재처리된다
     }
 }

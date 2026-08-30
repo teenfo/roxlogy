@@ -594,7 +594,8 @@ fun SimApp(
             segments = engine.recordedSegments(),
         )
         val payload = IngestJson.encode(req)
-        sender.sendRaw(req.session.id, payload, req.session.client_updated_at)
+        // 먼저 미전송으로 보관한 뒤 전송한다 — put 성공 콜백이 sent 를 갱신하므로
+        // 순서가 뒤바뀌면 실패해도 "전송됨"으로 남는다
         WearStore.addSession(
             context,
             StoredSession(
@@ -603,9 +604,10 @@ fun SimApp(
                 totalMs = engine.elapsedTotalMs(),
                 clientUpdatedAt = req.session.client_updated_at,
                 payloadJson = payload,
-                sent = true,
+                sent = false,
             ),
         )
+        sender.sendRaw(req.session.id, payload, req.session.client_updated_at)
         WearStore.clearProgress(context)
         phase = AppPhase.SENT
         buzz(120)
