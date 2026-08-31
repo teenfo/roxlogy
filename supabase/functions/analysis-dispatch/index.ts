@@ -151,6 +151,85 @@ function fmtMs(ms: number | null | undefined): string {
   return neg ? `-${body}` : body;
 }
 
+// 스플릿 JSON 의 내부 키는 그대로 프롬프트에 넣으면 모델이 'sledpull' 같은
+// 코드를 그대로 인용한다(실제로 코멘트에 노출됐다). 사람이 읽는 라벨로 바꾼다.
+// web/lib/hyrox.ts STATIONS 와 동일 — 순서도 레이스 진행 순서다.
+const STATION_KO: Record<string, string> = {
+  ski: "스키에르그 1000m",
+  sledpush: "슬레드 푸시 50m",
+  sledpull: "슬레드 풀 50m",
+  burpee: "버피 브로드점프 80m",
+  row: "로잉 1000m",
+  farmers: "파머스 캐리 200m",
+  lunges: "샌드백 런지 100m",
+  wallballs: "월볼 100회",
+};
+const STATION_ORDER = Object.keys(STATION_KO);
+
+const DIVISION_KO: Record<string, string> = {
+  open: "오픈", pro: "프로", doubles: "더블", mixed_doubles: "믹스 더블",
+  pro_doubles: "프로 더블", relay: "릴레이", mixed_relay: "믹스 릴레이",
+};
+
+type RaceSplits = {
+  runs?: number[];
+  roxzones?: number[];
+  stations?: Record<string, number>;
+  stations_place?: Record<string, number>;
+  runs_place?: number[];
+  field_size?: number;
+  rank_overall?: number;
+  run_total_ms?: number;
+};
+
+/** 레이스 스플릿 → 사람이 읽는 프롬프트 블록.
+ *  원본 JSON 을 그대로 넘기면 (1) 내부 키가 코멘트에 노출되고 (2) ms 원시값을
+ *  모델이 직접 나눠 계산해야 한다. 라벨·mm:ss·합계를 미리 만들어 넘긴다. */
+function raceSplitsPrompt(splits: RaceSplits | null, totalMs: number | null): string[] {
+  if (!splits) return [];
+  const lines: string[] = [];
+  const field = splits.field_size ?? null;
+  const place = (n: number | null | undefined) =>
+    n == null ? "" : field ? ` (${field}명 중 ${n}위)` : ` (${n}위)`;
+
+  const runs = Array.isArray(splits.runs) ? splits.runs : [];
+  let runSum = 0;
+  if (runs.length) {
+    lines.push("", "런 구간:");
+    runs.forEach((ms, i) => {
+      runSum += ms ?? 0;
+      lines.push(`- 런${i + 1}: ${fmtMs(ms)}${place(splits.runs_place?.[i])}`);
+    });
+    lines.push(`런 합계(계산됨): ${fmtMs(splits.run_total_ms ?? runSum)}`);
+  }
+
+  const st = splits.stations ?? {};
+  const keys = STATION_ORDER.filter((k) => st[k] != null)
+    .concat(Object.keys(st).filter((k) => !(k in STATION_KO)));
+  let stSum = 0;
+  if (keys.length) {
+    lines.push("", "스테이션 구간:");
+    for (const k of keys) {
+      stSum += st[k] ?? 0;
+      lines.push(`- ${STATION_KO[k] ?? k}: ${fmtMs(st[k])}${place(splits.stations_place?.[k])}`);
+    }
+    lines.push(`스테이션 합계(계산됨): ${fmtMs(stSum)}`);
+  }
+
+  const rox = Array.isArray(splits.roxzones) ? splits.roxzones : [];
+  if (rox.length) {
+    const roxSum = rox.reduce((a, b) => a + (b ?? 0), 0);
+    lines.push("", `록스존 합계(계산됨): ${fmtMs(roxSum)} (${rox.length}구간)`);
+  } else if (totalMs != null && runSum > 0 && stSum > 0) {
+    // 록스존 랩이 없으면 잔여로 추정 — 전환 손실 총량은 코칭에 중요하다
+    lines.push(
+      "",
+      `록스존·전환 합계(계산됨, 총시간 − 런 − 스테이션): ${fmtMs(totalMs - runSum - stSum)}`,
+    );
+  }
+  return lines;
+}
+
 function weekPeriod(tzName: string | null): { start: string; end: string } {
   let tz = "UTC";
   try { new Intl.DateTimeFormat("en-CA", { timeZone: tzName ?? "UTC" }); tz = tzName ?? "UTC"; } catch { /* UTC */ }
@@ -633,11 +712,19 @@ Deno.serve(async (req) => {
     const { data: claim, error: claimErr } = await db.from("ai_jobs")
       .insert({ kind: "race", user_id: race.user_id, ref_id: race.id }).select("id").single();
     if (claimErr || !claim) continue;
+    const sp = (race.splits ?? null) as RaceSplits | null;
+    const rank =
+      sp?.rank_overall != null
+        ? ` (전체 ${sp.field_size ?? "?"}명 중 ${sp.rank_overall}위)`
+        : "";
     const prompt = [
       "다음 하이록스 레이스 결과를 분석해 코멘트를 작성하라 (강점 구간·약점 구간·록스존/전환 손실 중심).",
-      `대회: ${race.event ?? "-"} (${race.event_date ?? "-"}), 디비전: ${race.division ?? "-"}`,
-      `총 시간: ${fmtMs(race.total_time_ms)}`,
-      `스플릿 데이터(JSON, ms 단위): ${JSON.stringify(race.splits).slice(0, 3000)}`,
+      "구간 이름은 아래 표기 그대로 쓰고 내부 코드(ski·sledpull 등)는 쓰지 마라.",
+      `대회: ${race.event ?? "-"} (${race.event_date ?? "-"}), 디비전: ${
+        DIVISION_KO[race.division as string] ?? race.division ?? "-"
+      }`,
+      `총 시간: ${fmtMs(race.total_time_ms)}${rank}`,
+      ...raceSplitsPrompt(sp, race.total_time_ms),
     ].join("\n");
     const jobId = await gwSubmit(prompt, { kind: "race", ref: race.id });
     if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); continue; }
