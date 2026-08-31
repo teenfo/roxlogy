@@ -222,6 +222,8 @@ const es: Record<DictKey, string> = {
   "crew.meetupCancel": "Cancelar encuentro",
   "crew.meetupCancelConfirm": "¿Cancelar este encuentro? Desaparecerá de la agenda.",
   "crew.racePlanAdd": "Añadir mi carrera",
+  "crew.racePlanSearch": "Busca carreras oficiales: escribe un nombre o ciudad para elegir de la lista",
+  "crew.racePlanNoMatch": "Ninguna carrera oficial coincide. Se guardará con el nombre que escribiste.",
   "crew.racePlanLinked": "Vinculado al evento oficial",
   "crew.racePlanTitlePh": "Nombre de la carrera",
   "crew.racePlanNotePh": "Nota (opcional)",

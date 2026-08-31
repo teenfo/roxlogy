@@ -23,6 +23,13 @@ const GW_HEADERS = { Authorization: `Bearer ${LLMGW_TOKEN}`, "Content-Type": "ap
 
 const CURVE_MAX_POINTS = 120; // docs/API_CONTRACT.md
 
+// 한 크론 실행당 게이트웨이로 보낼 최대 건수 (배치 레인이 1건씩 직렬 처리한다)
+const SUBMIT_PER_RUN = 3;
+// 후보 조회 폭. SUBMIT_PER_RUN 만큼만 조회하면 그 몇 건이 이미 큐에 있을 때
+// 클레임 충돌(23505)로 전부 스킵돼 백로그가 한 건도 줄지 않는다 — 이미 물려 있는
+// 행을 건너뛰고 아직 안 보낸 행까지 닿도록 넉넉히 조회한다.
+const SCAN_LIMIT = 30;
+
 const SYSTEM_PROMPT =
   "너는 Roxlogy의 하이록스(HYROX) 트레이닝 코치다. 데이터를 근거로 담백하고 " +
   "정확하게 말한다. 과장·허세·감탄사·이모지 금지. 한국어로 답한다. " +
@@ -656,9 +663,11 @@ Deno.serve(async (req) => {
   const { data: sess } = await db.from("sessions")
     .select("id,user_id,started_at,total_time_ms")
     .eq("ai_status", "pending").eq("analysis_status", "done").is("deleted_at", null)
-    .order("started_at", { ascending: false }).limit(3);
+    .order("started_at", { ascending: false }).limit(SCAN_LIMIT);
+  let sessSubmitted = 0;
   for (const s of sess ?? []) {
-    // 클레임 (부분 유니크 kind+ref_id — 중복이면 23505 로 스킵)
+    if (sessSubmitted >= SUBMIT_PER_RUN) break;
+    // 클레임 (부분 유니크 kind+ref_id — 이미 큐에 있으면 23505 로 스킵)
     const { data: claim, error: claimErr } = await db.from("ai_jobs")
       .insert({ kind: "session", user_id: s.user_id, ref_id: s.id }).select("id").single();
     if (claimErr || !claim) continue;
@@ -695,16 +704,19 @@ Deno.serve(async (req) => {
       prompt = sessionPrompt(s, segments, m, goal);
     }
     const jobId = await gwSubmit(prompt, { kind: "session", ref: s.id });
-    if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); continue; }
+    if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); break; }
     await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
     out.submitted++;
+    sessSubmitted++;
   }
 
   // ---------- 4) 신규 제출 — 레이스
   const { data: races } = await db.from("race_results")
     .select("id,user_id,event,event_date,division,total_time_ms,splits")
-    .eq("ai_status", "pending").order("created_at", { ascending: false }).limit(3);
+    .eq("ai_status", "pending").order("created_at", { ascending: false }).limit(SCAN_LIMIT);
+  let raceSubmitted = 0;
   for (const race of races ?? []) {
+    if (raceSubmitted >= SUBMIT_PER_RUN) break;
     if (!race.splits && !race.total_time_ms) {
       await db.from("race_results").update({ ai_status: "skip" }).eq("id", race.id);
       continue;
@@ -727,9 +739,10 @@ Deno.serve(async (req) => {
       ...raceSplitsPrompt(sp, race.total_time_ms),
     ].join("\n");
     const jobId = await gwSubmit(prompt, { kind: "race", ref: race.id });
-    if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); continue; }
+    if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); break; }
     await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
     out.submitted++;
+    raceSubmitted++;
   }
 
   // ---------- 5) 신규 제출 — 주간 리포트 (최근 14일 활동 사용자, 휴식 주 포함, 멱등)

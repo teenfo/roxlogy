@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { DIVISIONS } from "@/lib/divisions";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
@@ -167,6 +168,7 @@ type RaceEventRow = {
   id: string;
   name: string;
   city: string;
+  city_en: string | null;
   start_date: string | null;
 };
 
@@ -201,22 +203,29 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
     const supabase = createClient();
     const { data } = await supabase
       .from("race_events")
-      .select("id, name, city, start_date")
-      .gte("start_date", new Date().toISOString().slice(0, 10))
+      .select("id, name, city, city_en, start_date")
+      // 오늘 이후 + 최근 30일(막 끝난 대회를 뒤늦게 등록하는 경우)
+      .gte(
+        "start_date",
+        new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
+      )
       .order("start_date", { ascending: true })
       .limit(100);
     setEvents((data ?? []) as RaceEventRow[]);
   }
 
-  // 검색어와 매칭되는 공식 대회 (이름·도시, 최대 6개). 이미 선택했으면 숨김
+  // 검색어와 매칭되는 공식 대회. 한글 도시만 보면 "Incheon" 으로는 못 찾으므로
+  // 영문 도시(city_en)까지 함께 매칭한다. 이미 선택했으면 목록을 숨긴다.
   const term = title.trim().toLowerCase();
   const matches =
     !eventId && term.length >= 1 && events
       ? events
           .filter((e) =>
-            [e.name, e.city].some((v) => v.toLowerCase().includes(term)),
+            [e.name, e.city, e.city_en ?? ""].some((v) =>
+              v.toLowerCase().includes(term),
+            ),
           )
-          .slice(0, 6)
+          .slice(0, 8)
       : [];
 
   function pickEvent(e: RaceEventRow) {
@@ -316,16 +325,22 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
       ) : (
         <form onSubmit={save} className="flex w-full flex-col gap-2 rounded-md bg-surface p-4">
           <p className="text-sm font-semibold">{t("crew.racePlanAdd")}</p>
-          <input
-            className={input}
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setEventId(null); // 직접 수정하면 공식 대회 연결 해제
-            }}
-            placeholder={t("crew.racePlanTitlePh")}
-            maxLength={80}
-          />
+          {/* 공식 대회 검색 — 자유 입력처럼 보이면 검색 기능을 아무도 못 찾는다.
+              라벨과 안내로 "검색해서 고르는 칸"임을 드러낸다. */}
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            {t("crew.racePlanSearch")}
+            <input
+              className={input}
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setEventId(null); // 직접 수정하면 공식 대회 연결 해제
+              }}
+              placeholder={t("crew.racePlanTitlePh")}
+              maxLength={80}
+              autoComplete="off"
+            />
+          </label>
           {matches.length > 0 && (
             <ul className="flex flex-col gap-1 rounded-md bg-background p-2">
               {matches.map((ev) => (
@@ -347,8 +362,14 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
               ))}
             </ul>
           )}
-          {eventId && (
+          {eventId ? (
             <p className="text-xs text-track">✓ {t("crew.racePlanLinked")}</p>
+          ) : (
+            title.trim().length >= 1 &&
+            events !== null &&
+            matches.length === 0 && (
+              <p className="text-xs text-muted">{t("crew.racePlanNoMatch")}</p>
+            )
           )}
           <input
             type="date"
@@ -357,13 +378,18 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
             onChange={(e) => setDate(e.target.value)}
           />
           <div className="flex gap-2">
-            <input
+            <select
               className={input}
               value={division}
               onChange={(e) => setDivision(e.target.value)}
-              placeholder={t("crew.racePlanDivisionPh")}
-              maxLength={40}
-            />
+            >
+              <option value="">{t("crew.racePlanDivisionPh")}</option>
+              {DIVISIONS.map((d) => (
+                <option key={d} value={d}>
+                  {t(`division.${d}` as Parameters<typeof t>[0])}
+                </option>
+              ))}
+            </select>
             <input
               className={input}
               value={bib}
@@ -423,13 +449,18 @@ export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
                     onChange={(e) => setEDate(e.target.value)}
                   />
                   <div className="flex gap-2">
-                    <input
+                    <select
                       className={input}
                       value={eDivision}
                       onChange={(e) => setEDivision(e.target.value)}
-                      placeholder={t("crew.racePlanDivisionPh")}
-                      maxLength={40}
-                    />
+                    >
+                      <option value="">{t("crew.racePlanDivisionPh")}</option>
+                      {DIVISIONS.map((d) => (
+                        <option key={d} value={d}>
+                          {t(`division.${d}` as Parameters<typeof t>[0])}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       className={input}
                       value={eBib}
