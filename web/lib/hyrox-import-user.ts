@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveDivision } from "./division-map";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -31,21 +32,6 @@ async function apiGet(path: string): Promise<unknown | null> {
   if (res.status === 429) return null; // 레이트리밋 — 이번엔 건너뛰고 주간 sync 에 맡김
   if (!res.ok) throw new Error(`result api ${res.status}`);
   return res.json();
-}
-
-function mapDivision(name: unknown, sex: string): string | null {
-  const k = String(name ?? "").toUpperCase();
-  if (!k) return null;
-  let div: string | null = null;
-  if (/MIXED\s+DOUBLES/.test(k)) div = "mixed_doubles";
-  else if (/PRO\s+DOUBLES/.test(k)) div = "pro_doubles";
-  else if (/DOUBLES/.test(k)) div = "doubles";
-  else if (/RELAY/.test(k)) div = "relay";
-  else if (/PRO/.test(k)) div = "pro";
-  else if (/HYROX/.test(k)) div = "open";
-  if (div === "doubles" && (/^(X|MX)$/.test(sex) || sex.includes("MIX")))
-    div = "mixed_doubles";
-  return div;
 }
 
 const STATION_BY_KEY: Record<string, string> = {
@@ -276,7 +262,10 @@ export async function importMyRaces(
         String(pick(r, ["sex", "gender"]) ?? "").trim().toUpperCase() ||
         sexByTotal.get(total) ||
         "";
-      const division = mapDivision(pick(r, ["division_name", "division"]), sexRaw);
+      const division = resolveDivision(
+        pick(r, ["division_name", "division"]) as string | null,
+        sexRaw,
+      );
       const rowDate = String(
         pick(r, ["event_date", "race_date", "date", "started_at"]) ?? "",
       ).slice(0, 10);

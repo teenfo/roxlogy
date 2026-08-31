@@ -59,16 +59,35 @@ async function db(path, init = {}) {
   return text ? JSON.parse(text) : null;
 }
 
-function mapDivision(name) {
+// 디비전 분류 — web/lib/division-map.ts 와 같은 규칙 (.mjs 라 import 불가, 복제).
+// 바꿀 때 양쪽을 함께 고칠 것.
+function isMixedSex(sex) {
+  const x = String(sex ?? "").toUpperCase().trim();
+  if (!x) return false;
+  if (/^(M|W|F|MALE|FEMALE)$/.test(x)) return false;
+  return /^(X|MX)$/.test(x) || x.includes("MIX");
+}
+
+function divisionFromName(name) {
   const k = String(name ?? "").toUpperCase();
   if (!k) return null;
   if (/MIXED\s+DOUBLES/.test(k)) return "mixed_doubles";
+  if (/MIXED\s+RELAY/.test(k)) return "mixed_relay";
   if (/PRO\s+DOUBLES/.test(k)) return "pro_doubles";
   if (/DOUBLES/.test(k)) return "doubles";
   if (/RELAY/.test(k)) return "relay";
   if (/PRO/.test(k)) return "pro";
   if (/HYROX/.test(k)) return "open";
   return null;
+}
+
+/** 이름 + sex → 최종 디비전. 혼성이면 doubles→mixed_doubles, relay→mixed_relay */
+function resolveDivision(name, sex) {
+  const base = divisionFromName(name);
+  if (!isMixedSex(sex)) return base;
+  if (base === "doubles") return "mixed_doubles";
+  if (base === "relay") return "mixed_relay";
+  return base;
 }
 
 const STATION_BY_KEY = {
@@ -307,17 +326,15 @@ async function main() {
         pick(r, ["event_date", "race_date", "date", "started_at"]) ?? "",
       ).slice(0, 10);
       const validDate = /^\d{4}-\d{2}-\d{2}$/.test(eventDate) ? eventDate : null;
-      // 더블은 sex 값으로 mixed 여부를 판별한다 (이벤트명엔 MIXED 가 없을 수 있음)
+      // 믹스 여부는 이벤트명이 아니라 sex 값으로 판별한다 — HYROX 이벤트명에는
+      // MIXED 가 없는 경우가 많다(믹스 더블도 그냥 "HYROX DOUBLES").
+      // 더블뿐 아니라 릴레이도 같은 규칙으로 mixed_relay 가 된다.
       const sexRaw =
         String(pick(r, ["sex", "gender"]) ?? "").trim().toUpperCase() ||
         sexByTotal.get(total) ||
         "";
       const divRaw = pick(r, ["division_name", "division"]);
-      let division = mapDivision(divRaw);
-      if (division === "doubles" && /^(X|MX)$/.test(sexRaw))
-        division = "mixed_doubles";
-      if (division === "doubles" && sexRaw.includes("MIX"))
-        division = "mixed_doubles";
+      const division = resolveDivision(divRaw, sexRaw);
       console.log(
         `  row ${eventName ?? "?"}: div=${divRaw ?? "?"} sex=${sexRaw || "-"} → ${division ?? "?"}`,
       );

@@ -1,3 +1,4 @@
+import { divisionFromName } from "./division-map";
 /** 대회 디비전 실측 통계 — 서버/클라이언트 공용 순수 타입·계산. */
 
 export type EventDivisionStat = {
@@ -10,17 +11,10 @@ export type EventDivisionStat = {
   p90Ms: number | null;
 };
 
-/** API 디비전 라벨 → 우리 디비전 코드 */
+/** API 디비전 라벨 → 우리 디비전 코드.
+ *  통계 행에는 성별이 없어 이름만 본다 — 라벨에 MIXED 가 있으면 믹스로 잡힌다. */
 export function mapApiDivision(label: string | null | undefined): string | null {
-  const k = String(label ?? "").toUpperCase();
-  if (!k) return null;
-  if (/MIXED\s+DOUBLES/.test(k)) return "mixed_doubles";
-  if (/PRO\s+DOUBLES/.test(k)) return "pro_doubles";
-  if (/DOUBLES/.test(k)) return "doubles";
-  if (/RELAY/.test(k)) return "relay";
-  if (/PRO/.test(k)) return "pro";
-  if (/HYROX/.test(k)) return "open";
-  return null;
+  return divisionFromName(label);
 }
 
 /** p10~p90 브레이크포인트에서 목표 시간의 백분위 보간 (상위 %) */

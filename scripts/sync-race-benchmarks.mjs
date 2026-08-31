@@ -60,6 +60,7 @@ async function apiGet(url) {
 function mapDivision(key) {
   const k = String(key ?? "").toUpperCase();
   if (/MIXED\s+DOUBLES/.test(k)) return "mixed_doubles";
+  if (/MIXED\s+RELAY/.test(k)) return "mixed_relay";
   if (/PRO\s+DOUBLES/.test(k)) return "pro_doubles";
   if (/DOUBLES/.test(k)) return "doubles";
   if (/RELAY/.test(k)) return "relay";
@@ -76,13 +77,14 @@ function mapDivision(key) {
  *  따라서 이름 기반 mapDivision 으로는 mixed_doubles 가 절대 나오지 않는다.
  *  버킷의 sex 가 혼성이면 그 버킷을 원 디비전과 혼성 디비전 양쪽에 쌓는다
  *  ('all' 은 필드 전체, mixed_* 는 혼성 코호트만). */
+// web/lib/division-map.ts 와 같은 규칙 (.mjs 라 import 불가, 복제).
 const MIXED_OF = { doubles: "mixed_doubles", relay: "mixed_relay" };
 
 /** 버킷 sex → 성별 코드. M/W(또는 F) 외에는 혼성으로 본다. */
 function genderOf(sex) {
-  const k = String(sex ?? "").toUpperCase();
-  if (k === "M") return "male";
-  if (k === "W" || k === "F") return "female";
+  const k = String(sex ?? "").toUpperCase().trim();
+  if (/^(M|MALE)$/.test(k)) return "male";
+  if (/^(W|F|FEMALE)$/.test(k)) return "female";
   return null; // X / MX / MIXED / 빈 값 → 혼성 코호트
 }
 

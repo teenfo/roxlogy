@@ -1,3 +1,4 @@
+import { divisionFromText } from "./division-map";
 /**
  * 공식 결과 페이지 → 레이스 결과 자동 인식.
  *
@@ -133,17 +134,8 @@ export function parseRaceText(text: string): ParsedRace {
         out.eventDate = `${eu[3]}-${eu[2].padStart(2, "0")}-${eu[1].padStart(2, "0")}`;
     }
 
-    // 디비전 (믹스 우선 판정)
-    if (!out.division) {
-      const mixed = /\bmixed\b/i.test(line);
-      if (/pro\s*doubles/i.test(line)) out.division = "pro_doubles";
-      else if (/\bdoubles\b/i.test(line))
-        out.division = mixed ? "mixed_doubles" : "doubles";
-      else if (/\brelay\b/i.test(line))
-        out.division = mixed ? "mixed_relay" : "relay";
-      else if (/\bpro\b/i.test(line)) out.division = "pro";
-      else if (/\bopen\b/i.test(line)) out.division = "open";
-    }
+    // 디비전 — 자유 텍스트라 'mixed' 키워드로 판정 (lib/division-map.ts)
+    if (!out.division) out.division = divisionFromText(line) ?? undefined;
 
     if (!time) continue;
     const ms = timeTokenToMs(time);

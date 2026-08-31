@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { getCrew, getCrewLeaderboard } from "@/lib/crew";
 import { getT } from "@/lib/i18n";
 import { formatMs, formatDateShort } from "@/lib/format";
-
-const DIVISIONS = ["open", "pro", "doubles", "pro_doubles", "relay"] as const;
+// 디비전 목록은 단일 출처를 쓴다 — 여기 하드코딩된 목록에 믹스 더블·믹스
+// 릴레이가 빠져 있어 크루 리더보드에만 그 탭이 없었다.
+import { DIVISIONS } from "@/lib/divisions";
 
 export default async function CrewLeaderboardPage({
   params,
@@ -15,7 +16,7 @@ export default async function CrewLeaderboardPage({
 }) {
   const { slug } = await params;
   const { division } = await searchParams;
-  const div = DIVISIONS.includes(division as never) ? division! : null;
+  const div = (DIVISIONS as readonly string[]).includes(division ?? "") ? division! : null;
 
   const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();

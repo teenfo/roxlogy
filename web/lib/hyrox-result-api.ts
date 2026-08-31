@@ -9,6 +9,7 @@
  */
 
 import type { ParsedRace } from "@/lib/race-import";
+import { resolveDivision } from "./division-map";
 
 const BASE =
   process.env.HYROX_RESULT_API_BASE ?? "https://hyroxresultapi.com/api/v1";
@@ -93,19 +94,6 @@ export async function apiSearchAthletes(params: {
   }));
 }
 
-/** division_name → 우리 디비전 코드 */
-function mapDivision(name: string | null | undefined): string | undefined {
-  const k = String(name ?? "").toUpperCase();
-  if (!k) return undefined;
-  if (/MIXED\s+DOUBLES/.test(k)) return "mixed_doubles";
-  if (/PRO\s+DOUBLES/.test(k)) return "pro_doubles";
-  if (/DOUBLES/.test(k)) return "doubles";
-  if (/RELAY/.test(k)) return "relay";
-  if (/PRO/.test(k)) return "pro";
-  if (/HYROX/.test(k)) return "open";
-  return undefined;
-}
-
 // canonical_key → STATIONS key
 const STATION_BY_KEY: Record<string, string> = {
   ski_erg: "ski",
@@ -151,11 +139,8 @@ export async function apiFetchRace(raceId: string): Promise<ParsedRace | null> {
   const parsed: ParsedRace = { stations: {} };
   if (detail.race_name) parsed.event = detail.race_name;
   if (detail.total_time_ms != null) parsed.totalMs = detail.total_time_ms;
-  let div = mapDivision(detail.division_name);
-  // 더블은 sex 값으로 mixed 여부 판별 (이벤트명엔 MIXED 가 없을 수 있음)
-  const sx = String(detail.sex ?? "").toUpperCase();
-  if (div === "doubles" && (/^(X|MX)$/.test(sx) || sx.includes("MIX")))
-    div = "mixed_doubles";
+  // 이름 + sex 로 판정 (믹스 더블·믹스 릴레이 모두 sex 로만 구분된다)
+  const div = resolveDivision(detail.division_name, detail.sex as string | null);
   if (div) parsed.division = div;
 
   if (detail.rank_overall != null) parsed.rankOverall = detail.rank_overall;
