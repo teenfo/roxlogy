@@ -6,6 +6,13 @@
 // 합성한다. p99 는 API 미제공 — 정규 근사(median + 2.326σ, max 클램프).
 // 표본이 적은 조합(<30)은 시드를 유지한다.
 //
+// /events 는 디비전×요일 단위 행을 준다. 예전에는 results_count 상위 12개만
+// 골랐는데, 필드가 큰 open·doubles 가 그 자리를 전부 차지해 mixed_doubles·
+// relay·pro·pro_doubles 는 한 번도 표본에 들어오지 못했다(= 분포가 비어 있거나
+// 근사 시드로 남았다). 지금은 디비전별 쿼터로 고른다.
+// 또 혼성 디비전(mixed_doubles·relay)은 버킷 sex 가 M/W 가 아니라서 예전 코드가
+// 버킷을 통째로 버렸다 — 'all' 집계는 성별과 무관하게 항상 쌓는다.
+//
 // 보안: 토큰·서비스 키는 CI 시크릿(서버 전용). SYNC_DRY_RUN=1 이면 로그만.
 // 실행: node scripts/sync-race-benchmarks.mjs   (Node 20+)
 
@@ -17,7 +24,11 @@ const RESULT_API_BASE =
 const DRY_RUN = process.env.SYNC_DRY_RUN === "1";
 
 const MIN_SAMPLE = 30; // 이보다 작은 (디비전,성별) 조합은 갱신하지 않음
-const MAX_EVENTS = 12; // 최근 대회 수집 상한 (레이트리밋 예산)
+// 화면 표시 하한은 100 (web/lib/percentile.ts MIN_BENCHMARK_SAMPLE,
+// SQL race_percentile). 30~99 인 조합은 저장은 되지만 배지로는 안 보인다.
+const DISPLAY_MIN_SAMPLE = 100;
+const PER_DIVISION_EVENTS = 4; // 디비전마다 큰 대회 N개 (작은 디비전 보호)
+const MAX_EVENTS = 32; // 전체 수집 상한 (요청당 2.2s → 약 70초)
 const LOOKBACK_DAYS = 150;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -55,6 +66,17 @@ function mapDivision(key) {
   if (/PRO/.test(k)) return "pro";
   if (/HYROX/.test(k)) return "open";
   return null;
+}
+
+/** 이 이벤트 통계를 어떤 디비전 코드에 쌓을지.
+ *  API 임포트(web/lib/hyrox-result-api.ts)는 모든 RELAY 를 'relay' 로 접어서
+ *  사용자 기록도 'relay' 로 저장된다. 반면 수동 입력(web/lib/race-import.ts)은
+ *  믹스 릴레이를 'mixed_relay' 로 남길 수 있다 — 같은 필드이므로 같은 집계를
+ *  두 코드에 함께 넣어 어느 쪽으로 저장됐든 백분위가 나오게 한다. */
+function divisionsFor(eventName, division) {
+  if (division === "relay" && /MIXED\s+RELAY/.test(String(eventName ?? "").toUpperCase()))
+    return ["relay", "mixed_relay"];
+  return [division];
 }
 
 /** (디비전,성별)별 백분위 누적기 — 표본수 가중 평균 */
@@ -114,13 +136,34 @@ async function main() {
     const last = json.meta?.last_page ?? null;
     if (last != null && page >= Number(last)) break;
   }
-  const withResults = evs
-    .filter((e) => (e.results_count ?? 0) >= MIN_SAMPLE)
-    .sort((a, b) => (b.results_count ?? 0) - (a.results_count ?? 0))
-    .slice(0, MAX_EVENTS);
+  // 디비전별로 나눠 각 디비전에서 큰 대회부터 고른다. 전역 상위 N 개만 보면
+  // open·doubles 가 자리를 독식해 작은 디비전은 영원히 표본에 못 들어온다.
+  const byDivision = new Map();
+  for (const e of evs) {
+    if ((e.results_count ?? 0) < MIN_SAMPLE) continue;
+    const d = mapDivision(e.name);
+    if (!d) continue;
+    if (!byDivision.has(d)) byDivision.set(d, []);
+    byDivision.get(d).push(e);
+  }
+  for (const arr of byDivision.values())
+    arr.sort((a, b) => (b.results_count ?? 0) - (a.results_count ?? 0));
+
+  // 라운드로빈 — 전체 상한에 걸려도 특정 디비전만 통째로 잘리지 않는다
+  const withResults = [];
+  for (let i = 0; i < PER_DIVISION_EVENTS && withResults.length < MAX_EVENTS; i++) {
+    for (const arr of byDivision.values()) {
+      if (arr[i] && withResults.length < MAX_EVENTS) withResults.push(arr[i]);
+    }
+  }
   console.log(
-    `events: ${evs.length} rows → ${withResults.length} with results (top by field size)`,
+    `events: ${evs.length} rows → ${withResults.length} picked ` +
+      `(디비전별 최대 ${PER_DIVISION_EVENTS}개)`,
   );
+  for (const [d, arr] of byDivision) {
+    const used = Math.min(arr.length, PER_DIVISION_EVENTS);
+    console.log(`  ${d}: 후보 ${arr.length} → ${used}개 사용`);
+  }
 
   // 대회별 통계 수집 → (디비전, 성별) 누적
   const accs = new Map(); // `${division}|${gender}|${scope}` → acc
@@ -134,19 +177,29 @@ async function main() {
     if (!json?.data) continue;
     const division = mapDivision(ev.name);
     if (!division) continue;
+    const targets = divisionsFor(ev.name, division);
+    let used = 0;
     for (const b of json.data.buckets ?? []) {
       const t = b.total_time;
       if (!t || !b.count) continue;
       const gender = b.sex === "M" ? "male" : b.sex === "W" ? "female" : null;
-      if (!gender) continue;
-      accumulate(acc(division, gender), t, b.count);
-      accumulate(acc(division, "all"), t, b.count);
-      // 연령그룹 버킷 — scope='age:<그룹>' 인코딩으로 별도 행 (예: age:30-34)
-      if (b.age_group) {
-        accumulate(acc(division, gender, `age:${b.age_group}`), t, b.count);
+      for (const d of targets) {
+        // 'all' 은 성별과 무관하게 항상 쌓는다 — mixed_doubles·relay 는 혼성이라
+        // 버킷 sex 가 M/W 가 아니고, 예전 코드는 그 버킷을 전부 버려서 이 두
+        // 디비전의 분포가 만들어지지 않았다.
+        accumulate(acc(d, "all"), t, b.count);
+        if (gender) accumulate(acc(d, gender), t, b.count);
+        // 연령그룹 버킷 — scope='age:<그룹>' 인코딩으로 별도 행 (예: age:30-34)
+        if (b.age_group) {
+          accumulate(acc(d, "all", `age:${b.age_group}`), t, b.count);
+          if (gender) accumulate(acc(d, gender, `age:${b.age_group}`), t, b.count);
+        }
       }
+      used++;
     }
-    console.log(`  ✓ ${ev.name} @ ${ev.city} (${ev.results_count})`);
+    console.log(
+      `  ✓ ${ev.name} @ ${ev.city} (${ev.results_count}) → ${targets.join("+")}, 버킷 ${used}개`,
+    );
   }
 
   const rows = [];
@@ -171,11 +224,16 @@ async function main() {
   }
   console.log(`benchmarks: ${rows.length} (division×gender) combos ready`);
   for (const r of rows) {
+    const hidden = r.sample_size < DISPLAY_MIN_SAMPLE ? "  ⚠ 표시 하한 미달(배지 숨김)" : "";
     console.log(
-      `${r.division}/${r.gender} n=${r.sample_size} ` +
-        `p10=${r.percentiles.p10} p50=${r.percentiles.p50} p90=${r.percentiles.p90} p99=${r.percentiles.p99}`,
+      `${r.division}/${r.gender}/${r.scope} n=${r.sample_size} ` +
+        `p10=${r.percentiles.p10} p50=${r.percentiles.p50} p90=${r.percentiles.p90} p99=${r.percentiles.p99}${hidden}`,
     );
   }
+  const shown = new Set(
+    rows.filter((r) => r.sample_size >= DISPLAY_MIN_SAMPLE).map((r) => r.division),
+  );
+  console.log(`배지가 실제로 표시될 디비전: ${[...shown].sort().join(", ") || "(없음)"}`);
   if (DRY_RUN || !rows.length) {
     if (DRY_RUN) console.log("── DRY RUN — DB 미반영 ──");
     return;
