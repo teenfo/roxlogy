@@ -68,15 +68,22 @@ function mapDivision(key) {
   return null;
 }
 
-/** 이 이벤트 통계를 어떤 디비전 코드에 쌓을지.
- *  API 임포트(web/lib/hyrox-result-api.ts)는 모든 RELAY 를 'relay' 로 접어서
- *  사용자 기록도 'relay' 로 저장된다. 반면 수동 입력(web/lib/race-import.ts)은
- *  믹스 릴레이를 'mixed_relay' 로 남길 수 있다 — 같은 필드이므로 같은 집계를
- *  두 코드에 함께 넣어 어느 쪽으로 저장됐든 백분위가 나오게 한다. */
-function divisionsFor(eventName, division) {
-  if (division === "relay" && /MIXED\s+RELAY/.test(String(eventName ?? "").toUpperCase()))
-    return ["relay", "mixed_relay"];
-  return [division];
+/** 혼성 코호트를 따로 쌓을 디비전 매핑.
+ *
+ *  믹스 더블은 별도 이벤트가 아니다 — 이벤트 이름은 그냥 "HYROX DOUBLES" 이고
+ *  혼성 여부는 결과 행의 sex 값(M/W 가 아닌 X 등)으로만 구분된다
+ *  (web/lib/hyrox-import-user.ts 도 같은 규칙으로 mixed_doubles 를 판정한다).
+ *  따라서 이름 기반 mapDivision 으로는 mixed_doubles 가 절대 나오지 않는다.
+ *  버킷의 sex 가 혼성이면 그 버킷을 원 디비전과 혼성 디비전 양쪽에 쌓는다
+ *  ('all' 은 필드 전체, mixed_* 는 혼성 코호트만). */
+const MIXED_OF = { doubles: "mixed_doubles", relay: "mixed_relay" };
+
+/** 버킷 sex → 성별 코드. M/W(또는 F) 외에는 혼성으로 본다. */
+function genderOf(sex) {
+  const k = String(sex ?? "").toUpperCase();
+  if (k === "M") return "male";
+  if (k === "W" || k === "F") return "female";
+  return null; // X / MX / MIXED / 빈 값 → 혼성 코호트
 }
 
 /** (디비전,성별)별 백분위 누적기 — 표본수 가중 평균 */
@@ -167,6 +174,7 @@ async function main() {
 
   // 대회별 통계 수집 → (디비전, 성별) 누적
   const accs = new Map(); // `${division}|${gender}|${scope}` → acc
+  const sexSeen = new Map(); // 진단: `${division}|${sex}` → 표본수 (혼성 판정 확인용)
   const acc = (d, g, scope = "overall") => {
     const k = `${d}|${g}|${scope}`;
     if (!accs.has(k)) accs.set(k, makeAcc());
@@ -177,30 +185,38 @@ async function main() {
     if (!json?.data) continue;
     const division = mapDivision(ev.name);
     if (!division) continue;
-    const targets = divisionsFor(ev.name, division);
     let used = 0;
     for (const b of json.data.buckets ?? []) {
       const t = b.total_time;
       if (!t || !b.count) continue;
-      const gender = b.sex === "M" ? "male" : b.sex === "W" ? "female" : null;
-      for (const d of targets) {
-        // 'all' 은 성별과 무관하게 항상 쌓는다 — mixed_doubles·relay 는 혼성이라
-        // 버킷 sex 가 M/W 가 아니고, 예전 코드는 그 버킷을 전부 버려서 이 두
-        // 디비전의 분포가 만들어지지 않았다.
-        accumulate(acc(d, "all"), t, b.count);
-        if (gender) accumulate(acc(d, gender), t, b.count);
-        // 연령그룹 버킷 — scope='age:<그룹>' 인코딩으로 별도 행 (예: age:30-34)
-        if (b.age_group) {
-          accumulate(acc(d, "all", `age:${b.age_group}`), t, b.count);
-          if (gender) accumulate(acc(d, gender, `age:${b.age_group}`), t, b.count);
-        }
+      const gender = genderOf(b.sex);
+      sexSeen.set(
+        `${division}|${String(b.sex ?? "(없음)").toUpperCase()}`,
+        (sexSeen.get(`${division}|${String(b.sex ?? "(없음)").toUpperCase()}`) ?? 0) + b.count,
+      );
+
+      // 'all' = 필드 전체 (성별 무관). 예전 코드는 M/W 가 아닌 버킷을 통째로
+      // 버려서 혼성 참가자가 어느 집계에도 들어가지 않았다.
+      accumulate(acc(division, "all"), t, b.count);
+      if (gender) accumulate(acc(division, gender), t, b.count);
+
+      // 혼성 코호트는 별도 디비전으로도 쌓는다 (mixed_doubles / mixed_relay)
+      const mixed = !gender ? MIXED_OF[division] : null;
+      if (mixed) accumulate(acc(mixed, "all"), t, b.count);
+
+      // 연령그룹 버킷 — scope='age:<그룹>' 인코딩으로 별도 행 (예: age:30-34)
+      if (b.age_group) {
+        accumulate(acc(division, "all", `age:${b.age_group}`), t, b.count);
+        if (gender) accumulate(acc(division, gender, `age:${b.age_group}`), t, b.count);
+        if (mixed) accumulate(acc(mixed, "all", `age:${b.age_group}`), t, b.count);
       }
       used++;
     }
-    console.log(
-      `  ✓ ${ev.name} @ ${ev.city} (${ev.results_count}) → ${targets.join("+")}, 버킷 ${used}개`,
-    );
+    console.log(`  ✓ ${ev.name} @ ${ev.city} (${ev.results_count}) → ${division}, 버킷 ${used}개`);
   }
+
+  console.log("버킷 sex 분포 (혼성 코호트 판정 근거):");
+  for (const [k, n] of [...sexSeen].sort()) console.log(`  ${k} → ${n}`);
 
   const rows = [];
   for (const [k, a] of accs) {
