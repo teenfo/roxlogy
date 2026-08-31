@@ -171,6 +171,18 @@ const ISO2_KO = {
   BR: "브라질", AR: "아르헨티나", CL: "칠레", CO: "콜롬비아",
   AU: "호주", NZ: "뉴질랜드", ZA: "남아프리카공화국", EG: "이집트",
 };
+// 큐레이션 JSON 은 한국어 도시·국가만 갖고 있다. i18n 컬럼(city_en·country_code)을
+// 채우려면 역방향 조회가 필요하다 — 없으면 null 로 두고 화면은 ko 값으로 폴백한다.
+const KO_CITY_EN = Object.fromEntries(
+  Object.entries(CITY_KO).map(([en, ko]) => [
+    ko,
+    en.replace(/\b\w/g, (c) => c.toUpperCase()),
+  ]),
+);
+const KO_ISO2 = Object.fromEntries(
+  Object.entries(ISO2_KO).map(([iso, ko]) => [ko, iso]),
+);
+
 const REGION_BY_ISO2 = {
   KR: "asia", JP: "asia", CN: "asia", HK: "asia", TW: "asia", TH: "asia",
   SG: "asia", MY: "asia", ID: "asia", IN: "asia", PH: "asia", VN: "asia",
@@ -380,11 +392,17 @@ async function fetchResultApiEvents(seasonSlug, fromDate) {
 
 /** 소스 레코드(제네릭/큐레이션) → race_events 행으로 정규화 + 검증 */
 function normalize(raw) {
+  const city = (raw.city ?? "").toString().trim();
+  const country = (raw.country ?? "").toString().trim();
   const row = {
     name: (raw.name ?? "").toString().trim(),
-    city: (raw.city ?? "").toString().trim(),
+    city,
+    // PostgREST 벌크 upsert 는 모든 객체의 키 집합이 같아야 한다(PGRST102).
+    // aggregateResultApi 가 내보내는 키와 반드시 일치시킬 것.
+    city_en: raw.city_en ?? raw.api_city ?? KO_CITY_EN[city] ?? null,
     api_city: raw.api_city ?? null,
-    country: (raw.country ?? "").toString().trim(),
+    country,
+    country_code: raw.country_code ?? KO_ISO2[country] ?? null,
     region: raw.region ?? null,
     venue: raw.venue ?? null,
     start_date: raw.start_date ?? null,
@@ -471,6 +489,26 @@ async function main() {
   if (!rows.length) {
     console.log("nothing to sync");
     return;
+  }
+
+  // PostgREST 벌크 upsert 는 배열의 모든 객체가 같은 키 집합이어야 한다
+  // (아니면 400 PGRST102 "All object keys must match"). 큐레이션 경로와 API
+  // 경로가 각자 행을 만들기 때문에 한쪽에만 컬럼을 추가하면 조용히 어긋난다 —
+  // 실제로 city_en·country_code 를 API 쪽에만 넣었다가 주간 동기화가 죽었다.
+  // 드라이런에서도 걸리도록 upsert 앞이 아니라 여기서 검사한다.
+  if (rows.length > 1) {
+    const sig = (r) => Object.keys(r).sort().join(",");
+    const base = sig(rows[0]);
+    const bad = rows.find((r) => sig(r) !== base);
+    if (bad) {
+      const a = new Set(Object.keys(rows[0]));
+      const b = new Set(Object.keys(bad));
+      const only = (x, y) => [...x].filter((k) => !y.has(k)).join(", ") || "(없음)";
+      throw new Error(
+        `행마다 키 집합이 다르다 (PostgREST 벌크 upsert 불가). ` +
+          `첫 행에만: ${only(a, b)} / '${bad.name}' 에만: ${only(b, a)}`,
+      );
+    }
   }
 
   if (DRY_RUN) {
