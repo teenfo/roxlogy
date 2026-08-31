@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
+import { RacePlanForm, type MyRacePlan } from "@/components/crew-schedule-forms";
 import {
   formatDateShort,
   programDayNumber,
@@ -59,6 +60,25 @@ export default async function SchedulePage({
 
   const enroll = (enrollment ?? null) as unknown as EnrollProgram | null;
 
+  // 내 대회 일정 — 프로그램 등록 여부와 무관하다. 아래 조기 return 분기에도
+  // 같이 렌더해야 프로그램 없는 사용자가 막다른 길에 빠지지 않는다.
+  const { data: planRows } = await supabase
+    .from("race_plans")
+    .select("id, title, race_date, division, bib, note, goal_plan_id")
+    .eq("user_id", user!.id)
+    .order("race_date");
+  const myPlans = (planRows ?? []) as MyRacePlan[];
+  const racePlanSection = (
+    <section className="mt-8">
+      <h2 className="text-sm font-semibold text-muted">
+        {t("schedule.myRaces")}
+      </h2>
+      <div className="mt-3">
+        <RacePlanForm myPlans={myPlans} />
+      </div>
+    </section>
+  );
+
   if (!enroll?.programs) {
     return (
       <main>
@@ -69,6 +89,7 @@ export default async function SchedulePage({
             {t("schedule.browsePrograms")}
           </Link>
         </p>
+        {racePlanSection}
       </main>
     );
   }
@@ -291,6 +312,7 @@ export default async function SchedulePage({
           </li>
         ))}
       </ul>
+      {racePlanSection}
     </main>
   );
 }

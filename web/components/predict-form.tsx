@@ -109,6 +109,10 @@ export function PredictForm({
   );
   const [customEventName, setCustomEventName] = useState(initialEventName);
   const [customEventDate, setCustomEventDate] = useState(initialEventDate);
+  // 목표에 대회 날짜가 있으면 서버 트리거가 '내 대회 일정'을 만든다
+  // (sync_goal_to_race_plan). 예전엔 무조건 만들어서 목표만 잡고 싶은 사람에게
+  // 선택권이 없었다 — 여기서 의사를 받아 goal_plans.add_to_schedule 로 넘긴다.
+  const [addToSchedule, setAddToSchedule] = useState(true);
 
   const chosenEvent =
     eventChoice && eventChoice !== "custom"
@@ -289,6 +293,7 @@ export function PredictForm({
       station_total_ms: stationTotal,
       roxzone_total_ms: parseTimeToMs(eff.rox) ?? 0,
       stations: stationsMs,
+      add_to_schedule: addToSchedule,
     };
     const { error } = editGoal
       ? await supabase.from("goal_plans").update(payload).eq("id", editGoal.id)
@@ -529,6 +534,29 @@ export function PredictForm({
                       />
                     </label>
                   </>
+                )}
+                {/* 대회 날짜가 정해진 경우에만 물어본다 — 저장하면 서버 트리거가
+                    이 값을 보고 '내 대회 일정'을 만들지 결정한다. */}
+                {goalEventDate && (
+                  <label className="flex w-full items-start gap-2 rounded-md bg-surface px-3 py-2.5 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={addToSchedule}
+                      onChange={(e) => {
+                        setAddToSchedule(e.target.checked);
+                        setSaveState("idle");
+                      }}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-accent"
+                    />
+                    <span className="flex flex-col gap-0.5">
+                      <span className="font-semibold">
+                        {t("predict.addToSchedule")}
+                      </span>
+                      <span className="text-xs text-muted">
+                        {t("predict.addToScheduleHint")}
+                      </span>
+                    </span>
+                  </label>
                 )}
                 <label className="flex flex-col gap-1.5 text-sm text-muted">
                   {t("newSession.division")}

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import {
   CrewMeetupForm,
-  CrewRacePlanForm,
+  RacePlanForm,
   type MyRacePlan,
 } from "@/components/crew-schedule-forms";
 
@@ -83,6 +83,7 @@ export default async function CrewSchedulePage({
       ? supabase
           .from("race_plans")
           .select("id, title, race_date, division, bib, note, goal_plan_id")
+          .eq("user_id", user!.id)
           .order("race_date")
       : Promise.resolve({ data: [] as MyRacePlan[] }),
   ]);
@@ -147,7 +148,7 @@ export default async function CrewSchedulePage({
         <div className="mt-4 flex flex-col gap-3">
           {isStaff && <CrewMeetupForm crewId={crew.id} />}
           {isMember && (
-            <CrewRacePlanForm myPlans={(myPlans ?? []) as MyRacePlan[]} />
+            <RacePlanForm myPlans={(myPlans ?? []) as MyRacePlan[]} />
           )}
         </div>
       )}

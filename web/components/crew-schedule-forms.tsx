@@ -172,10 +172,11 @@ type RaceEventRow = {
   start_date: string | null;
 };
 
-/** 대회 참가 일정 — 멤버 본인이 등록·삭제. 크루 일정표에 표기된다.
- *  공식 대회(race_events)를 검색해 선택하면 이름·날짜가 채워지고 대회에 연결된다.
- *  목록에 없는 대회는 직접 입력도 가능. */
-export function CrewRacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
+/** 내 대회 참가 일정 — 본인이 등록·수정·삭제한다 (race_plans, own RLS).
+ *  크루 전용이 아니다: 개인 일정 화면(/schedule)과 크루 일정표 양쪽에서 쓴다.
+ *  공식 대회(race_events)를 검색해 고르면 이름·날짜가 채워지고 대회에 연결되며,
+ *  목록에 없는 대회는 입력한 이름 그대로 등록된다. */
+export function RacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
   const { t } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
