@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCrew } from "@/lib/crew";
 import { getCachedUser } from "@/lib/supabase/auth";
+import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { CrewJoinButton } from "@/components/crew-join-button";
 import { CrewHeader } from "@/components/crew-header";
@@ -21,7 +22,7 @@ export default async function CrewLayout({
   ]);
   if (!crew) notFound();
 
-  const tabs = [
+  const tabs: { href: string; label: string; badge?: number }[] = [
     { href: `/crews/${slug}`, label: t("crew.about") },
     { href: `/crews/${slug}/schedule`, label: t("crew.schedTab") },
     { href: `/crews/${slug}/board`, label: t("crew.board") },
@@ -32,9 +33,20 @@ export default async function CrewLayout({
   if (crew.my_status === "active" && crew.my_role !== "associate") {
     tabs.push({ href: `/crews/${slug}/finance`, label: t("crew.financeTab") });
   }
-  // 스태프(리더·부리더)에게만 관리 탭 노출
+  // 스태프(리더·부리더)에게만 관리 탭 노출 — 대기 중인 가입 신청은 배지로 알린다
+  // (신청이 들어온 걸 관리 탭에 들어가야만 알 수 있던 문제).
   if (crew.my_role === "owner" || crew.my_role === "coach") {
-    tabs.push({ href: `/crews/${slug}/manage`, label: t("crew.manage") });
+    const supabase = await createClient();
+    const { count, error } = await supabase
+      .from("crew_members")
+      .select("user_id", { count: "exact", head: true })
+      .eq("crew_id", crew.id)
+      .eq("status", "pending");
+    tabs.push({
+      href: `/crews/${slug}/manage`,
+      label: t("crew.manage"),
+      badge: error ? 0 : (count ?? 0),
+    });
   }
 
   return (
@@ -105,9 +117,14 @@ export default async function CrewLayout({
             <Link
               key={tab.href}
               href={tab.href}
-              className="shrink-0 rounded-t-md px-3 py-2 text-sm text-muted hover:text-foreground"
+              className="flex shrink-0 items-center gap-1.5 rounded-t-md px-3 py-2 text-sm text-muted hover:text-foreground"
             >
               {tab.label}
+              {!!tab.badge && (
+                <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold leading-none text-background">
+                  {tab.badge}
+                </span>
+              )}
             </Link>
           ))}
         </div>

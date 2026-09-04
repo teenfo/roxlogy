@@ -36,6 +36,7 @@ export function CrewInfoForm({
   const [hoursWeekend, setHoursWeekend] = useState(links.hours_weekend ?? "");
   const [phone, setPhone] = useState(links.phone ?? "");
   const [official, setOfficial] = useState(links.official ?? "");
+  const [photos, setPhotos] = useState(links.photos ?? "");
   const [policy, setPolicy] = useState(links.policy ?? "");
   const [bankAccount, setBankAccount] = useState(links.bank_account ?? "");
   const [joinPolicy, setJoinPolicy] = useState(crew.join_policy);
@@ -55,6 +56,7 @@ export function CrewInfoForm({
       hours_weekend: hoursWeekend.trim() || null,
       phone: phone.trim() || null,
       official: official.trim() || null,
+      photos: photos.trim() || null,
       policy: policy.trim() || null,
       bank_account: bankAccount.trim() || null,
     };
@@ -118,6 +120,17 @@ export function CrewInfoForm({
         placeholder="https://"
         inputMode="url"
       />
+
+      <label className={label}>{t("crew.fPhotos")}</label>
+      <input
+        className={input}
+        value={photos}
+        onChange={(e) => setPhotos(e.target.value)}
+        maxLength={500}
+        placeholder="https://photos.app.goo.gl/..."
+        inputMode="url"
+      />
+      <p className="mt-1 text-xs text-muted">{t("crew.fPhotosHint")}</p>
 
       <label className={label}>{t("crew.fBankAccount")}</label>
       <input
@@ -312,6 +325,7 @@ export function CrewImageUpload({
 export type ManageMember = {
   user_id: string;
   display_name: string;
+  email: string | null;
   role: "owner" | "coach" | "member" | "associate";
   status: "pending" | "active" | "blocked";
   joined_at: string;
@@ -388,7 +402,12 @@ export function CrewMemberManage({
           <ul className="mt-2 flex flex-col gap-1.5">
             {pending.map((m) => (
               <li key={m.user_id} className="flex items-center justify-between gap-3 rounded-md bg-surface px-4 py-2.5">
-                <span className="truncate text-sm">{m.display_name}</span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-sm">{m.display_name}</span>
+                  {m.email && (
+                    <span className="truncate text-[11px] text-muted">{m.email}</span>
+                  )}
+                </span>
                 <span className="flex gap-2">
                   <button
                     onClick={() => approve(m.user_id)}
@@ -419,7 +438,12 @@ export function CrewMemberManage({
         {active.map((m) => (
           <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-surface px-4 py-2.5">
             <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-sm">{m.display_name}</span>
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate text-sm">{m.display_name}</span>
+                {m.email && (
+                  <span className="truncate text-[11px] text-muted">{m.email}</span>
+                )}
+              </span>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                   m.role === "owner"

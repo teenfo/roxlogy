@@ -107,6 +107,7 @@ export default async function CrewFinancePage({
   type RosterRow = {
     user_id: string;
     display_name: string;
+    email: string | null;
     role: DuesMatrixRow["role"];
     status: string;
   };
@@ -119,6 +120,7 @@ export default async function CrewFinancePage({
     .map((m) => ({
       user_id: m.user_id,
       display_name: m.display_name,
+      email: m.email,
       role: m.role,
       status: payBy.get(m.user_id)?.status ?? null,
       amount: payBy.get(m.user_id)?.amount ?? null,

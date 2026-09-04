@@ -111,6 +111,7 @@ export function CrewDuesSelfReport({
 export type DuesMatrixRow = {
   user_id: string;
   display_name: string;
+  email: string | null;
   role: "owner" | "coach" | "member" | "associate";
   status: DuesPaymentStatus;
   amount: number | null;
@@ -183,8 +184,11 @@ export function CrewDuesMatrix({
             key={r.user_id}
             className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-surface px-3 py-2.5"
           >
-            <span className="min-w-0 flex-1 truncate text-sm">
-              {r.display_name}
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-sm">{r.display_name}</span>
+              {r.email && (
+                <span className="truncate text-[11px] text-muted">{r.email}</span>
+              )}
             </span>
             {r.status === "confirmed" ? (
               <>

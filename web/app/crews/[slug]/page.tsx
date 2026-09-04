@@ -86,6 +86,14 @@ export default async function CrewHomePage({
       value: links.official,
       href: links.official,
     });
+  // 사진첩은 크루원에게만 노출 — 공유 앨범 URL 은 그 자체가 접근 권한이라
+  // 공개 소개 페이지(비회원도 봄)에 걸면 되돌릴 수 없다.
+  if (links.photos && crew.my_status === "active")
+    info.push({
+      label: t("crew.photos"),
+      value: links.photos,
+      href: links.photos,
+    });
   // 회비 계좌는 크루원에게만 노출 (공개 소개 페이지는 비회원도 보므로)
   if (links.bank_account && crew.my_status === "active")
     info.push({ label: t("crew.bankAccount"), value: links.bank_account });

@@ -84,9 +84,22 @@ export default async function CrewManagePage({
     title: a.programs?.title ?? "—",
   }));
   const pickable = (progRows ?? []) as PickableProgram[];
+  const pendingCount = members.filter((m) => m.status === "pending").length;
 
   return (
     <main className="flex flex-col gap-10">
+      {pendingCount > 0 && (
+        <a
+          href="#members"
+          className="flex items-center justify-between gap-3 rounded-md border border-accent/40 bg-accent/10 px-4 py-3 text-sm hover:bg-accent/15"
+        >
+          <span className="font-semibold text-accent">
+            {t("crew.pendingAlert", { n: pendingCount })}
+          </span>
+          <span className="text-xs text-muted">{t("crew.pendingAlertGo")}</span>
+        </a>
+      )}
+
       <section>
         <h2 className="text-lg font-semibold">{t("crew.logoTitle")}</h2>
         <div className="mt-3">
@@ -129,7 +142,7 @@ export default async function CrewManagePage({
         </div>
       </section>
 
-      <section>
+      <section id="members" className="scroll-mt-6">
         <h2 className="text-lg font-semibold">{t("crew.manageMembers")}</h2>
         <div className="mt-3">
           <CrewMemberManage

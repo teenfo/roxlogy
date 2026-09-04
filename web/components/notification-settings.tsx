@@ -11,7 +11,13 @@ import {
   sendTest,
 } from "@/lib/push/client";
 
-const TYPES = ["wod_reminder", "new_follower", "ai_insight", "ai_program"] as const;
+const TYPES = [
+  "wod_reminder",
+  "new_follower",
+  "crew_join_request",
+  "ai_insight",
+  "ai_program",
+] as const;
 type TypeKey = (typeof TYPES)[number];
 
 // 안드로이드 앱(WebView)이 주입하는 네이티브 FCM 브리지. Web Push 미지원 환경의 대체 경로.
@@ -39,6 +45,7 @@ export function NotificationSettings() {
   const [prefs, setPrefs] = useState<Record<TypeKey, boolean>>({
     wod_reminder: true,
     new_follower: true,
+    crew_join_request: true,
     ai_insight: true,
     ai_program: true,
   });
