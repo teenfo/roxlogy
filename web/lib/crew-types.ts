@@ -92,6 +92,8 @@ export type CrewRankRow = {
 export type CrewMemberRow = {
   user_id: string;
   display_name: string;
+  /** 운영진에게만 내려온다 — 그 외에는 null (crew_roster 가 게이트) */
+  email: string | null;
   division: string | null;
   role: CrewRole;
   joined_at: string;

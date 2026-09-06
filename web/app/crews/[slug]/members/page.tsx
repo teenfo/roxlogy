@@ -52,6 +52,10 @@ export default async function CrewMembersPage({
               >
                 {m.display_name}
               </Link>
+              {/* 계정 주소는 운영진에게만 내려온다 (동명이인·이름 미설정 구분용) */}
+              {m.email && (
+                <p className="truncate text-[11px] text-muted">{m.email}</p>
+              )}
               <p className="mt-0.5 text-[11px] text-muted">
                 {m.division?.replace("_", " ").toUpperCase() ?? "—"} ·{" "}
                 {formatDateShort(m.joined_at, tag, tz)}
