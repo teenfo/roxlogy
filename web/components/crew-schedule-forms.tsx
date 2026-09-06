@@ -709,6 +709,8 @@ export function CrewMeetupCancel({ eventId, slug }: { eventId: string; slug: str
 export type AttendanceRow = {
   user_id: string;
   display_name: string;
+  /** 운영진에게만 내려온다 — 일반 크루원에게는 null (RPC 가 게이트) */
+  email: string | null;
   role: "owner" | "coach" | "member" | "associate";
   rsvp_status: string | null;
   checked_in: boolean;
@@ -791,17 +793,22 @@ export function CrewAttendanceCheck({
             key={r.user_id}
             className="flex items-center justify-between gap-3 rounded-md bg-surface px-4 py-2.5"
           >
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-sm">{r.display_name}</span>
-              {r.rsvp_status === "going" && (
-                <span className="shrink-0 text-[10px] text-muted">
-                  {t("crew.rsvpGoing")}
-                </span>
-              )}
-              {r.rsvp_status === "waitlisted" && (
-                <span className="shrink-0 text-[10px] text-muted">
-                  ⏳ {t("crew.rsvpWaitlisted")}
-                </span>
+            <span className="flex min-w-0 flex-col">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-sm">{r.display_name}</span>
+                {r.rsvp_status === "going" && (
+                  <span className="shrink-0 text-[10px] text-muted">
+                    {t("crew.rsvpGoing")}
+                  </span>
+                )}
+                {r.rsvp_status === "waitlisted" && (
+                  <span className="shrink-0 text-[10px] text-muted">
+                    ⏳ {t("crew.rsvpWaitlisted")}
+                  </span>
+                )}
+              </span>
+              {r.email && (
+                <span className="truncate text-[11px] text-muted">{r.email}</span>
               )}
             </span>
             <button
