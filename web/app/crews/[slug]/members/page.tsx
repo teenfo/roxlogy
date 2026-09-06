@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getCrew, getCrewRoster } from "@/lib/crew";
 import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
-import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { crewRoleBadgeClass, crewRoleDictKey } from "@/lib/crew-role";
 
 export default async function CrewMembersPage({
   params,
@@ -52,11 +52,13 @@ export default async function CrewMembersPage({
                 {formatDateShort(m.joined_at, tag, tz)}
               </p>
             </div>
-            {m.role !== "member" && (
-              <span className="shrink-0 rounded-full border border-accent/40 px-2 py-0.5 text-[10px] font-semibold text-accent">
-                {t(`crew.role.${m.role}` as DictKey)}
-              </span>
-            )}
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${crewRoleBadgeClass(
+                m.role,
+              )}`}
+            >
+              {t(crewRoleDictKey(m.role))}
+            </span>
             <span className="w-12 shrink-0 text-right font-mono text-sm text-muted">
               {m.session_count}
             </span>

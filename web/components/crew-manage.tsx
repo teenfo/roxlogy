@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { crewRoleBadgeClass } from "@/lib/crew-role";
 
 const input =
   "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
@@ -445,13 +446,9 @@ export function CrewMemberManage({
                 )}
               </span>
               <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                  m.role === "owner"
-                    ? "bg-accent/15 text-accent"
-                    : m.role === "coach"
-                      ? "bg-track/15 text-track"
-                      : "bg-background text-muted"
-                }`}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${crewRoleBadgeClass(
+                  m.role,
+                )}`}
               >
                 {roleLabel(m.role)}
               </span>
