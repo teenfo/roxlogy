@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { crewRoleBadgeClass } from "@/lib/crew-role";
+import { crewRoleBadgeClass, isStaffRole, tierBadgeClass } from "@/lib/crew-role";
+import type { CrewTier } from "@/components/crew-tier-manage";
 
 const input =
   "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
@@ -330,6 +331,9 @@ export type ManageMember = {
   role: "owner" | "coach" | "member" | "associate";
   status: "pending" | "active" | "blocked";
   joined_at: string;
+  tier_id: string | null;
+  tier_name: string | null;
+  tier_color: string | null;
 };
 
 /** 멤버 관리 — 가입 신청 승인/거절, 부리더 지정/해제(리더만), 리더 위임, 제외. */
@@ -339,12 +343,14 @@ export function CrewMemberManage({
   myRole,
   myUserId,
   members,
+  tiers,
 }: {
   slug: string;
   crewId: string;
   myRole: "owner" | "coach";
   myUserId: string;
   members: ManageMember[];
+  tiers: CrewTier[];
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -371,6 +377,10 @@ export function CrewMemberManage({
       supabase().from("crew_members").delete().eq("crew_id", crewId).eq("user_id", u),
     );
   };
+  const setTier = (u: string, tier: string) =>
+    run(`g${u}`, () =>
+      supabase().rpc("set_crew_tier", { p_slug: slug, p_user: u, p_tier: tier }),
+    );
   const setRole = (u: string, role: "coach" | "member" | "associate") =>
     run(`r${u}`, () => supabase().rpc("set_crew_role", { p_slug: slug, p_user: u, p_role: role }));
   const transfer = (u: string) => {
@@ -445,44 +455,55 @@ export function CrewMemberManage({
                   <span className="truncate text-[11px] text-muted">{m.email}</span>
                 )}
               </span>
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${crewRoleBadgeClass(
-                  m.role,
-                )}`}
-              >
-                {roleLabel(m.role)}
-              </span>
-            </span>
-            {myRole === "owner" && m.user_id !== myUserId && m.role !== "owner" && (
-              <span className="flex flex-wrap gap-2">
-                {m.role === "associate" && (
-                  <button
-                    onClick={() => setRole(m.user_id, "member")}
-                    disabled={busy != null}
-                    className={`${btn} bg-background text-accent`}
+              {isStaffRole(m.role) ? (
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${crewRoleBadgeClass(
+                    m.role,
+                  )}`}
+                >
+                  {roleLabel(m.role)}
+                </span>
+              ) : (
+                m.tier_name && (
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tierBadgeClass(
+                      m.tier_color,
+                    )}`}
                   >
-                    {t("crew.makeMember")}
+                    {m.tier_name}
+                  </span>
+                )
+              )}
+            </span>
+            <span className="flex flex-wrap items-center gap-2">
+              {/* 등급 지정 — 운영진이면 누구나. 등급이 role(정회원/일반회원)까지 맞춘다. */}
+              {m.role !== "owner" && (
+                <select
+                  value={m.tier_id ?? ""}
+                  disabled={busy != null}
+                  onChange={(e) => setTier(m.user_id, e.target.value)}
+                  className="rounded-md border border-muted/30 bg-background px-2 py-1 text-xs outline-none focus:border-accent disabled:opacity-50"
+                >
+                  {tiers
+                    .filter((x) => !x.archived_at || x.id === m.tier_id)
+                    .map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {x.name}
+                      </option>
+                    ))}
+                </select>
+              )}
+              {myRole === "owner" && m.user_id !== myUserId && m.role !== "owner" && (
+              <>
+                {m.role !== "coach" ? (
+                  <button
+                    onClick={() => setRole(m.user_id, "coach")}
+                    disabled={busy != null}
+                    className={`${btn} bg-background text-track`}
+                  >
+                    {t("crew.makeCoach")}
                   </button>
-                )}
-                {m.role === "member" && (
-                  <>
-                    <button
-                      onClick={() => setRole(m.user_id, "coach")}
-                      disabled={busy != null}
-                      className={`${btn} bg-background text-track`}
-                    >
-                      {t("crew.makeCoach")}
-                    </button>
-                    <button
-                      onClick={() => setRole(m.user_id, "associate")}
-                      disabled={busy != null}
-                      className={`${btn} bg-background text-muted`}
-                    >
-                      {t("crew.toAssociate")}
-                    </button>
-                  </>
-                )}
-                {m.role === "coach" && (
+                ) : (
                   <button
                     onClick={() => setRole(m.user_id, "member")}
                     disabled={busy != null}
@@ -505,8 +526,9 @@ export function CrewMemberManage({
                 >
                   {t("crew.kick")}
                 </button>
-              </span>
-            )}
+              </>
+              )}
+            </span>
           </li>
         ))}
       </ul>

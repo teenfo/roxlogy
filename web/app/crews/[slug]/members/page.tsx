@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 import { getCrew, getCrewRoster } from "@/lib/crew";
 import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
-import { crewRoleBadgeClass, crewRoleDictKey } from "@/lib/crew-role";
+import {
+  crewRoleBadgeClass,
+  crewRoleDictKey,
+  isStaffRole,
+  tierBadgeClass,
+} from "@/lib/crew-role";
 
 export default async function CrewMembersPage({
   params,
@@ -52,13 +57,26 @@ export default async function CrewMembersPage({
                 {formatDateShort(m.joined_at, tag, tz)}
               </p>
             </div>
-            <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${crewRoleBadgeClass(
-                m.role,
-              )}`}
-            >
-              {t(crewRoleDictKey(m.role))}
-            </span>
+            {/* 리더·부리더는 권한 뱃지, 나머지는 크루가 만든 등급 뱃지 */}
+            {isStaffRole(m.role) ? (
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${crewRoleBadgeClass(
+                  m.role,
+                )}`}
+              >
+                {t(crewRoleDictKey(m.role))}
+              </span>
+            ) : (
+              m.tier_name && (
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tierBadgeClass(
+                    m.tier_color,
+                  )}`}
+                >
+                  {m.tier_name}
+                </span>
+              )
+            )}
             <span className="w-12 shrink-0 text-right font-mono text-sm text-muted">
               {m.session_count}
             </span>

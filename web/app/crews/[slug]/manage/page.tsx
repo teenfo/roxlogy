@@ -19,6 +19,7 @@ import {
   CrewDuesLinksManage,
   type DuesLink,
 } from "@/components/crew-dues-links";
+import { CrewTierManage, type CrewTier } from "@/components/crew-tier-manage";
 
 export default async function CrewManagePage({
   params,
@@ -43,6 +44,7 @@ export default async function CrewManagePage({
     { data: attachedRows },
     { data: progRows },
     { data: duesRows },
+    { data: tierRows },
   ] = await Promise.all([
       supabase
         .from("crews")
@@ -61,6 +63,14 @@ export default async function CrewManagePage({
       supabase
         .from("crew_dues_links")
         .select("id, label, url, amount, audience")
+        .eq("crew_id", crew.id)
+        .order("sort_order")
+        .order("created_at"),
+      supabase
+        .from("crew_member_tiers")
+        .select(
+          "id, name, sort_order, color, is_full_member, monthly_fee, session_fee, is_default, archived_at",
+        )
         .eq("crew_id", crew.id)
         .order("sort_order")
         .order("created_at"),
@@ -85,6 +95,7 @@ export default async function CrewManagePage({
   }));
   const pickable = (progRows ?? []) as PickableProgram[];
   const pendingCount = members.filter((m) => m.status === "pending").length;
+  const tiers = (tierRows ?? []) as CrewTier[];
 
   return (
     <main className="flex flex-col gap-10">
@@ -122,6 +133,13 @@ export default async function CrewManagePage({
       </section>
 
       <section>
+        <h2 className="text-lg font-semibold">{t("crew.tierTitle")}</h2>
+        <div className="mt-3 max-w-2xl">
+          <CrewTierManage crewId={crew.id} tiers={tiers} />
+        </div>
+      </section>
+
+      <section>
         <h2 className="text-lg font-semibold">{t("crew.duesTitle")}</h2>
         <div className="mt-3 max-w-lg">
           <CrewDuesLinksManage
@@ -151,6 +169,7 @@ export default async function CrewManagePage({
             myRole={myRole}
             myUserId={user.id}
             members={members}
+            tiers={tiers}
           />
         </div>
       </section>

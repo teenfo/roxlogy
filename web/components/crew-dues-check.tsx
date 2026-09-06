@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { tierBadgeClass } from "@/lib/crew-role";
 import { duesErrText } from "@/lib/dues-error";
 
 export type DuesPaymentStatus = "reported" | "confirmed" | null;
@@ -112,6 +113,8 @@ export type DuesMatrixRow = {
   user_id: string;
   display_name: string;
   email: string | null;
+  tier_name: string | null;
+  tier_color: string | null;
   role: "owner" | "coach" | "member" | "associate";
   status: DuesPaymentStatus;
   amount: number | null;
@@ -185,7 +188,18 @@ export function CrewDuesMatrix({
             className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-surface px-3 py-2.5"
           >
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-sm">{r.display_name}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="truncate text-sm">{r.display_name}</span>
+                {r.tier_name && (
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tierBadgeClass(
+                      r.tier_color,
+                    )}`}
+                  >
+                    {r.tier_name}
+                  </span>
+                )}
+              </span>
               {r.email && (
                 <span className="truncate text-[11px] text-muted">{r.email}</span>
               )}

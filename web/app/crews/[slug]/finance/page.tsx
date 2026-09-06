@@ -108,6 +108,8 @@ export default async function CrewFinancePage({
     user_id: string;
     display_name: string;
     email: string | null;
+    tier_name: string | null;
+    tier_color: string | null;
     role: DuesMatrixRow["role"];
     status: string;
   };
@@ -121,6 +123,8 @@ export default async function CrewFinancePage({
       user_id: m.user_id,
       display_name: m.display_name,
       email: m.email,
+      tier_name: m.tier_name,
+      tier_color: m.tier_color,
       role: m.role,
       status: payBy.get(m.user_id)?.status ?? null,
       amount: payBy.get(m.user_id)?.amount ?? null,
