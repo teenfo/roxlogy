@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { crewRoleBadgeClass, isStaffRole, tierBadgeClass } from "@/lib/crew-role";
 import type { CrewTier } from "@/components/crew-tier-manage";
+import { duesErrText } from "@/lib/dues-error";
 
 const input =
   "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
@@ -362,7 +363,7 @@ export function CrewMemberManage({
     setErr(null);
     const { error } = await fn();
     setBusy(null);
-    if (error) setErr(error.message);
+    if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 

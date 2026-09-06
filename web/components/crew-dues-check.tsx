@@ -7,255 +7,282 @@ import { useI18n } from "@/components/i18n-provider";
 import { tierBadgeClass } from "@/lib/crew-role";
 import { duesErrText } from "@/lib/dues-error";
 
-export type DuesPaymentStatus = "reported" | "confirmed" | null;
-
 const badge = (cls: string) =>
   `shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${cls}`;
+const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 
-/** 회비 셀프 신고 — 소개 탭. 납부 후 멤버 본인이 "납부 완료 신고"를 누르면
- *  확인 대기 상태가 되고, 운영진이 입금 대조 후 확정한다. */
-export function CrewDuesSelfReport({
-  crewId,
-  period,
-  status,
-}: {
-  crewId: string;
-  period: string; // YYYY-MM (이번 달)
-  status: DuesPaymentStatus;
-}) {
+export type ChargeStatus = "pending" | "reported" | "confirmed";
+
+/** 본인 회비 청구 1건 (my_dues_charges) */
+export type MyCharge = {
+  charge_id: string;
+  kind: "monthly" | "session" | "custom";
+  label: string;
+  amount: number;
+  status: ChargeStatus;
+  period: string;
+  created_at: string;
+};
+
+/** 내 회비 — 소개 탭. 미납 청구를 건별로 보여주고 납부 신고를 받는다.
+ *  월회비와 회차비가 섞이므로 합계를 먼저 보여준다. */
+export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
   const { t } = useI18n();
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  async function report() {
-    setBusy(true);
+  async function report(id: string, on: boolean) {
+    setBusy(id);
     setErr(null);
-    const supabase = createClient();
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) {
-      setBusy(false);
-      return;
-    }
-    const { error } = await supabase.from("crew_dues_payments").insert({
-      crew_id: crewId,
-      user_id: u.user.id,
-      period,
-      status: "reported",
-      reported_at: new Date().toISOString(),
+    const { error } = await createClient().rpc("report_dues_charge", {
+      p_charge: id,
+      p_on: on,
     });
-    setBusy(false);
+    setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 
-  async function cancelReport() {
-    setBusy(true);
-    const supabase = createClient();
-    const { data: u } = await supabase.auth.getUser();
-    if (u.user) {
-      await supabase
-        .from("crew_dues_payments")
-        .delete()
-        .eq("crew_id", crewId)
-        .eq("user_id", u.user.id)
-        .eq("period", period)
-        .eq("status", "reported");
-    }
-    setBusy(false);
-    router.refresh();
-  }
+  const open = charges.filter((c) => c.status !== "confirmed");
+  const outstanding = open.reduce((a, c) => a + c.amount, 0);
+
+  if (!charges.length) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md bg-surface px-4 py-3">
-      <span className="text-sm text-muted">
-        {t("crew.duesMyStatus", { period })}
-      </span>
-      {status === "confirmed" ? (
-        <span className={badge("bg-track/15 text-track")}>
-          ✓ {t("crew.duesConfirmed")}
-        </span>
-      ) : status === "reported" ? (
-        <>
-          <span className={badge("bg-accent/15 text-accent")}>
-            {t("crew.duesReported")}
+    <div className="rounded-md bg-surface px-4 py-3">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span className="text-sm text-muted">{t("crew.duesMyTitle")}</span>
+        {outstanding > 0 ? (
+          <span className="font-mono text-sm font-bold text-accent">
+            {won(outstanding)}
           </span>
-          <button
-            type="button"
-            onClick={cancelReport}
-            disabled={busy}
-            className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
-          >
-            {t("crew.duesCancelReport")}
-          </button>
-        </>
-      ) : (
-        <>
-          <span className={badge("bg-background text-muted")}>
-            {t("crew.duesUnpaid")}
+        ) : (
+          <span className={badge("bg-track/15 text-track")}>
+            ✓ {t("crew.duesAllPaid")}
           </span>
-          <button
-            type="button"
-            onClick={report}
-            disabled={busy}
-            className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
+        )}
+      </div>
+      {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
+
+      <ul className="mt-2 flex flex-col gap-1">
+        {charges.slice(0, 12).map((c) => (
+          <li
+            key={c.charge_id}
+            className="flex flex-wrap items-center gap-2 rounded-md bg-background px-3 py-2"
           >
-            {t("crew.duesReport")}
-          </button>
-        </>
-      )}
-      {err && <p className="w-full text-xs text-red-400">{err}</p>}
+            <span className="min-w-0 flex-1 truncate text-xs">
+              {c.label}
+              {c.kind === "session" && (
+                <span className="ml-1.5 text-[10px] text-muted">
+                  {t("crew.duesKindSession")}
+                </span>
+              )}
+            </span>
+            <span className="font-mono text-xs">{won(c.amount)}</span>
+            {c.status === "confirmed" ? (
+              <span className={badge("bg-track/15 text-track")}>
+                ✓ {t("crew.duesConfirmed")}
+              </span>
+            ) : c.status === "reported" ? (
+              <>
+                <span className={badge("bg-accent/15 text-accent")}>
+                  {t("crew.duesReported")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => report(c.charge_id, false)}
+                  disabled={busy != null}
+                  className="text-[11px] text-muted hover:text-red-400 disabled:opacity-50"
+                >
+                  {t("crew.duesCancelReport")}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => report(c.charge_id, true)}
+                disabled={busy != null}
+                className="rounded-md bg-accent px-2.5 py-1 text-[11px] font-bold text-background hover:brightness-110 disabled:opacity-40"
+              >
+                {t("crew.duesReport")}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
-export type DuesMatrixRow = {
+/** 회비 보드 1행 = 청구 1건 (crew_dues_board) */
+export type BoardCharge = {
+  charge_id: string;
   user_id: string;
   display_name: string;
-  email: string | null;
   tier_name: string | null;
   tier_color: string | null;
-  role: "owner" | "coach" | "member" | "associate";
-  status: DuesPaymentStatus;
-  amount: number | null;
+  kind: "monthly" | "session" | "custom";
+  label: string;
+  amount: number;
+  status: ChargeStatus;
+  event_at: string | null;
 };
 
-/** 회비 납부 체크 매트릭스 — 회계 페이지의 운영진 전용 섹션.
- *  해당 월의 멤버별 납부 상태를 보여주고, 확인(금액 입력 시 회계 수입 자동
- *  기록)·체크·해제를 처리한다. 해제해도 회계 기록은 남는다. */
+/** 회비 확정 보드 — 회계 탭의 운영진 전용 섹션.
+ *  청구를 회원별로 묶어 월회비·회차비를 함께 보여주고 건별로 확정한다.
+ *  확정하면 회계에 수입이 기록되고, 해제하면 그 회계 행도 지워진다. */
 export function CrewDuesMatrix({
   crewId,
   period,
-  rows,
+  charges,
 }: {
   crewId: string;
-  period: string; // YYYY-MM (회계 페이지의 현재 월)
-  rows: DuesMatrixRow[];
+  period: string;
+  charges: BoardCharge[];
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [amounts, setAmounts] = useState<Record<string, string>>({});
 
-  async function confirm(userId: string) {
-    const raw = (amounts[userId] ?? "").replace(/[^\d]/g, "");
-    const amount = raw ? parseInt(raw, 10) : null;
-    setBusy(userId);
+  async function call(key: string, fn: string, args: Record<string, unknown>) {
+    setBusy(key);
     setErr(null);
-    const supabase = createClient();
-    const { error } = await supabase.rpc("set_dues_paid", {
-      p_crew: crewId,
-      p_user: userId,
-      p_period: period,
-      p_amount: amount,
-    });
+    const { error } = await createClient().rpc(fn, args);
     setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 
-  async function uncheck(userId: string) {
-    if (!window.confirm(t("crew.duesUncheckConfirm"))) return;
-    setBusy(userId);
-    setErr(null);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("crew_dues_payments")
-      .delete()
-      .eq("crew_id", crewId)
-      .eq("user_id", userId)
-      .eq("period", period);
-    setBusy(null);
-    if (error) setErr(duesErrText(t, error.message));
-    else router.refresh();
+  const generate = () =>
+    call("gen", "generate_monthly_charges", { p_crew: crewId, p_period: period });
+
+  // 회원별로 묶는다 — 보드는 이미 이름·종류 순으로 정렬돼 온다.
+  const byMember = new Map<string, BoardCharge[]>();
+  for (const c of charges) {
+    const arr = byMember.get(c.user_id) ?? [];
+    arr.push(c);
+    byMember.set(c.user_id, arr);
   }
 
-  const unpaidCount = rows.filter((r) => r.status !== "confirmed").length;
-  const amountInput =
-    "w-28 rounded-md border border-muted/30 bg-background px-2 py-1 text-xs outline-none focus:border-accent";
+  const unpaid = charges
+    .filter((c) => c.status !== "confirmed")
+    .reduce((a, c) => a + c.amount, 0);
+  const paid = charges
+    .filter((c) => c.status === "confirmed")
+    .reduce((a, c) => a + c.amount, 0);
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs text-muted">
-        {t("crew.duesCheckHint", { n: unpaidCount })}
-      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-xs text-muted">
+          {t("crew.duesTotals", { paid: won(paid), unpaid: won(unpaid) })}
+        </p>
+        <button
+          type="button"
+          onClick={generate}
+          disabled={busy != null}
+          className="ml-auto rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent disabled:opacity-50"
+        >
+          {t("crew.duesGenerate")}
+        </button>
+      </div>
       {err && <p className="text-xs text-red-400">{err}</p>}
-      <ul className="flex flex-col gap-1.5">
-        {rows.map((r) => (
-          <li
-            key={r.user_id}
-            className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-surface px-3 py-2.5"
-          >
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="flex items-center gap-1.5">
-                <span className="truncate text-sm">{r.display_name}</span>
-                {r.tier_name && (
+
+      {!charges.length ? (
+        <p className="rounded-md bg-surface px-4 py-8 text-center text-xs text-muted">
+          {t("crew.duesNoCharges")}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {[...byMember.entries()].map(([uid, list]) => {
+            const head = list[0];
+            const memberUnpaid = list
+              .filter((c) => c.status !== "confirmed")
+              .reduce((a, c) => a + c.amount, 0);
+            return (
+              <li key={uid} className="rounded-md bg-surface px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-sm font-semibold">
+                    {head.display_name}
+                  </span>
+                  {head.tier_name && (
+                    <span
+                      className={`${badge(tierBadgeClass(head.tier_color))} font-semibold`}
+                    >
+                      {head.tier_name}
+                    </span>
+                  )}
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tierBadgeClass(
-                      r.tier_color,
-                    )}`}
+                    className={`ml-auto font-mono text-xs ${
+                      memberUnpaid > 0 ? "text-accent" : "text-muted"
+                    }`}
                   >
-                    {r.tier_name}
+                    {memberUnpaid > 0
+                      ? t("crew.duesOutstanding", { amount: won(memberUnpaid) })
+                      : `✓ ${t("crew.duesConfirmed")}`}
                   </span>
-                )}
-              </span>
-              {r.email && (
-                <span className="truncate text-[11px] text-muted">{r.email}</span>
-              )}
-            </span>
-            {r.status === "confirmed" ? (
-              <>
-                <span className={badge("bg-track/15 text-track")}>
-                  ✓ {t("crew.duesConfirmed")}
-                </span>
-                {r.amount != null && (
-                  <span className="font-mono text-xs text-muted">
-                    ₩{r.amount.toLocaleString("ko-KR")}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => uncheck(r.user_id)}
-                  disabled={busy != null}
-                  className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
-                >
-                  {t("crew.duesUncheck")}
-                </button>
-              </>
-            ) : (
-              <>
-                {r.status === "reported" && (
-                  <span className={badge("bg-accent/15 text-accent")}>
-                    {t("crew.duesReported")}
-                  </span>
-                )}
-                <input
-                  className={amountInput}
-                  value={amounts[r.user_id] ?? ""}
-                  onChange={(e) =>
-                    setAmounts((m) => ({ ...m, [r.user_id]: e.target.value }))
-                  }
-                  placeholder={t("crew.duesAmountPh")}
-                  inputMode="numeric"
-                />
-                <button
-                  type="button"
-                  onClick={() => confirm(r.user_id)}
-                  disabled={busy != null}
-                  className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
-                >
-                  {busy === r.user_id
-                    ? "…"
-                    : r.status === "reported"
-                      ? t("crew.duesConfirmBtn")
-                      : t("crew.duesMarkPaid")}
-                </button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+                </div>
+
+                <ul className="mt-2 flex flex-col gap-1">
+                  {list.map((c) => (
+                    <li
+                      key={c.charge_id}
+                      className="flex flex-wrap items-center gap-2 rounded-md bg-background px-3 py-2"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-xs">
+                        {c.label}
+                        <span className="ml-1.5 text-[10px] text-muted">
+                          {c.kind === "monthly"
+                            ? t("crew.duesKindMonthly")
+                            : c.kind === "session"
+                              ? t("crew.duesKindSession")
+                              : t("crew.duesKindCustom")}
+                        </span>
+                      </span>
+                      <span className="font-mono text-xs">{won(c.amount)}</span>
+                      {c.status === "reported" && (
+                        <span className={badge("bg-accent/15 text-accent")}>
+                          {t("crew.duesReported")}
+                        </span>
+                      )}
+                      {c.status === "confirmed" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!window.confirm(t("crew.duesUncheckConfirm"))) return;
+                            call(c.charge_id, "unconfirm_dues_charge", {
+                              p_charge: c.charge_id,
+                            });
+                          }}
+                          disabled={busy != null}
+                          className={`${badge("bg-track/15 text-track")} hover:brightness-125 disabled:opacity-50`}
+                        >
+                          ✓ {t("crew.duesConfirmed")}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            call(c.charge_id, "confirm_dues_charge", {
+                              p_charge: c.charge_id,
+                            })
+                          }
+                          disabled={busy != null}
+                          className="rounded-md bg-accent px-2.5 py-1 text-[11px] font-bold text-background hover:brightness-110 disabled:opacity-40"
+                        >
+                          {t("crew.duesConfirm")}
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

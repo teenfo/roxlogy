@@ -6,6 +6,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { dictLabel } from "@/lib/dict-label";
+import { duesErrText } from "@/lib/dues-error";
 
 const input =
   "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
@@ -740,7 +741,7 @@ export function CrewAttendanceCheck({
       p_present: present,
     });
     setBusy(null);
-    if (error) setErr(error.message);
+    if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 

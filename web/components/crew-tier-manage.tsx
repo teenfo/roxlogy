@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { TIER_COLORS, tierBadgeClass, type TierColor } from "@/lib/crew-role";
+import { duesErrText } from "@/lib/dues-error";
 
 export type CrewTier = {
   id: string;
@@ -51,7 +52,10 @@ export function CrewTierManage({
     setErr(null);
     const { error } = await fn();
     setBusy(null);
-    if (error) setErr((error as { message?: string }).message ?? String(error));
+    if (error)
+      setErr(
+        duesErrText(t, (error as { message?: string }).message ?? String(error)),
+      );
     else router.refresh();
   }
 
@@ -91,7 +95,7 @@ export function CrewTierManage({
       p_tier: tier.id,
     });
     setBusy(null);
-    if (error) return setErr(error.message);
+    if (error) return setErr(duesErrText(t, error.message));
     if (data === "archived") window.alert(t("crew.tierArchived", { name: tier.name }));
     router.refresh();
   }
@@ -109,7 +113,7 @@ export function CrewTierManage({
         .eq("id", cur.id);
       if (error) {
         setBusy(null);
-        return setErr(error.message);
+        return setErr(duesErrText(t, error.message));
       }
     }
     const { error } = await supabase
@@ -117,7 +121,7 @@ export function CrewTierManage({
       .update({ is_default: true })
       .eq("id", tier.id);
     setBusy(null);
-    if (error) setErr(error.message);
+    if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 
