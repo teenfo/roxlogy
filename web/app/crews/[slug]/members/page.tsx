@@ -14,6 +14,8 @@ export default async function CrewMembersPage({
   const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
   const roster = await getCrewRoster(slug);
+  // 출석 횟수는 크루원에게만 내려온다 (crew_roster 가 비회원에게는 null)
+  const showAttend = roster.some((m) => m.attend_count != null);
 
   if (!roster.length)
     return (
@@ -24,6 +26,14 @@ export default async function CrewMembersPage({
 
   return (
     <main>
+      {/* 오른쪽 숫자 열이 뭔지 알 수 있게 머리글 */}
+      <div className="flex items-center gap-3 px-4 pb-1.5 text-[10px] font-semibold tracking-wide text-muted">
+        <span className="min-w-0 flex-1" />
+        <span className="w-12 shrink-0 text-right">{t("crew.colSessions")}</span>
+        {showAttend && (
+          <span className="w-12 shrink-0 text-right">{t("crew.colAttend")}</span>
+        )}
+      </div>
       <ul className="flex flex-col gap-px overflow-hidden rounded-md bg-muted/20">
         {roster.map((m) => (
           <li
@@ -50,6 +60,15 @@ export default async function CrewMembersPage({
             <span className="w-12 shrink-0 text-right font-mono text-sm text-muted">
               {m.session_count}
             </span>
+            {showAttend && (
+              <span
+                className={`w-12 shrink-0 text-right font-mono text-sm ${
+                  (m.attend_count ?? 0) > 0 ? "text-accent" : "text-muted"
+                }`}
+              >
+                {m.attend_count ?? 0}
+              </span>
+            )}
           </li>
         ))}
       </ul>

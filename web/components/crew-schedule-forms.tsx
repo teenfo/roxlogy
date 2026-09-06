@@ -704,3 +704,136 @@ export function CrewMeetupCancel({ eventId, slug }: { eventId: string; slug: str
     </span>
   );
 }
+
+export type AttendanceRow = {
+  user_id: string;
+  display_name: string;
+  role: "owner" | "coach" | "member" | "associate";
+  rsvp_status: string | null;
+  checked_in: boolean;
+};
+
+/** 모임 출석 체크 — 운영진만 토글할 수 있다(권한은 crew_event_check_in RPC 가 강제).
+ *  RSVP(오겠다)와 출석(실제로 왔다)은 별개라, 신청하지 않은 워크인도 체크된다. */
+export function CrewAttendanceCheck({
+  eventId,
+  rows,
+  canEdit,
+}: {
+  eventId: string;
+  rows: AttendanceRow[];
+  canEdit: boolean;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+
+  async function toggle(userId: string, present: boolean) {
+    setBusy(userId);
+    setErr(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("crew_event_check_in", {
+      p_event: eventId,
+      p_user: userId,
+      p_present: present,
+    });
+    setBusy(null);
+    if (error) setErr(error.message);
+    else router.refresh();
+  }
+
+  const present = rows.filter((r) => r.checked_in);
+
+  // 읽기 전용(일반 크루원)이면 출석한 사람만 보여준다.
+  if (!canEdit) {
+    return (
+      <div>
+        <p className="text-sm">
+          <b>{present.length}</b>
+          <span className="ml-1 text-muted">{t("crew.attendUnit")}</span>
+        </p>
+        {present.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {present.map((r) => (
+              <li
+                key={r.user_id}
+                className="rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent"
+              >
+                ✓ {r.display_name}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
+  // 운영진: 참석 신청자(going/waitlisted)를 먼저 보여주고, 나머지 크루원은
+  // 접어 둔다 — 워크인 체크가 필요할 때만 펼치면 된다.
+  const rsvpd = rows.filter(
+    (r) => r.checked_in || r.rsvp_status === "going" || r.rsvp_status === "waitlisted",
+  );
+  const rest = rows.filter((r) => !rsvpd.includes(r));
+  const shown = showAll ? [...rsvpd, ...rest] : rsvpd;
+
+  return (
+    <div>
+      <p className="text-xs text-muted">
+        {t("crew.attendCounted", { n: present.length, total: rows.length })}
+      </p>
+      {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {shown.map((r) => (
+          <li
+            key={r.user_id}
+            className="flex items-center justify-between gap-3 rounded-md bg-surface px-4 py-2.5"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-sm">{r.display_name}</span>
+              {r.rsvp_status === "going" && (
+                <span className="shrink-0 text-[10px] text-muted">
+                  {t("crew.rsvpGoing")}
+                </span>
+              )}
+              {r.rsvp_status === "waitlisted" && (
+                <span className="shrink-0 text-[10px] text-muted">
+                  ⏳ {t("crew.rsvpWaitlisted")}
+                </span>
+              )}
+            </span>
+            <button
+              type="button"
+              disabled={busy != null}
+              onClick={() => toggle(r.user_id, !r.checked_in)}
+              className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold disabled:opacity-50 ${
+                r.checked_in
+                  ? "bg-accent text-background"
+                  : "bg-background text-muted hover:text-foreground"
+              }`}
+            >
+              {r.checked_in ? `✓ ${t("crew.attendPresent")}` : t("crew.attendMark")}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {!shown.length && (
+        <p className="mt-2 rounded-md bg-surface px-4 py-6 text-center text-xs text-muted">
+          {t("crew.attendNoRsvp")}
+        </p>
+      )}
+      {rest.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="mt-2 text-xs text-accent hover:underline"
+        >
+          {showAll
+            ? t("crew.attendHideOthers")
+            : t("crew.attendShowOthers", { n: rest.length })}
+        </button>
+      )}
+    </div>
+  );
+}

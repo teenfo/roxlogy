@@ -4,9 +4,11 @@ import { getCrew } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import {
+  CrewAttendanceCheck,
   CrewEventCommentForm,
   CrewMeetupCancel,
   CrewRsvpButtons,
+  type AttendanceRow,
 } from "@/components/crew-schedule-forms";
 import { formatDate } from "@/lib/format";
 
@@ -53,6 +55,11 @@ export default async function CrewEventPage({
   if (!ev || ev.slug !== slug) notFound();
 
   const isMember = crew.my_status === "active";
+  // 출석 명단 — 크루원만 (RPC 가 비회원에게는 빈 결과를 준다)
+  const { data: attRows } = isMember
+    ? await supabase.rpc("crew_event_attendance", { p_event: eventId })
+    : { data: [] as AttendanceRow[] };
+  const attendance = (attRows ?? []) as AttendanceRow[];
   const when = new Date(ev.starts_at).toLocaleString(tag, {
     dateStyle: "full",
     timeStyle: "short",
@@ -129,6 +136,22 @@ export default async function CrewEventPage({
           </p>
         )}
       </section>
+
+      {/* 출석 — 운영진이 체크, 크루원은 결과만. RSVP 와 별개다. */}
+      {isMember && (
+        <section className="mt-8">
+          <h3 className="text-sm font-semibold text-muted">
+            {t("crew.attendTitle")}
+          </h3>
+          <div className="mt-2">
+            <CrewAttendanceCheck
+              eventId={ev.id}
+              rows={attendance}
+              canEdit={ev.is_staff}
+            />
+          </div>
+        </section>
+      )}
 
       {/* 댓글 — 허용된 모임만. 입력은 크루원, 권한은 RLS 가 최종 강제 */}
       {ev.comments_allowed && (

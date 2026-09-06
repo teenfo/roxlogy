@@ -96,6 +96,8 @@ export type CrewMemberRow = {
   role: CrewRole;
   joined_at: string;
   session_count: number;
+  /** 크루 모임 누적 출석 횟수. 크루원에게만 내려온다(비회원은 null). */
+  attend_count: number | null;
 };
 
 /** 멤버(active)인지 — 글쓰기·RSVP 권한 판정 */
