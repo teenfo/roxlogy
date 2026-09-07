@@ -55,9 +55,15 @@ export default async function PftPage() {
           </Link>
           <Link
             href="/pft/new"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+            className="rounded-md bg-surface px-4 py-2 text-sm font-semibold hover:text-accent"
           >
             {t("pft.add")}
+          </Link>
+          <Link
+            href="/pft/measure"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          >
+            {t("pft.mStartCta")}
           </Link>
         </div>
       </div>
@@ -102,6 +108,12 @@ export default async function PftPage() {
           <p className="mx-auto mt-2 max-w-md text-xs text-muted">
             {t("pft.format")}
           </p>
+          <Link
+            href="/pft/measure"
+            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+          >
+            {t("pft.mStartCta")}
+          </Link>
         </div>
       ) : (
         <ul className="mt-6 flex flex-col gap-2">
