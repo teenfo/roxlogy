@@ -11,7 +11,7 @@ const badge = (cls: string) =>
   `shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${cls}`;
 const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 
-export type ChargeStatus = "pending" | "reported" | "confirmed";
+export type ChargeStatus = "pending" | "reported" | "confirmed" | "waived";
 
 /** 본인 회비 청구 1건 (my_dues_charges) */
 export type MyCharge = {
@@ -22,6 +22,7 @@ export type MyCharge = {
   status: ChargeStatus;
   period: string;
   created_at: string;
+  waive_reason: string | null;
 };
 
 /** 내 회비 — 소개 탭. 미납 청구를 건별로 보여주고 납부 신고를 받는다.
@@ -44,7 +45,10 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
     else router.refresh();
   }
 
-  const open = charges.filter((c) => c.status !== "confirmed");
+  // 면제된 건은 낼 돈이 아니다
+  const open = charges.filter(
+    (c) => c.status === "pending" || c.status === "reported",
+  );
   const outstanding = open.reduce((a, c) => a + c.amount, 0);
 
   if (!charges.length) return null;
@@ -80,7 +84,12 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
               )}
             </span>
             <span className="font-mono text-xs">{won(c.amount)}</span>
-            {c.status === "confirmed" ? (
+            {c.status === "waived" ? (
+              <span className={badge("bg-track/15 text-track")}>
+                {t("crew.duesWaived")}
+                {c.waive_reason ? ` · ${c.waive_reason}` : ""}
+              </span>
+            ) : c.status === "confirmed" ? (
               <span className={badge("bg-track/15 text-track")}>
                 ✓ {t("crew.duesConfirmed")}
               </span>
@@ -129,6 +138,7 @@ export type BoardCharge = {
   amount: number;
   status: ChargeStatus;
   event_at: string | null;
+  waive_reason: string | null;
 };
 
 /** 회비 확정 보드 — 회계 탭의 운영진 전용 섹션.
@@ -160,6 +170,14 @@ export function CrewDuesMatrix({
     setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
+  }
+
+  /** 면제 — 사유를 남긴다(취소하면 아무 일도 안 함). 면제는 미납도 수입도
+   *  아니라서 회계에는 아무것도 기록하지 않는다. */
+  function waive(id: string) {
+    const reason = window.prompt(t("crew.duesWaivePrompt"), "");
+    if (reason === null) return;
+    call(id, "waive_dues_charge", { p_charge: id, p_reason: reason });
   }
 
   /** 대사(reconcile)는 그 달을 현재 등급·요금·출석에 맞추는 동작이라 결과를
@@ -200,18 +218,19 @@ export function CrewDuesMatrix({
     byMember.set(c.user_id, arr);
   }
 
-  const unpaid = charges
-    .filter((c) => c.status !== "confirmed")
-    .reduce((a, c) => a + c.amount, 0);
-  const paid = charges
-    .filter((c) => c.status === "confirmed")
-    .reduce((a, c) => a + c.amount, 0);
+  const sum = (f: (c: BoardCharge) => boolean) =>
+    charges.filter(f).reduce((a, c) => a + c.amount, 0);
+  // 면제는 미납도 수입도 아니다 — 두 합계 어디에도 넣지 않는다
+  const unpaid = sum((c) => c.status === "pending" || c.status === "reported");
+  const paid = sum((c) => c.status === "confirmed");
+  const waived = sum((c) => c.status === "waived");
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs text-muted">
           {t("crew.duesTotals", { paid: won(paid), unpaid: won(unpaid) })}
+          {waived > 0 && ` · ${t("crew.duesTotalWaived", { amount: won(waived) })}`}
         </p>
         <span className="ml-auto flex flex-wrap gap-2">
           <button
@@ -253,7 +272,7 @@ export function CrewDuesMatrix({
           {[...byMember.entries()].map(([uid, list]) => {
             const head = list[0];
             const memberUnpaid = list
-              .filter((c) => c.status !== "confirmed")
+              .filter((c) => c.status === "pending" || c.status === "reported")
               .reduce((a, c) => a + c.amount, 0);
             return (
               <li key={uid} className="rounded-md bg-surface px-4 py-3">
@@ -308,7 +327,34 @@ export function CrewDuesMatrix({
                           {t("crew.duesReported")}
                         </span>
                       )}
-                      {c.status === "confirmed" ? (
+                      {c.status === "waived" && c.waive_reason && (
+                        <span className="truncate text-[10px] text-muted">
+                          {c.waive_reason}
+                        </span>
+                      )}
+                      {c.status !== "confirmed" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            c.status === "waived"
+                              ? call(c.charge_id, "unwaive_dues_charge", {
+                                  p_charge: c.charge_id,
+                                })
+                              : waive(c.charge_id)
+                          }
+                          disabled={busy != null}
+                          className={`${badge(
+                            c.status === "waived"
+                              ? "bg-track/15 text-track"
+                              : "bg-background text-muted",
+                          )} hover:brightness-125 disabled:opacity-50`}
+                        >
+                          {c.status === "waived"
+                            ? t("crew.duesWaived")
+                            : t("crew.duesWaive")}
+                        </button>
+                      )}
+                      {c.status === "waived" ? null : c.status === "confirmed" ? (
                         <button
                           type="button"
                           onClick={() => {
