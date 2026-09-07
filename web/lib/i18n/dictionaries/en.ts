@@ -434,6 +434,8 @@ const en = {
   "crew.duesMyTitle": "My dues",
   "crew.duesAllPaid": "All settled",
   "crew.duesConfirm": "Confirm",
+  "crew.duesGenerateSession": "Sync {period} session fees",
+  "crew.duesGenHint": "Syncing brings the month in line with current tiers, fees and check-ins. Charges already confirmed — or reported as paid by the member — are never re-issued or re-priced.",
   "crew.duesGenerate": "Sync {period} monthly dues",
   "crew.duesNoCharges": "No charges for this month yet. Set a monthly fee on a tier and press the button above, or check members in at a meetup to charge per-session fees automatically.",
   "crew.duesTotals": "Confirmed {paid} · Outstanding {unpaid}",

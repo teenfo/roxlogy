@@ -432,6 +432,8 @@ const ko: Record<DictKey, string> = {
   "crew.duesMyTitle": "내 회비",
   "crew.duesAllPaid": "미납 없음",
   "crew.duesConfirm": "확정",
+  "crew.duesGenerateSession": "{period} 회차비 맞추기",
+  "crew.duesGenHint": "맞추기는 그 달을 현재 등급·요금·출석 기록에 맞춥니다. 이미 확정했거나 본인이 납부 신고한 청구는 금액을 바꾸지도, 다시 발행하지도 않습니다.",
   "crew.duesGenerate": "{period} 월회비 청구 맞추기",
   "crew.duesNoCharges": "이 달에 생성된 청구가 없습니다. 등급에 월회비를 넣고 위 버튼을 누르거나, 모임에서 출석을 체크하면 회차비가 자동 청구됩니다.",
   "crew.duesTotals": "확정 {paid} · 미납 {unpaid}",

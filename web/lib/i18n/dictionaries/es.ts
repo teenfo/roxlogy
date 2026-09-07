@@ -432,6 +432,8 @@ const es: Record<DictKey, string> = {
   "crew.duesMyTitle": "Mis cuotas",
   "crew.duesAllPaid": "Todo al día",
   "crew.duesConfirm": "Confirmar",
+  "crew.duesGenerateSession": "Sincronizar cuotas por sesión de {period}",
+  "crew.duesGenHint": "Sincronizar ajusta el mes a los niveles, tarifas y asistencias actuales. Los cargos ya confirmados —o reportados como pagados— nunca se reemiten ni cambian de importe.",
   "crew.duesGenerate": "Sincronizar cuotas de {period}",
   "crew.duesNoCharges": "Aún no hay cargos este mes. Pon una cuota mensual en un nivel y pulsa el botón, o registra asistencias para cobrar por sesión automáticamente.",
   "crew.duesTotals": "Confirmado {paid} · Pendiente {unpaid}",

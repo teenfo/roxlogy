@@ -162,13 +162,14 @@ export function CrewDuesMatrix({
     else router.refresh();
   }
 
-  /** 생성은 "그 달을 현재 등급·요금에 맞추는" 동작이라 결과를 반드시 알린다.
-   *  0건일 때 아무 표시가 없으면 버튼이 안 먹는 것처럼 보인다. */
-  async function generate() {
-    setBusy("gen");
+  /** 대사(reconcile)는 그 달을 현재 등급·요금·출석에 맞추는 동작이라 결과를
+   *  반드시 알린다. 0건일 때 아무 표시가 없으면 버튼이 안 먹는 것처럼 보인다.
+   *  확정·신고된 청구는 어느 경로로도 건드리지 않고 locked 로만 보고된다. */
+  async function reconcile(rpc: string, kindLabel: string) {
+    setBusy(rpc);
     setErr(null);
     setNote(null);
-    const { data, error } = await createClient().rpc("generate_monthly_charges", {
+    const { data, error } = await createClient().rpc(rpc, {
       p_crew: crewId,
       p_period: period,
     });
@@ -184,12 +185,10 @@ export function CrewDuesMatrix({
     if (r.created) parts.push(t("crew.duesGenCreated", { n: r.created }));
     if (r.updated) parts.push(t("crew.duesGenUpdated", { n: r.updated }));
     if (r.removed) parts.push(t("crew.duesGenRemoved", { n: r.removed }));
-    setNote(
-      parts.length
-        ? `${periodLabel} — ${parts.join(" · ")}`
-        : `${periodLabel} — ${t("crew.duesGenNone")}`,
-    );
-    if (r.locked) setNote((p) => `${p} (${t("crew.duesGenLocked", { n: r.locked! })})`);
+    const head = `${periodLabel} ${kindLabel} — `;
+    const body = parts.length ? parts.join(" · ") : t("crew.duesGenNone");
+    const tail = r.locked ? ` (${t("crew.duesGenLocked", { n: r.locked })})` : "";
+    setNote(head + body + tail);
     router.refresh();
   }
 
@@ -214,17 +213,36 @@ export function CrewDuesMatrix({
         <p className="text-xs text-muted">
           {t("crew.duesTotals", { paid: won(paid), unpaid: won(unpaid) })}
         </p>
-        <button
-          type="button"
-          onClick={generate}
-          disabled={busy != null}
-          className="ml-auto rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent disabled:opacity-50"
-        >
-          {busy === "gen" ? "…" : t("crew.duesGenerate", { period: periodLabel })}
-        </button>
+        <span className="ml-auto flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              reconcile("generate_monthly_charges", t("crew.duesKindMonthly"))
+            }
+            disabled={busy != null}
+            className="rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent disabled:opacity-50"
+          >
+            {busy === "generate_monthly_charges"
+              ? "…"
+              : t("crew.duesGenerate", { period: periodLabel })}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              reconcile("generate_session_charges", t("crew.duesKindSession"))
+            }
+            disabled={busy != null}
+            className="rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent disabled:opacity-50"
+          >
+            {busy === "generate_session_charges"
+              ? "…"
+              : t("crew.duesGenerateSession", { period: periodLabel })}
+          </button>
+        </span>
       </div>
       {err && <p className="text-xs text-red-400">{err}</p>}
       {note && <p className="text-xs text-accent">{note}</p>}
+      <p className="text-[11px] text-muted">{t("crew.duesGenHint")}</p>
 
       {!charges.length ? (
         <p className="rounded-md bg-surface px-4 py-8 text-center text-xs text-muted">
