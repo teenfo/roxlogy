@@ -8,6 +8,7 @@ const LINKS: { href: string; key: string }[] = [
   { href: "/dashboard", key: "nav.dashboard" },
   { href: "/sessions", key: "nav.sessions" },
   { href: "/races", key: "nav.races" },
+  { href: "/pft", key: "nav.pft" },
   { href: "/programs", key: "nav.programs" },
   { href: "/schedule", key: "nav.schedule" },
   { href: "/leaderboard", key: "nav.leaderboard" },
