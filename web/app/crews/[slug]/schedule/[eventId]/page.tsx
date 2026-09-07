@@ -35,7 +35,7 @@ type EventDetail = {
   capacity: number | null;
   going_names: string[];
   maybe_names: string[];
-  declined_count: number;
+  declined_names: string[];
   my_status: string | null;
   is_staff: boolean;
   comments_allowed: boolean;
@@ -166,12 +166,14 @@ export default async function CrewEventPage({
         )}
         {ev.maybe_names.length > 0 && (
           <p className="mt-3 text-xs text-muted">
-            {t("crew.rsvpMaybe")}: {ev.maybe_names.join(", ")}
+            {t("crew.rsvpMaybe")} ({ev.maybe_names.length}):{" "}
+            {ev.maybe_names.join(", ")}
           </p>
         )}
-        {ev.declined_count > 0 && (
+        {ev.declined_names.length > 0 && (
           <p className="mt-1 text-xs text-muted">
-            {t("crew.rsvpDeclined")}: {ev.declined_count}
+            {t("crew.rsvpDeclined")} ({ev.declined_names.length}):{" "}
+            {ev.declined_names.join(", ")}
           </p>
         )}
       </section>
