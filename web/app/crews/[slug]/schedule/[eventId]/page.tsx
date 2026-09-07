@@ -6,6 +6,7 @@ import { getT } from "@/lib/i18n";
 import {
   CrewAttendanceCheck,
   CrewEventFeeToggle,
+  CrewEventClose,
   CrewEventShare,
   CrewEventCommentForm,
   CrewMeetupCancel,
@@ -43,6 +44,7 @@ type EventDetail = {
   waitlist_names: string[];
   fee_exempt: boolean;
   members_only: boolean;
+  closed_at: string | null;
 };
 
 /** 카톡·인스타에 붙였을 때 제목·설명이 보이도록 */
@@ -103,11 +105,19 @@ export default async function CrewEventPage({
         <h2 className="text-xl font-bold">{ev.title}</h2>
         <span className="flex shrink-0 items-center gap-2">
           <CrewEventShare url={shareUrl} title={ev.title} />
+          {ev.is_staff && (
+            <CrewEventClose eventId={ev.id} closed={ev.closed_at != null} />
+          )}
           {ev.is_staff && <CrewMeetupCancel eventId={ev.id} slug={slug} />}
         </span>
       </div>
       <p className="mt-1 text-sm font-medium text-accent">{when}</p>
       <span className="mt-1 flex flex-wrap gap-1.5">
+        {ev.closed_at && (
+          <span className="rounded-full bg-muted/20 px-2.5 py-0.5 text-[11px] font-bold text-muted">
+            {t("crew.closed")}
+          </span>
+        )}
         {ev.members_only && (
           <span className="rounded-full bg-track/15 px-2.5 py-0.5 text-[11px] font-bold text-track">
             {t("crew.fullOnly")}
@@ -131,7 +141,16 @@ export default async function CrewEventPage({
         <h3 className="text-sm font-semibold text-muted">{t("crew.rsvpQuestion")}</h3>
         <div className="mt-2">
           {isMember ? (
-            <CrewRsvpButtons eventId={ev.id} myStatus={ev.my_status} />
+            <>
+              <CrewRsvpButtons
+                eventId={ev.id}
+                myStatus={ev.my_status}
+                closed={ev.closed_at != null}
+              />
+              {ev.closed_at && (
+                <p className="mt-2 text-xs text-muted">{t("crew.closedNote")}</p>
+              )}
+            </>
           ) : (
             <p className="text-sm text-muted">{t("crew.membersOnlyRsvp")}</p>
           )}

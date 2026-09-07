@@ -560,9 +560,12 @@ export function RacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
 export function CrewRsvpButtons({
   eventId,
   myStatus,
+  closed = false,
 }: {
   eventId: string;
   myStatus: string | null;
+  /** 종료된 모임은 응답을 바꿀 수 없다 (최종 차단은 DB RLS) */
+  closed?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -604,7 +607,7 @@ export function CrewRsvpButtons({
           <button
             key={v}
             type="button"
-            disabled={busy}
+            disabled={busy || closed}
             onClick={() => set(v)}
             className={`rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-50 ${
               myStatus === v || (v === "going" && waitlisted)
@@ -1066,5 +1069,53 @@ export function CrewEventShare({ url, title }: { url: string; title: string }) {
     >
       {done ? t("crew.shareCopied") : t("crew.shareLink")}
     </button>
+  );
+}
+
+
+/** 모임 종료 — 운영진 전용. 종료하면 크루원은 참석 여부를 더 바꿀 수 없다
+ *  (DB RLS 가 막는다). 취소와 달리 모임은 그대로 보이고, 운영진은 종료 뒤에도
+ *  출석을 고칠 수 있다 — 종료 시점의 오타를 되돌릴 방법이 있어야 한다. */
+export function CrewEventClose({
+  eventId,
+  closed,
+}: {
+  eventId: string;
+  closed: boolean;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function toggle() {
+    if (!closed && !window.confirm(t("crew.closeConfirm"))) return;
+    setBusy(true);
+    setErr(null);
+    const { error } = await createClient().rpc("set_event_closed", {
+      p_event: eventId,
+      p_on: !closed,
+    });
+    setBusy(false);
+    if (error) setErr(duesErrText(t, error.message));
+    else router.refresh();
+  }
+
+  return (
+    <span className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={busy}
+        className={`rounded-md px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${
+          closed
+            ? "bg-surface text-muted hover:text-foreground"
+            : "bg-surface hover:text-accent"
+        }`}
+      >
+        {closed ? t("crew.reopen") : t("crew.close")}
+      </button>
+      {err && <span className="text-xs text-red-400">{err}</span>}
+    </span>
   );
 }
