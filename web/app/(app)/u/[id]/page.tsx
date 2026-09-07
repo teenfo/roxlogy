@@ -11,6 +11,7 @@ type PublicProfile = {
   division: string | null;
   shared_count: number;
   leaderboard_opt_in: boolean;
+  instagram: string | null;
 };
 
 export async function generateMetadata({
@@ -62,6 +63,16 @@ export default async function PublicProfilePage({
             <p className="mt-1 text-sm text-muted">
               {t(`division.${profile.division}` as Parameters<typeof t>[0])}
             </p>
+          )}
+          {profile.instagram && (
+            <a
+              href={`https://instagram.com/${profile.instagram}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="mt-1 inline-block text-sm text-accent hover:underline"
+            >
+              @{profile.instagram}
+            </a>
           )}
         </div>
         {!isSelf && <FollowButton authorId={id} />}

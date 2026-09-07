@@ -6,12 +6,14 @@ import { getT } from "@/lib/i18n";
 import {
   CrewAttendanceCheck,
   CrewEventFeeToggle,
+  CrewEventShare,
   CrewEventCommentForm,
   CrewMeetupCancel,
   CrewRsvpButtons,
   type AttendanceRow,
 } from "@/components/crew-schedule-forms";
 import { formatDate } from "@/lib/format";
+import { siteUrl } from "@/lib/site-url";
 
 type EventComment = {
   id: string;
@@ -42,6 +44,23 @@ type EventDetail = {
   fee_exempt: boolean;
 };
 
+/** 카톡·인스타에 붙였을 때 제목·설명이 보이도록 */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; eventId: string }>;
+}) {
+  const { eventId } = await params;
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("crew_event_detail", { p_event: eventId });
+  const ev = ((data ?? []) as EventDetail[])[0];
+  if (!ev) return { title: "Roxlogy" };
+  return {
+    title: `${ev.title} — Roxlogy`,
+    description: ev.description?.slice(0, 160) ?? ev.location ?? undefined,
+  };
+}
+
 export default async function CrewEventPage({
   params,
 }: {
@@ -57,6 +76,8 @@ export default async function CrewEventPage({
   if (!ev || ev.slug !== slug) notFound();
 
   const isMember = crew.my_status === "active";
+  // 외부에서 타고 들어올 수 있는 절대 주소 (카톡·인스타에 붙이는 용도)
+  const shareUrl = `${siteUrl()}/crews/${slug}/schedule/${eventId}`;
   // 출석 명단 — 크루원만 (RPC 가 비회원에게는 빈 결과를 준다)
   const { data: attRows } = isMember
     ? await supabase.rpc("crew_event_attendance", { p_event: eventId })
@@ -79,7 +100,10 @@ export default async function CrewEventPage({
 
       <div className="mt-4 flex items-start justify-between gap-3">
         <h2 className="text-xl font-bold">{ev.title}</h2>
-        {ev.is_staff && <CrewMeetupCancel eventId={ev.id} slug={slug} />}
+        <span className="flex shrink-0 items-center gap-2">
+          <CrewEventShare url={shareUrl} title={ev.title} />
+          {ev.is_staff && <CrewMeetupCancel eventId={ev.id} slug={slug} />}
+        </span>
       </div>
       <p className="mt-1 text-sm font-medium text-accent">{when}</p>
       {ev.fee_exempt && (

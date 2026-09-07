@@ -261,6 +261,9 @@ const en = {
   "a11y.moveDown": "Move down",
   "a11y.menu": "Menu",
   "a11y.language": "Language",
+  "crew.shareLink": "Share",
+  "crew.shareCopied": "Copied",
+  "crew.shareCopyManual": "Copy this link",
   "crew.schedTab": "Schedule",
   "crew.schedEmpty": "No events this month.",
   "crew.financeTab": "Finances",
@@ -1067,6 +1070,9 @@ const en = {
 
   // 프로필 설정
   "profile.title": "Profile settings",
+  "profile.instagram": "Instagram",
+  "profile.instagramHint": "Handle only, no @. Pasting a full URL also works.",
+  "admin.err.bad_instagram": "That Instagram handle is not valid.",
   "profile.displayName": "Display name",
   "profile.gender": "Gender",
   "profile.gender.male": "Male",

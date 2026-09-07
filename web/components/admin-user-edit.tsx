@@ -27,6 +27,7 @@ export type AdminUserDetail = {
   locale: string | null;
   wod_reminder_time: string | null;
   hyrox_athlete_name: string | null;
+  instagram: string | null;
   leaderboard_opt_in: boolean;
   is_admin: boolean;
   disabled: boolean;
@@ -56,6 +57,7 @@ function errText(t: (k: never) => string, msg: string): string {
     "bad_gender",
     "bad_locale",
     "bad_timezone",
+    "bad_instagram",
     "profile_token_locked",
     "profile_admin_only",
   ];
@@ -86,6 +88,7 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
     locale: str(user.locale),
     wod_reminder_time: str(user.wod_reminder_time).slice(0, 5),
     hyrox_athlete_name: str(user.hyrox_athlete_name),
+    instagram: str(user.instagram),
     leaderboard_opt_in: user.leaderboard_opt_in,
     is_admin: user.is_admin,
     disabled: user.disabled,
@@ -116,6 +119,7 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
       locale: str(user.locale),
       wod_reminder_time: str(user.wod_reminder_time).slice(0, 5),
       hyrox_athlete_name: str(user.hyrox_athlete_name),
+      instagram: str(user.instagram),
       leaderboard_opt_in: user.leaderboard_opt_in,
       is_admin: user.is_admin,
       disabled: user.disabled,
@@ -252,6 +256,15 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
         maxLength={80}
       />
       <p className="mt-1 text-[11px] text-muted">{t("admin.fAthleteNameHint")}</p>
+
+      <label className="mt-4 block text-xs text-muted">{t("profile.instagram")}</label>
+      <input
+        className={`${input} mt-1`}
+        value={f.instagram}
+        onChange={(e) => set("instagram", e.target.value)}
+        maxLength={80}
+        placeholder="roxlogy"
+      />
 
       <div className="mt-5 flex flex-col gap-2">
         <label className="flex items-center gap-2 text-sm">

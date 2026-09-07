@@ -10,12 +10,26 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 
 const GENDERS = ["male", "female", "other"] as const;
 
+/** '@user', 'instagram.com/user/', 전체 URL 어느 쪽을 붙여넣어도 핸들만 남긴다.
+ *  DB 체크 제약(영문·숫자·마침표·밑줄 30자)이 최종 방어선. */
+function igHandle(v: string): string | null {
+  const h = v
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^(www\.)?instagram\.com\//i, "")
+    .replace(/^@/, "")
+    .replace(/[/?#].*$/, "")
+    .trim();
+  return h || null;
+}
+
 type ProfileFields = {
   display_name: string;
   gender: string;
   height_cm: string;
   weight_kg: string;
   birth_year: string;
+  instagram: string;
   leaderboard_opt_in: boolean;
 };
 
@@ -62,6 +76,7 @@ export function ProfileForm({
         height_cm: fields.height_cm ? Number(fields.height_cm) : null,
         weight_kg: fields.weight_kg ? Number(fields.weight_kg) : null,
         birth_year: fields.birth_year ? Number(fields.birth_year) : null,
+        instagram: igHandle(fields.instagram),
         leaderboard_opt_in: fields.leaderboard_opt_in,
       })
       .eq("id", user.id);
@@ -171,6 +186,21 @@ export function ProfileForm({
             />
           </label>
         </div>
+
+        <label className="flex flex-col gap-1.5 text-sm text-muted">
+          {t("profile.instagram")}
+          <span className="flex items-center rounded-md border border-muted/30 bg-surface focus-within:border-accent">
+            <span className="pl-3 text-muted">@</span>
+            <input
+              value={fields.instagram}
+              onChange={(e) => set("instagram", e.target.value)}
+              placeholder="roxlogy"
+              maxLength={80}
+              className="w-full min-w-0 bg-transparent px-2 py-2.5 text-foreground outline-none"
+            />
+          </span>
+          <span className="text-xs text-muted">{t("profile.instagramHint")}</span>
+        </label>
 
         <label className="flex items-start gap-2 rounded-md bg-surface px-4 py-3 text-sm">
           <input

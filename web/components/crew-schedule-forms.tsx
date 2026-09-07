@@ -966,3 +966,42 @@ export function CrewEventFeeToggle({
     </span>
   );
 }
+
+
+/** 모임 링크 공유 — 외부(카톡·인스타)에서 바로 타고 들어올 수 있게.
+ *  Web Share API 가 있으면 시스템 공유 시트를, 없으면 클립보드 복사로 떨어진다.
+ *  공개 크루의 모임은 비로그인도 열 수 있고, 정회원 전용 모임은 열었을 때
+ *  권한 검사가 걸린다(링크 자체는 비밀이 아니다). */
+export function CrewEventShare({ url, title }: { url: string; title: string }) {
+  const { t } = useI18n();
+  const [done, setDone] = useState(false);
+
+  async function share() {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+        return;
+      }
+    } catch {
+      /* 사용자가 공유 시트를 닫은 경우 — 복사로 넘어가지 않는다 */
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setDone(true);
+      window.setTimeout(() => setDone(false), 2000);
+    } catch {
+      window.prompt(t("crew.shareCopyManual"), url);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={share}
+      className="shrink-0 rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent"
+    >
+      {done ? t("crew.shareCopied") : t("crew.shareLink")}
+    </button>
+  );
+}
