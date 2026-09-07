@@ -4,6 +4,7 @@ import { getCrew } from "@/lib/crew";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import { todayISOIn } from "@/lib/format";
 import {
   CrewMeetupForm,
   RacePlanForm,
@@ -59,12 +60,6 @@ export default async function CrewSchedulePage({
 }) {
   const { slug } = await params;
   const { m } = await searchParams;
-  const now = new Date();
-  const month =
-    m && /^\d{4}-\d{2}$/.test(m)
-      ? m
-      : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [from, to] = monthRange(month);
 
   const [crew, user, { t, tag, tz }] = await Promise.all([
     getCrew(slug),
@@ -72,6 +67,11 @@ export default async function CrewSchedulePage({
     getT(),
   ]);
   if (!crew) notFound();
+
+  // 기본 월·오늘 판정은 사용자 시간대 기준. 서버의 new Date() 는 UTC 라
+  // 매월 1일·매일 아침(KST)에 한 칸씩 밀린다.
+  const month = m && /^\d{4}-\d{2}$/.test(m) ? m : todayISOIn(tz).slice(0, 7);
+  const [from, to] = monthRange(month);
 
   const supabase = await createClient();
   const isMember = crew.my_status === "active";
@@ -114,7 +114,7 @@ export default async function CrewSchedulePage({
       minute: "2-digit",
       timeZone: tz,
     });
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = todayISOIn(tz);
 
   const kindBadge = {
     meetup: ["bg-accent/15 text-accent", t("crew.schedKindMeetup")],

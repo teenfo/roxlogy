@@ -137,28 +137,61 @@ export type BoardCharge = {
 export function CrewDuesMatrix({
   crewId,
   period,
+  periodLabel,
   charges,
 }: {
   crewId: string;
   period: string;
+  /** 버튼이 어느 달을 대상으로 하는지 분명히 하기 위한 표시용 라벨 */
+  periodLabel: string;
   charges: BoardCharge[];
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
   async function call(key: string, fn: string, args: Record<string, unknown>) {
     setBusy(key);
     setErr(null);
+    setNote(null);
     const { error } = await createClient().rpc(fn, args);
     setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 
-  const generate = () =>
-    call("gen", "generate_monthly_charges", { p_crew: crewId, p_period: period });
+  /** 생성은 "그 달을 현재 등급·요금에 맞추는" 동작이라 결과를 반드시 알린다.
+   *  0건일 때 아무 표시가 없으면 버튼이 안 먹는 것처럼 보인다. */
+  async function generate() {
+    setBusy("gen");
+    setErr(null);
+    setNote(null);
+    const { data, error } = await createClient().rpc("generate_monthly_charges", {
+      p_crew: crewId,
+      p_period: period,
+    });
+    setBusy(null);
+    if (error) return setErr(duesErrText(t, error.message));
+    const r = (data ?? {}) as {
+      created?: number;
+      updated?: number;
+      removed?: number;
+      locked?: number;
+    };
+    const parts: string[] = [];
+    if (r.created) parts.push(t("crew.duesGenCreated", { n: r.created }));
+    if (r.updated) parts.push(t("crew.duesGenUpdated", { n: r.updated }));
+    if (r.removed) parts.push(t("crew.duesGenRemoved", { n: r.removed }));
+    setNote(
+      parts.length
+        ? `${periodLabel} — ${parts.join(" · ")}`
+        : `${periodLabel} — ${t("crew.duesGenNone")}`,
+    );
+    if (r.locked) setNote((p) => `${p} (${t("crew.duesGenLocked", { n: r.locked! })})`);
+    router.refresh();
+  }
 
   // 회원별로 묶는다 — 보드는 이미 이름·종류 순으로 정렬돼 온다.
   const byMember = new Map<string, BoardCharge[]>();
@@ -187,10 +220,11 @@ export function CrewDuesMatrix({
           disabled={busy != null}
           className="ml-auto rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent disabled:opacity-50"
         >
-          {t("crew.duesGenerate")}
+          {busy === "gen" ? "…" : t("crew.duesGenerate", { period: periodLabel })}
         </button>
       </div>
       {err && <p className="text-xs text-red-400">{err}</p>}
+      {note && <p className="text-xs text-accent">{note}</p>}
 
       {!charges.length ? (
         <p className="rounded-md bg-surface px-4 py-8 text-center text-xs text-muted">

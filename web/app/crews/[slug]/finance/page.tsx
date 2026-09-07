@@ -4,6 +4,7 @@ import { getCrew } from "@/lib/crew";
 import { isFullMember } from "@/lib/crew-types";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import { todayISOIn } from "@/lib/format";
 import {
   CrewLedgerDelete,
   CrewLedgerForm,
@@ -48,15 +49,15 @@ export default async function CrewFinancePage({
 }) {
   const { slug } = await params;
   const { m } = await searchParams;
-  const now = new Date();
-  const month =
-    m && /^\d{4}-\d{2}$/.test(m)
-      ? m
-      : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [from, to] = monthRange(month);
 
-  const [crew, { t, tag }] = await Promise.all([getCrew(slug), getT()]);
+  const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
+
+  // 기본 월은 사용자 시간대 기준. 서버의 new Date() 는 UTC 라 매월 1일 아침
+  // (KST)에 지난달이 열리고, 그 상태로 "월회비 청구 생성"을 누르면 엉뚱한
+  // 달에 청구가 생긴다.
+  const month = m && /^\d{4}-\d{2}$/.test(m) ? m : todayISOIn(tz).slice(0, 7);
+  const [from, to] = monthRange(month);
 
   // 회계는 정회원(리더·부리더·정회원)에게만 공개 — 일반회원(associate)·비멤버 제외
   const isFull =
@@ -180,7 +181,12 @@ export default async function CrewFinancePage({
             <span className="font-normal text-muted">{monthLabel}</span>
           </h2>
           <div className="mt-3">
-            <CrewDuesMatrix crewId={crew.id} period={month} charges={charges} />
+            <CrewDuesMatrix
+              crewId={crew.id}
+              period={month}
+              periodLabel={monthLabel}
+              charges={charges}
+            />
           </div>
         </section>
       )}
