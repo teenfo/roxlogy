@@ -19,16 +19,25 @@ export function AdminUserActions({
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
 
+  const [err, setErr] = useState<string | null>(null);
+
+  // profiles 를 직접 UPDATE 하지 않는다 — 그 경로는 mcp_token 까지 열려 있고
+  // 본인 계정을 스스로 잠그는 것도 막지 못한다. RPC 가 둘 다 강제한다.
   async function patch(fields: { is_admin?: boolean; disabled?: boolean }) {
     setBusy(true);
-    const supabase = createClient();
-    await supabase.from("profiles").update(fields).eq("id", userId);
+    setErr(null);
+    const { error } = await createClient().rpc("admin_update_profile", {
+      p_user: userId,
+      p_patch: fields,
+    });
     setBusy(false);
-    router.refresh();
+    if (error) setErr(error.message);
+    else router.refresh();
   }
 
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      {err && <span className="text-[10px] text-red-400">{err}</span>}
       <button
         type="button"
         disabled={busy}

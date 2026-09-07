@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
@@ -58,9 +59,12 @@ export default async function AdminUsersPage({
             {users.map((u) => (
               <tr key={u.id} className="border-b border-surface/60">
                 <td className="py-2.5 pr-4">
-                  <span className="font-medium">
+                  <Link
+                    href={`/admin/users/${u.id}`}
+                    className="font-medium hover:text-accent"
+                  >
                     {u.display_name ?? t("admin.noName")}
-                  </span>
+                  </Link>
                   <span className="mt-0.5 block text-xs text-muted">
                     {u.email ?? (
                       <span className="font-mono text-[10px]">
