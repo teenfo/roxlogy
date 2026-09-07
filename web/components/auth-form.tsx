@@ -34,6 +34,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useI18n();
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -61,10 +62,15 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     const supabase = createClient();
 
     if (mode === "signup") {
+      // 이름은 handle_new_user 트리거가 raw_user_meta_data 에서 읽어 프로필에
+      // 넣는다. 여기서 안 보내면 명단·출석·회비 화면이 전부 'Athlete' 가 된다.
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${location.origin}/auth/callback` },
+        options: {
+          emailRedirectTo: `${location.origin}/auth/callback`,
+          data: { display_name: displayName.trim() },
+        },
       });
       setPending(false);
       if (error) return setError(error.message);
@@ -108,6 +114,21 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {mode === "signup" && (
+            <label className="flex flex-col gap-1.5 text-sm text-muted">
+              {t("auth.displayName")}
+              <input
+                type="text"
+                required
+                maxLength={40}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={t("auth.displayNamePh")}
+                className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+              />
+              <span className="text-xs text-muted">{t("auth.displayNameHint")}</span>
+            </label>
+          )}
           <label className="flex flex-col gap-1.5 text-sm text-muted">
             {t("auth.email")}
             <input
@@ -145,7 +166,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
 
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || (mode === "signup" && !displayName.trim())}
             className="mt-2 rounded-md bg-accent px-4 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
           >
             {pending

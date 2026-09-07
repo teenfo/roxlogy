@@ -530,6 +530,9 @@ const en = {
   // 인증
   "auth.loginTitle": "Log in",
   "auth.signupTitle": "Create account",
+  "auth.displayName": "Name",
+  "auth.displayNamePh": "How crewmates will see you",
+  "auth.displayNameHint": "Shown on crew rosters, attendance and leaderboards. You can change it later.",
   "auth.email": "Email",
   "auth.password": "Password",
   "auth.showPassword": "Show",

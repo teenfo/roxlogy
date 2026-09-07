@@ -527,6 +527,9 @@ const es: Record<DictKey, string> = {
 
   "auth.loginTitle": "Iniciar sesión",
   "auth.signupTitle": "Crear cuenta",
+  "auth.displayName": "Nombre",
+  "auth.displayNamePh": "Cómo te verán en el crew",
+  "auth.displayNameHint": "Aparece en las listas del crew, asistencia y clasificaciones. Puedes cambiarlo después.",
   "auth.email": "Correo electrónico",
   "auth.password": "Contraseña",
   "auth.showPassword": "Mostrar",

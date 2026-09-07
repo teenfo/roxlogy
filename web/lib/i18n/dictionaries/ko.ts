@@ -527,6 +527,9 @@ const ko: Record<DictKey, string> = {
 
   "auth.loginTitle": "로그인",
   "auth.signupTitle": "계정 만들기",
+  "auth.displayName": "이름",
+  "auth.displayNamePh": "크루원에게 보일 이름",
+  "auth.displayNameHint": "크루 명단·출석·리더보드에 이 이름으로 표시됩니다. 나중에 바꿀 수 있습니다.",
   "auth.email": "이메일",
   "auth.password": "비밀번호",
   "auth.showPassword": "표시",
