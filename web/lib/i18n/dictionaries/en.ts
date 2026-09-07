@@ -80,7 +80,7 @@ const en = {
   "pft.spec.lunge": "100 reps, bodyweight · back knee down, full stand",
   "pft.spec.row": "1000m",
   "pft.spec.pushup": "30 reps, hand release",
-  "pft.spec.wallball": "100 reps, 6kg men / 4kg women",
+  "pft.spec.wallball": "100 reps, 6kg to a 3.0m target (men) / 4kg to 2.7m (women)",
   "nav.races": "Race results",
   "nav.programs": "Programs",
   "nav.schedule": "Schedule",

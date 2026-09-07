@@ -79,7 +79,7 @@ const es: Record<DictKey, string> = {
   "pft.spec.lunge": "100 reps, peso corporal · rodilla al suelo y extensión completa",
   "pft.spec.row": "1000m",
   "pft.spec.pushup": "30 reps, hand release",
-  "pft.spec.wallball": "100 reps, 6kg hombres / 4kg mujeres",
+  "pft.spec.wallball": "100 reps, 6kg a objetivo de 3,0m (hombres) / 4kg a 2,7m (mujeres)",
   "nav.races": "Resultados",
   "nav.programs": "Programas",
   "nav.schedule": "Calendario",

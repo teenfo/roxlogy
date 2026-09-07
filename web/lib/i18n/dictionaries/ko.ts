@@ -79,7 +79,7 @@ const ko: Record<DictKey, string> = {
   "pft.spec.lunge": "100회, 맨몸 · 뒷무릎 바닥 접촉 후 완전 기립",
   "pft.spec.row": "1000m",
   "pft.spec.pushup": "30회, 핸드 릴리즈",
-  "pft.spec.wallball": "100회, 남 6kg / 여 4kg",
+  "pft.spec.wallball": "100회, 남 6kg·타깃 3.0m / 여 4kg·타깃 2.7m",
   "nav.races": "레이스결과",
   "nav.programs": "프로그램",
   "nav.schedule": "일정",
