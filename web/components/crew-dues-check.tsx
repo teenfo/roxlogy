@@ -120,6 +120,8 @@ export type BoardCharge = {
   charge_id: string;
   user_id: string;
   display_name: string;
+  /** 운영진에게만 내려온다 — RPC 가 게이트 */
+  email: string | null;
   tier_name: string | null;
   tier_color: string | null;
   kind: "monthly" | "session" | "custom";
@@ -204,8 +206,15 @@ export function CrewDuesMatrix({
             return (
               <li key={uid} className="rounded-md bg-surface px-4 py-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-sm font-semibold">
-                    {head.display_name}
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate text-sm font-semibold">
+                      {head.display_name}
+                    </span>
+                    {head.email && (
+                      <span className="truncate text-[11px] font-normal text-muted">
+                        {head.email}
+                      </span>
+                    )}
                   </span>
                   {head.tier_name && (
                     <span
