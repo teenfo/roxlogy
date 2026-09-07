@@ -4,7 +4,7 @@ import { AiInsight } from "@/components/ai-insight";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { formatDate, formatMs } from "@/lib/format";
+import { formatDate, formatDateShortYear, formatMs } from "@/lib/format";
 import { getRaceBenchmarks } from "@/lib/cache";
 import {
   hyroxAgeGroup,
@@ -19,6 +19,7 @@ import {
   pacingGrade,
   runLapDeviationMs,
 } from "@/lib/analysis";
+import { formatDistance, gradeClass, gradeDictKey, type Degradation } from "@/lib/run";
 import {
   BreakdownStackBar,
   DriveChart,
@@ -207,6 +208,16 @@ export default async function SessionDetailPage({
   }
   const ergSamplesAll = ergRaws.flatMap((r) => r.samples ?? []);
   const ergStrokesAll = ergRaws.flatMap((r) => r.strokes ?? []);
+
+  // 러닝 저하율 — 시뮬 랩이 순수 1km 페이스보다 얼마나 느린가.
+  // 본인 세션에서만 계산한다: 기준선은 내 러닝 기록이고 RLS 로 남에겐 안 보인다.
+  let degradation: Degradation | null = null;
+  if (isOwner && !isErg && runLaps.length >= 2) {
+    const { data: deg } = await supabase.rpc("session_run_degradation", {
+      p_session: id,
+    });
+    degradation = (deg ?? null) as Degradation | null;
+  }
 
   // 필드 분포 곡선 — 풀 시뮬(런8+스테이션8, 30분↑) + 본인 세션일 때만.
   // 소유자 프로필(성별·출생연도)로 동체급·동연령 실측 분포에 위치를 찍는다.
@@ -514,6 +525,66 @@ export default async function SessionDetailPage({
                 ms: s.split_time_ms!,
               }))}
             />
+          </div>
+        </section>
+      )}
+
+      {degradation && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">{t("run.degTitle")}</h2>
+          <p className="mt-1 text-sm text-muted">{t("run.degDesc")}</p>
+          <div className="mt-3 rounded-md bg-surface px-5 py-4">
+            {degradation.degradation_pct == null ? (
+              <div>
+                <p className="text-sm text-muted">{t("run.degNone")}</p>
+                <Link
+                  href="/runs/new"
+                  className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+                >
+                  {t("run.add")}
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <span className="font-mono text-3xl font-black">
+                    {t("run.degSlower", { pct: degradation.degradation_pct })}
+                  </span>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${gradeClass(degradation.grade)}`}
+                  >
+                    {t(gradeDictKey(degradation.grade))}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted">
+                  <span>
+                    {t("run.degLap")}{" "}
+                    <span className="font-mono text-foreground">
+                      {formatMs(degradation.sim_lap_avg_ms)}
+                    </span>
+                  </span>
+                  <span>
+                    {t("run.degBaseline")}{" "}
+                    <span className="font-mono text-foreground">
+                      {formatMs(degradation.baseline!.baseline_1k_ms)}
+                    </span>
+                  </span>
+                  <Link href="/runs" className="hover:text-accent">
+                    {t("run.baselineFrom", {
+                      distance: formatDistance(
+                        degradation.baseline!.from_distance_m,
+                      ),
+                      date: formatDateShortYear(
+                        degradation.baseline!.from_ran_on,
+                        tag,
+                        tz,
+                      ),
+                    })}
+                  </Link>
+                </div>
+                <p className="mt-3 text-xs text-muted">{t("run.gradeHint")}</p>
+              </>
+            )}
           </div>
         </section>
       )}

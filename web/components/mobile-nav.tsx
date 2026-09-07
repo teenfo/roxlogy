@@ -7,6 +7,7 @@ import { useI18n } from "@/components/i18n-provider";
 const LINKS: { href: string; key: string }[] = [
   { href: "/dashboard", key: "nav.dashboard" },
   { href: "/sessions", key: "nav.sessions" },
+  { href: "/runs", key: "nav.runs" },
   { href: "/races", key: "nav.races" },
   { href: "/pft", key: "nav.pft" },
   { href: "/programs", key: "nav.programs" },

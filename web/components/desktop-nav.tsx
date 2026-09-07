@@ -11,6 +11,7 @@ const GROUPS: { key: string; items: Item[] }[] = [
   {
     key: "nav.grpTraining",
     items: [
+      { href: "/runs", key: "nav.runs" },
       { href: "/programs", key: "nav.programs" },
       { href: "/schedule", key: "nav.schedule" },
       { href: "/exercises", key: "nav.exercises" },
