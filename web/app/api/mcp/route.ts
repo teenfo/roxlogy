@@ -692,18 +692,253 @@ const handler = createMcpHandler(
           }),
         ),
     );
+
+    // ---------- 출석 (이번 릴리스) ----------
+    server.registerTool(
+      "get_meetup_attendance",
+      {
+        title: "모임 출석 명단 (운영진)",
+        description:
+          "모임 한 건의 크루원별 출석·참석 응답·회차비 상태. 무료 행사/정회원 전용/종료 여부도 함께. event_id 는 get_crew_schedule 의 모임 id.",
+        inputSchema: z.object({ slug: z.string(), event_id: z.string().uuid() }),
+      },
+      async ({ slug, event_id }, ctx) =>
+        out(
+          await rpc("mcp_event_attendance", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_event: event_id,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "check_in_member",
+      {
+        title: "모임 출석 체크 (운영진)",
+        description:
+          "크루원의 출석을 체크하거나 해제한다. 등급에 회차비가 있으면 체크와 동시에 자동 청구되고, 해제하면 아직 손대지 않은 청구만 회수된다. 무료 행사는 출석만 남고 청구되지 않는다. 실행 전 누구를 체크하는지 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          event_id: z.string().uuid(),
+          user_id: z.string().uuid(),
+          present: z.boolean().optional(),
+        }),
+      },
+      async ({ slug, event_id, user_id, present }, ctx) =>
+        out(
+          await rpc("mcp_check_in", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_event: event_id,
+            p_user_id: user_id,
+            p_present: present ?? true,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "set_meetup_flags",
+      {
+        title: "모임 상태 변경 (운영진)",
+        description:
+          "무료 행사·정회원 전용·종료 여부를 바꾼다. 지정하지 않은 항목은 그대로 둔다. 무료로 바꾸면 그 모임의 미납 회차비가 회수되고, 유료로 되돌리면 출석분이 다시 청구된다(확정분은 그대로). 종료하면 크루원이 참석 여부를 바꿀 수 없다. 실행 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          event_id: z.string().uuid(),
+          free: z.boolean().optional(),
+          members_only: z.boolean().optional(),
+          closed: z.boolean().optional(),
+        }),
+      },
+      async ({ slug, event_id, free, members_only, closed }, ctx) =>
+        out(
+          await rpc("mcp_set_meetup_flags", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_event: event_id,
+            p_fee_exempt: free ?? null,
+            p_members_only: members_only ?? null,
+            p_closed: closed ?? null,
+          }),
+        ),
+    );
+
+    // ---------- 회원 등급 ----------
+    server.registerTool(
+      "list_crew_tiers",
+      {
+        title: "크루 회원 등급",
+        description:
+          "크루가 정한 회원 등급과 요금(월회비·회차비), 정회원 권한 여부, 등급별 인원. 등급 이름은 크루마다 다르므로 set_member_tier 전에 먼저 확인한다.",
+        inputSchema: z.object({ slug: z.string() }),
+      },
+      async ({ slug }, ctx) =>
+        out(await rpc("mcp_crew_tiers", { p_token: tok(ctx), p_slug: slug })),
+    );
+
+    server.registerTool(
+      "set_member_tier",
+      {
+        title: "크루원 등급 지정 (운영진)",
+        description:
+          "크루원의 등급을 바꾼다. tier 는 list_crew_tiers 의 이름 그대로. 등급이 곧 요금표라 다음 회비 대사부터 새 요금이 적용된다. 실행 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          user_id: z.string().uuid(),
+          tier: z.string(),
+        }),
+      },
+      async ({ slug, user_id, tier }, ctx) =>
+        out(
+          await rpc("mcp_set_member_tier", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_user_id: user_id,
+            p_tier: tier,
+          }),
+        ),
+    );
+
+    // ---------- 회비 ----------
+    server.registerTool(
+      "get_crew_unpaid",
+      {
+        title: "크루 미납 내역 (운영진)",
+        description:
+          "기간 무관 전체 미납·확인 대기 청구를 회원별로. 확정·면제된 건은 빠진다. 특정 달만 보려면 get_crew_dues.",
+        inputSchema: z.object({ slug: z.string() }),
+      },
+      async ({ slug }, ctx) =>
+        out(await rpc("mcp_crew_unpaid", { p_token: tok(ctx), p_slug: slug })),
+    );
+
+    server.registerTool(
+      "sync_crew_dues",
+      {
+        title: "회비 청구 맞추기 (운영진)",
+        description:
+          "그 달의 청구를 현재 등급·요금·출석 기록에 맞춘다. 없던 청구는 만들고, 미납 청구의 금액은 갱신하고, 근거가 사라진 미납 청구는 회수한다. 이미 확정했거나 본인이 납부 신고한 청구는 절대 다시 발행하거나 금액을 바꾸지 않는다. kind: monthly(월회비) / session(회차비) / both(기본). 실행 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+          kind: z.enum(["monthly", "session", "both"]).optional(),
+        }),
+      },
+      async ({ slug, month, kind }, ctx) =>
+        out(
+          await rpc("mcp_sync_dues", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_month: month ?? null,
+            p_kind: kind ?? "both",
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "waive_dues_charge",
+      {
+        title: "회비 면제 (운영진)",
+        description:
+          "청구 1건을 면제 처리한다. 면제는 미납도 수입도 아니어서 회계에 아무것도 기록되지 않는다. 이미 확정된 건은 먼저 확정을 해제해야 한다. charge_id 는 get_crew_unpaid 또는 get_crew_dues 에서. 실행 전 누구의 무슨 청구를 왜 면제하는지 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          charge_id: z.string().uuid(),
+          reason: z.string().max(200).optional(),
+        }),
+      },
+      async ({ slug, charge_id, reason }, ctx) =>
+        out(
+          await rpc("mcp_waive_dues", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_charge: charge_id,
+            p_reason: reason ?? null,
+          }),
+        ),
+    );
+
+    // ---------- 통계 ----------
+    server.registerTool(
+      "get_crew_stats",
+      {
+        title: "크루원 통계 (운영진)",
+        description:
+          "인원·대기 신청·등급 분포, 크루원별 출석(유료 모임 / 무료 포함 전체), 미납·면제 합계.",
+        inputSchema: z.object({ slug: z.string() }),
+      },
+      async ({ slug }, ctx) =>
+        out(await rpc("mcp_crew_stats", { p_token: tok(ctx), p_slug: slug })),
+    );
+
+    // ---------- PFT ----------
+    server.registerTool(
+      "list_pft",
+      {
+        title: "내 PFT 기록",
+        description:
+          "PFT(체력 측정) 기록. 6종목을 쉬는 시간 없이 연속으로 하고 총 시간으로 채점한다. badge 는 gold/silver/bronze — 45세 미만 22분·26분, 45세 이상 24분·28분 기준이고 동작을 수정하면(scaled) 무조건 bronze.",
+        inputSchema: z.object({ limit: z.number().int().min(1).max(100).optional() }),
+      },
+      async ({ limit }, ctx) =>
+        out(await rpc("mcp_list_pft", { p_token: tok(ctx), p_limit: limit ?? 20 })),
+    );
+
+    server.registerTool(
+      "add_pft",
+      {
+        title: "PFT 기록 추가",
+        description:
+          "PFT 결과를 저장한다. total_ms 만 있으면 되고 구간 기록은 선택이다. 순서는 1000m 런 → 버피 브로드 점프 50 → 런지 100 → 1000m 로우 → 푸시업 30 → 월볼 100. 배지는 저장 시점의 나이·scaled 로 서버가 판정한다. 실행 전 기록 내용을 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          total_ms: z.number().int(),
+          tested_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          run_ms: z.number().int().optional(),
+          burpee_ms: z.number().int().optional(),
+          lunge_ms: z.number().int().optional(),
+          row_ms: z.number().int().optional(),
+          pushup_ms: z.number().int().optional(),
+          wallball_ms: z.number().int().optional(),
+          scaled: z.boolean().optional(),
+          location: z.string().max(80).optional(),
+        }),
+      },
+      async (a, ctx) =>
+        out(
+          await rpc("mcp_add_pft", {
+            p_token: tok(ctx),
+            p_total_ms: a.total_ms,
+            p_tested_on: a.tested_on ?? null,
+            p_run_ms: a.run_ms ?? null,
+            p_burpee_ms: a.burpee_ms ?? null,
+            p_lunge_ms: a.lunge_ms ?? null,
+            p_row_ms: a.row_ms ?? null,
+            p_pushup_ms: a.pushup_ms ?? null,
+            p_wallball_ms: a.wallball_ms ?? null,
+            p_scaled: a.scaled ?? false,
+            p_location: a.location ?? null,
+          }),
+        ),
+    );
   },
   {
-    serverInfo: { name: "roxlogy", version: "2.0.0" },
+    serverInfo: { name: "roxlogy", version: "3.0.0" },
     instructions:
       "Roxlogy 하이록스 훈련 데이터 API. 시간 값은 밀리초(ms). " +
       "크루 도구의 slug 는 get_profile 의 crews 목록에서 얻는다. " +
       '응답이 {"error":"not_found_or_invalid_token"} 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다 — 빈 목록([])과 구분된다. ' +
       "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
-      "쓰기 도구(회계·모임 등록/수정·공지·승인·프로그램 생성/일차 수정·크루 연결·회비 확정·운동 등록 요청)는 " +
+      "쓰기 도구(회계·모임 등록/수정/상태변경·공지·승인·등급 지정·출석 체크·" +
+      "회비 확정/맞추기/면제·프로그램 생성/일차 수정·크루 연결·PFT 기록·운동 등록 요청)는 " +
       "실행 전 반드시 사용자에게 내용을 확인받는다. " +
       "훈련 계획 문서를 받으면 create_program 으로 일차별 등록 후 " +
-      "attach_crew_program 으로 크루 일정표에 연결할 수 있다.",
+      "attach_crew_program 으로 크루 일정표에 연결할 수 있다. " +
+      "회비 구조: 등급(list_crew_tiers)이 곧 요금표다 — 등급마다 월회비·회차비를 " +
+      "가진다. 월회비는 sync_crew_dues 로 그 달을 맞추고, 회차비는 모임 출석을 " +
+      "체크하면 자동으로 청구된다. 무료 행사로 표시한 모임은 출석은 남지만 " +
+      "청구되지 않는다. 이미 확정했거나 본인이 납부 신고한 청구는 어떤 경로로도 " +
+      "다시 발행되거나 금액이 바뀌지 않는다.",
   },
 );
 
