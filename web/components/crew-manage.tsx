@@ -357,6 +357,8 @@ export function CrewMemberManage({
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  /** null = 전체. 'staff' | tier_id | 'none'(등급 없음) */
+  const [filter, setFilter] = useState<string | null>(null);
 
   async function run(key: string, fn: () => PromiseLike<{ error: { message: string } | null }>) {
     setBusy(key);
@@ -399,7 +401,32 @@ export function CrewMemberManage({
           : t("crew.roleMember");
 
   const pending = members.filter((m) => m.status === "pending");
-  const active = members.filter((m) => m.status === "active");
+  const allActive = members.filter((m) => m.status === "active");
+  // 등급 필터 — 운영진(리더·부리더)은 등급이 아니라 권한이라 따로 묶는다.
+  const counts = new Map<string, number>();
+  for (const m of allActive) {
+    const k = isStaffRole(m.role) ? "staff" : (m.tier_id ?? "none");
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  const active =
+    filter == null
+      ? allActive
+      : allActive.filter((m) =>
+          filter === "staff"
+            ? isStaffRole(m.role)
+            : !isStaffRole(m.role) && (m.tier_id ?? "none") === filter,
+        );
+  const chips: { key: string; label: string; n: number }[] = [
+    ...(counts.get("staff")
+      ? [{ key: "staff", label: t("crew.filterStaff"), n: counts.get("staff")! }]
+      : []),
+    ...tiers
+      .filter((x) => counts.get(x.id))
+      .map((x) => ({ key: x.id, label: x.name, n: counts.get(x.id)! })),
+    ...(counts.get("none")
+      ? [{ key: "none", label: t("crew.filterNoTier"), n: counts.get("none")! }]
+      : []),
+  ];
   const btn = "rounded-md px-2.5 py-1 text-xs disabled:opacity-50";
 
   return (
@@ -444,8 +471,41 @@ export function CrewMemberManage({
       )}
 
       <h3 className="text-sm font-semibold text-muted">
-        {t("crew.manageMembers")} ({active.length})
+        {t("crew.manageMembers")} ({active.length}
+        {filter != null && `/${allActive.length}`})
       </h3>
+
+      {/* 등급별 필터 — 인원이 있는 구분만 보여준다 */}
+      {chips.length > 1 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setFilter(null)}
+            className={`rounded-full px-3 py-1 text-xs ${
+              filter == null
+                ? "bg-accent font-bold text-background"
+                : "bg-background text-muted hover:text-foreground"
+            }`}
+          >
+            {t("crew.filterAll")} {allActive.length}
+          </button>
+          {chips.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => setFilter(c.key)}
+              className={`rounded-full px-3 py-1 text-xs ${
+                filter === c.key
+                  ? "bg-accent font-bold text-background"
+                  : "bg-background text-muted hover:text-foreground"
+              }`}
+            >
+              {c.label} {c.n}
+            </button>
+          ))}
+        </div>
+      )}
+
       <ul className="mt-2 flex flex-col gap-1.5">
         {active.map((m) => (
           <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-surface px-4 py-2.5">
@@ -533,6 +593,11 @@ export function CrewMemberManage({
           </li>
         ))}
       </ul>
+      {!active.length && (
+        <p className="mt-2 rounded-md bg-surface px-4 py-6 text-center text-xs text-muted">
+          {t("crew.filterEmpty")}
+        </p>
+      )}
     </div>
   );
 }
