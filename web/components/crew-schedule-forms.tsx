@@ -740,10 +740,14 @@ export function CrewAttendanceCheck({
   eventId,
   rows,
   canEdit,
+  started,
 }: {
   eventId: string;
   rows: AttendanceRow[];
   canEdit: boolean;
+  /** 모임이 이미 시작했는지. 시작 전에는 "아직 안 옴"이지 불참이 아니다.
+   *  렌더 중에 Date.now() 를 부르면 순수하지 않으므로 서버에서 판정해 받는다. */
+  started: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -780,6 +784,13 @@ export function CrewAttendanceCheck({
   }
 
   const present = rows.filter((r) => r.checked_in);
+  // 불참 = 참석하겠다고 해 놓고 출석 체크가 안 된 사람. 모임이 시작하기
+  // 전에는 아직 안 온 것일 뿐이라 불참으로 세지 않는다.
+  const noShow = rows.filter(
+    (r) =>
+      !r.checked_in &&
+      (r.rsvp_status === "going" || r.rsvp_status === "waitlisted"),
+  );
 
   // 읽기 전용(일반 크루원)이면 출석한 사람만 보여준다.
   if (!canEdit) {
@@ -788,6 +799,11 @@ export function CrewAttendanceCheck({
         <p className="text-sm">
           <b>{present.length}</b>
           <span className="ml-1 text-muted">{t("crew.attendUnit")}</span>
+          {started && noShow.length > 0 && (
+            <span className="ml-2 text-xs text-muted">
+              {t("crew.attendNoShow", { n: noShow.length })}
+            </span>
+          )}
         </p>
         {present.length > 0 && (
           <ul className="mt-2 flex flex-wrap gap-1.5">
@@ -826,6 +842,11 @@ export function CrewAttendanceCheck({
     <div>
       <p className="text-xs text-muted">
         {t("crew.attendCounted", { n: present.length, total: rows.length })}
+        {started && noShow.length > 0 && (
+          <span className="ml-2 text-red-400">
+            {t("crew.attendNoShow", { n: noShow.length })}
+          </span>
+        )}
       </p>
       {(paidSum > 0 || dueSum > 0) && (
         <p className="mt-1 text-xs">
@@ -856,6 +877,13 @@ export function CrewAttendanceCheck({
                     ⏳ {t("crew.rsvpWaitlisted")}
                   </span>
                 )}
+                {started && !r.checked_in &&
+                  (r.rsvp_status === "going" ||
+                    r.rsvp_status === "waitlisted") && (
+                    <span className="shrink-0 rounded-full bg-red-400/15 px-2 py-0.5 text-[10px] font-bold text-red-400">
+                      {t("crew.attendAbsent")}
+                    </span>
+                  )}
               </span>
               {r.email && (
                 <span className="truncate text-[11px] text-muted">{r.email}</span>
@@ -923,45 +951,80 @@ export function CrewAttendanceCheck({
 }
 
 
-/** 무료 행사 토글 — 운영진 전용. 켜면 그 모임의 미납 회차비를 즉시 회수하고,
- *  끄면 그 달을 다시 대사해 출석분 청구를 되살린다(확정분은 그대로). */
+/** 모임 설정 토글 — 운영진 전용.
+ *  · 무료 행사: 켜면 그 모임의 미납 회차비를 즉시 회수하고, 끄면 그 달을 다시
+ *    대사해 출석분 청구를 되살린다 (확정분은 그대로).
+ *  · 정회원 전용: 켜면 정회원 권한이 없는 등급에게 모임이 아예 안 보인다.
+ *    이미 신청·출석한 기록은 지우지 않는다 — 실제로 있었던 일이고, 지우면
+ *    출석 통계와 회차비 청구의 근거가 사라진다. */
 export function CrewEventFeeToggle({
   eventId,
   feeExempt,
+  membersOnly,
 }: {
   eventId: string;
   feeExempt: boolean;
+  membersOnly: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
-  async function toggle(on: boolean) {
+  async function toggleFee(on: boolean) {
     if (on && !window.confirm(t("crew.feeExemptConfirm"))) return;
-    setBusy(true);
+    setBusy("fee");
     setErr(null);
+    setNote(null);
     const { error } = await createClient().rpc("set_event_fee_exempt", {
       p_event: eventId,
       p_on: on,
     });
-    setBusy(false);
+    setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 
+  async function toggleMembers(on: boolean) {
+    if (on && !window.confirm(t("crew.fullOnlyConfirm"))) return;
+    setBusy("members");
+    setErr(null);
+    setNote(null);
+    const { data, error } = await createClient().rpc("set_event_members_only", {
+      p_event: eventId,
+      p_on: on,
+    });
+    setBusy(null);
+    if (error) return setErr(duesErrText(t, error.message));
+    const hidden = (data as { hidden_from?: number } | null)?.hidden_from ?? 0;
+    if (on && hidden > 0) setNote(t("crew.fullOnlyHidden", { n: hidden }));
+    router.refresh();
+  }
+
   return (
-    <span className="flex flex-wrap items-center gap-2">
+    <span className="flex flex-wrap items-center gap-3">
+      <label className="flex cursor-pointer items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={membersOnly}
+          disabled={busy != null}
+          onChange={(e) => toggleMembers(e.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        <span>{t("crew.fullOnly")}</span>
+      </label>
       <label className="flex cursor-pointer items-center gap-2 text-xs">
         <input
           type="checkbox"
           checked={feeExempt}
-          disabled={busy}
-          onChange={(e) => toggle(e.target.checked)}
+          disabled={busy != null}
+          onChange={(e) => toggleFee(e.target.checked)}
           className="h-4 w-4 accent-accent"
         />
         <span>{t("crew.feeExempt")}</span>
       </label>
+      {note && <span className="text-xs text-muted">{note}</span>}
       {err && <span className="text-xs text-red-400">{err}</span>}
     </span>
   );

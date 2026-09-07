@@ -42,6 +42,7 @@ type EventDetail = {
   comments: EventComment[];
   waitlist_names: string[];
   fee_exempt: boolean;
+  members_only: boolean;
 };
 
 /** 카톡·인스타에 붙였을 때 제목·설명이 보이도록 */
@@ -106,11 +107,18 @@ export default async function CrewEventPage({
         </span>
       </div>
       <p className="mt-1 text-sm font-medium text-accent">{when}</p>
-      {ev.fee_exempt && (
-        <p className="mt-1 inline-block rounded-full bg-track/15 px-2.5 py-0.5 text-[11px] font-bold text-track">
-          {t("crew.feeExempt")}
-        </p>
-      )}
+      <span className="mt-1 flex flex-wrap gap-1.5">
+        {ev.members_only && (
+          <span className="rounded-full bg-track/15 px-2.5 py-0.5 text-[11px] font-bold text-track">
+            {t("crew.fullOnly")}
+          </span>
+        )}
+        {ev.fee_exempt && (
+          <span className="rounded-full bg-track/15 px-2.5 py-0.5 text-[11px] font-bold text-track">
+            {t("crew.feeExempt")}
+          </span>
+        )}
+      </span>
       {ev.location && <p className="mt-1 text-sm text-muted">📍 {ev.location}</p>}
       {ev.description && (
         <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/90">
@@ -176,7 +184,11 @@ export default async function CrewEventPage({
               {t("crew.attendTitle")}
             </h3>
             {ev.is_staff && (
-              <CrewEventFeeToggle eventId={ev.id} feeExempt={ev.fee_exempt} />
+              <CrewEventFeeToggle
+                eventId={ev.id}
+                feeExempt={ev.fee_exempt}
+                membersOnly={ev.members_only}
+              />
             )}
           </div>
           {ev.fee_exempt && (
@@ -189,6 +201,7 @@ export default async function CrewEventPage({
               eventId={ev.id}
               rows={attendance}
               canEdit={ev.is_staff}
+              started={new Date(ev.starts_at) <= new Date()}
             />
           </div>
         </section>
