@@ -488,6 +488,8 @@ const en = {
   "crew.tierDeleteConfirm": "Delete the '{name}' tier? If members still use it, it will be archived instead.",
   "crew.tierArchived": "'{name}' is still in use, so it was archived. Move those members to another tier to remove it for good.",
   "crew.tierArchivedList": "Archived tiers",
+  "crew.attendFeeTitle": "Session fees collected",
+  "crew.attendFeeDue": "outstanding",
   "crew.attendTitle": "Attendance",
   "crew.attendUnit": "attended",
   "crew.attendCounted": "{n} of {total} checked in",

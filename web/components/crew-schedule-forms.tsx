@@ -726,10 +726,16 @@ export type AttendanceRow = {
   role: "owner" | "coach" | "member" | "associate";
   rsvp_status: string | null;
   checked_in: boolean;
+  /** 이 모임의 회차비 청구 (운영진에게만). 무료 행사·회차비 없는 등급이면 null */
+  charge_id: string | null;
+  charge_amount: number | null;
+  charge_status: "pending" | "reported" | "confirmed" | "waived" | null;
 };
 
 /** 모임 출석 체크 — 운영진만 토글할 수 있다(권한은 crew_event_check_in RPC 가 강제).
  *  RSVP(오겠다)와 출석(실제로 왔다)은 별개라, 신청하지 않은 워크인도 체크된다. */
+const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
+
 export function CrewAttendanceCheck({
   eventId,
   rows,
@@ -754,6 +760,20 @@ export function CrewAttendanceCheck({
       p_user: userId,
       p_present: present,
     });
+    setBusy(null);
+    if (error) setErr(duesErrText(t, error.message));
+    else router.refresh();
+  }
+
+  /** 회차비 확정/해제 — 현장에서 돈을 받고 바로 처리할 수 있게 출석 옆에 둔다.
+   *  회계 탭의 확정 보드와 같은 RPC 라 어느 쪽에서 해도 결과가 같다. */
+  async function settle(chargeId: string, confirmed: boolean) {
+    setBusy(chargeId);
+    setErr(null);
+    const { error } = await createClient().rpc(
+      confirmed ? "unconfirm_dues_charge" : "confirm_dues_charge",
+      { p_charge: chargeId },
+    );
     setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
@@ -793,11 +813,29 @@ export function CrewAttendanceCheck({
   const rest = rows.filter((r) => !rsvpd.includes(r));
   const shown = showAll ? [...rsvpd, ...rest] : rsvpd;
 
+  // 이 모임의 회차비 현황 — 현장에서 얼마 받았고 얼마 남았는지
+  const due = rows.filter(
+    (r) => r.charge_id && (r.charge_status === "pending" || r.charge_status === "reported"),
+  );
+  const paidSum = rows
+    .filter((r) => r.charge_status === "confirmed")
+    .reduce((a, r) => a + (r.charge_amount ?? 0), 0);
+  const dueSum = due.reduce((a, r) => a + (r.charge_amount ?? 0), 0);
+
   return (
     <div>
       <p className="text-xs text-muted">
         {t("crew.attendCounted", { n: present.length, total: rows.length })}
       </p>
+      {(paidSum > 0 || dueSum > 0) && (
+        <p className="mt-1 text-xs">
+          <span className="text-muted">{t("crew.attendFeeTitle")} </span>
+          <span className="font-mono font-bold text-track">{won(paidSum)}</span>
+          <span className="text-muted"> · </span>
+          <span className="font-mono font-bold text-accent">{won(dueSum)}</span>
+          <span className="text-muted"> {t("crew.attendFeeDue")}</span>
+        </p>
+      )}
       {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
       <ul className="mt-2 flex flex-col gap-1.5">
         {shown.map((r) => (
@@ -823,18 +861,44 @@ export function CrewAttendanceCheck({
                 <span className="truncate text-[11px] text-muted">{r.email}</span>
               )}
             </span>
-            <button
-              type="button"
-              disabled={busy != null}
-              onClick={() => toggle(r.user_id, !r.checked_in)}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold disabled:opacity-50 ${
-                r.checked_in
-                  ? "bg-accent text-background"
-                  : "bg-background text-muted hover:text-foreground"
-              }`}
-            >
-              {r.checked_in ? `✓ ${t("crew.attendPresent")}` : t("crew.attendMark")}
-            </button>
+            <span className="flex shrink-0 items-center gap-2">
+              {/* 회차비 — 청구가 있을 때만. 무료 행사·회차비 없는 등급은 안 뜬다 */}
+              {r.charge_id && r.charge_amount != null && (
+                r.charge_status === "waived" ? (
+                  <span className="rounded-full bg-track/15 px-2.5 py-1 text-[11px] font-bold text-track">
+                    {t("crew.duesWaived")}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy != null}
+                    onClick={() =>
+                      settle(r.charge_id!, r.charge_status === "confirmed")
+                    }
+                    className={`rounded-full px-2.5 py-1 font-mono text-[11px] font-bold disabled:opacity-50 ${
+                      r.charge_status === "confirmed"
+                        ? "bg-track/15 text-track"
+                        : "bg-background text-accent ring-1 ring-accent/40"
+                    }`}
+                  >
+                    {r.charge_status === "confirmed" ? "✓ " : ""}
+                    {won(r.charge_amount)}
+                  </button>
+                )
+              )}
+              <button
+                type="button"
+                disabled={busy != null}
+                onClick={() => toggle(r.user_id, !r.checked_in)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold disabled:opacity-50 ${
+                  r.checked_in
+                    ? "bg-accent text-background"
+                    : "bg-background text-muted hover:text-foreground"
+                }`}
+              >
+                {r.checked_in ? `✓ ${t("crew.attendPresent")}` : t("crew.attendMark")}
+              </button>
+            </span>
           </li>
         ))}
       </ul>

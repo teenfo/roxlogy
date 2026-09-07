@@ -486,6 +486,8 @@ const ko: Record<DictKey, string> = {
   "crew.tierDeleteConfirm": "'{name}' 등급을 삭제할까요? 쓰는 크루원이 있으면 보관 처리됩니다.",
   "crew.tierArchived": "'{name}' 등급을 쓰는 크루원이 있어 보관 처리했습니다. 해당 크루원을 다른 등급으로 옮기면 완전히 삭제됩니다.",
   "crew.tierArchivedList": "보관된 등급",
+  "crew.attendFeeTitle": "회차비 수납",
+  "crew.attendFeeDue": "미납",
   "crew.attendTitle": "출석",
   "crew.attendUnit": "명 출석",
   "crew.attendCounted": "{total}명 중 {n}명 출석 체크됨",

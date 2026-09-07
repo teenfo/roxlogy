@@ -486,6 +486,8 @@ const es: Record<DictKey, string> = {
   "crew.tierDeleteConfirm": "¿Eliminar el nivel '{name}'? Si hay miembros usándolo, se archivará.",
   "crew.tierArchived": "'{name}' sigue en uso, así que se archivó. Mueve a esos miembros a otro nivel para eliminarlo del todo.",
   "crew.tierArchivedList": "Niveles archivados",
+  "crew.attendFeeTitle": "Cuotas cobradas",
+  "crew.attendFeeDue": "pendiente",
   "crew.attendTitle": "Asistencia",
   "crew.attendUnit": "asistieron",
   "crew.attendCounted": "{n} de {total} registrados",
