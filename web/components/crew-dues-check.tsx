@@ -161,6 +161,15 @@ export function CrewDuesMatrix({
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  /** 펼친 회원. 기본은 전부 접힘 — 회원이 많으면 한 화면에 안 들어온다. */
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const toggle = (uid: string) =>
+    setOpen((p) => {
+      const n = new Set(p);
+      if (n.has(uid)) n.delete(uid);
+      else n.add(uid);
+      return n;
+    });
 
   async function call(key: string, fn: string, args: Record<string, unknown>) {
     setBusy(key);
@@ -263,6 +272,22 @@ export function CrewDuesMatrix({
       {note && <p className="text-xs text-accent">{note}</p>}
       <p className="text-[11px] text-muted">{t("crew.duesGenHint")}</p>
 
+      {byMember.size > 1 && (
+        <button
+          type="button"
+          onClick={() =>
+            setOpen((p) =>
+              p.size === byMember.size ? new Set() : new Set(byMember.keys()),
+            )
+          }
+          className="self-start text-xs text-accent hover:underline"
+        >
+          {open.size === byMember.size
+            ? t("crew.duesCollapseAll")
+            : t("crew.duesExpandAll")}
+        </button>
+      )}
+
       {!charges.length ? (
         <p className="rounded-md bg-surface px-4 py-8 text-center text-xs text-muted">
           {t("crew.duesNoCharges")}
@@ -276,7 +301,15 @@ export function CrewDuesMatrix({
               .reduce((a, c) => a + c.amount, 0);
             return (
               <li key={uid} className="rounded-md bg-surface px-4 py-3">
-                <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggle(uid)}
+                  aria-expanded={open.has(uid)}
+                  className="flex w-full flex-wrap items-center gap-2 text-left"
+                >
+                  <span className="shrink-0 text-xs text-muted">
+                    {open.has(uid) ? "▾" : "▸"}
+                  </span>
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate text-sm font-semibold">
                       {head.display_name}
@@ -294,18 +327,26 @@ export function CrewDuesMatrix({
                       {head.tier_name}
                     </span>
                   )}
-                  <span
-                    className={`ml-auto font-mono text-xs ${
-                      memberUnpaid > 0 ? "text-accent" : "text-muted"
-                    }`}
-                  >
-                    {memberUnpaid > 0
-                      ? t("crew.duesOutstanding", { amount: won(memberUnpaid) })
-                      : `✓ ${t("crew.duesConfirmed")}`}
+                  <span className="ml-auto flex shrink-0 items-center gap-2">
+                    <span className="text-[11px] text-muted">
+                      {t("crew.duesChargeCount", { n: list.length })}
+                    </span>
+                    <span
+                      className={`font-mono text-xs ${
+                        memberUnpaid > 0 ? "text-accent" : "text-muted"
+                      }`}
+                    >
+                      {memberUnpaid > 0
+                        ? t("crew.duesOutstanding", { amount: won(memberUnpaid) })
+                        : `✓ ${t("crew.duesSettled")}`}
+                    </span>
                   </span>
-                </div>
+                </button>
 
-                <ul className="mt-2 flex flex-col gap-1">
+                <ul
+                  className="mt-2 flex flex-col gap-1"
+                  hidden={!open.has(uid)}
+                >
                   {list.map((c) => (
                     <li
                       key={c.charge_id}

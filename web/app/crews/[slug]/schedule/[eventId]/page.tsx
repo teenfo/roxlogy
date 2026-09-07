@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import {
   CrewAttendanceCheck,
+  CrewEventFeeToggle,
   CrewEventCommentForm,
   CrewMeetupCancel,
   CrewRsvpButtons,
@@ -38,6 +39,7 @@ type EventDetail = {
   comments_allowed: boolean;
   comments: EventComment[];
   waitlist_names: string[];
+  fee_exempt: boolean;
 };
 
 export default async function CrewEventPage({
@@ -80,6 +82,11 @@ export default async function CrewEventPage({
         {ev.is_staff && <CrewMeetupCancel eventId={ev.id} slug={slug} />}
       </div>
       <p className="mt-1 text-sm font-medium text-accent">{when}</p>
+      {ev.fee_exempt && (
+        <p className="mt-1 inline-block rounded-full bg-track/15 px-2.5 py-0.5 text-[11px] font-bold text-track">
+          {t("crew.feeExempt")}
+        </p>
+      )}
       {ev.location && <p className="mt-1 text-sm text-muted">📍 {ev.location}</p>}
       {ev.description && (
         <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/90">
@@ -140,9 +147,19 @@ export default async function CrewEventPage({
       {/* 출석 — 운영진이 체크, 크루원은 결과만. RSVP 와 별개다. */}
       {isMember && (
         <section className="mt-8">
-          <h3 className="text-sm font-semibold text-muted">
-            {t("crew.attendTitle")}
-          </h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-muted">
+              {t("crew.attendTitle")}
+            </h3>
+            {ev.is_staff && (
+              <CrewEventFeeToggle eventId={ev.id} feeExempt={ev.fee_exempt} />
+            )}
+          </div>
+          {ev.fee_exempt && (
+            <p className="mt-1 text-[11px] text-muted">
+              {t("crew.feeExemptNote")}
+            </p>
+          )}
           <div className="mt-2">
             <CrewAttendanceCheck
               eventId={ev.id}

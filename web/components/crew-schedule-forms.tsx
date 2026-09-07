@@ -21,6 +21,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
   const [location, setLocation] = useState("");
   const [desc, setDesc] = useState("");
   const [capacity, setCapacity] = useState("");
+  const [feeExempt, setFeeExempt] = useState(false);
   const [membersOnly, setMembersOnly] = useState(false);
   const [commentsAllowed, setCommentsAllowed] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -46,6 +47,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
           : null,
       members_only: membersOnly,
       comments_allowed: commentsAllowed,
+      fee_exempt: feeExempt,
       created_by: u.user?.id ?? null,
     });
     setBusy(false);
@@ -131,6 +133,16 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
           className="h-4 w-4 accent-accent"
         />
         <span>{t("crew.allowComments")}</span>
+      </label>
+      <label className="flex cursor-pointer items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={feeExempt}
+          onChange={(e) => setFeeExempt(e.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        <span>{t("crew.feeExempt")}</span>
+        <span className="text-muted">{t("crew.feeExemptHint")}</span>
       </label>
       {err && <p className="text-xs text-red-400">{err}</p>}
       <div className="flex gap-2">
@@ -843,5 +855,50 @@ export function CrewAttendanceCheck({
         </button>
       )}
     </div>
+  );
+}
+
+
+/** 무료 행사 토글 — 운영진 전용. 켜면 그 모임의 미납 회차비를 즉시 회수하고,
+ *  끄면 그 달을 다시 대사해 출석분 청구를 되살린다(확정분은 그대로). */
+export function CrewEventFeeToggle({
+  eventId,
+  feeExempt,
+}: {
+  eventId: string;
+  feeExempt: boolean;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function toggle(on: boolean) {
+    if (on && !window.confirm(t("crew.feeExemptConfirm"))) return;
+    setBusy(true);
+    setErr(null);
+    const { error } = await createClient().rpc("set_event_fee_exempt", {
+      p_event: eventId,
+      p_on: on,
+    });
+    setBusy(false);
+    if (error) setErr(duesErrText(t, error.message));
+    else router.refresh();
+  }
+
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <label className="flex cursor-pointer items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={feeExempt}
+          disabled={busy}
+          onChange={(e) => toggle(e.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        <span>{t("crew.feeExempt")}</span>
+      </label>
+      {err && <span className="text-xs text-red-400">{err}</span>}
+    </span>
   );
 }
