@@ -23,7 +23,7 @@ import {
 } from "@/components/crew-dues-links";
 import { CrewTierManage, type CrewTier } from "@/components/crew-tier-manage";
 
-const TABS = ["info", "members", "dues", "programs"] as const;
+const TABS = ["info", "members", "tiers", "dues", "programs"] as const;
 type Tab = (typeof TABS)[number];
 
 type CrewStats = {
@@ -168,6 +168,7 @@ export default async function CrewManagePage({
   const tabLabel: Record<Tab, string> = {
     info: t("crew.tabInfo"),
     members: t("crew.tabMembers"),
+    tiers: t("crew.tierTitle"),
     dues: t("crew.tabDues"),
     programs: t("crew.tabPrograms"),
   };
@@ -338,13 +339,17 @@ export default async function CrewManagePage({
             </div>
           </section>
 
-          <section>
-            <h2 className="text-lg font-semibold">{t("crew.tierTitle")}</h2>
-            <div className="mt-3 max-w-2xl">
-              <CrewTierManage crewId={crew.id} tiers={tiers} />
-            </div>
-          </section>
         </>
+      )}
+
+      {/* ---------------- 회원 등급 ---------------- */}
+      {tab === "tiers" && (
+        <section>
+          <h2 className="text-lg font-semibold">{t("crew.tierTitle")}</h2>
+          <div className="mt-3 max-w-2xl">
+            <CrewTierManage crewId={crew.id} tiers={tiers} />
+          </div>
+        </section>
       )}
 
       {/* ---------------- 회비 ---------------- */}
@@ -378,7 +383,7 @@ export default async function CrewManagePage({
                 ))}
             </ul>
             <Link
-              href={`/crews/${slug}/manage?tab=members`}
+              href={`/crews/${slug}/manage?tab=tiers`}
               className="mt-3 inline-block text-xs text-accent hover:underline"
             >
               {t("crew.duesFeeEdit")}

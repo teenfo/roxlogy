@@ -359,6 +359,7 @@ export function CrewMemberManage({
   const [err, setErr] = useState<string | null>(null);
   /** null = 전체. 'staff' | tier_id | 'none'(등급 없음) */
   const [filter, setFilter] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   async function run(key: string, fn: () => PromiseLike<{ error: { message: string } | null }>) {
     setBusy(key);
@@ -400,8 +401,16 @@ export function CrewMemberManage({
           ? t("crew.roleAssociate")
           : t("crew.roleMember");
 
-  const pending = members.filter((m) => m.status === "pending");
-  const allActive = members.filter((m) => m.status === "active");
+  // 검색은 이름과 계정 주소 둘 다 본다 — 이름을 안 넣은 크루원은 이메일로만
+  // 찾을 수 있다.
+  const q = query.trim().toLowerCase();
+  const hit = (m: ManageMember) =>
+    !q ||
+    m.display_name.toLowerCase().includes(q) ||
+    (m.email ?? "").toLowerCase().includes(q);
+
+  const pending = members.filter((m) => m.status === "pending" && hit(m));
+  const allActive = members.filter((m) => m.status === "active" && hit(m));
   // 등급 필터 — 운영진(리더·부리더)은 등급이 아니라 권한이라 따로 묶는다.
   const counts = new Map<string, number>();
   for (const m of allActive) {
@@ -432,6 +441,13 @@ export function CrewMemberManage({
   return (
     <div>
       {err && <p className="mb-3 text-sm text-red-400">{err}</p>}
+
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={t("crew.memberSearch")}
+        className="mb-4 w-full max-w-sm rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+      />
 
       {pending.length > 0 && (
         <>
