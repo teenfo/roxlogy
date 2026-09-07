@@ -37,6 +37,7 @@ type CrewStats = {
   trained_30d: number;
   unpaid_amount: number;
   unpaid_count: number;
+  waived_amount: number;
 };
 
 /** 통계 타일 — 회계 탭과 같은 모양을 쓴다(숫자는 mono, 라벨은 muted). */
@@ -283,7 +284,12 @@ export default async function CrewManagePage({
                 <Stat
                   label={t("crew.statUnpaid")}
                   value={won(stats.unpaid_amount)}
-                  sub={t("crew.statUnpaidSub", { n: stats.unpaid_count })}
+                  sub={
+                    t("crew.statUnpaidSub", { n: stats.unpaid_count }) +
+                    (stats.waived_amount > 0
+                      ? ` · ${t("crew.statWaived", { amount: won(stats.waived_amount) })}`
+                      : "")
+                  }
                   accent={stats.unpaid_amount > 0 ? "red" : undefined}
                 />
               </div>

@@ -98,8 +98,10 @@ export type CrewMemberRow = {
   role: CrewRole;
   joined_at: string;
   session_count: number;
-  /** 크루 모임 누적 출석 횟수. 크루원에게만 내려온다(비회원은 null). */
+  /** 무료 행사를 포함한 누적 출석 횟수. 크루원에게만 내려온다(비회원은 null). */
   attend_count: number | null;
+  /** 유료 모임(무료 행사 제외) 출석 횟수. */
+  attend_paid_count: number | null;
   tier_id: string | null;
   tier_name: string | null;
   tier_color: string | null;

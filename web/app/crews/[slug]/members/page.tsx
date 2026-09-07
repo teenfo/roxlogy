@@ -36,9 +36,14 @@ export default async function CrewMembersPage({
         <span className="min-w-0 flex-1" />
         <span className="w-12 shrink-0 text-right">{t("crew.colSessions")}</span>
         {showAttend && (
-          <span className="w-12 shrink-0 text-right">{t("crew.colAttend")}</span>
+          <span className="w-20 shrink-0 text-right">{t("crew.colAttend")}</span>
         )}
       </div>
+      {showAttend && (
+        <p className="px-4 pb-2 text-[10px] text-muted">
+          {t("crew.attendColHint")}
+        </p>
+      )}
       <ul className="flex flex-col gap-px overflow-hidden rounded-md bg-muted/20">
         {roster.map((m) => (
           <li
@@ -85,12 +90,17 @@ export default async function CrewMembersPage({
               {m.session_count}
             </span>
             {showAttend && (
-              <span
-                className={`w-12 shrink-0 text-right font-mono text-sm ${
-                  (m.attend_count ?? 0) > 0 ? "text-accent" : "text-muted"
-                }`}
-              >
-                {m.attend_count ?? 0}
+              /* 유료 / 전체 — 무료 행사가 섞이면 회비가 걸린 참석이 몇 번인지
+                 한 숫자로는 알 수 없다 */
+              <span className="w-20 shrink-0 text-right font-mono text-sm">
+                <span
+                  className={
+                    (m.attend_paid_count ?? 0) > 0 ? "text-accent" : "text-muted"
+                  }
+                >
+                  {m.attend_paid_count ?? 0}
+                </span>
+                <span className="text-muted"> / {m.attend_count ?? 0}</span>
               </span>
             )}
           </li>
