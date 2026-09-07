@@ -335,6 +335,9 @@ export type ManageMember = {
   tier_id: string | null;
   tier_name: string | null;
   tier_color: string | null;
+  /** 무료 행사 포함 전체 출석 / 유료 모임만 */
+  attend_count: number;
+  attend_paid_count: number;
 };
 
 /** 멤버 관리 — 가입 신청 승인/거절, 부리더 지정/해제(리더만), 리더 위임, 제외. */
@@ -489,6 +492,9 @@ export function CrewMemberManage({
       <h3 className="text-sm font-semibold text-muted">
         {t("crew.manageMembers")} ({active.length}
         {filter != null && `/${allActive.length}`})
+        <span className="ml-2 font-normal text-[10px]">
+          {t("crew.attendColHint")}
+        </span>
       </h3>
 
       {/* 등급별 필터 — 인원이 있는 구분만 보여준다 */}
@@ -550,6 +556,16 @@ export function CrewMemberManage({
                     {m.tier_name}
                   </span>
                 )
+              )}
+              {/* 출석 = 유료 모임 / 무료 포함 전체 */}
+              {m.attend_count > 0 && (
+                <span
+                  className="shrink-0 font-mono text-[11px] text-muted"
+                  title={t("crew.attendColHint")}
+                >
+                  <span className="text-accent">{m.attend_paid_count}</span>
+                  {` / ${m.attend_count}`}
+                </span>
               )}
             </span>
             <span className="flex flex-wrap items-center gap-2">
