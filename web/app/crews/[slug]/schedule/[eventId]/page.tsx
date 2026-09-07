@@ -164,10 +164,10 @@ export default async function CrewEventPage({
             {ev.waitlist_names.join(", ")}
           </p>
         )}
+        {/* 미정은 인원수만 — 이름까지 나열할 이유가 없다 */}
         {ev.maybe_names.length > 0 && (
           <p className="mt-3 text-xs text-muted">
-            {t("crew.rsvpMaybe")} ({ev.maybe_names.length}):{" "}
-            {ev.maybe_names.join(", ")}
+            {t("crew.rsvpMaybe")} {ev.maybe_names.length}
           </p>
         )}
         {ev.declined_names.length > 0 && (
