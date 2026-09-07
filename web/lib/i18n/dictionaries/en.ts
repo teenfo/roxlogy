@@ -264,6 +264,8 @@ const en = {
   "crew.schedTab": "Schedule",
   "crew.schedEmpty": "No events this month.",
   "crew.financeTab": "Finances",
+  "crew.finTabLedger": "Ledger",
+  "crew.finTabDues": "Dues",
   "crew.finIncome": "Income (month)",
   "crew.finExpense": "Expenses (month)",
   "crew.finMonthNet": "Net (month)",

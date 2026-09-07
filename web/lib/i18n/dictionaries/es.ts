@@ -262,6 +262,8 @@ const es: Record<DictKey, string> = {
   "crew.schedTab": "Agenda",
   "crew.schedEmpty": "No hay eventos este mes.",
   "crew.financeTab": "Finanzas",
+  "crew.finTabLedger": "Libro",
+  "crew.finTabDues": "Cuotas",
   "crew.finIncome": "Ingresos (mes)",
   "crew.finExpense": "Gastos (mes)",
   "crew.finMonthNet": "Neto (mes)",

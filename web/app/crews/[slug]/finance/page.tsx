@@ -9,10 +9,7 @@ import {
   CrewLedgerDelete,
   CrewLedgerForm,
 } from "@/components/crew-ledger-form";
-import {
-  CrewDuesMatrix,
-  type BoardCharge,
-} from "@/components/crew-dues-check";
+import { CrewDuesMatrix, type BoardCharge } from "@/components/crew-dues-check";
 
 type LedgerRow = {
   id: string;
@@ -45,10 +42,10 @@ export default async function CrewFinancePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ m?: string }>;
+  searchParams: Promise<{ m?: string; tab?: string }>;
 }) {
   const { slug } = await params;
-  const { m } = await searchParams;
+  const { m, tab } = await searchParams;
 
   const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
@@ -65,6 +62,8 @@ export default async function CrewFinancePage({
     crew.my_role != null &&
     isFullMember(crew.my_role);
   const isStaff = crew.my_role === "owner" || crew.my_role === "coach";
+  // 회비 보드는 운영진 전용 — 일반 정회원에게는 탭이 장부 하나뿐이다
+  const view: "ledger" | "dues" = isStaff && tab === "dues" ? "dues" : "ledger";
 
   if (!isFull) {
     return (
@@ -79,21 +78,24 @@ export default async function CrewFinancePage({
   const supabase = await createClient();
   const [{ data: rows }, { data: allRows }, { data: chargeRows }] =
     await Promise.all([
-    supabase
-      .from("crew_ledger")
-      .select("id, entry_date, kind, amount, title, memo, source")
-      .eq("crew_id", crew.id)
-      .gte("entry_date", from)
-      .lte("entry_date", to)
-      .order("entry_date", { ascending: false })
-      .order("created_at", { ascending: false }),
-    // 누적 잔액용 전체 합계 (kind별 sum)
-    supabase.from("crew_ledger").select("kind, amount").eq("crew_id", crew.id),
-    // 회비 청구 보드 (운영진만 — RPC 가 스태프를 검증)
-    isStaff
-      ? supabase.rpc("crew_dues_board", { p_slug: slug, p_period: month })
-      : Promise.resolve({ data: null }),
-  ]);
+      supabase
+        .from("crew_ledger")
+        .select("id, entry_date, kind, amount, title, memo, source")
+        .eq("crew_id", crew.id)
+        .gte("entry_date", from)
+        .lte("entry_date", to)
+        .order("entry_date", { ascending: false })
+        .order("created_at", { ascending: false }),
+      // 누적 잔액용 전체 합계 (kind별 sum)
+      supabase
+        .from("crew_ledger")
+        .select("kind, amount")
+        .eq("crew_id", crew.id),
+      // 회비 청구 보드 (운영진만 — RPC 가 스태프를 검증)
+      isStaff && view === "dues"
+        ? supabase.rpc("crew_dues_board", { p_slug: slug, p_period: month })
+        : Promise.resolve({ data: null }),
+    ]);
   const entries = (rows ?? []) as LedgerRow[];
   const charges = (chargeRows ?? []) as BoardCharge[];
 
@@ -112,6 +114,9 @@ export default async function CrewFinancePage({
     year: "numeric",
     month: "long",
   });
+  // 월을 옮겨도 보고 있던 탭이 유지되어야 한다
+  const linkFor = (mm: string, vv: "ledger" | "dues" = view) =>
+    `/crews/${slug}/finance?m=${mm}${vv === "dues" ? "&tab=dues" : ""}`;
   const dayLabel = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString(tag, {
       month: "short",
@@ -123,7 +128,7 @@ export default async function CrewFinancePage({
       {/* 월 네비게이션 */}
       <div className="flex items-center justify-between">
         <Link
-          href={`/crews/${slug}/finance?m=${shiftMonth(month, -1)}`}
+          href={linkFor(shiftMonth(month, -1))}
           aria-label={t("crew.prevMonth")}
           className="flex h-9 w-9 items-center justify-center rounded-md text-sm text-accent hover:bg-surface"
         >
@@ -131,7 +136,7 @@ export default async function CrewFinancePage({
         </Link>
         <span className="text-sm font-bold">{monthLabel}</span>
         <Link
-          href={`/crews/${slug}/finance?m=${shiftMonth(month, 1)}`}
+          href={linkFor(shiftMonth(month, 1))}
           aria-label={t("crew.nextMonth")}
           className="flex h-9 w-9 items-center justify-center rounded-md text-sm text-accent hover:bg-surface"
         >
@@ -167,15 +172,28 @@ export default async function CrewFinancePage({
         </div>
       </section>
 
+      {/* 회비 · 장부 탭 (회비 보드는 운영진만) */}
       {isStaff && (
-        <div className="mt-4">
-          <CrewLedgerForm crewId={crew.id} />
-        </div>
+        <nav className="mt-5 flex gap-1.5">
+          {(["ledger", "dues"] as const).map((v) => (
+            <Link
+              key={v}
+              href={linkFor(month, v)}
+              className={`rounded-full px-3.5 py-1.5 text-sm ${
+                view === v
+                  ? "bg-accent font-bold text-background"
+                  : "bg-surface text-muted hover:text-foreground"
+              }`}
+            >
+              {t(v === "ledger" ? "crew.finTabLedger" : "crew.finTabDues")}
+            </Link>
+          ))}
+        </nav>
       )}
 
       {/* 회비 청구·확정 — 운영진 전용, 보고 있는 달 기준 */}
-      {isStaff && (
-        <section className="mt-6">
+      {view === "dues" && (
+        <section className="mt-5">
           <h2 className="text-sm font-bold">
             {t("crew.duesCheckTitle")}{" "}
             <span className="font-normal text-muted">{monthLabel}</span>
@@ -191,52 +209,64 @@ export default async function CrewFinancePage({
         </section>
       )}
 
-      {/* 내역 */}
-      {!entries.length ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("crew.finEmpty")}
-        </p>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-1.5">
-          {entries.map((r) => (
-            <li
-              key={r.id}
-              className="flex min-w-0 items-center gap-3 rounded-md bg-surface px-4 py-3"
-            >
-              <span className="shrink-0 text-xs font-semibold text-muted">
-                {dayLabel(r.entry_date)}
-              </span>
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  r.kind === "income"
-                    ? "bg-track/15 text-track"
-                    : "bg-red-400/15 text-red-400"
-                }`}
-              >
-                {r.kind === "income"
-                  ? t("crew.finKindIncome")
-                  : t("crew.finKindExpense")}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-sm">
-                {r.source === "dues" ? t("crew.duesEntry", { detail: r.title }) : r.title}
-                {r.memo && (
-                  <span className="ml-2 text-xs text-muted">{r.memo}</span>
-                )}
-              </span>
-              <span
-                className={`shrink-0 font-mono text-sm font-semibold ${
-                  r.kind === "income" ? "text-track" : "text-red-400"
-                }`}
-              >
-                {r.kind === "income" ? "+" : "−"}
-                {won(r.amount)}
-              </span>
-              {isStaff && <CrewLedgerDelete id={r.id} />}
-            </li>
-          ))}
-        </ul>
+      {view === "ledger" && (
+        <>
+          {isStaff && (
+            <div className="mt-5">
+              <CrewLedgerForm crewId={crew.id} />
+            </div>
+          )}
+
+          {/* 내역 */}
+          {!entries.length ? (
+            <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
+              {t("crew.finEmpty")}
+            </p>
+          ) : (
+            <ul className="mt-6 flex flex-col gap-1.5">
+              {entries.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex min-w-0 items-center gap-3 rounded-md bg-surface px-4 py-3"
+                >
+                  <span className="shrink-0 text-xs font-semibold text-muted">
+                    {dayLabel(r.entry_date)}
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      r.kind === "income"
+                        ? "bg-track/15 text-track"
+                        : "bg-red-400/15 text-red-400"
+                    }`}
+                  >
+                    {r.kind === "income"
+                      ? t("crew.finKindIncome")
+                      : t("crew.finKindExpense")}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm">
+                    {r.source === "dues"
+                      ? t("crew.duesEntry", { detail: r.title })
+                      : r.title}
+                    {r.memo && (
+                      <span className="ml-2 text-xs text-muted">{r.memo}</span>
+                    )}
+                  </span>
+                  <span
+                    className={`shrink-0 font-mono text-sm font-semibold ${
+                      r.kind === "income" ? "text-track" : "text-red-400"
+                    }`}
+                  >
+                    {r.kind === "income" ? "+" : "−"}
+                    {won(r.amount)}
+                  </span>
+                  {isStaff && <CrewLedgerDelete id={r.id} />}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-3 text-xs text-muted">{t("crew.finNote")}</p>
+        </>
       )}
-      <p className="mt-3 text-xs text-muted">{t("crew.finNote")}</p>
     </main>
   );
 }

@@ -262,6 +262,8 @@ const ko: Record<DictKey, string> = {
   "crew.schedTab": "일정",
   "crew.schedEmpty": "이번 달 일정이 없습니다.",
   "crew.financeTab": "회계",
+  "crew.finTabLedger": "장부",
+  "crew.finTabDues": "회비 납부",
   "crew.finIncome": "이달 수입",
   "crew.finExpense": "이달 지출",
   "crew.finMonthNet": "이달 수지",
