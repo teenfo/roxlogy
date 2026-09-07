@@ -22,6 +22,10 @@ import {
   type DuesLink,
 } from "@/components/crew-dues-links";
 import { CrewTierManage, type CrewTier } from "@/components/crew-tier-manage";
+import {
+  CrewUnpaidCard,
+  type UnpaidCharge,
+} from "@/components/crew-unpaid-card";
 
 const TABS = ["info", "members", "tiers", "dues", "programs"] as const;
 type Tab = (typeof TABS)[number];
@@ -38,6 +42,7 @@ type CrewStats = {
   unpaid_amount: number;
   unpaid_count: number;
   waived_amount: number;
+  unpaid_list: UnpaidCharge[];
 };
 
 /** 통계 타일 — 회계 탭과 같은 모양을 쓴다(숫자는 mono, 라벨은 muted). */
@@ -281,16 +286,12 @@ export default async function CrewManagePage({
                   sub={t("crew.statTrainedSub")}
                   accent="track"
                 />
-                <Stat
-                  label={t("crew.statUnpaid")}
-                  value={won(stats.unpaid_amount)}
-                  sub={
-                    t("crew.statUnpaidSub", { n: stats.unpaid_count }) +
-                    (stats.waived_amount > 0
-                      ? ` · ${t("crew.statWaived", { amount: won(stats.waived_amount) })}`
-                      : "")
-                  }
-                  accent={stats.unpaid_amount > 0 ? "red" : undefined}
+                <CrewUnpaidCard
+                  amount={stats.unpaid_amount}
+                  count={stats.unpaid_count}
+                  waived={stats.waived_amount}
+                  charges={stats.unpaid_list ?? []}
+                  financeHref={`/crews/${slug}/finance?tab=dues`}
                 />
               </div>
 

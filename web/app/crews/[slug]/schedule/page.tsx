@@ -25,6 +25,7 @@ type CalRow = {
   result_ms: number | null;
   members_only: boolean;
   fee_exempt: boolean;
+  closed: boolean;
 };
 
 /** ms → h:mm:ss / m:ss */
@@ -187,6 +188,11 @@ export default async function CrewSchedulePage({
                       {r.members_only && (
                         <span className="shrink-0 rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
                           {t("crew.fullOnly")}
+                        </span>
+                      )}
+                      {r.kind === "meetup" && r.closed && (
+                        <span className="shrink-0 rounded-full bg-muted/20 px-2 py-0.5 text-[10px] font-bold text-muted">
+                          {t("crew.closed")}
                         </span>
                       )}
                       {r.kind === "meetup" && r.fee_exempt && (
