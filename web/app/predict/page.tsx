@@ -12,6 +12,8 @@ import {
   type PredictSession,
   type EditGoal,
 } from "@/components/predict-form";
+import { todayISOIn } from "@/lib/format";
+import type { RunFitness } from "@/lib/run";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
@@ -44,6 +46,8 @@ export default async function PredictPage({
   let gender: string | null = null;
   let ageGroup: string | null = null;
   let editGoal: EditGoal | null = null;
+  // 목표 랩 페이스가 내 러닝으로 가능한지 판정하는 재료
+  let runFitness: RunFitness | null = null;
   // 실측 백분위 분포 (공개 집계 — 비로그인도 표시)
   const benchmarks = await getRaceBenchmarks();
   // 목표 대회 선택용 — 다가오는 공식 대회 (공개 테이블)
@@ -109,6 +113,31 @@ export default async function PredictPage({
         };
       })
       .filter((s) => Object.keys(s.stations).length > 0);
+
+    // 러닝 기준선 + 내 평소 저하율 → 목표 랩의 현실성 판정에 쓴다.
+    // 두 RPC 모두 auth.uid() 로 본인 것만 본다.
+    const [{ data: baseline }, { data: degradation }] = await Promise.all([
+      supabase.rpc("run_1k_baseline", { p_as_of: todayISOIn(tz) }),
+      supabase.rpc("my_run_degradation", {}),
+    ]);
+    const base = baseline as {
+      baseline_1k_ms: number;
+      from_distance_m: number;
+      from_ran_on: string;
+    } | null;
+    const deg = degradation as {
+      degradation_pct: number;
+      sessions: number;
+    } | null;
+    if (base) {
+      runFitness = {
+        baseline1kMs: base.baseline_1k_ms,
+        fromDistanceM: base.from_distance_m,
+        fromRanOn: base.from_ran_on,
+        degradationPct: deg?.degradation_pct ?? null,
+        degradationSessions: deg?.sessions ?? 0,
+      };
+    }
   }
 
   return (
@@ -170,6 +199,7 @@ export default async function PredictPage({
         <PredictForm
           isLoggedIn={!!user}
           sessions={sessions}
+          runFitness={runFitness}
           eventName={editGoal?.event_name ?? sp.event ?? null}
           eventDate={editGoal?.event_date ?? sp.date ?? null}
           initialDivision={sp.division ?? null}

@@ -119,3 +119,61 @@ export function gradeDictKey(grade: Degradation["grade"]): DictKey {
       return "run.gradeWeak";
   }
 }
+
+/**
+ * 목표 랩 페이스 → 필요한 "순수 1km" 기록.
+ *
+ * 저하율 d% 의 정의가 lap = fresh × (1 + d/100) 이므로 되돌리면
+ *   fresh = lap / (1 + d/100)
+ * 즉 "이 목표를 치려면 지치지 않은 상태에서 1km 를 이만큼 뛸 수 있어야 한다".
+ */
+export function requiredFreshMs(runLapMs: number, degradationPct: number): number {
+  return Math.round(runLapMs / (1 + degradationPct / 100));
+}
+
+/** 반대 방향 — 지금 기준선과 저하율이면 시뮬 랩이 이 정도 나온다. */
+export function expectedLapMs(freshMs: number, degradationPct: number): number {
+  return Math.round(freshMs * (1 + degradationPct / 100));
+}
+
+/** 목표 러닝 현실성. 서버에서 계산해 폼으로 내려준다. */
+export type RunFitness = {
+  baseline1kMs: number;
+  fromDistanceM: number;
+  fromRanOn: string;
+  degradationPct: number | null;
+  degradationSessions: number;
+};
+
+export type RunGoalCheck = {
+  requiredFreshMs: number;
+  baseline1kMs: number;
+  /** 양수면 기준선이 그만큼 부족하다(더 빨라져야 함), 음수면 여유가 있다. */
+  gapMs: number;
+  reachable: boolean;
+  degradationPct: number;
+  /** 저하율이 측정값이 아니라 가정값인가 */
+  assumed: boolean;
+};
+
+/** 측정된 저하율이 없을 때 쓰는 가정값. 시뮬을 뛰면 실측으로 대체된다. */
+export const ASSUMED_DEGRADATION_PCT = 20;
+
+export function runGoalCheck(
+  runLapMs: number,
+  fitness: RunFitness | null,
+): RunGoalCheck | null {
+  if (!fitness) return null;
+  const assumed = fitness.degradationPct == null;
+  const pct = fitness.degradationPct ?? ASSUMED_DEGRADATION_PCT;
+  const required = requiredFreshMs(runLapMs, pct);
+  const gapMs = fitness.baseline1kMs - required;
+  return {
+    requiredFreshMs: required,
+    baseline1kMs: fitness.baseline1kMs,
+    gapMs,
+    reachable: gapMs <= 0,
+    degradationPct: pct,
+    assumed,
+  };
+}

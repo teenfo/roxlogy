@@ -19,6 +19,7 @@ import {
   percentileWithin,
   type EventDivisionStat,
 } from "@/lib/event-stats";
+import { runGoalCheck, type RunFitness } from "@/lib/run";
 import { InfoTip } from "@/components/info-tip";
 import { useI18n } from "@/components/i18n-provider";
 
@@ -70,6 +71,7 @@ export function PredictForm({
   gender = null,
   ageGroup = null,
   upcomingEvents = [],
+  runFitness = null,
 }: {
   isLoggedIn?: boolean;
   sessions?: PredictSession[];
@@ -81,6 +83,7 @@ export function PredictForm({
   gender?: string | null;
   ageGroup?: string | null;
   upcomingEvents?: { id: string; name: string; city: string; start_date: string }[];
+  runFitness?: RunFitness | null;
 }) {
   const { t } = useI18n();
   const [targetText, setTargetText] = useState(
@@ -438,6 +441,67 @@ export function PredictForm({
               </p>
             </div>
           </section>
+
+          {/* 목표 랩이 내 러닝으로 가능한가 — 저하율로 되돌려 기준선과 비교한다 */}
+          {isLoggedIn && (() => {
+            const check = runGoalCheck(result.runLapMs, runFitness);
+            if (!check) {
+              return (
+                <section className="mt-4 rounded-md border border-muted/20 px-4 py-3">
+                  <p className="text-sm font-semibold">{t("predict.runCheck")}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {t("predict.runCheckNoBase")}
+                  </p>
+                  <Link
+                    href="/runs/new"
+                    className="mt-2 inline-block text-xs font-semibold text-accent hover:brightness-110"
+                  >
+                    {t("run.add")} →
+                  </Link>
+                </section>
+              );
+            }
+            const gap = Math.abs(check.gapMs);
+            return (
+              <section className="mt-4 rounded-md border border-muted/20 px-4 py-3">
+                <p className="text-sm font-semibold">
+                  {t("predict.runCheck")}
+                  <InfoTip text={t("predict.runCheckInfo")} />
+                </p>
+                <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-1 text-xs text-muted">
+                  <span>
+                    {t("predict.runCheckNeed")}{" "}
+                    <span className="font-mono text-base font-bold text-foreground">
+                      {formatMs(check.requiredFreshMs)}
+                    </span>
+                  </span>
+                  <span>
+                    {t("predict.runCheckMine")}{" "}
+                    <span className="font-mono text-base font-bold text-foreground">
+                      {formatMs(check.baseline1kMs)}
+                    </span>
+                  </span>
+                </div>
+                <p
+                  className={`mt-2 text-sm font-semibold ${
+                    check.reachable ? "text-track" : "text-amber-400"
+                  }`}
+                >
+                  {check.reachable
+                    ? t("predict.runCheckOk", { gap: formatMs(gap) })
+                    : t("predict.runCheckShort", { gap: formatMs(gap) })}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  {check.assumed
+                    ? t("predict.runCheckAssumed", { pct: check.degradationPct })
+                    : t("predict.runCheckMeasured", {
+                        pct: check.degradationPct,
+                        n: runFitness!.degradationSessions,
+                      })}
+                </p>
+              </section>
+            );
+          })()}
 
           <section className="mt-6">
             <h2 className="text-lg font-semibold">
