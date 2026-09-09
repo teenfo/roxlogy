@@ -32,7 +32,7 @@ export async function CrewHeader({ loginNext }: { loginNext: string }) {
           <div className="ml-auto flex items-center gap-4">
             <LocaleSwitcher />
             <Link
-              href={`/login?next=${loginNext}`}
+              href={`/login?next=${encodeURIComponent(loginNext)}`}
               className="text-sm text-muted hover:text-foreground"
             >
               {t("common.login")}

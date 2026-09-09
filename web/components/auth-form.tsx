@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { safeNext } from "@/lib/site-url";
 
 function GoogleIcon() {
   return (
@@ -42,10 +43,16 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  // 로그인 ↔ 가입 이동에도 목적지를 들고 다닌다
+  const nextQs = (() => {
+    const n = safeNext(searchParams.get("next"));
+    return n ? `?next=${encodeURIComponent(n)}` : "";
+  })();
+
   async function handleGoogle() {
     setError(null);
     const supabase = createClient();
-    const next = searchParams.get("next");
+    const next = safeNext(searchParams.get("next"));
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -61,6 +68,8 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     setPending(true);
     const supabase = createClient();
 
+    const signupNext = safeNext(searchParams.get("next"));
+
     if (mode === "signup") {
       // 이름은 handle_new_user 트리거가 raw_user_meta_data 에서 읽어 프로필에
       // 넣는다. 여기서 안 보내면 명단·출석·회비 화면이 전부 'Athlete' 가 된다.
@@ -68,13 +77,16 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${location.origin}/auth/callback`,
+          // 공유 링크를 받고 처음 가입하는 사람도 원래 보려던 페이지로 돌아가야 한다
+          emailRedirectTo: `${location.origin}/auth/callback${
+            signupNext ? `?next=${encodeURIComponent(signupNext)}` : ""
+          }`,
           data: { display_name: displayName.trim() },
         },
       });
       setPending(false);
       if (error) return setError(error.message);
-      if (data.session) return router.push("/dashboard");
+      if (data.session) return router.push(signupNext ?? "/dashboard");
       setNotice(t("auth.confirmSent"));
     } else {
       const { error } = await supabase.auth.signInWithPassword({
@@ -83,7 +95,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
       });
       setPending(false);
       if (error) return setError(t("auth.errInvalid"));
-      router.push(searchParams.get("next") ?? "/dashboard");
+      router.push(safeNext(searchParams.get("next")) ?? "/dashboard");
       router.refresh();
     }
   }
@@ -181,14 +193,14 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           {mode === "login" ? (
             <>
               {t("auth.noAccount")}{" "}
-              <Link href="/signup" className="text-accent hover:underline">
+              <Link href={`/signup${nextQs}`} className="text-accent hover:underline">
                 {t("auth.submitSignup")}
               </Link>
             </>
           ) : (
             <>
               {t("auth.haveAccount")}{" "}
-              <Link href="/login" className="text-accent hover:underline">
+              <Link href={`/login${nextQs}`} className="text-accent hover:underline">
                 {t("auth.submitLogin")}
               </Link>
             </>

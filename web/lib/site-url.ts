@@ -6,3 +6,17 @@ export const SITE_URL = "https://roxlogy.com";
 export function siteUrl(): string {
   return SITE_URL;
 }
+
+/**
+ * 로그인 후 돌아갈 경로 검증.
+ *
+ * next 는 쿼리스트링으로 들어와 그대로 router.push()/redirect() 에 실린다.
+ * "//evil.com" 같은 값은 프로토콜 상대 URL 이라 외부 사이트로 튕겨 나간다
+ * (오픈 리다이렉트). 같은 사이트의 절대경로만 통과시킨다.
+ */
+export function safeNext(next: string | null | undefined): string | null {
+  if (!next) return null;
+  if (!next.startsWith("/")) return null;
+  if (next.startsWith("//") || next.startsWith("/\\")) return null;
+  return next;
+}

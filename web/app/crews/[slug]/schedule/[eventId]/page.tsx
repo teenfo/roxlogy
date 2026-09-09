@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCrew } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
@@ -10,6 +10,7 @@ import {
   CrewEventShare,
   CrewEventCommentForm,
   CrewMeetupCancel,
+  CrewMeetupForm,
   CrewRsvpButtons,
   type AttendanceRow,
 } from "@/components/crew-schedule-forms";
@@ -76,7 +77,52 @@ export default async function CrewEventPage({
   const supabase = await createClient();
   const { data } = await supabase.rpc("crew_event_detail", { p_event: eventId });
   const ev = ((data ?? []) as EventDetail[])[0];
-  if (!ev || ev.slug !== slug) notFound();
+
+  // 공유 링크로 들어온 사람 처리. 안 보인다고 곧장 404 를 내면 정회원 전용
+  // 모임 링크를 받은 사람은 이유도 모른 채 막힌다 — 사유를 구분한다.
+  if (!ev || ev.slug !== slug) {
+    const { data: gateRow } = await supabase.rpc("crew_event_gate", {
+      p_event: eventId,
+    });
+    const gate = gateRow as {
+      slug: string;
+      crew: string;
+      members_only: boolean;
+      visible: boolean;
+      logged_in: boolean;
+    } | null;
+    // 없는 모임이거나 비공개 크루 → 진짜 404 (존재 여부를 흘리지 않는다)
+    if (!gate || gate.slug !== slug) notFound();
+    // 로그인만 하면 될 수 있다 → 로그인 후 이 링크로 돌아온다
+    if (!gate.logged_in) {
+      redirect(
+        `/login?next=${encodeURIComponent(`/crews/${slug}/schedule/${eventId}`)}`,
+      );
+    }
+    // 로그인은 했는데 정회원이 아니다 → 로그인시켜도 소용없으니 이유를 보여준다
+    return (
+      <main>
+        <Link
+          href={`/crews/${slug}/schedule`}
+          className="text-sm text-muted hover:text-foreground"
+        >
+          ← {t("crew.schedTab")}
+        </Link>
+        <div className="mt-6 rounded-md bg-surface px-5 py-10 text-center">
+          <p className="text-sm font-semibold">{t("crew.eventMembersOnly")}</p>
+          <p className="mx-auto mt-2 max-w-md text-xs text-muted">
+            {t("crew.eventMembersOnlyDesc", { crew: gate.crew })}
+          </p>
+          <Link
+            href={`/crews/${slug}`}
+            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+          >
+            {t("crew.about")}
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   const isMember = crew.my_status === "active";
   // 외부에서 타고 들어올 수 있는 절대 주소 (카톡·인스타에 붙이는 용도)
@@ -111,6 +157,24 @@ export default async function CrewEventPage({
           {ev.is_staff && <CrewMeetupCancel eventId={ev.id} slug={slug} />}
         </span>
       </div>
+
+      {/* 내용 수정 — 무료 행사·정회원 전용은 아래 전용 토글에서 다룬다
+          (회차비 회수·숨겨진 참석자 안내가 거기 붙어 있다) */}
+      {ev.is_staff && (
+        <div className="mt-3">
+          <CrewMeetupForm
+            event={{
+              id: ev.id,
+              title: ev.title,
+              starts_at: ev.starts_at,
+              location: ev.location,
+              description: ev.description,
+              capacity: ev.capacity,
+              comments_allowed: ev.comments_allowed,
+            }}
+          />
+        </div>
+      )}
       <p className="mt-1 text-sm font-medium text-accent">{when}</p>
       <span className="mt-1 flex flex-wrap gap-1.5">
         {ev.closed_at && (

@@ -12,18 +12,55 @@ const input =
   "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 
 /** 모임 등록 — 스태프 전용. crew_events RLS(is_crew_staff)가 권한을 강제한다. */
-export function CrewMeetupForm({ crewId }: { crewId: string }) {
+export type MeetupEditable = {
+  id: string;
+  title: string;
+  starts_at: string;
+  location: string | null;
+  description: string | null;
+  capacity: number | null;
+  comments_allowed: boolean;
+};
+
+/** ISO(UTC) → datetime-local 입력값. 생성 폼이 브라우저 로컬 시각으로 해석하므로
+ *  수정도 같은 기준으로 보여준다. */
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
+/** 모임 등록·수정 폼. event 를 주면 수정 모드.
+ *
+ *  수정 모드에서는 무료 행사·정회원 전용을 다루지 않는다 — 그 둘은 상세 화면의
+ *  전용 토글(set_event_fee_exempt / set_event_members_only)이 회차비 회수와
+ *  숨겨진 참석자 수 안내까지 처리한다. 여기서 raw update 로 바꾸면 그 로직을
+ *  건너뛰어 청구가 어긋난다. */
+export function CrewMeetupForm({
+  crewId,
+  event,
+}: {
+  crewId?: string;
+  event?: MeetupEditable;
+}) {
   const { t } = useI18n();
   const router = useRouter();
+  const editing = !!event;
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [when, setWhen] = useState("");
-  const [location, setLocation] = useState("");
-  const [desc, setDesc] = useState("");
-  const [capacity, setCapacity] = useState("");
+  const [title, setTitle] = useState(event?.title ?? "");
+  const [when, setWhen] = useState(
+    event ? toLocalInput(event.starts_at) : "",
+  );
+  const [location, setLocation] = useState(event?.location ?? "");
+  const [desc, setDesc] = useState(event?.description ?? "");
+  const [capacity, setCapacity] = useState(
+    event?.capacity != null ? String(event.capacity) : "",
+  );
   const [feeExempt, setFeeExempt] = useState(false);
   const [membersOnly, setMembersOnly] = useState(false);
-  const [commentsAllowed, setCommentsAllowed] = useState(true);
+  const [commentsAllowed, setCommentsAllowed] = useState(
+    event?.comments_allowed ?? true,
+  );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -33,26 +70,37 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
     setBusy(true);
     setErr(null);
     const supabase = createClient();
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("crew_events").insert({
-      crew_id: crewId,
+    const cap =
+      /^\d+$/.test(capacity.trim()) && parseInt(capacity, 10) > 0
+        ? parseInt(capacity, 10)
+        : null;
+    // 정원을 늘리면 대기자 자동 승급은 crew_events 트리거가 처리한다
+    const common = {
       title: title.trim(),
-      kind: "social",
       starts_at: new Date(when).toISOString(),
       location: location.trim() || null,
       description: desc.trim() || null,
-      capacity:
-        /^\d+$/.test(capacity.trim()) && parseInt(capacity, 10) > 0
-          ? parseInt(capacity, 10)
-          : null,
-      members_only: membersOnly,
+      capacity: cap,
       comments_allowed: commentsAllowed,
-      fee_exempt: feeExempt,
-      created_by: u.user?.id ?? null,
-    });
+    };
+    const { error } = editing
+      ? await supabase.from("crew_events").update(common).eq("id", event!.id)
+      : await supabase.from("crew_events").insert({
+          ...common,
+          crew_id: crewId,
+          kind: "social",
+          members_only: membersOnly,
+          fee_exempt: feeExempt,
+          created_by: (await supabase.auth.getUser()).data.user?.id ?? null,
+        });
     setBusy(false);
     if (error) {
       setErr(error.message);
+      return;
+    }
+    if (editing) {
+      setOpen(false);
+      router.refresh();
       return;
     }
     setTitle("");
@@ -73,13 +121,15 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
         onClick={() => setOpen(true)}
         className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
       >
-        + {t("crew.meetupAdd")}
+        {editing ? t("common.edit") : `+ ${t("crew.meetupAdd")}`}
       </button>
     );
   }
   return (
     <form onSubmit={save} className="flex w-full flex-col gap-2 rounded-md bg-surface p-4">
-      <p className="text-sm font-semibold">{t("crew.meetupAdd")}</p>
+      <p className="text-sm font-semibold">
+        {editing ? t("crew.meetupEdit") : t("crew.meetupAdd")}
+      </p>
       <input
         className={input}
         value={title}
@@ -115,16 +165,18 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
         inputMode="numeric"
         maxLength={4}
       />
-      <label className="flex cursor-pointer items-center gap-2 text-xs">
-        <input
-          type="checkbox"
-          checked={membersOnly}
-          onChange={(e) => setMembersOnly(e.target.checked)}
-          className="h-4 w-4 accent-accent"
-        />
-        <span>{t("crew.fullOnly")}</span>
-        <span className="text-muted">{t("crew.fullOnlyMeetupHint")}</span>
-      </label>
+      {!editing && (
+        <label className="flex cursor-pointer items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={membersOnly}
+            onChange={(e) => setMembersOnly(e.target.checked)}
+            className="h-4 w-4 accent-accent"
+          />
+          <span>{t("crew.fullOnly")}</span>
+          <span className="text-muted">{t("crew.fullOnlyMeetupHint")}</span>
+        </label>
+      )}
       <label className="flex cursor-pointer items-center gap-2 text-xs">
         <input
           type="checkbox"
@@ -134,16 +186,18 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
         />
         <span>{t("crew.allowComments")}</span>
       </label>
-      <label className="flex cursor-pointer items-center gap-2 text-xs">
-        <input
-          type="checkbox"
-          checked={feeExempt}
-          onChange={(e) => setFeeExempt(e.target.checked)}
-          className="h-4 w-4 accent-accent"
-        />
-        <span>{t("crew.feeExempt")}</span>
-        <span className="text-muted">{t("crew.feeExemptHint")}</span>
-      </label>
+      {!editing && (
+        <label className="flex cursor-pointer items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={feeExempt}
+            onChange={(e) => setFeeExempt(e.target.checked)}
+            className="h-4 w-4 accent-accent"
+          />
+          <span>{t("crew.feeExempt")}</span>
+          <span className="text-muted">{t("crew.feeExemptHint")}</span>
+        </label>
+      )}
       {err && <p className="text-xs text-red-400">{err}</p>}
       <div className="flex gap-2">
         <button
@@ -151,7 +205,7 @@ export function CrewMeetupForm({ crewId }: { crewId: string }) {
           disabled={busy || !title.trim() || !when}
           className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
         >
-          {t("crew.meetupCreate")}
+          {editing ? t("common.save") : t("crew.meetupCreate")}
         </button>
         <button
           type="button"
