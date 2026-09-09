@@ -388,7 +388,7 @@ const handler = createMcpHandler(
           "훈련 프로그램(템플릿)을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드), workouts?}] 배열. " +
           "workouts 아이템의 exercise 는 운동 DB(list_exercises)에 등록된 이름(한/영)만 허용 — 미등록 이름이 있으면 unknown_exercises 로 전체 거부되며 이름별 유사 후보(suggestions)가 함께 온다 — 표기 차이로 보이면 사용자 확인 후 후보 이름으로 재시도하고, 실제 없는 운동은 request_exercise 로 등록을 요청하라. " +
           "아이템 처방은 숫자 필드로 구조화해 넣어라: distance_m(거리 m)·weight_kg(무게)·reps(세트당 횟수)·sets(세트)·duration_s(시간 초) — 통계 집계에 쓰이므로 '400m 8세트'는 note 가 아니라 distance_m:400, sets:8 로. note 에는 휴식·강도 등 숫자로 안 담기는 것만. " +
-          "프로그램은 날짜 없는 템플릿이다 — 시작일은 개인이 웹에서 시작하거나 attach_crew_program 으로 크루에 연결할 때 정한다. 생성 전 사용자에게 구성을 확인받아라.",
+          "프로그램은 날짜 없는 템플릿이다 — 만든 뒤 start_program 으로 내 일정에 시작하거나 attach_crew_program 으로 크루 일정표에 연결해야 날짜가 붙는다. 생성 전 사용자에게 구성을 확인받아라.",
         inputSchema: z.object({
           title: z.string().min(1).max(120),
           weeks: z.number().int().min(1).max(20),
@@ -520,6 +520,53 @@ const handler = createMcpHandler(
             ...(start_date ? { p_start_date: start_date } : {}),
             p_end_date: end_date ?? null,
             p_repeat: repeat ?? false,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "start_program",
+      {
+        title: "프로그램 시작 (내 일정)",
+        description:
+          "훈련 프로그램을 내 일정으로 시작한다 — 이때 비로소 일차에 날짜가 붙어 get_today 의 오늘 훈련에 나온다. start_date 를 비우면 오늘(KST)부터. " +
+          "활성 프로그램은 1개뿐이라 이미 진행 중인 게 있으면 자동으로 교체된다(같은 트랜잭션이라 중간 상태로 남지 않는다). " +
+          "repeat=true 면 end_date 까지 프로그램이 순환 반복하고, end_date 를 비우면 중지할 때까지 무기한이다. repeat=false 면 일차 수만큼 돌고 끝난다(end_date 는 무시). " +
+          "본인 소유·공개·내 크루에 연결된 프로그램만 시작할 수 있다. 시작 전 사용자에게 프로그램과 시작일을 확인받아라.",
+        inputSchema: z.object({
+          program_id: z.string().uuid(),
+          start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          repeat: z.boolean().optional(),
+          end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        }),
+      },
+      async ({ program_id, start_date, repeat, end_date }, ctx) =>
+        out(
+          await rpc("mcp_start_program", {
+            p_token: tok(ctx),
+            p_program: program_id,
+            p_start_date: start_date ?? null,
+            p_repeat: repeat ?? false,
+            p_end_date: end_date ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "stop_program",
+      {
+        title: "프로그램 중지 (내 일정)",
+        description:
+          "진행 중인 프로그램을 중지한다. program_id 를 비우면 현재 활성 프로그램을 중지한다. 기록은 남고 일정만 멈춘다. 중지 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          program_id: z.string().uuid().optional(),
+        }),
+      },
+      async ({ program_id }, ctx) =>
+        out(
+          await rpc("mcp_stop_program", {
+            p_token: tok(ctx),
+            p_program: program_id ?? null,
           }),
         ),
     );
@@ -923,17 +970,19 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.0.0" },
+    serverInfo: { name: "roxlogy", version: "3.1.0" },
     instructions:
       "Roxlogy 하이록스 훈련 데이터 API. 시간 값은 밀리초(ms). " +
       "크루 도구의 slug 는 get_profile 의 crews 목록에서 얻는다. " +
       '응답이 {"error":"not_found_or_invalid_token"} 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다 — 빈 목록([])과 구분된다. ' +
       "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
       "쓰기 도구(회계·모임 등록/수정/상태변경·공지·승인·등급 지정·출석 체크·" +
-      "회비 확정/맞추기/면제·프로그램 생성/일차 수정·크루 연결·PFT 기록·운동 등록 요청)는 " +
+      "회비 확정/맞추기/면제·프로그램 생성/일차 수정/시작/중지·크루 연결·PFT 기록·운동 등록 요청)는 " +
       "실행 전 반드시 사용자에게 내용을 확인받는다. " +
       "훈련 계획 문서를 받으면 create_program 으로 일차별 등록 후 " +
-      "attach_crew_program 으로 크루 일정표에 연결할 수 있다. " +
+      "start_program 으로 내 일정에 시작하거나 attach_crew_program 으로 크루 " +
+      "일정표에 연결할 수 있다. 프로그램은 날짜 없는 템플릿이라 둘 중 하나를 " +
+      "해야 날짜가 붙는다. 개인 활성 프로그램은 1개뿐이라 새로 시작하면 교체된다. " +
       "회비 구조: 등급(list_crew_tiers)이 곧 요금표다 — 등급마다 월회비·회차비를 " +
       "가진다. 월회비는 sync_crew_dues 로 그 달을 맞추고, 회차비는 모임 출석을 " +
       "체크하면 자동으로 청구된다. 무료 행사로 표시한 모임은 출석은 남지만 " +

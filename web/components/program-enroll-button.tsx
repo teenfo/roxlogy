@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { enrollErrText } from "@/lib/enroll-error";
 
 /** 로컬 기준 오늘 날짜 (YYYY-MM-DD) */
 function todayLocal(): string {
@@ -58,52 +59,20 @@ export function ProgramEnrollButton({
   async function start() {
     setPending(true);
     setErr(null);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setPending(false);
-      return setErr(t("common.needLogin"));
-    }
-    // 활성 등록은 1건 — 기존 활성을 해제한 뒤 새로 시작한다.
-    // 두 단계가 원자적이지 않으므로, 삽입이 실패하면 해제한 등록을
-    // 되돌려 사용자가 진행 중인 프로그램을 잃지 않게 한다.
-    const { data: prevActive } = await supabase
-      .from("program_enrollments")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("active", true);
-    const prevIds = (prevActive ?? []).map((r) => r.id as string);
-    if (prevIds.length) {
-      const { error: offErr } = await supabase
-        .from("program_enrollments")
-        .update({ active: false })
-        .in("id", prevIds);
-      if (offErr) {
-        setPending(false);
-        return setErr(offErr.message);
-      }
-    }
-    const { error } = await supabase.from("program_enrollments").insert({
-      user_id: user.id,
-      program_id: programId,
-      start_date: startDate,
-      repeat,
-      end_date: repeat ? repeatEnd || null : null,
-      active: true,
+    // 서버 RPC 한 번 — 기존 활성 해제와 새 등록이 한 트랜잭션에서 처리된다.
+    // (예전에는 두 번 호출하고 실패 시 손으로 되돌렸다: 그 사이에 브라우저가
+    //  닫히면 진행 중이던 프로그램이 조용히 꺼진 채 남았다)
+    const { data, error } = await createClient().rpc("start_program", {
+      p_program: programId,
+      p_start_date: startDate,
+      p_repeat: repeat,
+      p_end_date: repeat ? repeatEnd || null : null,
     });
-    if (error) {
-      if (prevIds.length) {
-        await supabase
-          .from("program_enrollments")
-          .update({ active: true })
-          .in("id", prevIds);
-      }
-      setPending(false);
-      return setErr(error.message);
-    }
     setPending(false);
+    if (error) return setErr(error.message);
+    const res = data as { ok?: boolean; error?: string } | null;
+    if (!res) return setErr(t("common.needLogin"));
+    if (res.error) return setErr(enrollErrText(t, res.error));
     setActive(true);
     setOpen(false);
     router.refresh();
@@ -112,22 +81,14 @@ export function ProgramEnrollButton({
   async function stop() {
     setPending(true);
     setErr(null);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setPending(false);
-      return setErr(t("common.needLogin"));
-    }
-    const { error } = await supabase
-      .from("program_enrollments")
-      .update({ active: false })
-      .eq("user_id", user.id)
-      .eq("program_id", programId)
-      .eq("active", true);
+    const { data, error } = await createClient().rpc("stop_program", {
+      p_program: programId,
+    });
     setPending(false);
     if (error) return setErr(error.message);
+    const res = data as { ok?: boolean; error?: string } | null;
+    if (!res) return setErr(t("common.needLogin"));
+    if (res.error) return setErr(enrollErrText(t, res.error));
     setActive(false);
     router.refresh();
   }
