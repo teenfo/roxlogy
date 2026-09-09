@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { optedOut, sessionOnly } from "@/lib/supabase/keep";
+import { safeNext } from "@/lib/site-url";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -25,8 +27,13 @@ export async function proxy(request: NextRequest) {
             request.cookies.set(name, value),
           );
           supabaseResponse = NextResponse.next({ request });
+          const off = optedOut(request.cookies.getAll());
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
+            supabaseResponse.cookies.set(
+              name,
+              value,
+              off ? sessionOnly(options) : options,
+            ),
           );
         },
       },
@@ -53,9 +60,18 @@ export async function proxy(request: NextRequest) {
     user &&
     (pathname === "/" || pathname === "/login" || pathname === "/signup")
   ) {
+    // 이미 로그인한 사람이 공유 링크발 /login?next=... 로 와도 목적지를 잃지 않는다.
+    // next 에 쿼리가 붙어 있을 수 있으므로 URL 로 파싱해 경로·쿼리를 함께 옮긴다.
+    const next = safeNext(request.nextUrl.searchParams.get("next"));
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.search = "";
+    if (next) {
+      const target = new URL(next, request.url);
+      url.pathname = target.pathname;
+      url.search = target.search;
+    } else {
+      url.pathname = "/dashboard";
+      url.search = "";
+    }
     return NextResponse.redirect(url);
   }
 

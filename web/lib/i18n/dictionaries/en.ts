@@ -610,6 +610,8 @@ const en = {
   "auth.email": "Email",
   "auth.password": "Password",
   "auth.showPassword": "Show",
+  "auth.keepSignedIn": "Keep me signed in",
+  "auth.keepSignedInHint": "Turn this off on a shared computer — you will be signed out when the browser closes.",
   "auth.hidePassword": "Hide",
   "auth.processing": "Working…",
   "auth.submitLogin": "Log in",

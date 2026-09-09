@@ -7,6 +7,7 @@ import { Suspense, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { safeNext } from "@/lib/site-url";
+import { KEEP_COOKIE } from "@/lib/supabase/keep";
 
 function GoogleIcon() {
   return (
@@ -43,6 +44,17 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  // 로그인 상태 유지. 기본은 켬(기존 동작 = 400일 쿠키).
+  // 끄면 인증 쿠키가 세션 쿠키가 되어 브라우저를 닫을 때 사라진다 — 공용 PC 용.
+  // 로그인 직전에 표시를 남겨야 인증 쿠키가 처음 구워질 때부터 반영된다.
+  const [keep, setKeep] = useState(true);
+  function applyKeep() {
+    const secure = location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = keep
+      ? `${KEEP_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure}`
+      : `${KEEP_COOKIE}=0; Path=/; SameSite=Lax${secure}`;
+  }
+
   // 로그인 ↔ 가입 이동에도 목적지를 들고 다닌다
   const nextQs = (() => {
     const n = safeNext(searchParams.get("next"));
@@ -51,6 +63,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
 
   async function handleGoogle() {
     setError(null);
+    applyKeep();
     const supabase = createClient();
     const next = safeNext(searchParams.get("next"));
     const { error } = await supabase.auth.signInWithOAuth({
@@ -66,6 +79,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     e.preventDefault();
     setError(null);
     setPending(true);
+    applyKeep();
     const supabase = createClient();
 
     const signupNext = safeNext(searchParams.get("next"));
@@ -171,6 +185,22 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
                 {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
               </button>
             </div>
+          </label>
+
+          {/* 공용 PC 에서 끄라고 두는 스위치 — 끄면 브라우저를 닫을 때 로그아웃된다 */}
+          <label className="flex cursor-pointer items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={keep}
+              onChange={(e) => setKeep(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-accent"
+            />
+            <span>
+              {t("auth.keepSignedIn")}
+              <span className="block text-xs text-muted">
+                {t("auth.keepSignedInHint")}
+              </span>
+            </span>
           </label>
 
           {error && <p className="text-sm text-red-400">{error}</p>}

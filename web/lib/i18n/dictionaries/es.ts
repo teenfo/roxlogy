@@ -607,6 +607,8 @@ const es: Record<DictKey, string> = {
   "auth.email": "Correo electrónico",
   "auth.password": "Contraseña",
   "auth.showPassword": "Mostrar",
+  "auth.keepSignedIn": "Mantener la sesión iniciada",
+  "auth.keepSignedInHint": "Desactívalo en un ordenador compartido: se cerrará la sesión al cerrar el navegador.",
   "auth.hidePassword": "Ocultar",
   "auth.processing": "Procesando…",
   "auth.submitLogin": "Iniciar sesión",

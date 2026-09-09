@@ -607,6 +607,8 @@ const ko: Record<DictKey, string> = {
   "auth.email": "이메일",
   "auth.password": "비밀번호",
   "auth.showPassword": "표시",
+  "auth.keepSignedIn": "로그인 상태 유지",
+  "auth.keepSignedInHint": "공용 PC 에서는 꺼 주세요 — 브라우저를 닫으면 로그아웃됩니다.",
   "auth.hidePassword": "숨김",
   "auth.processing": "처리 중…",
   "auth.submitLogin": "로그인",
