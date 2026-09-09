@@ -16,6 +16,7 @@ import {
 } from "@/components/crew-schedule-forms";
 import { formatDate } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
+import { tierBadgeClass } from "@/lib/crew-role";
 
 type EventComment = {
   id: string;
@@ -35,7 +36,7 @@ type EventDetail = {
   ends_at: string | null;
   location: string | null;
   capacity: number | null;
-  going_names: string[];
+  going: { name: string; tier: string | null; color: string | null }[];
   maybe_names: string[];
   declined_names: string[];
   my_status: string | null;
@@ -224,17 +225,25 @@ export default async function CrewEventPage({
       {/* 참석 명단 */}
       <section className="mt-6">
         <h3 className="text-sm font-semibold text-muted">
-          {t("crew.goingList")} ({ev.going_names.length}
+          {t("crew.goingList")} ({ev.going.length}
           {ev.capacity ? `/${ev.capacity}` : ""})
         </h3>
-        {ev.going_names.length ? (
+        {ev.going.length ? (
           <ul className="mt-2 flex flex-wrap gap-1.5">
-            {ev.going_names.map((n, i) => (
+            {/* 등급은 크루원에게만 채워져 온다 (RPC 에서 익명은 null) */}
+            {ev.going.map((g, i) => (
               <li
                 key={i}
-                className="rounded-full bg-surface px-3 py-1 text-xs font-medium"
+                className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium"
               >
-                {n}
+                {g.name}
+                {g.tier && (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${tierBadgeClass(g.color)}`}
+                  >
+                    {g.tier}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
