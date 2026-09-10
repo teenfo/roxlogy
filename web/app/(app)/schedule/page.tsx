@@ -7,11 +7,11 @@ import {
   type MyRacePlan,
 } from "@/components/crew-schedule-forms";
 import {
-  formatDateShort,
   programDayNumber,
   todayISOIn,
   todayMidnightIn,
 } from "@/lib/format";
+import { wodTypeChip } from "@/lib/wod-type";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -25,6 +25,7 @@ type EnrollProgram = {
   programs: {
     id: string;
     title: string;
+    weeks: number | null;
     program_days: {
       day_index: number;
       focus: string | null;
@@ -55,7 +56,7 @@ export default async function SchedulePage({
     .from("program_enrollments")
     .select(
       `start_date, repeat, end_date,
-       programs ( id, title,
+       programs ( id, title, weeks,
          program_days ( day_index, focus,
            workout_templates ( id, title, type ) ) )`,
     )
@@ -70,26 +71,38 @@ export default async function SchedulePage({
   const { data: planRows } = await supabase.rpc("my_race_plans");
   const plans = (planRows ?? []) as MyRacePlan[];
   const racePlanSection = (
-    <section className="mt-8">
-      <h2 className="text-sm font-semibold text-muted">
-        {t("schedule.myRaces")}
-      </h2>
-      <div className="mt-3">
-        <RacePlanForm myPlans={plans} today={todayISOIn(tz)} />
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-[15px] font-extrabold">{t("schedule.myRaces")}</h2>
+        <span className="ml-auto">
+          <RacePlanForm
+            myPlans={plans}
+            part="trigger"
+            today={todayISOIn(tz)}
+          />
+        </span>
       </div>
+      <RacePlanForm myPlans={plans} part="list" today={todayISOIn(tz)} />
     </section>
   );
 
   if (!enroll?.programs) {
     return (
-      <main>
-        <h1 className="text-2xl font-bold">{t("schedule.title")}</h1>
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("schedule.noProgram")}{" "}
-          <Link href="/programs" className="text-accent hover:underline">
+      <main className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+        <h1 className="text-[30px] font-extrabold tracking-tight max-md:text-2xl">
+          {t("schedule.title")}
+        </h1>
+        <div className="rounded-[14px] border border-line bg-card px-6 py-10 text-center">
+          <p className="text-sm text-muted [word-break:keep-all]">
+            {t("schedule.noProgram")}
+          </p>
+          <Link
+            href="/programs"
+            className="mt-4 inline-flex h-10 items-center rounded-lg bg-accent px-5 text-sm font-extrabold text-background transition hover:brightness-110"
+          >
             {t("schedule.browsePrograms")}
           </Link>
-        </p>
+        </div>
         {racePlanSection}
       </main>
     );
@@ -190,129 +203,252 @@ export default async function SchedulePage({
   const scheduled = week7.filter((d) => d.day?.workout_templates.length);
   const doneCount = scheduled.filter((d) => d.done).length;
 
+  // 헤더 표시용 파생값
+  const todayCell = week7.find((d) => d.isToday) ?? null;
+  const todayFirst = todayCell?.day?.workout_templates[0] ?? null;
+  const weekNo = todayCell?.dayIndex
+    ? Math.floor((todayCell.dayIndex - 1) / 7) + 1
+    : null;
+  const weekRange = `${base.toLocaleDateString(tag, {
+    month: "long",
+    day: "numeric",
+    timeZone: tz,
+  })} – ${week7[6].date.toLocaleDateString(tag, {
+    month: "long",
+    day: "numeric",
+    timeZone: tz,
+  })}`;
+  const itemCount = (templateId: string) =>
+    itemsByTemplate.get(templateId)?.length ?? 0;
+  const weekdayCls = (d: Date) =>
+    d.getDay() === 0 ? "text-sunday" : d.getDay() === 6 ? "text-info" : "text-muted";
+
   return (
-    <main>
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold">{t("schedule.title")}</h1>
-        <Link
-          href={`/programs/${enroll.programs.id}`}
-          className="text-sm text-accent hover:underline"
-        >
-          {enroll.programs.title}
-        </Link>
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+      {/* 헤더 — 프로그램과 현재 위치를 한 줄로 */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[30px] font-extrabold tracking-tight max-md:text-2xl">
+            {t("schedule.title")}
+          </h1>
+          <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[15px] text-muted">
+            <span className="rounded-md border border-line-accent bg-highlight px-2 py-[3px] text-[11px] font-extrabold tracking-[0.08em] text-accent">
+              PROGRAM
+            </span>
+            <Link
+              href={`/programs/${enroll.programs.id}`}
+              className="font-semibold text-accent hover:underline"
+            >
+              {enroll.programs.title}
+            </Link>
+            {todayCell?.dayIndex && todayCell.dayIndex > 0 && (
+              <span className="tabular">
+                ·{" "}
+                {enroll.programs.weeks
+                  ? t("schedule.weekOfN", {
+                      w: weekNo ?? 1,
+                      total: enroll.programs.weeks,
+                      d: todayCell.dayIndex,
+                    })
+                  : t("programs.weekDay", {
+                      w: weekNo ?? 1,
+                      d: todayCell.dayIndex,
+                    })}
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2 max-md:w-full">
+          <Link
+            href="/programs"
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold transition-colors hover:border-[#555] max-md:flex-1 max-md:justify-center"
+          >
+            {t("schedule.changeProgram")}
+          </Link>
+          {todayFirst && (
+            <Link
+              href={`/workouts/${todayFirst.id}`}
+              className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background transition hover:brightness-110 max-md:flex-1 max-md:justify-center"
+            >
+              ▶ {t("schedule.startToday")}
+            </Link>
+          )}
+        </div>
       </div>
 
-      <nav className="mt-4 flex items-center justify-between text-sm">
-        <Link
-          href={`/schedule?week=${weekOffset - 1}`}
-          className="text-accent hover:underline"
-        >
-          {t("schedule.prevWeek")}
-        </Link>
-        {weekOffset !== 0 && (
-          <Link href="/schedule" className="text-xs text-muted hover:underline">
-            {t("schedule.thisWeek")}
-          </Link>
-        )}
-        <Link
-          href={`/schedule?week=${weekOffset + 1}`}
-          className="text-accent hover:underline"
-        >
-          {t("schedule.nextWeek")}
-        </Link>
-      </nav>
-
-      {scheduled.length > 0 && (
-        <div className="mt-4 flex items-center gap-3">
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface">
-            <div
-              className="h-full rounded-full bg-track"
-              style={{ width: `${(doneCount / scheduled.length) * 100}%` }}
-            />
+      {/* 주 네비 */}
+      <div className="flex flex-col gap-3 rounded-[14px] border border-line bg-card px-[18px] py-3.5 max-md:px-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center rounded-[10px] border border-line-mid bg-page p-1">
+            <Link
+              href={`/schedule?week=${weekOffset - 1}`}
+              aria-label={t("schedule.prevWeek")}
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-lg text-accent hover:bg-card-hover"
+            >
+              ‹
+            </Link>
+            <span className="tabular min-w-[150px] px-2 text-center text-[15px] font-extrabold max-md:min-w-0">
+              {weekRange}
+            </span>
+            <Link
+              href={`/schedule?week=${weekOffset + 1}`}
+              aria-label={t("schedule.nextWeek")}
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-lg text-accent hover:bg-card-hover"
+            >
+              ›
+            </Link>
           </div>
-          <span className="text-xs text-muted">
-            {t("schedule.weeklyRate", {
-              done: doneCount,
-              total: scheduled.length,
-            })}
+          {weekOffset !== 0 && (
+            <Link
+              href="/schedule"
+              className="text-[13px] font-semibold text-accent hover:underline"
+            >
+              {t("schedule.goThisWeek")}
+            </Link>
+          )}
+          <span className="ml-auto text-[13px] text-muted max-md:ml-0">
+            {scheduled.length > 0
+              ? t("schedule.weeklyRate", {
+                  done: doneCount,
+                  total: scheduled.length,
+                })
+              : t("schedule.outOfProgram")}
           </span>
         </div>
-      )}
 
-      <ul className="mt-6 flex flex-col gap-2">
-        {week7.map((d) => (
-          <li
-            key={d.date.toISOString()}
-            className={`rounded-md px-4 py-3 ${
-              d.isToday ? "bg-accent/10 ring-1 ring-accent/40" : "bg-surface"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                {d.done && (
-                  <Link
-                    href={
-                      d.doneSessionId
-                        ? `/sessions/${d.doneSessionId}`
-                        : `/workouts/${d.day!.workout_templates[0].id}`
-                    }
-                    className="text-track"
-                    title={t("schedule.done")}
-                  >
-                    ✓
-                  </Link>
-                )}
-                {formatDateShort(d.date.toISOString(), tag, tz)}
+        {scheduled.length > 0 && (
+          <div className="grid grid-cols-7 gap-1">
+            {week7.map((d) => (
+              <span
+                key={d.date.toISOString()}
+                className={`h-1.5 rounded-[3px] ${
+                  d.done
+                    ? "bg-success"
+                    : d.isToday
+                      ? "bg-accent"
+                      : d.day?.workout_templates.length
+                        ? "bg-[#2a2a2a]"
+                        : "bg-line-soft"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 날짜 행 */}
+      <ul className="flex flex-col gap-2">
+        {week7.map((d) => {
+          const templates = d.day?.workout_templates ?? [];
+          const rest = templates.length === 0;
+          const href = rest ? null : `/workouts/${templates[0].id}`;
+          const body = (
+            <div
+              className={`grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 rounded-[14px] border transition-colors max-md:grid-cols-[52px_minmax(0,1fr)] max-md:gap-3 ${
+                d.isToday
+                  ? "border-accent bg-highlight px-5 py-[18px] max-md:px-4"
+                  : rest
+                    ? "border-line-soft px-5 py-3.5 opacity-55 max-md:px-4"
+                    : "border-line bg-card px-5 py-3.5 hover:border-[#555] max-md:px-4"
+              }`}
+            >
+              {/* 날짜 블록 */}
+              <div className="border-r border-line-mid pr-3 text-center">
+                <p className={`text-[11px] font-bold ${weekdayCls(d.date)}`}>
+                  {d.date.toLocaleDateString(tag, {
+                    weekday: "short",
+                    timeZone: tz,
+                  })}
+                </p>
+                <p
+                  className={`tabular text-2xl font-extrabold leading-tight ${
+                    d.isToday ? "text-accent" : rest ? "text-muted" : ""
+                  }`}
+                >
+                  {d.date.getDate()}
+                </p>
                 {d.isToday && (
-                  <span className="ml-1 text-xs text-accent">
+                  <span className="mt-0.5 inline-block rounded-full bg-accent px-1.5 text-[10px] font-extrabold text-background">
                     {t("schedule.today")}
                   </span>
                 )}
-              </span>
-              {d.day && (
-                <span className="text-xs text-muted">
-                  {t("programs.dayN", { n: d.dayIndex })}
-                </span>
-              )}
-            </div>
-            {d.day ? (
-              <div className="mt-1.5">
-                {d.day.focus && (
-                  <p className="text-sm text-foreground/90">{d.day.focus}</p>
-                )}
-                {d.day.workout_templates.length > 0 && (
-                  <ul className="mt-1 flex flex-wrap gap-1.5">
-                    {d.day.workout_templates.map((w) => (
-                      <li key={w.id}>
-                        <Link
-                          href={`/workouts/${w.id}`}
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs ${
-                            d.isToday
-                              ? "bg-accent/15 font-semibold text-accent hover:brightness-110"
-                              : "bg-background text-muted hover:text-foreground"
-                          }`}
-                        >
-                          {w.title}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {d.isToday && d.day.workout_templates.length > 0 && (
-                  <Link
-                    href={`/workouts/${d.day.workout_templates[0].id}`}
-                    className="mt-2 inline-block text-xs font-semibold text-accent hover:underline"
+              </div>
+
+              {/* 본문 */}
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <p className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`truncate ${
+                      rest
+                        ? "text-[15px] font-medium text-muted"
+                        : `${d.isToday ? "text-[19px]" : "text-base"} font-bold`
+                    }`}
                   >
-                    {t("schedule.viewToday")}
-                  </Link>
+                    {rest
+                      ? t("schedule.rest")
+                      : (d.day?.focus ?? templates[0].title)}
+                  </span>
+                  {d.dayIndex > 0 && (
+                    <span className="shrink-0 text-[11px] font-semibold text-muted">
+                      {t("programs.dayN", { n: d.dayIndex })}
+                    </span>
+                  )}
+                </p>
+                {templates.length > 0 && (
+                  <span className="flex flex-wrap gap-1.5">
+                    {templates.map((w) => (
+                      <span
+                        key={w.id}
+                        className={`flex h-[26px] items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold ${wodTypeChip(w.type)}`}
+                      >
+                        {w.title}
+                        {itemCount(w.id) > 0 && (
+                          <span className="tabular opacity-70">
+                            {itemCount(w.id)}
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </span>
                 )}
               </div>
-            ) : (
-              <p className="mt-1 text-xs text-muted">{t("schedule.rest")}</p>
-            )}
-          </li>
-        ))}
+
+              {/* 우측 */}
+              <div className="flex shrink-0 items-center gap-2.5 max-md:col-span-2 max-md:justify-end">
+                {d.done && (
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success-bg text-sm font-extrabold text-success">
+                    ✓
+                  </span>
+                )}
+                {d.isToday && !rest ? (
+                  <span className="flex h-9 items-center rounded-lg bg-accent px-3.5 text-[13px] font-extrabold text-background">
+                    {t("schedule.startShort")} →
+                  </span>
+                ) : (
+                  !rest && (
+                    <span aria-hidden className="text-muted/60">
+                      ›
+                    </span>
+                  )
+                )}
+              </div>
+            </div>
+          );
+          return (
+            <li key={d.date.toISOString()}>
+              {href ? (
+                <Link href={d.doneSessionId ? `/sessions/${d.doneSessionId}` : href}>
+                  {body}
+                </Link>
+              ) : (
+                body
+              )}
+            </li>
+          );
+        })}
       </ul>
+
       {racePlanSection}
     </main>
   );
