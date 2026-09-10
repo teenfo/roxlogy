@@ -154,12 +154,15 @@ export function CrewDuesMatrix({
   period,
   periodLabel,
   charges,
+  locked = false,
 }: {
   crewId: string;
   period: string;
   /** 버튼이 어느 달을 대상으로 하는지 분명히 하기 위한 표시용 라벨 */
   periodLabel: string;
   charges: BoardCharge[];
+  /** 마감된 달 — 확정·면제·대사를 막는다 (DB 트리거도 같이 막는다) */
+  locked?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -281,7 +284,7 @@ export function CrewDuesMatrix({
             onClick={() =>
               reconcile("generate_monthly_charges", t("crew.duesKindMonthly"))
             }
-            disabled={busy != null}
+            disabled={busy != null || locked}
             className="rounded-lg border border-line-strong bg-control px-3 py-1.5 text-xs font-semibold hover:border-muted/60 disabled:opacity-50"
           >
             {busy === "generate_monthly_charges"
@@ -293,7 +296,7 @@ export function CrewDuesMatrix({
             onClick={() =>
               reconcile("generate_session_charges", t("crew.duesKindSession"))
             }
-            disabled={busy != null}
+            disabled={busy != null || locked}
             className="rounded-lg border border-line-strong bg-control px-3 py-1.5 text-xs font-semibold hover:border-muted/60 disabled:opacity-50"
           >
             {busy === "generate_session_charges"
@@ -460,7 +463,7 @@ export function CrewDuesMatrix({
                                 })
                               : waive(c.charge_id)
                           }
-                          disabled={busy != null}
+                          disabled={busy != null || locked}
                           className={`${badge(
                             c.status === "waived"
                               ? "bg-track/15 text-track"
@@ -481,7 +484,7 @@ export function CrewDuesMatrix({
                               p_charge: c.charge_id,
                             });
                           }}
-                          disabled={busy != null}
+                          disabled={busy != null || locked}
                           className={`${badge("bg-track/15 text-track")} hover:brightness-125 disabled:opacity-50`}
                         >
                           ✓ {t("crew.duesConfirmed")}
@@ -494,7 +497,7 @@ export function CrewDuesMatrix({
                               p_charge: c.charge_id,
                             })
                           }
-                          disabled={busy != null}
+                          disabled={busy != null || locked}
                           className="rounded-md bg-accent px-2.5 py-1 text-[11px] font-bold text-background hover:brightness-110 disabled:opacity-40"
                         >
                           {t("crew.duesConfirm")}

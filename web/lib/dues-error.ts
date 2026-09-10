@@ -12,6 +12,8 @@ const KEYS: Record<string, DictKey> = {
   dues_already_confirmed: "crew.errDuesConfirmed",
   dues_waived: "crew.err.dues_waived",
   charge_not_found: "crew.errChargeNotFound",
+  dues_month_closed: "crew.errMonthClosed",
+  ledger_month_closed: "crew.errMonthClosed",
   event_not_found: "crew.errEventNotFound",
   attend_not_staff: "crew.errAttendNotStaff",
   attend_not_member: "crew.errAttendNotMember",

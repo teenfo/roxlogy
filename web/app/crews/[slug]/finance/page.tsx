@@ -12,6 +12,7 @@ import {
 import { CrewDuesMatrix, type BoardCharge } from "@/components/crew-dues-check";
 import { Badge, Card, Chip, SectionHead } from "@/components/ui/crew-ui";
 import { CrewBankOpening } from "@/components/crew-bank-opening";
+import { CrewMonthClose } from "@/components/crew-month-close";
 import {
   CrewLedgerSettle,
   CrewLedgerSettleMonth,
@@ -87,8 +88,14 @@ export default async function CrewFinancePage({
   }
 
   const supabase = await createClient();
-  const [{ data: rows }, { data: allRows }, { data: chargeRows }, { data: bankRow }] =
-    await Promise.all([
+  const [
+    { data: rows },
+    { data: allRows },
+    { data: chargeRows },
+    { data: bankRow },
+    { data: closeRow },
+    { count: unpaidCount },
+  ] = await Promise.all([
       supabase
         .from("crew_ledger")
         .select(
@@ -114,11 +121,29 @@ export default async function CrewFinancePage({
         .select("opening_balance, opening_on")
         .eq("crew_id", crew.id)
         .maybeSingle(),
+      // 이 달 마감 여부
+      supabase
+        .from("crew_month_close")
+        .select("closed_at")
+        .eq("crew_id", crew.id)
+        .eq("period", month)
+        .maybeSingle(),
+      // 마감 전 경고용 미수 건수 — 운영진만 (crew_dues_charges RLS)
+      isStaff
+        ? supabase
+            .from("crew_dues_charges")
+            .select("id", { count: "exact", head: true })
+            .eq("crew_id", crew.id)
+            .eq("period", month)
+            .in("status", ["pending", "reported"])
+        : Promise.resolve({ count: 0 }),
     ]);
   const bank = bankRow as {
     opening_balance: number;
     opening_on: string | null;
   } | null;
+  // 마감된 달은 읽기 전용 — 버튼을 숨기지만 강제는 DB 트리거가 한다
+  const closed = (closeRow as { closed_at: string } | null)?.closed_at ?? null;
   const entries = (rows ?? []) as LedgerRow[];
   const charges = (chargeRows ?? []) as BoardCharge[];
 
@@ -173,7 +198,7 @@ export default async function CrewFinancePage({
     <main>
       {/* 툴바 — 내역 추가 + 월 이동 + 장부/회비 세그먼트 */}
       <div className="flex flex-wrap items-center gap-3">
-        {isStaff && view === "ledger" && (
+        {isStaff && view === "ledger" && !closed && (
           <CrewLedgerForm crewId={crew.id} today={todayISOIn(tz)} />
         )}
         <div className="flex items-center rounded-[10px] border border-line-mid bg-control">
@@ -202,10 +227,24 @@ export default async function CrewFinancePage({
             ))}
           </nav>
         )}
-        <span className="ml-auto shrink-0 text-xs text-muted">
-          {t("crew.finNote")}
-        </span>
+        <div className="ml-auto flex flex-wrap items-center gap-2 max-md:ml-0 max-md:w-full">
+          <span className="min-w-0 text-xs text-muted">{t("crew.finNote")}</span>
+          <CrewMonthClose
+            crewId={crew.id}
+            period={month}
+            periodLabel={monthLabel}
+            closedOn={closed}
+            canEdit={isStaff}
+            unpaidCount={unpaidCount ?? 0}
+          />
+        </div>
       </div>
+
+      {closed && (
+        <p className="mt-3 rounded-[10px] bg-label-bg px-3 py-2 text-xs font-semibold text-label">
+          {t("crew.finClosedNote", { period: monthLabel })}
+        </p>
+      )}
 
       {/* 요약 4카드 — 누적 잔액만 강조 */}
       <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -290,6 +329,7 @@ export default async function CrewFinancePage({
             period={month}
             periodLabel={monthLabel}
             charges={charges}
+            locked={closed != null}
           />
         </section>
       )}
@@ -387,7 +427,7 @@ export default async function CrewFinancePage({
                             {r.kind === "income" ? "+" : "−"}
                             {won(r.amount)}
                           </span>
-                          {isStaff && <CrewLedgerDelete id={r.id} />}
+                          {isStaff && !closed && <CrewLedgerDelete id={r.id} />}
                         </div>
                       ))}
                     </Card>
