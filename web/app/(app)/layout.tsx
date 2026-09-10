@@ -1,10 +1,9 @@
-import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { DesktopNav } from "@/components/desktop-nav";
-import { MobileNav } from "@/components/mobile-nav";
+import { GlobalNav } from "@/components/global-nav";
+import { MobileTabBar } from "@/components/mobile-tabbar";
 import { SignOutForm } from "@/components/sign-out-form";
 
 export default async function AppLayout({
@@ -31,47 +30,28 @@ export default async function AppLayout({
     );
   }
 
+  // 미확인 알림 — 네비의 빨간 점. head:true 라 행을 실어 나르지 않는다.
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .is("read_at", null);
+
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-surface bg-background">
-        <nav className="mx-auto flex max-w-4xl items-center gap-6 px-6 py-4">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} />
-            <span className="text-sm font-black tracking-widest">ROXLOGY</span>
-          </Link>
-
-          {/* 데스크톱 내비 (훈련·레이스는 드롭다운으로 묶음) */}
-          <DesktopNav />
-
-          {/* 데스크톱 우측 (프로필·로그아웃) */}
-          <div className="ml-auto hidden items-center gap-4 sm:flex">
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className="text-sm font-semibold text-accent hover:brightness-110"
-              >
-                {t("nav.admin")}
-              </Link>
-            )}
-            <Link
-              href="/settings/profile"
-              className="text-sm text-muted hover:text-foreground"
-            >
-              {t("nav.profile")}
-            </Link>
-            <SignOutForm
-              buttonClassName="text-sm text-muted hover:text-foreground"
-              label={t("common.logout")}
-            />
-          </div>
-
-          {/* 모바일 햄버거 메뉴 */}
-          <MobileNav isAdmin={isAdmin} />
-        </nav>
+      <header className="sticky top-0 z-40 border-b border-line-soft bg-[var(--nav)]">
+        <GlobalNav
+          isAdmin={isAdmin}
+          displayName={profile?.display_name ?? "Athlete"}
+          unread={count ?? 0}
+        />
       </header>
-      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+      {/* 하단 탭바(모바일)에 가리지 않도록 아래 여백을 준다 */}
+      <div className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         {children}
       </div>
+      <MobileTabBar />
     </>
   );
 }

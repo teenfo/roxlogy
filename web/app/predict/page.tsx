@@ -1,5 +1,3 @@
-import Image from "next/image";
-import Link from "next/link";
 import { getT } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
@@ -14,9 +12,8 @@ import {
 } from "@/components/predict-form";
 import { todayISOIn } from "@/lib/format";
 import type { RunFitness } from "@/lib/run";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { DesktopNav } from "@/components/desktop-nav";
-import { MobileNav } from "@/components/mobile-nav";
+import { GlobalNav } from "@/components/global-nav";
+import { MobileTabBar } from "@/components/mobile-tabbar";
 
 const EX_TO_KEY = new Map(STATIONS.map((s) => [s.exerciseId, s.key]));
 
@@ -36,13 +33,15 @@ export default async function PredictPage({
   }>;
 }) {
   const sp = await searchParams;
-  const { t, tag, tz } = await getT();
+  const { tag, tz } = await getT();
   const supabase = await createClient();
   const user = await getCachedUser();
 
   // 로그인 시: 최근 레이스 시뮬 세션을 목표 계산용으로 불러온다.
   let sessions: PredictSession[] = [];
   let isAdmin = false;
+  let displayName: string | null = null;
+  const unread = 0;
   let gender: string | null = null;
   let ageGroup: string | null = null;
   let editGoal: EditGoal | null = null;
@@ -70,10 +69,11 @@ export default async function PredictPage({
     }
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_admin, gender, birth_year")
+      .select("is_admin, gender, birth_year, display_name")
       .eq("id", user.id)
       .maybeSingle();
     isAdmin = profile?.is_admin === true;
+    displayName = (profile?.display_name as string | null) ?? null;
     gender = (profile?.gender as string | null) ?? null;
     ageGroup = hyroxAgeGroup(profile?.birth_year as number | null);
     const { data: rows } = await supabase
@@ -142,58 +142,14 @@ export default async function PredictPage({
 
   return (
     <>
-      <header className="border-b border-surface">
-        {user ? (
-          // 로그인 상태: 앱과 동일한 상단 내비게이션
-          <nav className="mx-auto flex max-w-4xl items-center gap-6 px-6 py-4">
-            <Link href="/dashboard" className="flex items-center gap-2.5">
-              <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} />
-              <span className="text-sm font-black tracking-widest">ROXLOGY</span>
-            </Link>
-            <DesktopNav />
-            <div className="ml-auto hidden items-center gap-4 sm:flex">
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="text-sm font-semibold text-accent hover:brightness-110"
-                >
-                  {t("nav.admin")}
-                </Link>
-              )}
-              <Link
-                href="/settings/profile"
-                className="text-sm text-muted hover:text-foreground"
-              >
-                {t("nav.profile")}
-              </Link>
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="text-sm text-muted hover:text-foreground"
-                >
-                  {t("common.logout")}
-                </button>
-              </form>
-            </div>
-            <MobileNav isAdmin={isAdmin} />
-          </nav>
-        ) : (
-          <nav className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} />
-              <span className="text-sm font-black tracking-widest">ROXLOGY</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <LocaleSwitcher compact />
-              <Link
-                href="/login"
-                className="text-sm text-muted hover:text-foreground"
-              >
-                {t("common.login")}
-              </Link>
-            </div>
-          </nav>
-        )}
+      <header className="sticky top-0 z-40 border-b border-line-soft bg-[var(--nav)]">
+        {/* 앱과 같은 글로벌 네비 — 비로그인이면 로그인 버튼으로 바뀐다 */}
+        <GlobalNav
+          isAdmin={isAdmin}
+          displayName={user ? (displayName ?? "Athlete") : null}
+          unread={unread}
+          loginNext="/predict"
+        />
       </header>
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         <PredictForm
@@ -217,6 +173,7 @@ export default async function PredictPage({
           }
         />
       </div>
+      {user && <MobileTabBar />}
     </>
   );
 }

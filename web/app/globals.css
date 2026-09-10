@@ -22,6 +22,7 @@
   --inset: #101010;
   --control: #171717;
   --highlight: #181610; /* 옐로 강조 카드 */
+  --nav: #111111;   /* 상단 네비 · 하단 탭바 */
 
   /* 보더 단계 */
   --line-soft: #1f1f1f;
@@ -60,6 +61,7 @@
   --color-inset: var(--inset);
   --color-control: var(--control);
   --color-highlight: var(--highlight);
+  --color-nav: var(--nav);
 
   --color-line-soft: var(--line-soft);
   --color-line: var(--line);
