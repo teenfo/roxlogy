@@ -49,7 +49,9 @@ Production·Preview 모두에 넣고 재배포한다. `NEXT_PUBLIC_` 접두사�
 
 `components/google-one-tap.tsx`
 
-nonce 를 양쪽에 다르게 넘겨야 한다 — **구글에는 SHA-256 해시(base64url)**,
+nonce 를 양쪽에 다르게 넘겨야 한다 — **구글에는 SHA-256 해시(hex)**,
 **Supabase 에는 원문**. 같은 값을 양쪽에 주면 `signInWithIdToken` 이 검증에
-실패한다. 토큰을 받으면 `supabase.auth.signInWithIdToken({ provider: "google" })`
+실패한다. 해시 인코딩도 반드시 **hex** 여야 한다: Supabase(GoTrue)가 원문의
+SHA-256 을 hex 로 계산해 ID 토큰의 `nonce` 클레임과 대조하므로, base64url 로
+넘기면 `Nonces mismatch` 로 로그인이 막힌다 (2026-09-10 실제 증상). 토큰을 받으면 `supabase.auth.signInWithIdToken({ provider: "google" })`
 로 세션을 만들고 `router.refresh()` 로 서버 컴포넌트를 다시 그린다.

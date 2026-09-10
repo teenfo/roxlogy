@@ -1,5 +1,12 @@
 # 작업 지시서 — 구글 원탭 로그인 활성화 (Cowork 용)
 
+> **완료됨 (2026-09-10).** 클라이언트 "Roxlogy Supabase"(Kch-Project)에
+> `https://roxlogy.com` · `https://www.roxlogy.com` 을 JavaScript 원본으로
+> 등록했고, Vercel `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (Production·Preview) 설정
+> 후 재배포했다. 이후 나온 `Nonces mismatch` 는 콘솔이 아니라 코드(nonce 해시
+> 인코딩) 문제였고 별도로 고쳤다 — `docs/GOOGLE_ONE_TAP.md` 참조.
+> 아래는 같은 설정을 다시 할 때를 위한 기록이다.
+
 > 대상: Roxlogy(roxlogy.com) 운영 콘솔 설정 담당자
 > 소요: 10분 내외. 코드 변경 없음. **콘솔 설정 2건 + 재배포 1건**이 전부다.
 > 배경 문서: `docs/GOOGLE_ONE_TAP.md`

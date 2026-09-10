@@ -34,17 +34,18 @@ declare global {
   }
 }
 
-/** 원문 nonce 와 그 SHA-256(base64url) 해시를 만든다 */
+/** 원문 nonce 와 그 SHA-256(hex) 해시를 만든다.
+ *  Supabase(GoTrue)는 원문의 SHA-256 을 hex 로 계산해 ID 토큰의 nonce 와 비교하므로
+ *  구글에 넘기는 값은 반드시 hex 여야 한다. base64url 이면 "Nonces mismatch". */
 async function makeNonce(): Promise<[string, string]> {
   const raw = crypto.randomUUID();
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(raw),
   );
-  const hashed = btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  const hashed = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   return [raw, hashed];
 }
 
