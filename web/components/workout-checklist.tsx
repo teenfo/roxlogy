@@ -24,9 +24,12 @@ export type Completion = ItemLog & { itemId: string };
 export function WorkoutChecklist({
   items,
   initialCompletions,
+  hero,
 }: {
   items: ChecklistItem[];
   initialCompletions: Completion[];
+  /** 히어로 상단부 — 진행 바가 이 상태를 쓰므로 한 카드로 붙여 그린다 */
+  hero?: React.ReactNode;
 }) {
   const { t } = useI18n();
   const [done, setDone] = useState<Set<string>>(
@@ -155,139 +158,180 @@ export function WorkoutChecklist({
 
   if (total === 0) {
     return (
-      <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-        {t("workouts.noItems")}
-      </p>
+      <>
+        {hero}
+        <p className="rounded-[14px] border border-line bg-card px-4 py-10 text-center text-sm text-muted">
+          {t("workouts.noItems")}
+        </p>
+      </>
     );
   }
 
   return (
-    <div className="mt-6">
-      {/* 진행률 */}
-      <div className="flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface">
-          <div
-            className={`h-full rounded-full transition-all ${
-              allDone ? "bg-track" : "bg-accent"
-            }`}
-            style={{ width: `${pct}%` }}
-          />
+    <>
+      {/* 히어로 + 진행 바 — 진행 상태가 여기 있어서 한 카드로 붙인다 */}
+      <section className="overflow-hidden rounded-2xl border border-line-mid bg-card">
+        {hero}
+        <div className="flex flex-col gap-2 px-6 pb-[18px] max-md:px-4">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted">{t("workouts.progressLabel")}</span>
+            <span className="tabular font-bold">
+              {t("workouts.progress", { done: doneCount, total })}
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-[#222]">
+            <div
+              className="h-full rounded-full bg-accent transition-all duration-200"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
         </div>
-        <span className="shrink-0 text-xs font-semibold text-muted">
-          {t("workouts.progress", { done: doneCount, total })}
-        </span>
-      </div>
+      </section>
 
-      {allDone && (
-        <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-track">
-          <span aria-hidden>✓</span>
-          {t("workouts.wodDone")}
-        </p>
-      )}
-
-      {/* 운동 체크리스트 */}
-      <ul className="mt-4 flex flex-col gap-1.5">
+      {/* 종목 카드 */}
+      <ul className="flex flex-col gap-2">
         {items.map((it, i) => {
           const isDone = done.has(it.id);
           const log = logs.get(it.id);
           const isOpen = openId === it.id;
           return (
-            <li key={it.id} className="rounded-md bg-surface px-3 py-2.5">
-              <div className="flex items-center gap-3">
+            <li
+              key={it.id}
+              className={`overflow-hidden rounded-[14px] border ${
+                isDone ? "border-[#1e3328] bg-[#101410]" : "border-line bg-card"
+              }`}
+            >
+              <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-start gap-3.5 px-[18px] py-4 max-md:grid-cols-[40px_minmax(0,1fr)] max-md:px-4">
+                {/* 체크 원 — 44px 히트 영역 안에 32px 원 */}
                 <button
                   type="button"
                   onClick={() => toggleItem(it.id)}
                   aria-pressed={isDone}
                   aria-label={t("workouts.toggleItem", { name: it.name })}
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs transition-colors ${
-                    isDone
-                      ? "border-track bg-track text-background"
-                      : "border-muted/50 text-transparent hover:border-accent"
-                  }`}
+                  className="flex h-11 w-11 items-center justify-center max-md:h-10 max-md:w-10"
                 >
-                  ✓
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-[15px] font-extrabold transition-colors ${
+                      isDone
+                        ? "border-success bg-success text-background"
+                        : "border-[#444] text-transparent hover:border-accent"
+                    }`}
+                  >
+                    ✓
+                  </span>
                 </button>
-                <span className="w-5 text-right font-mono text-xs text-muted">
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  {it.exerciseId ? (
-                    <Link
-                      href={`/exercises/${it.exerciseId}`}
-                      className={`block truncate text-sm font-medium hover:text-accent ${
-                        isDone ? "text-muted line-through" : ""
-                      }`}
-                    >
-                      {it.name}
-                    </Link>
-                  ) : (
-                    <span
-                      className={`block truncate text-sm font-medium ${
-                        isDone ? "text-muted line-through" : ""
-                      }`}
-                    >
-                      {it.name}
+
+                <div className="flex min-w-0 flex-col gap-2">
+                  <p className="flex flex-wrap items-baseline gap-2">
+                    <span className="tabular text-xs font-bold text-muted">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {it.exerciseId ? (
+                      <Link
+                        href={`/exercises/${it.exerciseId}`}
+                        className={`min-w-0 truncate text-lg font-extrabold hover:text-accent ${
+                          isDone ? "text-muted line-through" : ""
+                        }`}
+                      >
+                        {it.name}
+                      </Link>
+                    ) : (
+                      <span
+                        className={`min-w-0 truncate text-lg font-extrabold ${
+                          isDone ? "text-muted line-through" : ""
+                        }`}
+                      >
+                        {it.name}
+                      </span>
+                    )}
+                  </p>
+
+                  {it.targetParts.length > 0 && (
+                    <span className="flex flex-wrap gap-1.5">
+                      {it.targetParts.map((part, j) => (
+                        <span
+                          key={j}
+                          className="tabular flex h-7 items-center rounded-lg border border-line-mid bg-page px-2.5 text-[13px] font-bold"
+                        >
+                          {part}
+                        </span>
+                      ))}
                     </span>
                   )}
+
                   {log && logSummary(log) && !isOpen && (
-                    <p className="mt-0.5 truncate font-mono text-xs text-track">
+                    <p className="tabular truncate text-[13px] text-success">
                       {logSummary(log)}
                     </p>
                   )}
                 </div>
-                {it.targetParts.length > 0 && (
-                  <span className="flex max-w-[55%] shrink-0 flex-wrap justify-end gap-1">
-                    {it.targetParts.map((part, j) => (
-                      <span
-                        key={j}
-                        className="rounded bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent"
-                      >
-                        {part}
-                      </span>
-                    ))}
-                  </span>
-                )}
+
                 <button
                   type="button"
                   onClick={() => setOpenId(isOpen ? null : it.id)}
-                  className="shrink-0 text-xs font-semibold text-muted hover:text-accent"
+                  className="flex h-9 shrink-0 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-[#555] max-md:col-start-2 max-md:justify-self-end"
                 >
-                  {t("workouts.log")}
+                  {isOpen
+                    ? t("workouts.collapse")
+                    : log
+                      ? `✓ ${t("workouts.logged")}`
+                      : t("workouts.log")}
                 </button>
               </div>
 
               {isOpen && (
-                <LogEditor
-                  initial={log ?? { weightKg: null, reps: null, note: null }}
-                  pending={pending}
-                  onSave={(l) => saveLog(it.id, l)}
-                  onCancel={() => setOpenId(null)}
-                />
+                <div className="border-t border-line bg-inset px-[18px] py-4 pl-[76px] max-md:px-4 max-md:pl-4">
+                  <LogEditor
+                    initial={log ?? { weightKg: null, reps: null, note: null }}
+                    pending={pending}
+                    onSave={(l) => saveLog(it.id, l)}
+                    onCancel={() => setOpenId(null)}
+                  />
+                </div>
               )}
             </li>
           );
         })}
       </ul>
 
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
-      <button
-        type="button"
-        onClick={toggleWod}
-        disabled={pending}
-        className={`mt-4 w-full rounded-md px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-40 ${
+      {/* 완료 바 — 남은 종목 / 전부 체크 / 완료됨 세 상태 */}
+      <div
+        className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3.5 rounded-[14px] border px-5 py-4 max-md:grid-cols-1 ${
           allDone
-            ? "bg-surface text-muted hover:text-foreground"
-            : "bg-track text-background hover:brightness-110"
+            ? "border-[#1e3328] bg-[#101410]"
+            : "border-line bg-card"
         }`}
       >
-        {pending
-          ? t("workouts.saving")
-          : allDone
-            ? t("workouts.unmarkWod")
-            : t("workouts.markWod")}
-      </button>
-    </div>
+        <div className="min-w-0">
+          <p className="text-[15px] font-extrabold [word-break:keep-all]">
+            {allDone
+              ? `✓ ${t("workouts.doneTitle")}`
+              : t("workouts.remaining", { n: total - doneCount })}
+          </p>
+          <p className="mt-0.5 text-[13px] text-muted [word-break:keep-all]">
+            {allDone ? t("workouts.doneHint") : t("workouts.markHint")}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleWod}
+          disabled={pending}
+          className={`flex h-11 items-center justify-center rounded-lg px-5 text-[15px] font-extrabold transition disabled:opacity-40 max-md:w-full ${
+            allDone
+              ? "bg-success-bg text-success"
+              : "bg-accent text-background hover:brightness-110"
+          }`}
+        >
+          {pending
+            ? t("workouts.saving")
+            : allDone
+              ? t("workouts.unmarkWod")
+              : t("workouts.markWod")}
+        </button>
+      </div>
+    </>
   );
 }
 

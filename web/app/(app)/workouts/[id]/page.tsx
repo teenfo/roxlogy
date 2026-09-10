@@ -7,6 +7,8 @@ import {
   type ChecklistItem,
 } from "@/components/workout-checklist";
 import { targetParts, type WorkoutTarget } from "@/lib/target";
+import { dictLabel } from "@/lib/dict-label";
+import { wodTypeChip } from "@/lib/wod-type";
 
 export async function generateMetadata({
   params,
@@ -106,30 +108,76 @@ export default async function WorkoutPage({
   });
 
   return (
-    <main>
-      <Link
-        href={program ? `/programs/${program.id}` : "/schedule"}
-        className="text-sm text-muted hover:text-foreground"
-      >
-        {program ? program.title : t("schedule.title")}
-      </Link>
-
-      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold">{w.title}</h1>
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-3.5">
+      {/* 브레드크럼 */}
+      <p className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
         <Link
-          href="/sessions/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          href="/schedule"
+          className="transition-colors hover:text-foreground"
         >
-          {t("workouts.record")}
+          ← {t("schedule.title")}
         </Link>
-      </div>
-      <p className="mt-1 text-sm text-muted">
-        {t(`programs.type.${w.type}` as Parameters<typeof t>[0])}
-        {day ? ` · ${t("programs.dayN", { n: day.day_index })}` : ""}
-        {day?.focus ? ` · ${day.focus}` : ""}
+        {program && (
+          <>
+            <span aria-hidden>/</span>
+            <Link
+              href={`/programs/${program.id}`}
+              className="transition-colors hover:text-foreground"
+            >
+              {program.title}
+            </Link>
+          </>
+        )}
+        {day && (
+          <>
+            <span aria-hidden>/</span>
+            <span className="text-foreground/75">
+              {t("programs.dayN", { n: day.day_index })}
+            </span>
+          </>
+        )}
       </p>
 
-      <WorkoutChecklist items={checklist} initialCompletions={completions} />
+      <WorkoutChecklist
+        items={checklist}
+        initialCompletions={completions}
+        hero={
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-5 px-6 py-[22px] max-md:grid-cols-1 max-md:px-4">
+            <div className="flex min-w-0 flex-col gap-2.5">
+              <p className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-[5px] px-2 py-[3px] text-[11px] font-bold ${wodTypeChip(w.type)}`}
+                >
+                  {dictLabel(t, `programs.type.${w.type}`, w.type)}
+                </span>
+                {day?.focus && (
+                  <span className="min-w-0 truncate text-xs text-muted">
+                    {day.focus}
+                  </span>
+                )}
+              </p>
+              <h1 className="text-[28px] font-extrabold tracking-[-0.02em] [word-break:keep-all] max-md:text-2xl">
+                {w.title}
+              </h1>
+              <p className="text-[13px] text-muted">
+                {t("workouts.itemsN", { n: checklist.length })}
+              </p>
+            </div>
+
+            <div className="flex shrink-0 flex-col items-end gap-1.5 max-md:items-stretch">
+              <Link
+                href="/sessions/new"
+                className="flex h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-extrabold text-background transition hover:brightness-110"
+              >
+                ◔ {t("workouts.recordAsSession")}
+              </Link>
+              <span className="text-xs text-muted [word-break:keep-all]">
+                {t("workouts.autoSegments")}
+              </span>
+            </div>
+          </div>
+        }
+      />
     </main>
   );
 }
