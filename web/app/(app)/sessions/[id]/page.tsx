@@ -124,6 +124,7 @@ export default async function SessionDetailPage({
     .from("sessions")
     .select(
       `id, user_id, shared, started_at, ended_at, total_time_ms, source_device, analysis_status, notes, rpe, division,
+       race_results ( event, event_date, season, division ),
        workout_templates ( id, title, program_days ( day_index, programs ( id, title ) ) ),
        session_metrics ( run_lap_deviation_ms, roxzone_total_ms, pacing_grade ),
        session_segments (
@@ -208,6 +209,35 @@ export default async function SessionDetailPage({
   }
   const ergSamplesAll = ergRaws.flatMap((r) => r.samples ?? []);
   const ergStrokesAll = ergRaws.flatMap((r) => r.strokes ?? []);
+
+  const raceRaw = (session as { race_results?: unknown }).race_results;
+  const race = (Array.isArray(raceRaw) ? raceRaw[0] : raceRaw) as
+    | { event: string | null; event_date: string | null; season: string | null; division: string | null }
+    | null
+    | undefined;
+
+  // 개인 최고(대회) — 히어로의 "PB 대비". 본인 세션에서만 의미가 있다.
+  let pbMs: number | null = null;
+  if (isOwner) {
+    const { data: pbRows } = await supabase
+      .from("sessions")
+      .select("total_time_ms, race_results!inner ( event )")
+      .eq("user_id", session.user_id)
+      .is("deleted_at", null)
+      .not("total_time_ms", "is", null)
+      .order("total_time_ms", { ascending: true })
+      .limit(1);
+    pbMs = (pbRows ?? [])[0]?.total_time_ms ?? null;
+  }
+  const pbGap =
+    pbMs != null && session.total_time_ms != null
+      ? session.total_time_ms - pbMs
+      : null;
+  const gapLabel = (ms: number) => {
+    const d = Math.round(ms / 1000);
+    const a = Math.abs(d);
+    return `${d >= 0 ? "+" : "−"}${Math.floor(a / 60)}:${String(a % 60).padStart(2, "0")}`;
+  };
 
   // 러닝 저하율 — 시뮬 랩이 순수 1km 페이스보다 얼마나 느린가.
   // 본인 세션에서만 계산한다: 기준선은 내 러닝 기록이고 RLS 로 남에겐 안 보인다.
@@ -307,21 +337,50 @@ export default async function SessionDetailPage({
       })),
     }));
 
+  // 종류별 평균 — 세그먼트 표의 "평균 대비". 런은 런끼리, 스테이션은 스테이션끼리
+  // 비교해야 의미가 있다(록스존 2분과 월볼 6분을 같이 평균 내면 무의미).
+  const kindAvg = new Map<string, number>();
+  for (const k of ["run", "station", "roxzone"]) {
+    const xs = segments
+      .filter((x) => x.kind === k && x.split_time_ms != null)
+      .map((x) => x.split_time_ms!);
+    if (xs.length) kindAvg.set(k, xs.reduce((a, v) => a + v, 0) / xs.length);
+  }
+  // 종류별 가장 느린 구간 — 행을 붉게 표시해 눈에 걸리게 한다
+  const worstSeq = new Map<string, number>();
+  for (const k of ["run", "station"]) {
+    let worst: (typeof segments)[number] | null = null;
+    for (const x of segments) {
+      if (x.kind !== k || x.split_time_ms == null) continue;
+      if (!worst || x.split_time_ms > worst.split_time_ms!) worst = x;
+    }
+    if (worst) worstSeq.set(k, worst.seq);
+  }
+
+  // 랩 추이 헤더 요약 — 평균과 첫 랩 대비 마지막 랩 변화
+  const lapMs = runLaps.map((x) => x.split_time_ms!);
+  const lapAvg = lapMs.length
+    ? Math.round(lapMs.reduce((a, v) => a + v, 0) / lapMs.length)
+    : null;
+  const lapDrift =
+    lapMs.length >= 2 ? lapMs[lapMs.length - 1] - lapMs[0] : null;
+
   return (
-    <main>
-      <div className="flex items-center justify-between">
+    <main className="flex flex-col gap-[22px]">
+      {/* 상단 바 */}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[13px]">
         <Link
           href={isOwner ? "/sessions" : "/feed"}
-          className="text-sm text-muted hover:text-foreground"
+          className="text-muted hover:text-foreground"
         >
-          {isOwner ? t("sessions.back") : t("feed.back")}
+          ← {isOwner ? t("sessions.back") : t("feed.back")}
         </Link>
         {isOwner ? (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <ShareToggle id={session.id} shared={session.shared} />
             <Link
               href={`/sessions/${session.id}/edit`}
-              className="text-sm text-accent hover:underline"
+              className="flex h-8 items-center rounded-lg border border-line-strong px-3 font-semibold text-foreground/80 hover:border-muted/60"
             >
               {t("sessions.edit")}
             </Link>
@@ -332,57 +391,102 @@ export default async function SessionDetailPage({
         )}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold">
-          {formatDate(session.started_at, tag, tz)}
-        </h1>
-        <span className="font-mono text-3xl font-bold text-accent">
-          {formatMs(session.total_time_ms)}
-        </span>
-      </div>
-      <p className="mt-1 text-sm text-muted">
-        {isErg && (
-          <span className="mr-2 rounded-full bg-track/15 px-2 py-0.5 text-xs font-semibold text-track">
-            ⚡ {t("sessions.ergDedicated")}
-          </span>
-        )}
-        {t("sessions.recordedVia", {
-          device: t(`source.${session.source_device}` as Parameters<typeof t>[0]),
-        })}
-      </p>
-
-      {linked && (
-        <p className="mt-2 text-sm">
-          <span className="text-muted">{t("sessions.partOfProgram")} </span>
-          {linked.program_days?.programs ? (
-            <Link
-              href={`/programs/${linked.program_days.programs.id}`}
-              className="text-accent hover:underline"
-            >
-              {linked.program_days.programs.title}
-              {linked.program_days.day_index != null
-                ? ` · ${t("programs.dayN", { n: linked.program_days.day_index })}`
-                : ""}
-              {` · ${linked.title}`}
-            </Link>
-          ) : (
-            <span className="text-foreground/90">{linked.title}</span>
+      {/* 히어로 */}
+      <section className="grid items-end gap-6 rounded-2xl border border-line-accent bg-highlight px-6 py-5 sm:grid-cols-[1fr_auto]">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            {race ? (
+              <span className="rounded-md bg-[#2a2500] px-2 py-0.5 text-[11px] font-bold text-accent-dim">
+                {t("sessions.race")}
+              </span>
+            ) : isErg ? (
+              <span className="rounded-md bg-info-bg px-2 py-0.5 text-[11px] font-bold text-info">
+                ⚡ {t("sessions.ergDedicated")}
+              </span>
+            ) : (
+              <span className="rounded-md bg-label-bg px-2 py-0.5 text-[11px] font-bold text-label">
+                {t("sessions.typeSim")}
+              </span>
+            )}
+            {(race?.division ?? session.division) && (
+              <span className="rounded bg-label-bg px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-label">
+                {t(
+                  `division.${race?.division ?? session.division}` as Parameters<typeof t>[0],
+                )}
+              </span>
+            )}
+            <span className="text-xs text-muted">
+              {race?.season ? `${race.season} · ` : ""}
+              {t("sessions.recordedVia", {
+                device: t(
+                  `source.${session.source_device}` as Parameters<typeof t>[0],
+                ),
+              })}
+            </span>
+          </div>
+          <h1 className="mt-2 truncate text-[26px] font-extrabold">
+            {race?.event ?? formatDate(session.started_at, tag, tz)}
+          </h1>
+          {race?.event && (
+            <p className="mt-1 text-sm text-foreground/75">
+              {formatDate(session.started_at, tag, tz)}
+            </p>
           )}
-        </p>
-      )}
+        </div>
 
-      {isOwner && (session.rpe != null || session.notes) && (
-        <section className="mt-6 rounded-md bg-surface px-4 py-3">
-          {session.rpe != null && (
-            <div className="flex items-center gap-2 text-sm">
+        <div className="sm:text-right">
+          <p className="tabular text-[44px] font-extrabold leading-none tracking-tight text-accent">
+            {formatMs(session.total_time_ms)}
+          </p>
+          <p className="mt-2 flex flex-wrap items-center gap-x-2.5 text-[13px] sm:justify-end">
+            {pbGap != null && (
+              <span
+                className={`tabular font-bold ${pbGap <= 0 ? "text-accent" : "text-danger"}`}
+              >
+                {pbGap <= 0 ? t("sessions.pb") : `PB ${gapLabel(pbGap)}`}
+              </span>
+            )}
+            {dist && (
+              <span className="text-muted">
+                {t("sessions.distTop", { pct: dist.pct })}
+              </span>
+            )}
+          </p>
+        </div>
+      </section>
+
+      {/* 연결 프로그램 · RPE · 노트 */}
+      {(linked || (isOwner && (session.rpe != null || session.notes))) && (
+        <section className="rounded-2xl border border-line bg-card px-5 py-4">
+          {linked && (
+            <p className="text-sm">
+              <span className="text-muted">{t("sessions.partOfProgram")} </span>
+              {linked.program_days?.programs ? (
+                <Link
+                  href={`/programs/${linked.program_days.programs.id}`}
+                  className="text-accent hover:underline"
+                >
+                  {linked.program_days.programs.title}
+                  {linked.program_days.day_index != null
+                    ? ` · ${t("programs.dayN", { n: linked.program_days.day_index })}`
+                    : ""}
+                  {` · ${linked.title}`}
+                </Link>
+              ) : (
+                <span className="text-foreground/90">{linked.title}</span>
+              )}
+            </p>
+          )}
+          {isOwner && session.rpe != null && (
+            <div className={`flex items-center gap-2 text-sm ${linked ? "mt-2" : ""}`}>
               <span className="text-muted">{t("sessions.rpe")}</span>
-              <span className="rounded-full bg-accent/15 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
+              <span className="tabular rounded-md bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent">
                 {t("sessions.rpeValue", { n: session.rpe })}
               </span>
             </div>
           )}
-          {session.notes && (
-            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/90">
+          {isOwner && session.notes && (
+            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/80">
               {session.notes}
             </p>
           )}
@@ -390,46 +494,46 @@ export default async function SessionDetailPage({
       )}
 
       {isErg && (
-        <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="rounded-md bg-surface px-4 py-3">
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.ergDistance")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold">
+            <p className="tabular mt-1 text-xl font-extrabold">
               {ergDist != null ? `${Math.round(ergDist)} m` : "—"}
             </p>
           </div>
-          <div className="rounded-md bg-surface px-4 py-3">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.ergAvgPower")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold">
+            <p className="tabular mt-1 text-xl font-extrabold">
               {ergMetrics?.avg_power != null
                 ? `${Math.round(Number(ergMetrics.avg_power))} W`
                 : "—"}
             </p>
           </div>
-          <div className="rounded-md bg-surface px-4 py-3">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.ergAvgPace")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold">
+            <p className="tabular mt-1 text-xl font-extrabold">
               {ergMetrics?.avg_pace_500 != null
                 ? `${fmtPace(Number(ergMetrics.avg_pace_500))} /500m`
                 : "—"}
             </p>
           </div>
-          <div className="rounded-md bg-surface px-4 py-3">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.ergAvgSpm")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold">
+            <p className="tabular mt-1 text-xl font-extrabold">
               {ergMetrics?.avg_spm != null
                 ? Math.round(Number(ergMetrics.avg_spm))
                 : "—"}
             </p>
           </div>
-          <div className="rounded-md bg-surface px-4 py-3">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.ergStrokes")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold">
+            <p className="tabular mt-1 text-xl font-extrabold">
               {ergStrokesAll.length || "—"}
             </p>
           </div>
-          <div className="rounded-md bg-surface px-4 py-3">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.ergAvgWork")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold">
+            <p className="tabular mt-1 text-xl font-extrabold">
               {ergAvgWork != null ? `${Math.round(ergAvgWork)} J` : "—"}
             </p>
           </div>
@@ -437,65 +541,39 @@ export default async function SessionDetailPage({
       )}
 
       {!isErg && (
-        <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-md bg-surface px-4 py-3">
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.pacing")}</p>
             <p className="mt-1 text-lg font-semibold">
               {grade ? t(`pacing.${grade}`) : "—"}
             </p>
           </div>
-          <div className="rounded-md bg-surface px-4 py-3">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.runLapDeviation")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold">
+            <p className="tabular mt-1 text-xl font-extrabold">
               {deviation != null
                 ? t("sessions.deviationSec", { n: Math.round(deviation / 1000) })
                 : "—"}
             </p>
           </div>
-          <div className="rounded-md bg-surface px-4 py-3">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.roxzoneTotal")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold">
+            <p className="tabular mt-1 text-xl font-extrabold">
               {roxzoneMs ? formatMs(roxzoneMs) : "—"}
             </p>
           </div>
-          <div className="rounded-md bg-surface px-4 py-3">
+          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
             <p className="text-xs text-muted">{t("sessions.longestTransition")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold">
+            <p className="tabular mt-1 text-xl font-extrabold">
               {slowestZone ? formatMs(slowestZone.ms) : "—"}
             </p>
           </div>
         </section>
       )}
 
-      {dist && (
-        <DistributionCurve
-          percentiles={dist.percentiles}
-          myMs={session.total_time_ms!}
-          pct={dist.pct}
-          caption={
-            dist.byAge && dist.ageGroup
-              ? t("dist.captionAge", {
-                  division: t(
-                    `division.${(session.division as string | null) ?? "open"}` as Parameters<
-                      typeof t
-                    >[0],
-                  ),
-                  age: dist.ageGroup,
-                })
-              : t("dist.caption", {
-                  division: t(
-                    `division.${(session.division as string | null) ?? "open"}` as Parameters<
-                      typeof t
-                    >[0],
-                  ),
-                })
-          }
-        />
-      )}
-
       {!isErg && share.totalMs > 0 && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("sessions.timeComposition")}</h2>
+        <section>
+          <h2 className="text-[15px] font-extrabold">{t("sessions.timeComposition")}</h2>
           <div className="mt-3">
             <BreakdownStackBar
               runMs={share.runMs}
@@ -506,34 +584,88 @@ export default async function SessionDetailPage({
         </section>
       )}
 
+      {/* 필드 분포 + 런 랩 추이 — 나란히 봐야 "느렸는가"와 "흔들렸는가"가 같이 읽힌다 */}
+      {(dist || (!isErg && runLaps.length >= 2)) && (
+        <section className="grid gap-3 md:grid-cols-2">
+          {dist && (
+          <DistributionCurve
+            percentiles={dist.percentiles}
+            myMs={session.total_time_ms!}
+            pct={dist.pct}
+            caption={
+              dist.byAge && dist.ageGroup
+                ? t("dist.captionAge", {
+                    division: t(
+                      `division.${(session.division as string | null) ?? "open"}` as Parameters<
+                        typeof t
+                      >[0],
+                    ),
+                    age: dist.ageGroup,
+                  })
+                : t("dist.caption", {
+                    division: t(
+                      `division.${(session.division as string | null) ?? "open"}` as Parameters<
+                        typeof t
+                      >[0],
+                    ),
+                  })
+            }
+          />
+        )}
+          {!isErg && runLaps.length >= 2 && (
+            <div className="rounded-2xl border border-line bg-card px-5 py-4">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <h2 className="text-[15px] font-extrabold">
+                  {t("sessions.runLapTrend")}
+                </h2>
+                <span className="text-xs text-muted">
+                  1km · {t("sessions.lapCount", { n: runLaps.length })}
+                </span>
+                <span className="tabular ml-auto text-xs text-muted">
+                  {lapAvg != null && (
+                    <>
+                      {t("sessions.lapAvg")}{" "}
+                      <b className="font-bold text-foreground">
+                        {formatMs(lapAvg)}
+                      </b>
+                    </>
+                  )}
+                  {lapDrift != null && (
+                    <span className={lapDrift > 0 ? "text-danger" : "text-success"}>
+                      {" · "}
+                      {lapDrift >= 0 ? "+" : "−"}
+                      {formatMs(Math.abs(lapDrift))}
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="mt-2">
+                <RunLapLine
+                  data={runLaps.map((seg, i) => ({
+                    name: t("sessions.lapN", { n: i + 1 }),
+                    ms: seg.split_time_ms!,
+                  }))}
+                />
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       {!isErg && chartData.length > 1 && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("sessions.segmentSplits")}</h2>
-          <div className="mt-3 rounded-md bg-surface p-4">
+        <section>
+          <h2 className="text-[15px] font-extrabold">{t("sessions.segmentSplits")}</h2>
+          <div className="mt-3 rounded-xl border border-line bg-card p-4">
             <SegmentSplitBars data={chartData} />
           </div>
         </section>
       )}
 
-      {!isErg && runLaps.length >= 2 && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("sessions.runLapTrend")}</h2>
-          <div className="mt-3 rounded-md bg-surface p-4">
-            <RunLapLine
-              data={runLaps.map((s, i) => ({
-                name: t("sessions.lapN", { n: i + 1 }),
-                ms: s.split_time_ms!,
-              }))}
-            />
-          </div>
-        </section>
-      )}
-
       {degradation && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("run.degTitle")}</h2>
+        <section>
+          <h2 className="text-[15px] font-extrabold">{t("run.degTitle")}</h2>
           <p className="mt-1 text-sm text-muted">{t("run.degDesc")}</p>
-          <div className="mt-3 rounded-md bg-surface px-5 py-4">
+          <div className="mt-3 rounded-xl border border-line bg-card px-5 py-4">
             {degradation.degradation_pct == null ? (
               <div>
                 <p className="text-sm text-muted">{t("run.degNone")}</p>
@@ -590,12 +722,12 @@ export default async function SessionDetailPage({
       )}
 
       {ergSegments.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("sessions.ergCurves")}</h2>
+        <section>
+          <h2 className="text-[15px] font-extrabold">{t("sessions.ergCurves")}</h2>
           <p className="mt-1 text-sm text-muted">{t("sessions.ergCurvesDesc")}</p>
           <div className="mt-3 flex flex-col gap-4">
             {ergSegments.map((e) => (
-              <div key={e.key} className="rounded-md bg-surface p-4">
+              <div key={e.key} className="rounded-xl border border-line bg-card p-4">
                 <p className="text-sm font-semibold">{e.name}</p>
                 {e.power.length > 1 && (
                   <div className="mt-2">
@@ -623,33 +755,33 @@ export default async function SessionDetailPage({
 
       {/* 스트로크 분석 — PM5 0x0035 스트로크 이벤트 (있을 때만) */}
       {isErg && ergStrokesAll.length > 1 && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("sessions.strokeSection")}</h2>
+        <section>
+          <h2 className="text-[15px] font-extrabold">{t("sessions.strokeSection")}</h2>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="rounded-md bg-surface px-4 py-3">
+            <div className="rounded-xl border border-line bg-card px-4 py-3.5">
               <p className="text-xs text-muted">{t("sessions.avgDriveLen")}</p>
-              <p className="mt-1 font-mono text-lg font-semibold">
+              <p className="tabular mt-1 text-xl font-extrabold">
                 {ergAvgDriveLen != null ? `${ergAvgDriveLen.toFixed(2)} m` : "—"}
               </p>
             </div>
-            <div className="rounded-md bg-surface px-4 py-3">
+            <div className="rounded-xl border border-line bg-card px-4 py-3.5">
               <p className="text-xs text-muted">{t("sessions.avgStrokeDist")}</p>
-              <p className="mt-1 font-mono text-lg font-semibold">
+              <p className="tabular mt-1 text-xl font-extrabold">
                 {ergAvgStrokeDist != null
                   ? `${ergAvgStrokeDist.toFixed(2)} m`
                   : "—"}
               </p>
             </div>
-            <div className="rounded-md bg-surface px-4 py-3">
+            <div className="rounded-xl border border-line bg-card px-4 py-3.5">
               <p className="text-xs text-muted">{t("sessions.driveRatio")}</p>
-              <p className="mt-1 font-mono text-lg font-semibold">
+              <p className="tabular mt-1 text-xl font-extrabold">
                 {ergDriveMs != null && ergRecoverMs != null && ergDriveMs > 0
                   ? `1 : ${(ergRecoverMs / ergDriveMs).toFixed(2)}`
                   : "—"}
               </p>
             </div>
           </div>
-          <div className="mt-3 rounded-md bg-surface p-4">
+          <div className="mt-3 rounded-xl border border-line bg-card p-4">
             <p className="text-xs text-muted">{t("sessions.strokeForce")}</p>
             <StrokeForceChart
               data={ergStrokesAll.map((s) => ({
@@ -661,7 +793,7 @@ export default async function SessionDetailPage({
               avgLabel={t("sessions.avgForce")}
             />
           </div>
-          <div className="mt-3 rounded-md bg-surface p-4">
+          <div className="mt-3 rounded-xl border border-line bg-card p-4">
             <p className="text-xs text-muted">{t("sessions.driveAnalysis")}</p>
             <DriveChart
               data={ergStrokesAll.map((s) => ({
@@ -677,10 +809,10 @@ export default async function SessionDetailPage({
         </section>
       )}
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold">{t("sessions.segments")}</h2>
+      <section>
+        <h2 className="text-[15px] font-extrabold">{t("sessions.segments")}</h2>
         {!segments.length ? (
-          <p className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
+          <p className="mt-4 rounded-xl border border-line bg-card px-4 py-10 text-center text-sm text-muted">
             {t("sessions.noSegments")}
           </p>
         ) : (
@@ -688,9 +820,13 @@ export default async function SessionDetailPage({
             {segments.map((seg) => (
               <li
                 key={seg.id}
-                className="flex items-center gap-3 rounded-md bg-surface px-4 py-2.5"
+                className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 ${
+                  worstSeq.get(seg.kind) === seg.seq
+                    ? "border-danger-line bg-danger-card"
+                    : "border-line bg-card"
+                }`}
               >
-                <span className="w-6 text-right font-mono text-xs text-muted">
+                <span className="tabular w-6 text-right text-xs text-muted">
                   {seg.seq}
                 </span>
                 <span
@@ -717,17 +853,34 @@ export default async function SessionDetailPage({
                   )}
                 </span>
                 {seg.segment_metrics?.avg_power != null && (
-                  <span className="font-mono text-xs text-muted">
+                  <span className="tabular text-xs text-muted">
                     {Math.round(Number(seg.segment_metrics.avg_power))}W
                   </span>
                 )}
                 {seg.avg_hr != null && (
-                  <span className="font-mono text-xs text-red-400">
+                  <span className="tabular text-xs text-danger">
                     ♥{seg.avg_hr}
                     {seg.max_hr != null && `/${seg.max_hr}`}
                   </span>
                 )}
-                <span className="w-16 text-right font-mono text-sm font-semibold">
+                {(() => {
+                  const avg = kindAvg.get(seg.kind);
+                  if (avg == null || seg.split_time_ms == null) return null;
+                  const d = Math.round((seg.split_time_ms - avg) / 1000);
+                  if (Math.abs(d) < 1) return null;
+                  const a = Math.abs(d);
+                  const txt = `${d > 0 ? "+" : "−"}${Math.floor(a / 60)}:${String(a % 60).padStart(2, "0")}`;
+                  return (
+                    <span
+                      className={`tabular hidden w-14 text-right text-[13px] font-semibold sm:block ${
+                        d > 30 ? "text-danger" : d < -30 ? "text-success" : "text-muted"
+                      }`}
+                    >
+                      {txt}
+                    </span>
+                  );
+                })()}
+                <span className="tabular w-16 text-right text-sm font-bold">
                   {formatMs(seg.split_time_ms)}
                 </span>
               </li>

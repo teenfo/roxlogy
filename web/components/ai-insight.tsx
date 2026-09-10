@@ -40,9 +40,9 @@ export async function AiInsight({
         : t("ai.session.title");
 
   return (
-    <section className="mt-6 rounded-lg border border-accent/25 bg-surface p-5">
+    <section className="mt-6 rounded-2xl border border-line-strong border-l-[3px] border-l-accent bg-card px-5 py-4">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-accent">
+        <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-accent">
           {title}
         </h2>
         {kind === "weekly" && (
@@ -54,7 +54,7 @@ export async function AiInsight({
           </span>
         )}
       </div>
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
+      <p className="mt-3 whitespace-pre-wrap text-sm leading-[1.65] text-foreground/90">
         {data.content}
       </p>
       <p className="mt-3 text-xs text-muted">
