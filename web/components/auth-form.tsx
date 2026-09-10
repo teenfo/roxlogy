@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { safeNext } from "@/lib/site-url";
+import { rememberNext, safeNext } from "@/lib/site-url";
 import { KEEP_COOKIE } from "@/lib/supabase/keep";
 import { GoogleOneTap } from "@/components/google-one-tap";
 
@@ -66,12 +66,12 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     setError(null);
     applyKeep();
     const supabase = createClient();
-    const next = safeNext(searchParams.get("next"));
+    // 목적지는 쿠키로 — redirectTo 에 쿼리를 붙이면 Supabase 허용 목록에
+    // 걸려 Site URL(첫 화면)로 떨어진다. rememberNext 주석 참고.
+    rememberNext(searchParams.get("next"));
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`,
-      },
+      options: { redirectTo: `${location.origin}/auth/callback` },
     });
     if (error) setError(error.message);
   }
@@ -88,6 +88,9 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     if (mode === "signup") {
       // 이름은 handle_new_user 트리거가 raw_user_meta_data 에서 읽어 프로필에
       // 넣는다. 여기서 안 보내면 명단·출석·회비 화면이 전부 'Athlete' 가 된다.
+      // 확인 메일은 다른 기기에서 열릴 수 있어 쿼리도 함께 남긴다.
+      // 쿠키는 같은 브라우저로 돌아오는 경우의 보험이다.
+      rememberNext(signupNext);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

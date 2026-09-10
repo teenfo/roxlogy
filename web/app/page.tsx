@@ -1,9 +1,11 @@
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCrewDirectory } from "@/lib/crew";
 import { getT } from "@/lib/i18n";
 import { formatMs, formatDateShort, todayISOIn } from "@/lib/format";
 import { makeLandingDemo } from "@/lib/landing-demo";
+import { safeNext } from "@/lib/site-url";
 import { CHART_COLORS } from "@/lib/hyrox";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import {
@@ -19,7 +21,27 @@ const ctaPrimary =
 const ctaGhost =
   "flex h-[52px] items-center justify-center rounded-[10px] border border-line-strong px-7 text-[15px] font-semibold transition-colors hover:border-[#555]";
 
-export default async function Landing() {
+/**
+ * 첫 화면.
+ *
+ * `?code=` 를 달고 들어오는 경우가 있다: Supabase 는 redirectTo 가 Redirect URL
+ * 허용 목록에 없으면 조용히 Site URL(= 여기)로 보낸다. 그대로 두면 사용자는
+ * 로그인이 안 된 채 첫 화면을 보게 되므로 콜백으로 넘겨 준다.
+ */
+export default async function Landing({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string; next?: string }>;
+}) {
+  const { code, next } = await searchParams;
+  if (code) {
+    const to = safeNext(next ?? null);
+    redirect(
+      `/auth/callback?code=${encodeURIComponent(code)}` +
+        (to ? `&next=${encodeURIComponent(to)}` : ""),
+    );
+  }
+
   // 크루 카드는 공개 RPC(crew_directory)라 비로그인에서도 그대로 내려온다.
   // 히어로 수치는 요청마다 새로 만드는 가짜 기록이다 — 실사용자 기록이 아니다.
   // 활동 크루 — 목록 전체로 "N개 크루 활동 중"을 세고, 티커에는 앞 8개만.

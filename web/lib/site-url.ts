@@ -20,3 +20,24 @@ export function safeNext(next: string | null | undefined): string | null {
   if (next.startsWith("//") || next.startsWith("/\\")) return null;
   return next;
 }
+
+/**
+ * 로그인 후 돌아갈 경로를 담는 쿠키.
+ *
+ * OAuth 의 redirectTo 쿼리로 실어 보내면 Supabase 의 Redirect URL 허용 목록에
+ * 쿼리까지 맞는 패턴이 있어야 한다 — 없으면 Supabase 는 조용히 Site URL 로
+ * 보내 버리고, 사용자는 원래 보려던 화면 대신 첫 화면에 떨어진다
+ * (2026-09-10 실제 증상). 그래서 목적지는 쿠키로 들고 간다: redirectTo 는
+ * 언제나 /auth/callback 하나뿐이라 허용 목록도 한 줄이면 된다.
+ */
+export const NEXT_COOKIE = "rox_next";
+
+/** 브라우저에서만 — 로그인 흐름을 시작하기 직전에 부른다. 10분이면 충분하다. */
+export function rememberNext(next: string | null | undefined): void {
+  const safe = safeNext(next);
+  if (typeof document === "undefined") return;
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = safe
+    ? `${NEXT_COOKIE}=${encodeURIComponent(safe)}; Path=/; Max-Age=600; SameSite=Lax${secure}`
+    : `${NEXT_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+}
