@@ -61,8 +61,13 @@ export default async function EventsPage({
   });
 
   const today = todayISOIn(tz);
-  const upcoming = events.filter((e) => !e.end_date || e.end_date >= today);
-  const past = events.filter((e) => e.end_date && e.end_date < today);
+  // 끝난 날 = end_date, 없으면 start_date. 예전엔 end_date 가 비면 무조건
+  // "다가오는" 쪽에 뒀는데, 그래서 6월에 끝난 대회가 9월에도 위에 남아 있었다.
+  // 날짜가 아예 없는 대회(일정 미정)만 다가오는 쪽 맨 뒤에 남는다.
+  const endOf = (e: { start_date: string | null; end_date: string | null }) =>
+    e.end_date ?? e.start_date;
+  const upcoming = events.filter((e) => !endOf(e) || endOf(e)! >= today);
+  const past = events.filter((e) => endOf(e) && endOf(e)! < today);
 
   return (
     <>
