@@ -93,6 +93,19 @@ export default async function EventDetailPage({
   ]);
   const mates = (mateRows ?? []) as Crewmate[];
 
+  // 이 대회로 등록해 둔 내 대회일정 — 있으면 그 상세로 건너갈 수 있게 한다
+  const { data: myPlanRow } = user
+    ? await supabase
+        .from("race_plans")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("race_event_id", id)
+        .order("race_date")
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+  const myPlanId = (myPlanRow as { id: string } | null)?.id ?? null;
+
   const dateRange = ev.start_date
     ? `${ev.start_date}${ev.end_date && ev.end_date !== ev.start_date ? ` ~ ${ev.end_date}` : ""}`
     : (eventDateNote(t, ev, tag) ?? t("events.tbd"));
@@ -147,6 +160,14 @@ export default async function EventDetailPage({
             >
               {t("events.official")} ↗
             </a>
+          )}
+          {myPlanId && (
+            <Link
+              href={`/schedule/race/${myPlanId}`}
+              className="rounded-md border border-line-accent bg-highlight px-3 py-1.5 text-xs font-bold text-accent hover:brightness-125"
+            >
+              {t("race.myPlan")} →
+            </Link>
           )}
           <Link
             href={`/predict?event=${encodeURIComponent(ev.name)}${ev.start_date ? `&date=${ev.start_date}` : ""}`}
