@@ -971,6 +971,21 @@ const handler = createMcpHandler(
   },
   {
     serverInfo: { name: "roxlogy", version: "3.1.0" },
+    // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
+    // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
+    // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
+    // maxDuration 에 걸려 죽고, 클라이언트는 곧바로 다시 연결한다 — 5분마다
+    // 무한 반복(2026-09 운영 로그에서 확인). 0 이면 스트림을 안 열고 거절한다.
+    maxSubscriptions: 0,
+    // 어떤 메서드가 오래 잡고 있는지 남긴다. 인자는 개인정보가 섞일 수 있어
+    // 기록하지 않고 메서드 이름과 소요시간만 남긴다.
+    onEvent: (e) => {
+      if (e.type === "REQUEST_COMPLETED" && (e.duration ?? 0) > 5000) {
+        console.warn(`[mcp] slow ${e.method} ${e.duration}ms`);
+      } else if (e.type === "ERROR") {
+        console.error(`[mcp] error`, e.error);
+      }
+    },
     instructions:
       "Roxlogy 하이록스 훈련 데이터 API. 시간 값은 밀리초(ms). " +
       "크루 도구의 slug 는 get_profile 의 crews 목록에서 얻는다. " +
@@ -1003,5 +1018,9 @@ const authed = withMcpAuth(
   },
   { required: true },
 );
+
+// 도구는 전부 Supabase RPC 한 번이라 60초면 충분하다. 기본 300초로 두면
+// 어떤 이유로든 매달린 요청이 함수 시간을 5분씩 태운다 (Hobby 플랜 한도에 직결).
+export const maxDuration = 60;
 
 export { authed as GET, authed as POST, authed as DELETE };
