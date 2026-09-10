@@ -10,6 +10,7 @@ import {
   percentileWithin,
 } from "@/lib/hyrox-event-detail";
 import { CrewHeader } from "@/components/crew-header";
+import { Avatar } from "@/components/ui/crew-ui";
 
 export async function generateMetadata({
   params,
@@ -25,6 +26,15 @@ export async function generateMetadata({
     .maybeSingle();
   return { title: data ? `${data.name} — Roxlogy` : "Roxlogy" };
 }
+
+type Crewmate = {
+  user_id: string;
+  display_name: string;
+  crew_slug: string;
+  crew_name: string;
+  division: string | null;
+  race_date: string;
+};
 
 export default async function EventDetailPage({
   params,
@@ -44,8 +54,8 @@ export default async function EventDetailPage({
     .maybeSingle();
   if (!ev) notFound();
 
-  // 라이브 상세 (토큰 미설정/미개최 대회면 null) + 내 목표
-  const [live, goal] = await Promise.all([
+  // 라이브 상세 (토큰 미설정/미개최 대회면 null) + 내 목표 + 같이 나가는 크루원
+  const [live, goal, { data: mateRows }] = await Promise.all([
     getEventLiveDetail(ev),
     user
       ? supabase
@@ -61,7 +71,12 @@ export default async function EventDetailPage({
             );
           })
       : Promise.resolve(null),
+    // 같은 대회에 나가는 크루원 — 나와 같은 크루인 사람만 내려온다(RPC 가 게이트)
+    user
+      ? supabase.rpc("race_event_crewmates", { p_event: id })
+      : Promise.resolve({ data: [] as Crewmate[] }),
   ]);
+  const mates = (mateRows ?? []) as Crewmate[];
 
   const dateRange = ev.start_date
     ? `${ev.start_date}${ev.end_date && ev.end_date !== ev.start_date ? ` ~ ${ev.end_date}` : ""}`
@@ -125,6 +140,43 @@ export default async function EventDetailPage({
             {t("events.setGoal")}
           </Link>
         </div>
+
+        {/* 같이 나가는 크루원 — 로그인 + 같은 크루일 때만 내려온다 */}
+        {mates.length > 0 && (
+          <section className="mt-8">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-lg font-semibold">
+                {t("events.crewmates")}
+              </h2>
+              <span className="text-xs text-muted">
+                {t("events.crewmatesN", { n: mates.length })}
+              </span>
+            </div>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {mates.map((m) => (
+                <li key={m.user_id}>
+                  <Link
+                    href={`/u/${m.user_id}`}
+                    className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 transition-colors hover:border-line-strong hover:bg-card-hover"
+                  >
+                    <Avatar name={m.display_name} size={36} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] font-bold">
+                        {m.display_name}
+                      </span>
+                      <span className="block truncate text-xs text-muted">
+                        {m.crew_name}
+                        {m.division
+                          ? ` · ${m.division.replace("_", " ").toUpperCase()}`
+                          : ""}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* 디비전 통계 (실측) */}
         {live && live.divisions.length > 0 ? (

@@ -987,6 +987,62 @@ export type AttendanceRow = {
  *  RSVP(오겠다)와 출석(실제로 왔다)은 별개라, 신청하지 않은 워크인도 체크된다. */
 const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 
+/**
+ * 출석자 인스타 핸들 복사 — 모임 사진에 태그할 때 한 줄로 붙여 넣는다.
+ *
+ * 핸들은 누를 때 가져온다(목록에 늘 실어 나를 이유가 없다). 핸들을 적어 두지
+ * 않은 사람이 있으면 몇 명이 빠졌는지 함께 알려 준다 — 조용히 빼면 태그가
+ * 누락된 걸 나중에 알게 된다.
+ */
+export function CrewEventInstaCopy({ eventId }: { eventId: string }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  async function copy() {
+    setBusy(true);
+    setNote(null);
+    const { data, error } = await createClient().rpc("crew_event_instagrams", {
+      p_event: eventId,
+    });
+    setBusy(false);
+    if (error) return setNote(error.message);
+    const rows = (data ?? []) as { display_name: string; instagram: string | null }[];
+    const handles = rows
+      .map((r) => r.instagram)
+      .filter((h): h is string => !!h)
+      .map((h) => `@${h.replace(/^@/, "")}`);
+    if (!handles.length) return setNote(t("crew.instaNone"));
+    try {
+      await navigator.clipboard.writeText(handles.join(" "));
+    } catch {
+      window.prompt(t("crew.shareCopyManual"), handles.join(" "));
+      return;
+    }
+    const missing = rows.length - handles.length;
+    setNote(
+      missing > 0
+        ? t("crew.instaCopiedSome", { n: handles.length, missing })
+        : t("crew.instaCopied", { n: handles.length }),
+    );
+    window.setTimeout(() => setNote(null), 4000);
+  }
+
+  return (
+    <span className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={copy}
+        disabled={busy}
+        className="flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-[#555] disabled:opacity-40"
+      >
+        {t("crew.instaCopy")}
+      </button>
+      {note && <span className="text-[11px] text-muted">{note}</span>}
+    </span>
+  );
+}
+
 export type GoingEntry = { name: string; tier: string | null; color: string | null };
 
 /**
@@ -1164,7 +1220,7 @@ export function CrewAttendanceCheck({
           {tabBtn("going", t("crew.goingList"), going.length)}
         </div>
 
-        {(settings || (canEdit && tab === "attend")) && (
+        {(settings || tab === "attend") && (
           <div className="ml-auto flex flex-wrap items-center gap-3 max-md:ml-0 max-md:w-full max-md:justify-end">
             {settings && (
               <span className="flex items-center gap-2.5">
@@ -1183,6 +1239,9 @@ export function CrewAttendanceCheck({
               >
                 {t("crew.checkAllGoing")}
               </button>
+            )}
+            {tab === "attend" && present.length > 0 && (
+              <CrewEventInstaCopy eventId={eventId} />
             )}
           </div>
         )}
