@@ -18,7 +18,7 @@ import { MobileTabBar } from "@/components/mobile-tabbar";
 const EX_TO_KEY = new Map(STATIONS.map((s) => [s.exerciseId, s.key]));
 
 export async function generateMetadata() {
-  const { t, tz } = await getT();
+  const { t } = await getT();
   return { title: t("meta.predict"), description: t("predict.desc") };
 }
 
