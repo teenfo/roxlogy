@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { safeNext } from "@/lib/site-url";
 import { KEEP_COOKIE } from "@/lib/supabase/keep";
+import { GoogleOneTap } from "@/components/google-one-tap";
 
 function GoogleIcon() {
   return (
@@ -203,7 +204,11 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
             </span>
           </label>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {/* 원탭 — 이미 구글에 로그인된 브라우저면 카드가 뜬다.
+          안 뜨는 브라우저(사파리 등)에서는 아래 버튼이 그대로 동작한다. */}
+      <GoogleOneTap next={safeNext(searchParams.get("next")) ?? undefined} />
+
+      {error && <p className="text-sm text-red-400">{error}</p>}
           {notice && <p className="text-sm text-track">{notice}</p>}
 
           <button

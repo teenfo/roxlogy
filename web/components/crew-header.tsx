@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
 import { GlobalNav } from "@/components/global-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
+import { GoogleOneTap } from "@/components/google-one-tap";
 
 /**
  * 크루 페이지 공용 헤더 — 크루 라우트는 (app) 그룹 밖(비로그인 랜딩 겸용)이라
@@ -35,6 +36,9 @@ export async function CrewHeader({ loginNext }: { loginNext: string }) {
       </header>
       {/* 하단 탭바는 로그인 상태에서만 — 비로그인은 갈 수 없는 탭들이다 */}
       {user && <MobileTabBar />}
+      {/* 공유 링크로 들어온 비로그인 방문자가 페이지를 떠나지 않고 들어오게 한다.
+          로그인 상태에서는 띄우지 않는다. */}
+      {!user && <GoogleOneTap next={loginNext} />}
     </>
   );
 }
