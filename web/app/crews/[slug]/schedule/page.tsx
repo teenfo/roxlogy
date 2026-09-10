@@ -9,7 +9,7 @@ import {
   CrewMeetupForm,
   CrewRsvpToggle,
   RacePlanForm,
-  normalizeRacePlans,
+  type MyRacePlan,
 } from "@/components/crew-schedule-forms";
 import { AvatarStack, Badge, Card } from "@/components/ui/crew-ui";
 
@@ -85,17 +85,10 @@ export default async function CrewSchedulePage({
 
   const [{ data: rows }, { data: myPlans }] = await Promise.all([
     supabase.rpc("crew_calendar", { p_slug: slug, p_from: from, p_to: to }),
-    isMember
-      ? supabase
-          .from("race_plans")
-          .select(
-            "id, title, race_date, division, bib, note, goal_plan_id, goal:goal_plans ( target_total_ms, run_total_ms, station_total_ms, roxzone_total_ms )",
-          )
-          .eq("user_id", user!.id)
-          .order("race_date")
-      : Promise.resolve({ data: [] }),
+    // 내가 만든 계획 + 파트너로 초대받은 계획 (RPC 가 합쳐 준다)
+    isMember ? supabase.rpc("my_race_plans") : Promise.resolve({ data: [] }),
   ]);
-  const plans = normalizeRacePlans(myPlans);
+  const plans = (myPlans ?? []) as MyRacePlan[];
   const cal = (rows ?? []) as CalRow[];
 
   // 참석자 아바타용 이름 — crew_calendar 는 인원수만 준다.
@@ -270,12 +263,14 @@ export default async function CrewSchedulePage({
                           ? `/crews/${slug}/schedule/${r.ref_id}`
                           : r.kind === "program"
                             ? `/programs/${r.ref_id}`
-                            : // 공식 대회에 연결된 내 대회일정이면 그 대회
-                              // 페이지로 — 장소·일시·공식 링크·라이브 결과가
-                              // 이미 거기 있다. 직접 입력한 계획은 갈 곳이 없다.
-                              r.event_id
-                              ? `/events/${r.event_id}`
-                              : null;
+                            : // 내 계획이면 내 대회일정 상세로(목표·파트너가
+                              // 거기 있다). 남의 계획은 공식 대회 페이지로,
+                              // 그마저 연결이 없으면 갈 곳이 없다.
+                              r.member_id && r.member_id === user?.id
+                              ? `/races/plan/${r.ref_id}`
+                              : r.event_id
+                                ? `/events/${r.event_id}`
+                                : null;
 
                       const text = (
                         <>

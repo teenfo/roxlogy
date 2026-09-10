@@ -240,6 +240,13 @@ export function CrewMeetupForm({
   );
 }
 
+export type PlanPartnerRow = {
+  user_id: string;
+  name: string;
+  status: "pending" | "accepted" | "declined";
+};
+
+/** my_race_plans() 한 행 — 내가 만든 계획과 파트너로 초대받은 계획이 섞여 온다 */
 export type MyRacePlan = {
   id: string;
   title: string;
@@ -247,28 +254,18 @@ export type MyRacePlan = {
   division: string | null;
   bib: string | null;
   note: string | null;
-  goal_plan_id: string | null; // 연결된 목표(goal_plans) — 있으면 목표 세우기 버튼 숨김
-  /** 연결된 목표의 스플릿. goal_plan_id 가 있으면 함께 내려온다 */
-  goal: {
-    target_total_ms: number;
-    run_total_ms: number | null;
-    station_total_ms: number | null;
-    roxzone_total_ms: number | null;
-  } | null;
+  goal_plan_id: string | null;
+  race_event_id: string | null;
+  role: "owner" | "partner";
+  /** 내가 초대받은 쪽일 때 내 응답 상태 */
+  my_status: "pending" | "accepted" | "declined" | null;
+  owner_name: string;
+  partners: PlanPartnerRow[];
+  goal_target_ms: number | null;
+  goal_run_ms: number | null;
+  goal_station_ms: number | null;
+  goal_roxzone_ms: number | null;
 };
-
-/**
- * supabase 임베드 정규화 — `goal:goal_plans ( … )` 는 FK 한 건이라 런타임에는
- * 객체로 오지만 생성된 타입은 배열로 본다. 한쪽으로 맞춘다.
- */
-export function normalizeRacePlans(rows: unknown): MyRacePlan[] {
-  return ((rows ?? []) as (Omit<MyRacePlan, "goal"> & {
-    goal: MyRacePlan["goal"] | MyRacePlan["goal"][] | null;
-  })[]).map((r) => ({
-    ...r,
-    goal: (Array.isArray(r.goal) ? (r.goal[0] ?? null) : r.goal) ?? null,
-  }));
-}
 
 const bibOk = (v: string) => v.trim() === "" || /^\d{4,8}$/.test(v.trim());
 
@@ -640,9 +637,12 @@ export function RacePlanForm({
                 <span className="shrink-0 rounded-md border border-line-accent px-2 py-0.5 text-[10px] font-extrabold tracking-[0.06em] text-accent">
                   MY RACE
                 </span>
-                <span className="truncate text-[15px] font-bold text-foreground">
+                <a
+                  href={`/races/plan/${p.id}`}
+                  className="truncate text-[15px] font-bold text-foreground hover:text-accent"
+                >
                   {p.title}
-                </span>
+                </a>
                 <span className="tabular shrink-0">{p.race_date}</span>
                 {/* D-day — 남은 날이 보여야 준비 상태가 가늠된다 */}
                 {(() => {
@@ -666,56 +666,88 @@ export function RacePlanForm({
                     BIB {p.bib}
                   </span>
                 )}
-                {p.goal ? (
+                {/* 파트너 — 수락 여부를 색으로 구분한다 */}
+                {p.partners.map((pt) => (
+                  <span
+                    key={pt.user_id}
+                    className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                      pt.status === "accepted"
+                        ? "bg-success-bg text-success"
+                        : pt.status === "declined"
+                          ? "bg-danger-bg text-danger"
+                          : "bg-label-bg text-label"
+                    }`}
+                  >
+                    {pt.name}
+                  </span>
+                ))}
+                {p.goal_target_ms != null ? (
                   <a
                     href="/goals"
                     className="tabular shrink-0 rounded-md border border-line-accent bg-highlight px-2 py-0.5 text-[11px] font-bold text-accent"
                   >
-                    🎯 {fmtMs(p.goal.target_total_ms)}
+                    🎯 {fmtMs(p.goal_target_ms)}
                   </a>
                 ) : (
+                  p.role === "owner" && (
+                    <a
+                      href={`/predict?event=${encodeURIComponent(p.title)}&date=${p.race_date}`}
+                      className="shrink-0 text-accent hover:underline"
+                    >
+                      {t("events.setGoal")}
+                    </a>
+                  )
+                )}
+                {/* 초대받은 계획은 남의 것이다 — 수정·삭제 대신 상태만 */}
+                {p.role === "owner" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(p)}
+                      className="ml-auto text-muted hover:text-accent"
+                    >
+                      {t("common.edit")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => del(p.id)}
+                      className="text-muted hover:text-danger"
+                      aria-label={t("common.delete")}
+                    >
+                      ✕
+                    </button>
+                  </>
+                ) : (
                   <a
-                    href={`/predict?event=${encodeURIComponent(p.title)}&date=${p.race_date}`}
-                    className="shrink-0 text-accent hover:underline"
+                    href={`/races/plan/${p.id}`}
+                    className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                      p.my_status === "pending"
+                        ? "bg-accent text-background"
+                        : "bg-line text-muted"
+                    }`}
                   >
-                    {t("events.setGoal")}
+                    {p.my_status === "pending"
+                      ? t("race.partnerRespond")
+                      : t("race.byOwner", { name: p.owner_name })}
                   </a>
                 )}
-                <button
-                  type="button"
-                  onClick={() => startEdit(p)}
-                  className="ml-auto text-muted hover:text-accent"
-                >
-                  {t("common.edit")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => del(p.id)}
-                  className="text-muted hover:text-danger"
-                  aria-label={t("common.delete")}
-                >
-                  ✕
-                </button>
                 {/* 목표 스플릿 — 총 기록만으로는 어디를 줄일지 안 보인다 */}
-                {p.goal &&
-                  (p.goal.run_total_ms != null ||
-                    p.goal.station_total_ms != null) && (
+                {p.goal_target_ms != null &&
+                  (p.goal_run_ms != null || p.goal_station_ms != null) && (
                     <span className="tabular flex w-full flex-wrap gap-x-3 text-[11px] text-muted">
-                      {p.goal.run_total_ms != null && (
+                      {p.goal_run_ms != null && (
                         <span>
-                          {t("landing.m.run")} {fmtMs(p.goal.run_total_ms)}
+                          {t("landing.m.run")} {fmtMs(p.goal_run_ms)}
                         </span>
                       )}
-                      {p.goal.station_total_ms != null && (
+                      {p.goal_station_ms != null && (
                         <span>
-                          {t("landing.m.station")}{" "}
-                          {fmtMs(p.goal.station_total_ms)}
+                          {t("landing.m.station")} {fmtMs(p.goal_station_ms)}
                         </span>
                       )}
-                      {p.goal.roxzone_total_ms != null && (
+                      {p.goal_roxzone_ms != null && (
                         <span>
-                          {t("landing.m.roxzone")}{" "}
-                          {fmtMs(p.goal.roxzone_total_ms)}
+                          {t("landing.m.roxzone")} {fmtMs(p.goal_roxzone_ms)}
                         </span>
                       )}
                     </span>

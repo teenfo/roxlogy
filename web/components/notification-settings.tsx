@@ -22,6 +22,7 @@ const TYPES = [
   "wod_reminder",
   "new_follower",
   "crew_join_request",
+  "race_partner",
   "ai_insight",
   "ai_program",
 ] as const;
@@ -53,6 +54,7 @@ export function NotificationSettings() {
     wod_reminder: true,
     new_follower: true,
     crew_join_request: true,
+    race_partner: true,
     ai_insight: true,
     ai_program: true,
   });

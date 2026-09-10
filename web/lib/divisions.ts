@@ -11,3 +11,12 @@ export const DIVISIONS = [
 ] as const;
 
 export type Division = (typeof DIVISIONS)[number];
+
+/** 두 명 이상이 함께 뛰는 디비전 — 파트너 초대가 열린다 */
+export const DOUBLES_DIVISIONS = [
+  "doubles",
+  "mixed_doubles",
+  "pro_doubles",
+  "relay",
+  "mixed_relay",
+] as const;
