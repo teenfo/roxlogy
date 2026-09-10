@@ -565,16 +565,38 @@ export function RacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
                 </form>
               </li>
             ) : (
-              <li key={p.id} className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                <span className="font-mono">{p.race_date}</span>
-                <span className="truncate text-foreground">{p.title}</span>
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-dashed border-line-strong px-4 py-3 text-[13px] text-muted"
+              >
+                <span className="shrink-0 rounded-md border border-line-accent px-2 py-0.5 text-[10px] font-extrabold tracking-[0.06em] text-accent">
+                  MY RACE
+                </span>
+                <span className="truncate text-[15px] font-bold text-foreground">
+                  {p.title}
+                </span>
+                <span className="tabular shrink-0">{p.race_date}</span>
+                {/* D-day — 남은 날이 보여야 준비 상태가 가늠된다 */}
+                {(() => {
+                  const d = Math.round(
+                    (new Date(`${p.race_date}T00:00:00`).getTime() -
+                      new Date(new Date().toDateString()).getTime()) /
+                      86400000,
+                  );
+                  if (d < 0) return null;
+                  return (
+                    <span className="tabular shrink-0 rounded-md bg-line px-2 py-0.5 text-[11px] font-bold text-foreground/80">
+                      D-{d}
+                    </span>
+                  );
+                })()}
                 {p.division && (
                   <span className="min-w-0 truncate">
                     {dictLabel(t, `division.${p.division}`, p.division)}
                   </span>
                 )}
                 {p.bib && (
-                  <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 font-mono text-[10px] font-bold text-track">
+                  <span className="tabular shrink-0 rounded-md bg-info-bg px-2 py-0.5 text-[10px] font-bold text-info">
                     BIB {p.bib}
                   </span>
                 )}
@@ -589,14 +611,14 @@ export function RacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
                 <button
                   type="button"
                   onClick={() => startEdit(p)}
-                  className="text-muted hover:text-accent"
+                  className="ml-auto text-muted hover:text-accent"
                 >
                   {t("common.edit")}
                 </button>
                 <button
                   type="button"
                   onClick={() => del(p.id)}
-                  className="text-muted hover:text-red-400"
+                  className="text-muted hover:text-danger"
                   aria-label={t("common.delete")}
                 >
                   ✕

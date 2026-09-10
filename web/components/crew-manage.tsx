@@ -47,6 +47,22 @@ export function CrewInfoForm({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
+  // 하단 저장 바가 "변경 사항 없음"을 정확히 말하려면 원본과 비교해야 한다.
+  // 값 비교라 렌더 중 계산해도 안전하다(불순 함수 호출 없음).
+  const dirty =
+    tagline !== (crew.tagline ?? "") ||
+    description !== (crew.description ?? "") ||
+    location !== (crew.location ?? "") ||
+    hoursWeekday !== (links.hours_weekday ?? "") ||
+    hoursWeekend !== (links.hours_weekend ?? "") ||
+    phone !== (links.phone ?? "") ||
+    official !== (links.official ?? "") ||
+    photos !== (links.photos ?? "") ||
+    policy !== (links.policy ?? "") ||
+    bankAccount !== (links.bank_account ?? "") ||
+    joinPolicy !== crew.join_policy ||
+    isPublic !== crew.is_public;
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -182,15 +198,20 @@ export function CrewInfoForm({
         {t("crew.fPublic")}
       </label>
 
-      {msg && <p className="mt-3 text-sm text-muted">{msg}</p>}
-
-      <button
-        type="submit"
-        disabled={busy}
-        className="mt-5 rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
-      >
-        {t("crew.save")}
-      </button>
+      {/* 하단 고정 저장 바 — 폼이 길어 스크롤 끝까지 내려야 저장 버튼이 나왔다.
+          아래 탭바(모바일)와 겹치지 않도록 여백을 준다. */}
+      <div className="sticky bottom-0 z-30 -mx-1 mt-6 flex flex-wrap items-center gap-3 border-t border-line bg-[color-mix(in_srgb,var(--page)_93%,transparent)] px-1 py-3 backdrop-blur max-md:bottom-[84px]">
+        <p className="text-[13px] text-muted">
+          {msg ?? (dirty ? t("crew.unsaved") : t("crew.noChanges"))}
+        </p>
+        <button
+          type="submit"
+          disabled={busy || !dirty}
+          className="ml-auto rounded-lg bg-accent px-5 py-2.5 text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+        >
+          {busy ? t("common.saving") : t("crew.save")}
+        </button>
+      </div>
     </form>
   );
 }

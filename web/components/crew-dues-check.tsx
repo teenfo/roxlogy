@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Avatar, Card, Chip } from "@/components/ui/crew-ui";
 import { tierBadgeClass } from "@/lib/crew-role";
 import { duesErrText } from "@/lib/dues-error";
 
@@ -73,7 +74,7 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
         {charges.slice(0, 12).map((c) => (
           <li
             key={c.charge_id}
-            className="flex flex-wrap items-center gap-2 rounded-md bg-background px-3 py-2"
+            className="flex flex-wrap items-center gap-2 rounded-lg bg-card px-3 py-2"
           >
             <span className="min-w-0 flex-1 truncate text-xs">
               {c.label}
@@ -83,7 +84,11 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
                 </span>
               )}
             </span>
-            <span className="font-mono text-xs">{won(c.amount)}</span>
+            <span
+                        className={`tabular text-xs font-bold ${c.status === "waived" ? "text-muted line-through" : ""}`}
+                      >
+                        {won(c.amount)}
+                      </span>
             {c.status === "waived" ? (
               <span className={badge("bg-track/15 text-track")}>
                 {t("crew.duesWaived")}
@@ -163,6 +168,10 @@ export function CrewDuesMatrix({
   const [note, setNote] = useState<string | null>(null);
   /** 펼친 회원. 기본은 전부 접힘 — 회원이 많으면 한 화면에 안 들어온다. */
   const [open, setOpen] = useState<Set<string>>(new Set());
+  /** 상태 필터 — 미납만 추려 보는 게 이 화면의 주 용도다 */
+  const [filter, setFilter] = useState<"all" | "unpaid" | "settled" | "waived">(
+    "all",
+  );
   const toggle = (uid: string) =>
     setOpen((p) => {
       const n = new Set(p);
@@ -234,21 +243,46 @@ export function CrewDuesMatrix({
   const paid = sum((c) => c.status === "confirmed");
   const waived = sum((c) => c.status === "waived");
 
+  const statusOf = (c: BoardCharge) =>
+    c.status === "waived"
+      ? "waived"
+      : c.status === "confirmed"
+        ? "settled"
+        : "unpaid";
+  const shownMembers = [...byMember.entries()].filter(([, list]) =>
+    filter === "all" ? true : list.some((c) => statusOf(c) === filter),
+  );
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="text-xs text-muted">
-          {t("crew.duesTotals", { paid: won(paid), unpaid: won(unpaid) })}
-          {waived > 0 && ` · ${t("crew.duesTotalWaived", { amount: won(waived) })}`}
-        </p>
-        <span className="ml-auto flex flex-wrap gap-2">
+    <div className="flex flex-col gap-3">
+      {/* 요약 3카드 + 대사 버튼 */}
+      <div className="grid gap-2.5 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
+        <Card className="px-4 py-3">
+          <p className="text-xs text-muted">{t("crew.duesPaidLabel")}</p>
+          <p className="tabular mt-1 text-xl font-extrabold">{won(paid)}</p>
+        </Card>
+        <Card className="px-4 py-3">
+          <p className="text-xs text-muted">{t("crew.duesUnpaidLabel")}</p>
+          <p
+            className={`tabular mt-1 text-xl font-extrabold ${unpaid > 0 ? "text-danger" : "text-success"}`}
+          >
+            {won(unpaid)}
+          </p>
+        </Card>
+        <Card className="px-4 py-3">
+          <p className="text-xs text-muted">{t("crew.duesWaivedLabel")}</p>
+          <p className="tabular mt-1 text-xl font-extrabold text-muted">
+            {won(waived)}
+          </p>
+        </Card>
+        <div className="flex flex-col justify-center gap-1.5">
           <button
             type="button"
             onClick={() =>
               reconcile("generate_monthly_charges", t("crew.duesKindMonthly"))
             }
             disabled={busy != null}
-            className="rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent disabled:opacity-50"
+            className="rounded-lg border border-line-strong bg-control px-3 py-1.5 text-xs font-semibold hover:border-muted/60 disabled:opacity-50"
           >
             {busy === "generate_monthly_charges"
               ? "…"
@@ -260,91 +294,134 @@ export function CrewDuesMatrix({
               reconcile("generate_session_charges", t("crew.duesKindSession"))
             }
             disabled={busy != null}
-            className="rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent disabled:opacity-50"
+            className="rounded-lg border border-line-strong bg-control px-3 py-1.5 text-xs font-semibold hover:border-muted/60 disabled:opacity-50"
           >
             {busy === "generate_session_charges"
               ? "…"
               : t("crew.duesGenerateSession", { period: periodLabel })}
           </button>
-        </span>
+        </div>
       </div>
-      {err && <p className="text-xs text-red-400">{err}</p>}
+
+      {err && <p className="text-xs text-danger">{err}</p>}
       {note && <p className="text-xs text-accent">{note}</p>}
       <p className="text-[11px] text-muted">{t("crew.duesGenHint")}</p>
 
-      {byMember.size > 1 && (
-        <button
-          type="button"
-          onClick={() =>
-            setOpen((p) =>
-              p.size === byMember.size ? new Set() : new Set(byMember.keys()),
-            )
-          }
-          className="self-start text-xs text-accent hover:underline"
-        >
-          {open.size === byMember.size
-            ? t("crew.duesCollapseAll")
-            : t("crew.duesExpandAll")}
-        </button>
+      {/* 상태 칩 + 모두 펼치기 */}
+      {charges.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {(["all", "unpaid", "settled", "waived"] as const).map((k) => (
+            <Chip
+              key={k}
+              active={filter === k}
+              onClick={() => setFilter(k)}
+              count={
+                k === "all"
+                  ? byMember.size
+                  : [...byMember.values()].filter((l) =>
+                      l.some((c) => statusOf(c) === k),
+                    ).length
+              }
+            >
+              {k === "all"
+                ? t("crew.all")
+                : k === "unpaid"
+                  ? t("crew.duesFltUnpaid")
+                  : k === "settled"
+                    ? t("crew.duesSettled")
+                    : t("crew.duesWaived")}
+            </Chip>
+          ))}
+          {byMember.size > 1 && (
+            <button
+              type="button"
+              onClick={() =>
+                setOpen((p) =>
+                  p.size === byMember.size ? new Set() : new Set(byMember.keys()),
+                )
+              }
+              className="ml-auto text-xs text-accent hover:underline"
+            >
+              {open.size === byMember.size
+                ? t("crew.duesCollapseAll")
+                : t("crew.duesExpandAll")}
+            </button>
+          )}
+        </div>
       )}
 
       {!charges.length ? (
-        <p className="rounded-md bg-surface px-4 py-8 text-center text-xs text-muted">
-          {t("crew.duesNoCharges")}
-        </p>
+        <Card className="px-4 py-8 text-center">
+          <p className="text-xs text-muted">{t("crew.duesNoCharges")}</p>
+        </Card>
       ) : (
-        <ul className="flex flex-col gap-1.5">
-          {[...byMember.entries()].map(([uid, list]) => {
+        <ul className="flex flex-col gap-2">
+          {shownMembers.map(([uid, list]) => {
             const head = list[0];
             const memberUnpaid = list
               .filter((c) => c.status === "pending" || c.status === "reported")
               .reduce((a, c) => a + c.amount, 0);
+            const memberTotal = list.reduce((a, c) => a + c.amount, 0);
+            const allWaived = list.every((c) => c.status === "waived");
             return (
-              <li key={uid} className="rounded-md bg-surface px-4 py-3">
+              <li
+                key={uid}
+                className="overflow-hidden rounded-2xl border border-line bg-card"
+              >
                 <button
                   type="button"
                   onClick={() => toggle(uid)}
                   aria-expanded={open.has(uid)}
-                  className="flex w-full flex-wrap items-center gap-2 text-left"
+                  className="flex w-full flex-wrap items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-card-hover"
                 >
-                  <span className="shrink-0 text-xs text-muted">
-                    {open.has(uid) ? "▾" : "▸"}
-                  </span>
+                  <Avatar name={head.display_name} size={36} />
                   <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-semibold">
-                      {head.display_name}
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-[15px] font-bold">
+                        {head.display_name}
+                      </span>
+                      {head.tier_name && (
+                        <span
+                          className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${tierBadgeClass(head.tier_color)}`}
+                        >
+                          {head.tier_name}
+                        </span>
+                      )}
                     </span>
                     {head.email && (
-                      <span className="truncate text-[11px] font-normal text-muted">
+                      <span className="truncate text-xs font-normal text-muted">
                         {head.email}
                       </span>
                     )}
                   </span>
-                  {head.tier_name && (
-                    <span
-                      className={`${badge(tierBadgeClass(head.tier_color))} font-semibold`}
-                    >
-                      {head.tier_name}
-                    </span>
-                  )}
-                  <span className="ml-auto flex shrink-0 items-center gap-2">
-                    <span className="text-[11px] text-muted">
-                      {t("crew.duesChargeCount", { n: list.length })}
+                  <span className="ml-auto flex shrink-0 items-center gap-2.5">
+                    <span className="tabular text-xs text-muted">
+                      {t("crew.duesChargeCount", { n: list.length })} ·{" "}
+                      {won(memberTotal)}
                     </span>
                     <span
-                      className={`font-mono text-xs ${
-                        memberUnpaid > 0 ? "text-accent" : "text-muted"
+                      className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                        memberUnpaid > 0
+                          ? "bg-danger-bg text-danger"
+                          : allWaived
+                            ? "bg-line text-muted"
+                            : "bg-success-bg text-success"
                       }`}
                     >
                       {memberUnpaid > 0
                         ? t("crew.duesOutstanding", { amount: won(memberUnpaid) })
-                        : `✓ ${t("crew.duesSettled")}`}
+                        : allWaived
+                          ? t("crew.duesWaived")
+                          : `✓ ${t("crew.duesSettled")}`}
+                    </span>
+                    <span aria-hidden className="text-xs text-muted">
+                      {open.has(uid) ? "▾" : "▸"}
                     </span>
                   </span>
                 </button>
 
                 <ul
-                  className="mt-2 flex flex-col gap-1"
+                  className="flex flex-col gap-1 border-t border-line bg-inset px-3 py-2.5"
                   hidden={!open.has(uid)}
                 >
                   {list.map((c) => (
