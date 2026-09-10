@@ -163,7 +163,7 @@ export default async function EventDetailPage({
           )}
           {myPlanId && (
             <Link
-              href={`/schedule/race/${myPlanId}`}
+              href={`/schedule/race/${myPlanId}?from=${encodeURIComponent(`/events/${id}`)}`}
               className="rounded-md border border-line-accent bg-highlight px-3 py-1.5 text-xs font-bold text-accent hover:brightness-125"
             >
               {t("race.myPlan")} →

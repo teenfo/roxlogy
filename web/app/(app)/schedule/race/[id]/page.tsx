@@ -6,6 +6,7 @@ import { formatMs, todayISOIn } from "@/lib/format";
 import { dictLabel } from "@/lib/dict-label";
 import { DOUBLES_DIVISIONS } from "@/lib/divisions";
 import { eventPlace } from "@/lib/event-display";
+import { safeNext } from "@/lib/site-url";
 import { Avatar, Card } from "@/components/ui/crew-ui";
 import { RacePartnerBox, type PlanPartner } from "@/components/race-partner-box";
 import { RacePlanEditor } from "@/components/crew-schedule-forms";
@@ -64,10 +65,16 @@ export async function generateMetadata({
  */
 export default async function RacePlanPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
+  // 같은 목록이 내 일정과 크루 일정 두 곳에 있어서, 들어온 곳을 링크가 실어
+  // 준다. 값은 오픈 리다이렉트 가드를 통과한 앱 내부 경로만 받는다.
+  const backHref = safeNext(from) ?? "/schedule";
   const supabase = await createClient();
   const { t, tag, tz, locale } = await getT();
 
@@ -135,6 +142,13 @@ export default async function RacePlanPage({
   if (dday < 0)
     badges.push({ label: t("race.past"), cls: "bg-line text-muted" });
 
+  // 들어온 곳에 맞춰 이름을 붙인다 — "뒤로"만 있으면 어디로 가는지 모른다
+  const backLabel = backHref.startsWith("/crews/")
+    ? `${t("nav.crews")} ${t("nav.schedule")}`
+    : backHref.startsWith("/events/")
+      ? t("nav.events")
+      : t("nav.schedule");
+
   const splits = [
     { key: "landing.m.run", ms: plan.goal_run_ms },
     { key: "landing.m.station", ms: plan.goal_station_ms },
@@ -192,10 +206,10 @@ export default async function RacePlanPage({
 
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 max-md:col-span-2">
             <Link
-              href="/schedule"
+              href={backHref}
               className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-[#555]"
             >
-              ← {t("meta.schedule")}
+              ← {backLabel}
             </Link>
             {plan.race_event_id && (
               <Link
@@ -207,6 +221,7 @@ export default async function RacePlanPage({
             )}
             {isOwner && (
               <RacePlanEditor
+                backHref={backHref}
                 plan={{
                   id: plan.id,
                   title: plan.title,

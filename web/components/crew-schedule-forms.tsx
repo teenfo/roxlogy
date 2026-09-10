@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { DIVISIONS } from "@/lib/divisions";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -247,7 +247,10 @@ export function CrewMeetupForm({
  */
 export function RacePlanEditor({
   plan,
+  backHref = "/schedule",
 }: {
+  /** 삭제하면 돌아갈 곳 — 상세로 들어온 경로를 그대로 되돌려준다 */
+  backHref?: string;
   plan: {
     id: string;
     title: string;
@@ -299,7 +302,7 @@ export function RacePlanEditor({
       .eq("id", plan.id);
     setBusy(false);
     if (error) return setErr(error.message);
-    router.push("/schedule");
+    router.push(backHref);
     router.refresh();
   }
 
@@ -460,6 +463,7 @@ export function RacePlanForm({
 }) {
   const { t } = useI18n();
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
@@ -596,6 +600,11 @@ export function RacePlanForm({
 
   const showTrigger = part !== "list";
   const showList = part !== "trigger";
+  // 상세에서 "뒤로"가 온 곳을 가리키도록 현재 경로를 실어 보낸다.
+  // 같은 목록이 내 일정과 크루 일정 두 곳에 있어서, 상세는 어디서 왔는지
+  // 스스로 알 수 없다.
+  const planHref = (id: string) =>
+    `/schedule/race/${id}?from=${encodeURIComponent(pathname)}`;
 
   return (
     <div className="flex flex-col gap-2">
@@ -802,7 +811,7 @@ export function RacePlanForm({
                   MY RACE
                 </span>
                 <a
-                  href={`/schedule/race/${p.id}`}
+                  href={planHref(p.id)}
                   className="truncate text-[15px] font-bold text-foreground hover:text-accent"
                 >
                   {p.title}
@@ -883,7 +892,7 @@ export function RacePlanForm({
                   </>
                 ) : (
                   <a
-                    href={`/schedule/race/${p.id}`}
+                    href={planHref(p.id)}
                     className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${
                       p.my_status === "pending"
                         ? "bg-accent text-background"
