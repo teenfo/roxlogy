@@ -77,6 +77,32 @@ export type CrewDirectoryRow = {
   join_policy: "open" | "approval" | "invite";
   member_count: number;
   post_count: number;
+  description: string | null;
+  /** 글·모임 중 가장 최근 — 살아 있는 크루를 가린다 */
+  last_active_at: string | null;
+  /** 아바타 스택용 이름 (가입 순 3명) */
+  member_names: string[];
+};
+
+/** 내 크루 — 목록 상단 강조 카드 (my_crews_overview) */
+export type MyCrewRow = {
+  slug: string;
+  name: string;
+  logo_url: string | null;
+  location: string | null;
+  tagline: string | null;
+  role: "owner" | "coach" | "member" | "associate";
+  tier: string | null;
+  tier_color: string | null;
+  member_count: number;
+  post_count: number;
+  member_names: string[];
+  next_event: {
+    id: string;
+    title: string;
+    starts_at: string;
+    going: number;
+  } | null;
 };
 
 export type CrewRankRow = {

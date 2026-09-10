@@ -45,11 +45,14 @@ export function Badge({
 export function Chip({
   active = false,
   href,
+  onClick,
   count,
   children,
 }: {
   active?: boolean;
   href?: string;
+  /** 클라이언트 필터용 — 칩 전체가 버튼이 된다 (여백까지 클릭 영역) */
+  onClick?: () => void;
   count?: number;
   children: React.ReactNode;
 }) {
@@ -66,13 +69,21 @@ export function Chip({
       )}
     </>
   );
-  return href ? (
-    <Link href={href} className={cls}>
-      {body}
-    </Link>
-  ) : (
-    <span className={cls}>{body}</span>
-  );
+  if (href) {
+    return (
+      <Link href={href} className={cls}>
+        {body}
+      </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} aria-pressed={active} className={cls}>
+        {body}
+      </button>
+    );
+  }
+  return <span className={cls}>{body}</span>;
 }
 
 /** 카드 — highlight 면 옐로 강조(다음 모임·누적 잔액 등) */

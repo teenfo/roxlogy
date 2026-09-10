@@ -5,6 +5,7 @@ import type {
   CrewOverview,
   CrewPost,
   CrewRankRow,
+  MyCrewRow,
 } from "@/lib/crew-types";
 
 export * from "@/lib/crew-types";
@@ -56,4 +57,11 @@ export async function getCrewRoster(slug: string): Promise<CrewMemberRow[]> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("crew_roster", { p_slug: slug });
   return (data ?? []) as CrewMemberRow[];
+}
+
+/** 내 크루 — 목록 상단 강조 카드용 (비로그인이면 빈 배열) */
+export async function getMyCrews(): Promise<MyCrewRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("my_crews_overview");
+  return (data ?? []) as MyCrewRow[];
 }
