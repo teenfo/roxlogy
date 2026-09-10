@@ -113,7 +113,8 @@ export function PftForm({
 
   return (
     <form onSubmit={save} className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="flex flex-col gap-3.5">
+      {/* 모바일에서는 미리보기가 위로 온다 — 배지가 바로 보여야 입력할 맛이 난다 */}
+      <div className="flex flex-col gap-3.5 max-lg:order-2">
         {/* 결과 */}
         <section className={card}>
           <h2 className="text-[15px] font-extrabold">{t("pft.fResult")}</h2>
@@ -274,7 +275,7 @@ export function PftForm({
       </div>
 
       {/* 미리보기 — 입력하는 동안 배지가 어떻게 바뀌는지 옆에서 보인다 */}
-      <aside className="lg:sticky lg:top-20 lg:self-start">
+      <aside className="max-lg:order-1 lg:sticky lg:top-20 lg:self-start">
         <div
           className={`rounded-2xl border px-5 py-4 ${
             preview ? "border-line-accent bg-highlight" : "border-line bg-card"

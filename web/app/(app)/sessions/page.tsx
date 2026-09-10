@@ -55,13 +55,29 @@ export default async function SessionsPage({
 
   // 타입 필터: 해당하는 세션 id를 선별해 일반 id 필터로 적용
   // (count/range와 호환되도록 일반 WHERE 절로 들어감)
-  // 시뮬 세션 id — 타입 필터와 요약의 "시뮬 N" 이 같은 판정을 쓰도록 한 번만 뽑는다
-  const { data: stationRows } = await supabase
-    .from("session_segments")
-    .select("session_id, sessions!inner ( user_id )")
-    .eq("kind", "station")
-    .eq("sessions.user_id", user!.id);
-  const simIds = [...new Set((stationRows ?? []).map((r) => r.session_id))];
+  // 시뮬 세션 id — 타입 필터와 요약의 "시뮬 N" 이 같은 판정을 쓰도록 한 번만 뽑는다.
+  //  · 삭제된 세션은 제외한다. 소프트 삭제라 세그먼트가 그대로 남아 있어
+  //    필터를 안 걸면 지운 세션까지 세어진다(실측 7건이 30건으로 잡혔다).
+  //  · 대회 세션도 스테이션 8개를 가지므로 빼야 한다. 안 그러면 대회가
+  //    시뮬로 중복 계산돼 "대회 6 · 시뮬 7" 처럼 총합을 넘는다.
+  const [{ data: stationRows }, { data: raceIdRows }] = await Promise.all([
+    supabase
+      .from("session_segments")
+      .select("session_id, sessions!inner ( user_id, deleted_at )")
+      .eq("kind", "station")
+      .eq("sessions.user_id", user!.id)
+      .is("sessions.deleted_at", null),
+    supabase
+      .from("sessions")
+      .select("id")
+      .eq("user_id", user!.id)
+      .is("deleted_at", null)
+      .not("race_result_id", "is", null),
+  ]);
+  const raceIdSet = new Set((raceIdRows ?? []).map((r) => r.id as string));
+  const simIds = [
+    ...new Set((stationRows ?? []).map((r) => r.session_id as string)),
+  ].filter((id) => !raceIdSet.has(id));
 
   let typeIds: string[] | null = null;
   if (type === "sim") {
@@ -246,7 +262,7 @@ export default async function SessionsPage({
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {total > 0 && <ExportButton kind="sessions" />}
           <Link
             href="/sessions/compare"
