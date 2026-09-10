@@ -89,11 +89,6 @@ export default async function CrewLayout({
                 </span>
               )}
             </div>
-            {crew.tagline && (
-              <p className="mt-1 text-sm font-semibold tracking-widest text-accent">
-                {crew.tagline}
-              </p>
-            )}
             <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
               <span>
                 <b className="text-foreground">{crew.member_count}</b>{" "}

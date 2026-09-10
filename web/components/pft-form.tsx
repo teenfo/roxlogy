@@ -9,13 +9,16 @@ import {
   PFT_STATIONS,
   badgeClass,
   badgeDictKey,
+  cutoffsFor,
   pftBadge,
+  toNextBadge,
   type PftResult,
 } from "@/lib/pft";
 
 const input =
-  "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
-const label = "mt-4 block text-xs text-muted";
+  "h-10 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
+const label = "mt-3 block text-xs text-muted";
+const card = "rounded-2xl border border-line bg-card px-5 py-4";
 
 /** PFT 기록 입력·수정. 총 시간만 있으면 저장되고 구간 스플릿은 선택이다.
  *  나이·성별은 배지 판정과 리더보드 분류에 쓰이므로 저장 시점 값으로 고정한다
@@ -97,146 +100,246 @@ export function PftForm({
     router.refresh();
   }
 
+  const cuts = cutoffsFor(ageNum);
+  const next = totalMs != null ? toNextBadge(totalMs, ageNum, scaled) : null;
+  const filled = PFT_STATIONS.filter((st) => splitMs[PFT_STATIONS.indexOf(st)] != null).length;
+  const tooShort = totalMs != null && totalMs < 300_000;
+  // 구간 합계가 총 시간과 ±2초 안이면 일치로 본다 (수동 입력 반올림 오차)
+  const splitMatch =
+    filled === PFT_STATIONS.length && totalMs != null
+      ? Math.abs(splitSum - totalMs) <= 2000
+      : null;
+  const canSave = totalMs != null && !tooShort && !splitOver;
+
   return (
-    <form onSubmit={save} className="max-w-lg">
-      <label className={label}>{t("pft.fDate")}</label>
-      <input
-        type="date"
-        className={input}
-        value={testedOn}
-        onChange={(e) => setTestedOn(e.target.value)}
-        required
-      />
-
-      <label className={label}>{t("pft.fTotal")}</label>
-      <input
-        className={input}
-        value={total}
-        onChange={(e) => setTotal(e.target.value)}
-        placeholder="24:30"
-        inputMode="numeric"
-        required
-      />
-      {total && totalMs == null && (
-        <p className="mt-1 text-xs text-red-400">{t("pft.errTotal")}</p>
-      )}
-
-      {/* 배지 미리보기 — 저장 시 DB 가 같은 규칙으로 다시 판정한다 */}
-      {preview && (
-        <p className="mt-2 flex items-center gap-2 text-xs text-muted">
-          {t("pft.previewBadge")}
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeClass(preview)}`}
-          >
-            {t(badgeDictKey(preview))}
-          </span>
-          {ageNum == null && (
-            <span className="text-[11px]">{t("pft.noAgeHint")}</span>
+    <form onSubmit={save} className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="flex flex-col gap-3.5">
+        {/* 결과 */}
+        <section className={card}>
+          <h2 className="text-[15px] font-extrabold">{t("pft.fResult")}</h2>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-xs text-muted">{t("pft.fDate")}</span>
+              <input
+                type="date"
+                className={`${input} mt-1 [color-scheme:dark]`}
+                value={testedOn}
+                onChange={(e) => setTestedOn(e.target.value)}
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-muted">{t("pft.fTotal")} *</span>
+              <input
+                className={`${input} tabular mt-1 h-[42px] text-lg font-bold`}
+                value={total}
+                onChange={(e) => setTotal(e.target.value)}
+                placeholder="mm:ss"
+                inputMode="numeric"
+                required
+              />
+            </label>
+          </div>
+          {total && totalMs == null && (
+            <p className="mt-1.5 text-xs text-danger">{t("pft.errTotal")}</p>
           )}
-        </p>
-      )}
+          {tooShort && (
+            <p className="mt-1.5 text-xs text-danger">{t("pft.errTooShort")}</p>
+          )}
+        </section>
 
-      <p className={label}>{t("pft.fSplits")}</p>
-      <div className="mt-1 grid grid-cols-2 gap-2">
-        {PFT_STATIONS.map((s) => (
-          <label key={s.key} className="flex flex-col gap-1">
-            <span className="text-[11px] text-muted">{t(s.label)}</span>
-            <input
-              className={input}
-              value={splits[s.key] ?? ""}
-              onChange={(e) =>
-                setSplits((p) => ({ ...p, [s.key]: e.target.value }))
-              }
-              placeholder="4:30"
-              inputMode="numeric"
-            />
-          </label>
-        ))}
-      </div>
-      {splitSum > 0 && (
-        <p className={`mt-1.5 text-xs ${splitOver ? "text-red-400" : "text-muted"}`}>
-          {t("pft.splitSum", { sum: formatMs(splitSum) })}
-          {splitOver && ` — ${t("pft.errSplitSum")}`}
-        </p>
-      )}
+        {/* 구간 기록 */}
+        <section className={card}>
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h2 className="text-[15px] font-extrabold">{t("pft.fSplits")}</h2>
+            <span
+              className={`ml-auto text-xs ${
+                splitOver
+                  ? "text-danger"
+                  : splitMatch
+                    ? "text-success"
+                    : "text-muted"
+              }`}
+            >
+              {filled === 0
+                ? t("pft.splitOptional")
+                : splitOver
+                  ? `${t("pft.splitSum", { sum: formatMs(splitSum) })} — ${t("pft.errSplitSum")}`
+                  : splitMatch
+                    ? `${t("pft.splitSum", { sum: formatMs(splitSum) })} ✓`
+                    : t("pft.splitPartial", {
+                        n: filled,
+                        total: PFT_STATIONS.length,
+                        sum: formatMs(splitSum),
+                      })}
+            </span>
+          </div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            {PFT_STATIONS.map((st, i) => (
+              <label key={st.key} className="block">
+                <span className="flex items-center gap-1.5 text-[11px] text-muted">
+                  <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-line text-[10px] font-bold">
+                    {i + 1}
+                  </span>
+                  {t(st.label)}
+                </span>
+                <input
+                  className={`${input} tabular mt-1`}
+                  value={splits[st.key] ?? ""}
+                  onChange={(e) =>
+                    setSplits((p) => ({ ...p, [st.key]: e.target.value }))
+                  }
+                  placeholder="4:30"
+                  inputMode="numeric"
+                />
+              </label>
+            ))}
+          </div>
+        </section>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div>
-          <span className="block text-xs text-muted">{t("pft.fAge")}</span>
-          <input
-            className={`${input} mt-1`}
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            placeholder="35"
-            inputMode="numeric"
+        {/* 측정 정보 */}
+        <section className={card}>
+          <h2 className="text-[15px] font-extrabold">{t("pft.fInfo")}</h2>
+          <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_1fr_2fr]">
+            <label className="block">
+              <span className="text-xs text-muted">{t("pft.fAge")}</span>
+              <input
+                className={`${input} tabular mt-1`}
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="35"
+                inputMode="numeric"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-muted">{t("pft.fGender")}</span>
+              <select
+                className={`${input} mt-1`}
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+              >
+                <option value="">—</option>
+                <option value="male">{t("pft.male")}</option>
+                <option value="female">{t("pft.female")}</option>
+                <option value="other">{t("pft.other")}</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs text-muted">{t("pft.fLocation")}</span>
+              <input
+                className={`${input} mt-1`}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                maxLength={80}
+                placeholder={t("pft.fLocationPh")}
+              />
+            </label>
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted">{t("pft.ageHint")}</p>
+
+          <label className={label}>{t("pft.fNote")}</label>
+          <textarea
+            className={`${input} min-h-20 py-2`}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={500}
           />
-        </div>
-        <div>
-          <span className="block text-xs text-muted">{t("pft.fGender")}</span>
-          <select
-            className={`${input} mt-1`}
-            value={gender}
-            onChange={(e) => setGender(e.target.value)}
-          >
-            <option value="">—</option>
-            <option value="male">{t("pft.male")}</option>
-            <option value="female">{t("pft.female")}</option>
-            <option value="other">{t("pft.other")}</option>
-          </select>
-        </div>
+
+          <div className="mt-3 flex flex-col gap-2.5 border-t border-line pt-3">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 accent-accent"
+                checked={scaled}
+                onChange={(e) => setScaled(e.target.checked)}
+              />
+              <span>
+                {t("pft.fScaled")}
+                <span className="mt-0.5 block text-[11px] text-muted">
+                  {t("pft.fScaledHint")}
+                </span>
+              </span>
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="accent-accent"
+                checked={shared}
+                onChange={(e) => setShared(e.target.checked)}
+              />
+              {t("pft.fShared")}
+            </label>
+          </div>
+        </section>
       </div>
-      <p className="mt-1 text-[11px] text-muted">{t("pft.ageHint")}</p>
 
-      <label className={label}>{t("pft.fLocation")}</label>
-      <input
-        className={input}
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        maxLength={80}
-        placeholder={t("pft.fLocationPh")}
-      />
+      {/* 미리보기 — 입력하는 동안 배지가 어떻게 바뀌는지 옆에서 보인다 */}
+      <aside className="lg:sticky lg:top-20 lg:self-start">
+        <div
+          className={`rounded-2xl border px-5 py-4 ${
+            preview ? "border-line-accent bg-highlight" : "border-line bg-card"
+          }`}
+        >
+          <p className="text-[11px] font-extrabold tracking-[0.08em] text-muted">
+            {t("pft.previewBadge")}
+          </p>
+          <p
+            className={`tabular mt-1 text-[40px] font-extrabold leading-none ${totalMs != null ? "text-accent" : "text-[#444]"}`}
+          >
+            {totalMs != null ? formatMs(totalMs) : "--:--"}
+          </p>
+          {preview && (
+            <p className="mt-2 flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-md px-2.5 py-1 text-xs font-extrabold ${badgeClass(preview)}`}
+              >
+                {t(badgeDictKey(preview))}
+              </span>
+              {next && (
+                <span className="text-xs text-muted">
+                  {t("pft.toNext", {
+                    badge: t(badgeDictKey(next.next)),
+                    gap: formatMs(next.gapMs),
+                  })}
+                </span>
+              )}
+            </p>
+          )}
+          <p className="tabular mt-2 text-[11px] text-muted">
+            {ageNum != null && ageNum >= 45 ? t("pft.o45") : t("pft.u45")} ·{" "}
+            {t("pft.badge.gold")} &lt;{formatMs(cuts.gold)} ·{" "}
+            {t("pft.badge.silver")} &lt;{formatMs(cuts.silver)}
+          </p>
+          {ageNum == null && (
+            <p className="mt-1 text-[11px] text-muted">{t("pft.noAgeHint")}</p>
+          )}
 
-      <label className={label}>{t("pft.fNote")}</label>
-      <textarea
-        className={`${input} min-h-20`}
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        maxLength={500}
-      />
+          {err && <p className="mt-3 text-sm text-danger">{err}</p>}
 
-      <label className="mt-4 flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={scaled}
-          onChange={(e) => setScaled(e.target.checked)}
-        />
-        <span>
-          {t("pft.fScaled")}
-          <span className="mt-0.5 block text-[11px] text-muted">
-            {t("pft.fScaledHint")}
-          </span>
-        </span>
-      </label>
-
-      <label className="mt-3 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={shared}
-          onChange={(e) => setShared(e.target.checked)}
-        />
-        {t("pft.fShared")}
-      </label>
-
-      {err && <p className="mt-3 text-sm text-red-400">{err}</p>}
-
-      <button
-        type="submit"
-        disabled={busy || totalMs == null}
-        className="mt-5 rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
-      >
-        {busy ? "…" : t("common.save")}
-      </button>
+          <button
+            type="submit"
+            disabled={busy || !canSave}
+            className={`mt-4 h-11 w-full rounded-lg text-[15px] font-extrabold ${
+              canSave
+                ? "bg-accent text-background hover:brightness-110"
+                : "cursor-not-allowed bg-[#2a2a2a] text-[#666]"
+            } disabled:opacity-60`}
+          >
+            {busy ? t("common.saving") : t("common.save")}
+          </button>
+          <p className="mt-2 text-center text-[11px] text-muted">
+            {totalMs == null
+              ? t("pft.hintNeedTotal")
+              : tooShort
+                ? t("pft.errTooShort")
+                : splitOver
+                  ? t("pft.errSplitSum")
+                  : shared
+                    ? t("pft.hintShared")
+                    : t("pft.hintPrivate")}
+          </p>
+        </div>
+      </aside>
     </form>
   );
 }

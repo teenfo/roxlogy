@@ -88,28 +88,40 @@ export default async function CrewHomePage({
   );
   const thisMonth = todayISOIn(tz).slice(0, 7);
   const noticeCount = posts.filter((p) => p.category === "notice").length;
+  // 태그라인은 "hybrid, inbrxx, hyrox" 처럼 쉼표로 나열해 쓰고 있다 — 쪼개서
+  // 태그 뱃지로 보여준다.
+  const tags = (crew.tagline ?? "")
+    .split(/[,·]/)
+    .map((x) => x.trim())
+    .filter(Boolean);
 
   return (
     <main className="flex flex-col gap-5">
       {/* 소개 + 정보 — 좌 1.4 : 우 1 */}
-      {(crew.description || crew.tagline || info.length > 0) && (
+      {(crew.description || tags.length > 0 || info.length > 0) && (
         <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
-          {(crew.description || crew.tagline) && (
+          {(crew.description || tags.length > 0) && (
             <Card highlight className="px-6 py-5">
               <p className="text-[11px] font-extrabold tracking-[0.1em] text-accent">
                 {t("crew.aboutLabel")}
               </p>
-              {crew.tagline && (
-                <p className="mt-2 text-lg font-bold">{crew.tagline}</p>
-              )}
               {crew.description && (
                 <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-foreground/80">
                   {crew.description}
                 </p>
               )}
-              {crew.location && (
-                <span className="mt-4 inline-flex rounded-full bg-label-bg px-2.5 py-1 text-xs font-semibold text-label">
-                  {crew.location}
+              {/* 태그라인은 쉼표로 나눠 태그 뱃지로. 위치는 옆 정보 카드에
+                  이미 있으므로 여기서는 빼 중복을 없앤다. */}
+              {tags.length > 0 && (
+                <span className="mt-4 flex flex-wrap gap-1.5">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-label-bg px-2.5 py-1 text-xs font-semibold text-label"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </span>
               )}
             </Card>
