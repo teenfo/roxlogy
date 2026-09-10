@@ -357,6 +357,7 @@ const ko: Record<DictKey, string> = {
   "landing.crewsTitle": "혼자 달리지 않아도 됩니다",
   "landing.crewsSub": "크루를 만들거나 가입해 정기 모임을 잡고, 참석을 관리하고, 크루원끼리 기록을 비교하세요.",
   "landing.crewsAll": "크루 전체 보기 →",
+  "landing.activeCrews": "현재 활동 중인 크루",
   "download.title": "Roxlogy 앱",
   "download.desc": "워치·폰 네이티브 앱을 준비 중입니다. 웹 앱은 지금 모든 브라우저에서 바로 쓸 수 있습니다.",
   "download.androidTitle": "안드로이드",

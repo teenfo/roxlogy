@@ -357,6 +357,7 @@ const es: Record<DictKey, string> = {
   "landing.crewsTitle": "No tienes que correr en solitario",
   "landing.crewsSub": "Crea o únete a un crew: organiza quedadas, controla la asistencia y compara marcas.",
   "landing.crewsAll": "Ver todos los crews →",
+  "landing.activeCrews": "Crews activos ahora",
   "download.title": "Consigue Roxlogy",
   "download.desc": "Las apps nativas de reloj y teléfono están en camino. La web funciona ya en cualquier navegador.",
   "download.androidTitle": "Android",

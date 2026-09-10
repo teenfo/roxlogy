@@ -359,6 +359,7 @@ const en = {
   "landing.crewsTitle": "You don't have to run alone",
   "landing.crewsSub": "Start or join a crew: schedule meetups, track attendance, and line up results side by side.",
   "landing.crewsAll": "See all crews →",
+  "landing.activeCrews": "Crews training right now",
   "download.title": "Get Roxlogy",
   "download.desc": "Native watch & phone apps are on the way. The web app works today on any browser.",
   "download.androidTitle": "Android",

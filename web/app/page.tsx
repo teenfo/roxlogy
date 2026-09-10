@@ -6,7 +6,7 @@ import { formatMs, formatDateShort } from "@/lib/format";
 import { makeLandingDemo } from "@/lib/landing-demo";
 import { CHART_COLORS } from "@/lib/hyrox";
 import { LocaleSwitcher } from "@/components/locale-switcher";
-import { Avatar, AvatarStack } from "@/components/ui/crew-ui";
+import { Avatar } from "@/components/ui/crew-ui";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 const sec = (s: number) => formatMs(s * 1000);
@@ -19,12 +19,11 @@ const ctaGhost =
 export default async function Landing() {
   // 크루 카드는 공개 RPC(crew_directory)라 비로그인에서도 그대로 내려온다.
   // 히어로 수치는 요청마다 새로 만드는 가짜 기록이다 — 실사용자 기록이 아니다.
-  const [{ t, tag, tz }, crews] = await Promise.all([getT(), getCrewDirectory(3)]);
+  const [{ t, tag, tz }, crews] = await Promise.all([getT(), getCrewDirectory(6)]);
   const demo = makeLandingDemo();
   const features = [1, 2, 3] as const;
 
   const pct = (v: number) => (v / demo.finish) * 100;
-  const lead = crews[0] ?? null;
 
   return (
     <main className="flex flex-1 flex-col">
@@ -210,51 +209,65 @@ export default async function Landing() {
         ))}
       </section>
 
-      {/* 3. 크루 배너 — 수치는 실제 공개 크루 것이다 (가짜 모임을 만들지 않는다) */}
-      {lead && (
+      {/* 3. 크루 배너 — 실제 공개 크루를 활동순으로 (가짜 모임을 만들지 않는다) */}
+      {crews.length > 0 && (
         <section className="mx-auto w-full max-w-[1120px] px-6 pb-20 max-md:px-5 max-md:pb-12">
-          <div className="grid items-center gap-6 rounded-2xl border border-line-accent bg-highlight px-7 py-6 max-md:grid-cols-1 max-md:px-5 md:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="flex min-w-0 flex-col gap-2.5">
-              <p className="text-xs font-extrabold tracking-[0.1em] text-accent">
-                CREW
-              </p>
-              <h2 className="text-xl font-extrabold [word-break:keep-all]">
-                {t("landing.crewsTitle")}
-              </h2>
-              <p className="max-w-[560px] text-sm text-foreground/80 [word-break:keep-all]">
-                {t("landing.crewsSub")}
-              </p>
-              <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-2 text-[13px]">
-                {lead.logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={lead.logo_url}
-                    alt=""
-                    className="h-[22px] w-[22px] shrink-0 rounded-full object-cover"
-                  />
-                ) : (
-                  <Avatar name={lead.name} size={22} />
-                )}
-                <Link
-                  href={`/crews/${lead.slug}`}
-                  className="font-bold text-accent hover:underline"
-                >
-                  {lead.name}
-                </Link>
-                <span className="text-foreground/85">
-                  {lead.location ? `${lead.location} · ` : ""}
-                  {lead.member_count} {t("crew.members")}
-                </span>
-                <AvatarStack names={lead.member_names} max={3} />
-              </p>
+          <div className="rounded-2xl border border-line-accent bg-highlight px-7 py-6 max-md:px-5">
+            <div className="grid items-center gap-6 max-md:grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="flex min-w-0 flex-col gap-2.5">
+                <p className="text-xs font-extrabold tracking-[0.1em] text-accent">
+                  CREW
+                </p>
+                <h2 className="text-xl font-extrabold [word-break:keep-all]">
+                  {t("landing.crewsTitle")}
+                </h2>
+                <p className="max-w-[560px] text-sm text-foreground/80 [word-break:keep-all]">
+                  {t("landing.crewsSub")}
+                </p>
+              </div>
+
+              <Link
+                href="/crews"
+                className="flex h-11 shrink-0 items-center justify-center rounded-[10px] border border-line-accent px-5 text-sm font-bold text-accent transition-colors hover:border-[#8a7a2a] hover:bg-[#1f1c10] max-md:w-full"
+              >
+                {t("landing.crewsAll")}
+              </Link>
             </div>
 
-            <Link
-              href="/crews"
-              className="flex h-11 shrink-0 items-center justify-center rounded-[10px] border border-line-accent px-5 text-sm font-bold text-accent transition-colors hover:border-[#8a7a2a] hover:bg-[#1f1c10] max-md:w-full"
-            >
-              {t("landing.crewsAll")}
-            </Link>
+            {/* 크루가 여럿이면 그대로 늘어난다 — crew_directory 가 활동순이다 */}
+            <div className="mt-5 border-t border-line-accent/60 pt-4">
+              <p className="text-[11px] font-bold tracking-[0.06em] text-accent/85">
+                {t("landing.activeCrews")}
+              </p>
+              <ul className="mt-2.5 flex flex-wrap gap-2">
+                {crews.map((c) => (
+                  <li key={c.slug} className="min-w-0">
+                    <Link
+                      href={`/crews/${c.slug}`}
+                      className="flex min-w-0 items-center gap-2.5 rounded-full border border-line bg-card px-3 py-2 transition-colors hover:border-line-strong hover:bg-card-hover"
+                    >
+                      {c.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={c.logo_url}
+                          alt=""
+                          className="h-[22px] w-[22px] shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <Avatar name={c.name} size={22} />
+                      )}
+                      <span className="truncate text-[13px] font-bold">
+                        {c.name}
+                      </span>
+                      <span className="shrink-0 text-[11px] text-muted">
+                        {c.location ? `${c.location} · ` : ""}
+                        {c.member_count} {t("crew.members")}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
       )}
