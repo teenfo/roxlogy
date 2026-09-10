@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCrew } from "@/lib/crew";
 import { getCachedUser } from "@/lib/supabase/auth";
@@ -22,8 +23,9 @@ export default async function CrewLayout({
   ]);
   if (!crew) notFound();
 
+  // 소개는 탭에서 빼고 크루명 링크로 옮겼다 — 탭이 7개면 모바일에서 가로
+  // 스크롤이 생겨 뒤쪽 탭(회계·관리)이 화면 밖에 숨는다.
   const tabs: { href: string; label: string; badge?: number }[] = [
-    { href: `/crews/${slug}`, label: t("crew.about") },
     { href: `/crews/${slug}/schedule`, label: t("crew.schedTab") },
     { href: `/crews/${slug}/board`, label: t("crew.board") },
     { href: `/crews/${slug}/leaderboard`, label: t("crew.leaderboard") },
@@ -75,8 +77,11 @@ export default async function CrewLayout({
             )}
             <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-2xl font-black tracking-tight sm:text-3xl">
-                {crew.name}
+              <h1 className="min-w-0 truncate text-2xl font-black tracking-tight sm:text-3xl">
+                {/* 크루명 = 소개로 가는 링크 (소개 탭을 대신한다) */}
+                <Link href={`/crews/${slug}`} className="hover:text-accent">
+                  {crew.name}
+                </Link>
               </h1>
               {crew.crew_status === "pending" && (
                 <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent">

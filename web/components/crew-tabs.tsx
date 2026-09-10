@@ -13,21 +13,20 @@ export type CrewTab = { href: string; label: string; badge?: number };
  */
 export function CrewTabs({ tabs }: { tabs: CrewTab[] }) {
   const pathname = usePathname();
-  const base = tabs[0]?.href ?? "";
 
+  // 소개는 탭이 아니라 크루명 링크로 옮겼다 — 접두사가 겹치는 탭이 없으므로
+  // 정확 일치/하위 경로만 보면 된다.
   return (
-    <nav className="mt-6 flex gap-1 overflow-x-auto border-b border-line pb-px">
+    <nav className="mt-6 flex flex-wrap gap-x-1 border-b border-line pb-px">
       {tabs.map((tab) => {
         const active =
-          tab.href === base
-            ? pathname === base
-            : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+          pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         return (
           <Link
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-3.5 py-2.5 text-[15px] transition-colors ${
+            className={`-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-2.5 text-sm transition-colors sm:px-3.5 sm:text-[15px] ${
               active
                 ? "border-accent font-bold text-accent"
                 : "border-transparent text-muted hover:text-foreground"
