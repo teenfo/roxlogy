@@ -18,9 +18,23 @@ const supa = () =>
     { auth: { persistSession: false } },
   );
 
+/** DB 트리거가 던지는 코드 → 도구가 이해할 수 있는 응답.
+ *  월 마감처럼 "사용자가 풀면 되는" 상태는 오류가 아니라 답이어야 한다. */
+const GUARD_HINTS: Record<string, string> = {
+  dues_month_closed:
+    "그 달은 마감되어 회비 청구를 바꿀 수 없습니다. close_crew_month 에 reopen:true 로 마감을 풀고 다시 시도하세요.",
+  ledger_month_closed:
+    "그 달은 마감되어 장부 내역을 바꿀 수 없습니다. 통장 반영일(settle_crew_ledger)만 예외입니다.",
+};
+
 async function rpc(fn: string, args: Record<string, unknown>) {
   const { data, error } = await supa().rpc(fn, args);
-  if (error) throw new Error(error.message);
+  if (error) {
+    for (const [code, hint] of Object.entries(GUARD_HINTS)) {
+      if (error.message.includes(code)) return { error: code, hint };
+    }
+    throw new Error(error.message);
+  }
   return data;
 }
 
@@ -176,7 +190,10 @@ const handler = createMcpHandler(
       {
         title: "크루 회계 기록 (운영진)",
         description:
-          "크루 회계에 수입/지출 내역을 기록한다 (운영진 전용). 영수증 사진을 읽었다면 날짜·금액·상호를 추출해 사용하되, 기록 전 사용자에게 내용을 확인받아라. amount 는 KRW 정수(원).",
+          "크루 회계에 수입/지출 내역을 기록한다 (운영진 전용). 영수증 사진을 읽었다면 날짜·금액·상호를 추출해 사용하되, 기록 전 사용자에게 내용을 확인받아라. amount 는 KRW 정수(원). " +
+          "method(현금·카드·이체·기타)는 알면 넣어라 — 카드값은 통장에 며칠 뒤에 찍혀서 대사할 때 이 구분이 필요하다. " +
+          "settled_on 은 그 돈이 실제로 통장에 찍힌 날이다. 아직 안 찍혔으면 비워 두고, 나중에 settle_crew_ledger 로 표시한다. " +
+          "마감된 달에는 기록할 수 없다 (error: month_closed).",
         inputSchema: z.object({
           slug: z.string(),
           kind: z.enum(["income", "expense"]),
@@ -184,9 +201,11 @@ const handler = createMcpHandler(
           title: z.string().min(1).max(120),
           date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
           memo: z.string().max(500).optional(),
+          method: z.enum(["cash", "card", "transfer", "other"]).optional(),
+          settled_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
         }),
       },
-      async ({ slug, kind, amount, title, date, memo }, ctx) =>
+      async ({ slug, kind, amount, title, date, memo, method, settled_on }, ctx) =>
         out(
           await rpc("mcp_add_ledger", {
             p_token: tok(ctx),
@@ -196,6 +215,8 @@ const handler = createMcpHandler(
             p_title: title,
             ...(date ? { p_date: date } : {}),
             p_memo: memo ?? null,
+            p_method: method ?? null,
+            p_settled_on: settled_on ?? null,
           }),
         ),
     );
@@ -301,7 +322,9 @@ const handler = createMcpHandler(
       {
         title: "크루 회계",
         description:
-          "크루 회계 (정회원 전용) — 월 수입/지출 합계, 누적 잔액, 해당 월 내역. month 는 YYYY-MM, 기본 이번 달. 금액은 KRW.",
+          "크루 회계 (정회원 전용) — 월 수입/지출 합계, 장부 잔액(total_balance), 통장 잔고(bank_balance = 기초 잔액 + 통장에 찍힌 거래), 미반영 금액(unsettled), 그 달 마감 여부(closed), 해당 월 내역. " +
+          "내역마다 entry_id·method(결제 수단)·settled_on(통장에 찍힌 날, null 이면 미반영)·source(dues 면 회비에서 자동 생성된 행)가 붙는다. " +
+          "장부 잔액과 통장 잔고가 다르면 그 차이가 곧 아직 통장에 안 들어온 돈이다. month 는 YYYY-MM, 기본 이번 달. 금액은 KRW.",
         inputSchema: z.object({
           slug: z.string(),
           month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
@@ -313,6 +336,83 @@ const handler = createMcpHandler(
             p_token: tok(ctx),
             p_slug: slug,
             p_month: month ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "settle_crew_ledger",
+      {
+        title: "통장 반영 표시 (운영진)",
+        description:
+          "장부 내역을 '통장에 찍혔다'고 표시한다 (운영진 전용). entry_id 하나를 지정하거나, month(YYYY-MM)를 주면 그 달의 미반영 내역을 한 번에 처리한다. " +
+          "on(통장에 찍힌 날)을 생략하면 각 내역의 거래일로 본다 — 대부분 같은 날이라 이게 기본이다. 카드값처럼 며칠 뒤에 빠지면 on 을 명시하라. " +
+          "clear:true 면 반대로 반영 표시를 지운다. 마감된 달에서도 이 값만은 바꿀 수 있다(9월 지출이 10월 통장에 찍히는 일이 흔해서). 실행 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          entry_id: z.string().uuid().optional(),
+          month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+          on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          clear: z.boolean().optional(),
+        }),
+      },
+      async ({ slug, entry_id, month, on, clear }, ctx) =>
+        out(
+          await rpc("mcp_settle_ledger", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_entry_id: entry_id ?? null,
+            p_month: month ?? null,
+            p_on: on ?? null,
+            p_clear: clear ?? false,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "set_crew_bank_opening",
+      {
+        title: "통장 기초 잔액 (운영진)",
+        description:
+          "통장 잔고를 계산하려면 시작점이 필요하다 — 장부를 쓰기 시작한 시점의 통장 잔액을 한 번 적어 둔다 (운영진 전용). " +
+          "이후로는 통장에 반영 표시한 거래만 더해 잔고가 따라간다. amount 는 KRW 정수, on 은 그 잔액의 기준일. 실행 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          amount: z.number().int(),
+          on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        }),
+      },
+      async ({ slug, amount, on }, ctx) =>
+        out(
+          await rpc("mcp_set_bank_opening", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_amount: amount,
+            p_on: on ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "close_crew_month",
+      {
+        title: "회계 월 마감 (운영진)",
+        description:
+          "그 달의 회계를 마감한다 (운영진 전용). 마감하면 그 달의 회비 청구(확정·면제·신고·대사)와 장부 내역(추가·수정·삭제)이 모두 막힌다 — 화면뿐 아니라 DB 가 막으므로 이 서버의 다른 도구도 거부된다. 통장 반영일만 예외다. " +
+          "응답의 open_charges(아직 못 받은 청구)·unsettled_entries(통장 미반영 내역)를 먼저 사용자에게 알리고, 남아 있는데도 마감할지 확인받아라. reopen:true 로 언제든 다시 풀 수 있다.",
+        inputSchema: z.object({
+          slug: z.string(),
+          period: z.string().regex(/^\d{4}-\d{2}$/),
+          reopen: z.boolean().optional(),
+        }),
+      },
+      async ({ slug, period, reopen }, ctx) =>
+        out(
+          await rpc("mcp_close_month", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_period: period,
+            p_reopen: reopen ?? false,
           }),
         ),
     );
@@ -373,7 +473,7 @@ const handler = createMcpHandler(
       {
         title: "프로그램 상세",
         description:
-          "훈련 프로그램 1건의 상세 — 일차별(day_index) focus·notes 와 워크아웃(items 의 exercise + 구조화 처방 distance_m·weight_kg·reps·sets·duration_s·note), 내 등록 시작일(my_start_date). 내 프로그램, 공개 프로그램, 내 크루에 연결된 프로그램을 볼 수 있다.",
+          "훈련 프로그램 1건의 상세 — 일차별(day_index) focus·notes·rest(워크아웃이 없는 휴식일) 와 워크아웃(items 의 exercise + 구조화 처방 distance_m·weight_kg·reps·sets·duration_s·rest_s·note), 훈련 요일(week_pattern, 0=월 … 6=일), 공개 여부, 내 소유 여부(is_mine), 내 등록 시작일(my_start_date). 내 프로그램, 공개 프로그램, 내 크루에 연결된 프로그램을 볼 수 있다.",
         inputSchema: z.object({ program_id: z.string().uuid() }),
       },
       async ({ program_id }, ctx) =>
@@ -387,7 +487,9 @@ const handler = createMcpHandler(
         description:
           "훈련 프로그램(템플릿)을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드), workouts?}] 배열. " +
           "workouts 아이템의 exercise 는 운동 DB(list_exercises)에 등록된 이름(한/영)만 허용 — 미등록 이름이 있으면 unknown_exercises 로 전체 거부되며 이름별 유사 후보(suggestions)가 함께 온다 — 표기 차이로 보이면 사용자 확인 후 후보 이름으로 재시도하고, 실제 없는 운동은 request_exercise 로 등록을 요청하라. " +
-          "아이템 처방은 숫자 필드로 구조화해 넣어라: distance_m(거리 m)·weight_kg(무게)·reps(세트당 횟수)·sets(세트)·duration_s(시간 초) — 통계 집계에 쓰이므로 '400m 8세트'는 note 가 아니라 distance_m:400, sets:8 로. note 에는 휴식·강도 등 숫자로 안 담기는 것만. " +
+          "아이템 처방은 숫자 필드로 구조화해 넣어라: distance_m(거리 m)·weight_kg(무게)·reps(세트당 횟수)·sets(세트)·duration_s(시간 초)·rest_s(세트 사이 휴식 초) — 통계 집계에 쓰이므로 '400m 8세트 세트간 90초'는 note 가 아니라 distance_m:400, sets:8, rest_s:90 으로. note 에는 강도·큐잉 등 숫자로 안 담기는 것만. " +
+          "week_pattern 은 훈련 요일 배열(0=월 … 6=일, 예: [0,2,4] = 월·수·금). 넣으면 빌더가 '3일차 = 금요일'을 보여주고 주 단위로 묶어 준다 — 주 N회 계획이면 꼭 넣어라. " +
+          "workouts 를 생략한 일차는 휴식일로 남는다 — 주간 패턴에 맞춰 쉬는 날도 일차로 만들어 두면 일정이 요일과 어긋나지 않는다. " +
           "프로그램은 날짜 없는 템플릿이다 — 만든 뒤 start_program 으로 내 일정에 시작하거나 attach_crew_program 으로 크루 일정표에 연결해야 날짜가 붙는다. 생성 전 사용자에게 구성을 확인받아라.",
         inputSchema: z.object({
           title: z.string().min(1).max(120),
@@ -414,6 +516,7 @@ const handler = createMcpHandler(
                       reps: z.number().int().min(1).max(10000).optional(),
                       sets: z.number().int().min(1).max(100).optional(),
                       duration_s: z.number().int().min(1).max(86400).optional(),
+                      rest_s: z.number().int().min(1).max(3600).optional(),
                       note: z.string().max(80).optional(),
                     }),
                   )
@@ -431,9 +534,10 @@ const handler = createMcpHandler(
             .enum(["beginner", "intermediate", "advanced", "elite"])
             .optional(),
           description: z.string().max(2000).optional(),
+          week_pattern: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
         }),
       },
-      async ({ title, weeks, days, level, description }, ctx) =>
+      async ({ title, weeks, days, level, description, week_pattern }, ctx) =>
         out(
           await rpc("mcp_create_program", {
             p_token: tok(ctx),
@@ -442,6 +546,7 @@ const handler = createMcpHandler(
             p_days: days,
             p_level: level ?? "intermediate",
             p_description: description ?? null,
+            p_week_pattern: week_pattern ?? null,
           }),
         ),
     );
@@ -451,7 +556,8 @@ const handler = createMcpHandler(
       {
         title: "프로그램 일차 수정",
         description:
-          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. workouts 를 주면 그 일차의 워크아웃을 통째로 교체한다(운동은 list_exercises 의 등록 이름만). 아이템 처방은 distance_m·weight_kg·reps·sets·duration_s 숫자 필드로 구조화하고 note 에는 휴식·강도만. focus·notes·workouts 를 모두 생략하면 그 일차를 삭제한다. 워크아웃 교체·일차 삭제는 되돌릴 수 없으니 실행 전 사용자에게 확인받아라.",
+          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. workouts 를 주면 그 일차의 워크아웃을 통째로 교체한다(운동은 list_exercises 의 등록 이름만). 아이템 처방은 distance_m·weight_kg·reps·sets·duration_s·rest_s 숫자 필드로 구조화하고 note 에는 강도·큐잉만. " +
+          "workouts 에 빈 배열([])을 주면 그 일차는 휴식일이 된다(일차는 남고 워크아웃만 사라진다). focus·notes·workouts 를 모두 생략하면 그 일차 자체를 삭제한다. 워크아웃 교체·일차 삭제는 되돌릴 수 없으니 실행 전 사용자에게 확인받아라.",
         inputSchema: z.object({
           program_id: z.string().uuid(),
           day_index: z.number().int().min(1),
@@ -473,6 +579,7 @@ const handler = createMcpHandler(
                       reps: z.number().int().min(1).max(10000).optional(),
                       sets: z.number().int().min(1).max(100).optional(),
                       duration_s: z.number().int().min(1).max(86400).optional(),
+                      rest_s: z.number().int().min(1).max(3600).optional(),
                       note: z.string().max(80).optional(),
                     }),
                   )
@@ -493,6 +600,41 @@ const handler = createMcpHandler(
             p_focus: focus ?? null,
             p_notes: notes ?? null,
             p_workouts: workouts ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "update_program",
+      {
+        title: "프로그램 기본 정보 수정",
+        description:
+          "내 프로그램의 기본 정보를 고친다 — 제목·설명·기간(weeks)·레벨·공개 여부·훈련 요일(week_pattern). 일차 구성은 set_program_day 로 한다. " +
+          "생략한 값은 그대로 둔다. is_public 을 켜면 모든 Roxlogy 사용자에게 보이므로 반드시 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          program_id: z.string().uuid(),
+          title: z.string().min(1).max(120).optional(),
+          description: z.string().max(2000).optional(),
+          weeks: z.number().int().min(1).max(20).optional(),
+          level: z.enum(["beginner", "intermediate", "advanced", "elite"]).optional(),
+          is_public: z.boolean().optional(),
+          week_pattern: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+        }),
+      },
+      async (
+        { program_id, title, description, weeks, level, is_public, week_pattern },
+        ctx,
+      ) =>
+        out(
+          await rpc("mcp_update_program", {
+            p_token: tok(ctx),
+            p_program: program_id,
+            p_title: title ?? null,
+            p_description: description ?? null,
+            p_weeks: weeks ?? null,
+            p_level: level ?? null,
+            p_is_public: is_public ?? null,
+            p_week_pattern: week_pattern ?? null,
           }),
         ),
     );
@@ -970,7 +1112,7 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.1.0" },
+    serverInfo: { name: "roxlogy", version: "3.2.0" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
@@ -997,8 +1139,8 @@ const handler = createMcpHandler(
       "크루 도구의 slug 는 get_profile 의 crews 목록에서 얻는다. " +
       '응답이 {"error":"not_found_or_invalid_token"} 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다 — 빈 목록([])과 구분된다. ' +
       "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
-      "쓰기 도구(회계·모임 등록/수정/상태변경·공지·승인·등급 지정·출석 체크·" +
-      "회비 확정/맞추기/면제·프로그램 생성/일차 수정/시작/중지·크루 연결·PFT 기록·운동 등록 요청)는 " +
+      "쓰기 도구(회계 기록·통장 반영·기초 잔액·월 마감·모임 등록/수정/상태변경·공지·승인·등급 지정·출석 체크·" +
+      "회비 확정/맞추기/면제·프로그램 생성/수정/일차 수정/시작/중지·크루 연결·PFT 기록·운동 등록 요청)는 " +
       "실행 전 반드시 사용자에게 내용을 확인받는다. " +
       "훈련 계획 문서를 받으면 create_program 으로 일차별 등록 후 " +
       "start_program 으로 내 일정에 시작하거나 attach_crew_program 으로 크루 " +
@@ -1008,7 +1150,15 @@ const handler = createMcpHandler(
       "가진다. 월회비는 sync_crew_dues 로 그 달을 맞추고, 회차비는 모임 출석을 " +
       "체크하면 자동으로 청구된다. 무료 행사로 표시한 모임은 출석은 남지만 " +
       "청구되지 않는다. 이미 확정했거나 본인이 납부 신고한 청구는 어떤 경로로도 " +
-      "다시 발행되거나 금액이 바뀌지 않는다.",
+      "다시 발행되거나 금액이 바뀌지 않는다. " +
+      "회계는 장부와 통장을 따로 본다: 장부 잔액은 기록한 모든 거래이고, 통장 " +
+      "잔고는 기초 잔액(set_crew_bank_opening) + 통장에 반영 표시한 거래다. " +
+      "둘의 차이가 아직 통장에 안 들어온 돈이라 대사가 된다 — 입금·출금을 " +
+      "확인했으면 settle_crew_ledger 로 표시한다. 회비를 확정하면 장부에 " +
+      "수입(source=dues)이 자동으로 생기고, 그 행도 똑같이 통장 반영 대상이다. " +
+      "한 달을 다 정리했으면 close_crew_month 로 마감한다 — 마감된 달은 회비 " +
+      "청구도 장부도 잠기고(error: dues_month_closed / ledger_month_closed), " +
+      "통장 반영일만 열려 있다. 마감은 reopen 으로 풀 수 있다.",
   },
 );
 
