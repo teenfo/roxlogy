@@ -7,6 +7,7 @@ import { getT } from "@/lib/i18n";
 import { CrewJoinButton } from "@/components/crew-join-button";
 import { CrewHeader } from "@/components/crew-header";
 import { CrewTabs } from "@/components/crew-tabs";
+import { CrewCover } from "@/components/crew-cover";
 
 export default async function CrewLayout({
   children,
@@ -56,14 +57,8 @@ export default async function CrewLayout({
       <CrewHeader loginNext={`/crews/${slug}`} />
 
       <div className="mx-auto w-full max-w-[960px] flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
-        {crew.cover_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={crew.cover_url}
-            alt=""
-            className="mb-6 h-36 w-full rounded-md object-cover sm:h-52"
-          />
-        )}
+        {/* 커버는 탭 화면에서만 — 모임 상세·게시글에서는 본문이 먼저다 */}
+        {crew.cover_url && <CrewCover src={crew.cover_url} slug={slug} />}
         {/* 크루 헤더 */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3 sm:gap-4">
