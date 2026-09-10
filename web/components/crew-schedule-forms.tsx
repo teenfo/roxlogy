@@ -461,7 +461,7 @@ export function RacePlanForm({
    *  쓰면 순수하지 않고 서버 UTC 기준이라 하루가 어긋난다. */
   today: string;
 }) {
-  const { t } = useI18n();
+  const { t, tag } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -733,7 +733,11 @@ export function RacePlanForm({
         </div>
       )}
       {showList && myPlans.length > 0 && (
-        <ul className="flex flex-col gap-1">
+        <ul
+          className={`grid gap-2.5 ${
+            myPlans.length > 1 ? "sm:grid-cols-2" : "max-w-[480px]"
+          }`}
+        >
           {myPlans.map((p) =>
             editId === p.id ? (
               <li key={p.id}>
@@ -805,126 +809,151 @@ export function RacePlanForm({
             ) : (
               <li
                 key={p.id}
-                className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-dashed border-line-strong px-4 py-3 text-[13px] text-muted"
+                className="flex flex-col gap-2.5 rounded-[14px] border border-dashed border-line-strong px-[18px] py-4"
               >
-                <span className="shrink-0 rounded-md border border-line-accent px-2 py-0.5 text-[10px] font-extrabold tracking-[0.06em] text-accent">
-                  MY RACE
-                </span>
-                <a
-                  href={planHref(p.id)}
-                  className="truncate text-[15px] font-bold text-foreground hover:text-accent"
-                >
-                  {p.title}
-                </a>
-                <span className="tabular shrink-0">{p.race_date}</span>
-                {/* D-day — 남은 날이 보여야 준비 상태가 가늠된다 */}
-                {(() => {
-                  const d = Math.round(
-                    (Date.parse(p.race_date) - Date.parse(today)) / 86400000,
-                  );
-                  if (d < 0) return null;
-                  return (
-                    <span className="tabular shrink-0 rounded-md bg-line px-2 py-0.5 text-[11px] font-bold text-foreground/80">
-                      D-{d}
+                {/* 1행 — 배지·D-day·액션 */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="shrink-0 rounded-md border border-line-accent px-2 py-0.5 text-[10px] font-extrabold tracking-[0.06em] text-accent">
+                    MY RACE
+                  </span>
+                  {(() => {
+                    const d = Math.round(
+                      (Date.parse(p.race_date) - Date.parse(today)) / 86400000,
+                    );
+                    if (d < 0) return null;
+                    return (
+                      <span className="tabular shrink-0 rounded-md bg-line px-2 py-0.5 text-xs font-bold text-foreground/80">
+                        D-{d}
+                      </span>
+                    );
+                  })()}
+                  {p.bib && (
+                    <span className="tabular shrink-0 rounded-md bg-info-bg px-2 py-0.5 text-[10px] font-bold text-info">
+                      BIB {p.bib}
                     </span>
-                  );
-                })()}
-                {p.division && (
-                  <span className="min-w-0 truncate">
-                    {dictLabel(t, `division.${p.division}`, p.division)}
-                  </span>
-                )}
-                {p.bib && (
-                  <span className="tabular shrink-0 rounded-md bg-info-bg px-2 py-0.5 text-[10px] font-bold text-info">
-                    BIB {p.bib}
-                  </span>
-                )}
-                {/* 파트너 — 수락 여부를 색으로 구분한다 */}
-                {p.partners.map((pt) => (
-                  <span
-                    key={pt.user_id}
-                    className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                      pt.status === "accepted"
-                        ? "bg-success-bg text-success"
-                        : pt.status === "declined"
-                          ? "bg-danger-bg text-danger"
-                          : "bg-label-bg text-label"
-                    }`}
-                  >
-                    {pt.name}
-                  </span>
-                ))}
-                {p.goal_target_ms != null ? (
-                  <a
-                    href="/goals"
-                    className="tabular shrink-0 rounded-md border border-line-accent bg-highlight px-2 py-0.5 text-[11px] font-bold text-accent"
-                  >
-                    🎯 {fmtMs(p.goal_target_ms)}
-                  </a>
-                ) : (
-                  p.role === "owner" && (
+                  )}
+                  {/* 초대받은 계획은 남의 것이다 — 수정·삭제 대신 응답 */}
+                  {p.role === "owner" ? (
+                    <span className="ml-auto flex shrink-0 items-center gap-2.5 text-xs text-muted">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(p)}
+                        className="hover:text-accent"
+                      >
+                        {t("common.edit")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => del(p.id)}
+                        className="hover:text-danger"
+                      >
+                        {t("common.delete")}
+                      </button>
+                    </span>
+                  ) : (
                     <a
-                      href={`/predict?event=${encodeURIComponent(p.title)}&date=${p.race_date}`}
-                      className="shrink-0 text-accent hover:underline"
+                      href={planHref(p.id)}
+                      className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                        p.my_status === "pending"
+                          ? "bg-accent text-background"
+                          : "bg-line text-muted"
+                      }`}
                     >
-                      {t("events.setGoal")}
+                      {p.my_status === "pending"
+                        ? t("race.partnerRespond")
+                        : t("race.byOwner", { name: p.owner_name })}
                     </a>
-                  )
-                )}
-                {/* 초대받은 계획은 남의 것이다 — 수정·삭제 대신 상태만 */}
-                {p.role === "owner" ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(p)}
-                      className="ml-auto text-muted hover:text-accent"
-                    >
-                      {t("common.edit")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => del(p.id)}
-                      className="text-muted hover:text-danger"
-                      aria-label={t("common.delete")}
-                    >
-                      ✕
-                    </button>
-                  </>
-                ) : (
+                  )}
+                </div>
+
+                {/* 2행 — 대회명·날짜·디비전·파트너 */}
+                <div className="min-w-0">
                   <a
                     href={planHref(p.id)}
-                    className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${
-                      p.my_status === "pending"
-                        ? "bg-accent text-background"
-                        : "bg-line text-muted"
-                    }`}
+                    className="block truncate text-[17px] font-extrabold hover:text-accent"
                   >
-                    {p.my_status === "pending"
-                      ? t("race.partnerRespond")
-                      : t("race.byOwner", { name: p.owner_name })}
+                    {p.title}
                   </a>
-                )}
-                {/* 목표 스플릿 — 총 기록만으로는 어디를 줄일지 안 보인다 */}
-                {p.goal_target_ms != null &&
-                  (p.goal_run_ms != null || p.goal_station_ms != null) && (
-                    <span className="tabular flex w-full flex-wrap gap-x-3 text-[11px] text-muted">
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
+                    <span className="tabular">
+                      {new Date(`${p.race_date}T00:00:00`).toLocaleDateString(
+                        tag,
+                        { year: "numeric", month: "long", day: "numeric", weekday: "short" },
+                      )}
+                    </span>
+                    {p.division && (
+                      <span>
+                        · {dictLabel(t, `division.${p.division}`, p.division)}
+                      </span>
+                    )}
+                    {p.partners.map((pt) => (
+                      <span
+                        key={pt.user_id}
+                        className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
+                          pt.status === "accepted"
+                            ? "bg-success-bg text-success"
+                            : pt.status === "declined"
+                              ? "bg-danger-bg text-danger"
+                              : "bg-label-bg text-label"
+                        }`}
+                      >
+                        {pt.name}
+                      </span>
+                    ))}
+                  </p>
+                </div>
+
+                {/* 3행 — 목표 상태 박스 */}
+                {p.goal_target_ms == null ? (
+                  <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-line-accent bg-highlight px-3 py-2.5">
+                    <span className="min-w-0 flex-1 text-[13px] text-[#c9b34a]">
+                      {t("race.goalNone")}
+                    </span>
+                    {p.role === "owner" && (
+                      <a
+                        href={`/predict?event=${encodeURIComponent(p.title)}&date=${p.race_date}`}
+                        className="shrink-0 text-[13px] font-bold text-accent hover:underline"
+                      >
+                        {t("events.setGoal")} →
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-[10px] border border-line bg-page px-3 py-2.5">
+                    <span className="shrink-0">
+                      <span className="block text-[11px] text-muted">
+                        {t("race.goalTitle")}
+                      </span>
+                      <span className="tabular block text-lg font-extrabold text-accent">
+                        {fmtMs(p.goal_target_ms)}
+                      </span>
+                    </span>
+                    <span className="tabular ml-auto flex flex-wrap gap-x-3 text-xs text-muted">
                       {p.goal_run_ms != null && (
                         <span>
-                          {t("landing.m.run")} {fmtMs(p.goal_run_ms)}
+                          {t("landing.m.run")}{" "}
+                          <b className="text-info">{fmtMs(p.goal_run_ms)}</b>
                         </span>
                       )}
                       {p.goal_station_ms != null && (
                         <span>
-                          {t("landing.m.station")} {fmtMs(p.goal_station_ms)}
+                          {t("landing.m.station")}{" "}
+                          <b className="text-accent-dim">
+                            {fmtMs(p.goal_station_ms)}
+                          </b>
                         </span>
                       )}
                       {p.goal_roxzone_ms != null && (
                         <span>
-                          {t("landing.m.roxzone")} {fmtMs(p.goal_roxzone_ms)}
+                          {t("landing.m.roxzone")}{" "}
+                          <b className="text-foreground/85">
+                            {fmtMs(p.goal_roxzone_ms)}
+                          </b>
                         </span>
                       )}
                     </span>
-                  )}
+                  </div>
+                )}
               </li>
             ),
           )}
