@@ -51,8 +51,13 @@ export function NotificationList({ rows }: { rows: NotifRow[] }) {
   const [err, setErr] = useState<string | null>(null);
   /** 지운 행은 refresh 전에도 바로 사라지게 — 서버 왕복을 기다리면 먹통처럼 보인다 */
   const [gone, setGone] = useState<Set<string>>(new Set());
+  /** 방금 읽은 것 — 링크를 누르면 곧바로 다른 화면으로 넘어가서
+   *  router.refresh() 의 결과를 볼 틈이 없다. 화면부터 맞춰 둔다. */
+  const [readNow, setReadNow] = useState<Set<string>>(new Set());
 
-  const live = rows.filter((r) => !gone.has(r.id));
+  const live = rows
+    .filter((r) => !gone.has(r.id))
+    .map((r) => (readNow.has(r.id) ? { ...r, unread: false } : r));
   const unread = live.filter((r) => r.unread);
   const typeKeys = [...new Set(live.map((r) => r.type_key ?? "other"))];
 
@@ -79,14 +84,32 @@ export function NotificationList({ rows }: { rows: NotifRow[] }) {
     router.refresh();
   }
 
-  const markAll = () =>
-    run((uid) =>
+  const markAll = () => {
+    setReadNow((s) => new Set([...s, ...unread.map((r) => r.id)]));
+    return run((uid) =>
       createClient()
         .from("notifications")
         .update({ read_at: new Date().toISOString() })
         .eq("user_id", uid)
         .is("read_at", null),
     );
+  };
+
+  /** 알림을 열면 읽은 것이다. 지금까지 "모두 읽음"을 누르기 전에는 아무리
+   *  눌러 봐도 뱃지가 안 없어졌다 — read_at 을 쓰는 곳이 그 버튼뿐이었다.
+   *  이동을 막지 않으려고 결과를 기다리지 않는다(실패해도 다음 방문에 다시 보인다). */
+  function markRead(id: string, wasUnread: boolean) {
+    if (!wasUnread || readNow.has(id)) return;
+    setReadNow((s) => new Set(s).add(id));
+    void createClient()
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) setErr(error.message);
+        else router.refresh();
+      });
+  }
 
   const del = (id: string) =>
     run(
@@ -230,11 +253,22 @@ export function NotificationList({ rows }: { rows: NotifRow[] }) {
                         className="flex items-start gap-2 pr-2 transition-colors hover:bg-card-hover"
                       >
                         {n.url ? (
-                          <Link href={n.url} className="flex min-w-0 flex-1 px-5 py-3.5">
+                          <Link
+                            href={n.url}
+                            onClick={() => markRead(n.id, n.unread)}
+                            className="flex min-w-0 flex-1 px-5 py-3.5"
+                          >
                             {inner}
                           </Link>
                         ) : (
-                          <span className="flex min-w-0 flex-1 px-5 py-3.5">{inner}</span>
+                          <button
+                            type="button"
+                            onClick={() => markRead(n.id, n.unread)}
+                            disabled={!n.unread}
+                            className="flex min-w-0 flex-1 px-5 py-3.5 text-left disabled:cursor-default"
+                          >
+                            {inner}
+                          </button>
                         )}
                         <button
                           type="button"
