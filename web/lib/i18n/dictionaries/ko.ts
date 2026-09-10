@@ -358,6 +358,7 @@ const ko: Record<DictKey, string> = {
   "crew.errDuesPeriod": "기간은 YYYY-MM 형식이어야 합니다.",
   "crew.errDuesAmount": "금액은 0보다 커야 합니다.",
   "crew.finEmpty": "이번 달 내역이 없어요.",
+  "crew.finEntryN": "{n}건",
   "crew.finNote": "정회원에게만 보입니다. 내역 추가·삭제는 운영진만 가능합니다.",
   "crew.finMembersOnly": "회계는 크루원에게만 공개됩니다.",
   "crew.fullOnly": "정회원 전용",

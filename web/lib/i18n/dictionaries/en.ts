@@ -360,6 +360,7 @@ const en = {
   "crew.errDuesPeriod": "The period must be in YYYY-MM format.",
   "crew.errDuesAmount": "The amount must be greater than 0.",
   "crew.finEmpty": "No entries this month.",
+  "crew.finEntryN": "{n} entries",
   "crew.finNote": "Visible to full members only. Staff can add and delete entries.",
   "crew.finMembersOnly": "Finances are visible to crew members only.",
   "crew.fullOnly": "Full members only",

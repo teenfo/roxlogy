@@ -109,7 +109,7 @@ export default async function CrewEventPage({
         >
           ← {t("crew.schedTab")}
         </Link>
-        <div className="mt-6 rounded-md bg-surface px-5 py-10 text-center">
+        <div className="mt-6 rounded-xl border border-line bg-card px-5 py-10 text-center">
           <p className="text-sm font-semibold">{t("crew.eventMembersOnly")}</p>
           <p className="mx-auto mt-2 max-w-md text-xs text-muted">
             {t("crew.eventMembersOnlyDesc", { crew: gate.crew })}
@@ -234,7 +234,7 @@ export default async function CrewEventPage({
             {ev.going.map((g, i) => (
               <li
                 key={i}
-                className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium"
+                className="flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-medium"
               >
                 {g.name}
                 {g.tier && (
@@ -312,7 +312,7 @@ export default async function CrewEventPage({
           {!!ev.comments.length && (
             <ul className="mt-3 flex flex-col gap-px overflow-hidden rounded-md bg-muted/20">
               {ev.comments.map((c) => (
-                <li key={c.id} className="bg-surface px-4 py-3">
+                <li key={c.id} className="bg-card px-4 py-3">
                   <div className="flex items-baseline gap-2">
                     <Link
                       href={`/u/${c.author_id}`}

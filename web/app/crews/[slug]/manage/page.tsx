@@ -22,6 +22,7 @@ import {
   type DuesLink,
 } from "@/components/crew-dues-links";
 import { CrewTierManage, type CrewTier } from "@/components/crew-tier-manage";
+import { Card, Chip } from "@/components/ui/crew-ui";
 import {
   CrewUnpaidCard,
   type UnpaidCharge,
@@ -63,14 +64,14 @@ function Stat({
       : accent === "track"
         ? "text-track"
         : accent === "red"
-          ? "text-red-400"
+          ? "text-danger"
           : "";
   return (
-    <div className="rounded-md bg-surface px-4 py-3">
+    <Card className="px-4 py-3.5">
       <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 font-mono text-lg font-bold ${cls}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-[11px] text-muted">{sub}</p>}
-    </div>
+      <p className={`tabular mt-1 text-xl font-extrabold ${cls}`}>{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-muted">{sub}</p>}
+    </Card>
   );
 }
 
@@ -182,28 +183,16 @@ export default async function CrewManagePage({
   return (
     <main className="flex flex-col gap-8">
       {/* 관리 탭 — 크루 탭 바와 구분되게 알약형 */}
-      <nav className="flex flex-wrap gap-1.5">
+      <nav className="flex flex-wrap gap-2">
         {TABS.map((x) => (
-          <Link
+          <Chip
             key={x}
             href={`/crews/${slug}/manage?tab=${x}`}
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm ${
-              tab === x
-                ? "bg-accent font-bold text-background"
-                : "bg-surface text-muted hover:text-foreground"
-            }`}
+            active={tab === x}
+            count={x === "members" && pendingCount > 0 ? pendingCount : undefined}
           >
             {tabLabel[x]}
-            {x === "members" && pendingCount > 0 && (
-              <span
-                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none ${
-                  tab === x ? "bg-background text-accent" : "bg-accent text-background"
-                }`}
-              >
-                {pendingCount}
-              </span>
-            )}
-          </Link>
+          </Chip>
         ))}
       </nav>
 
@@ -211,34 +200,40 @@ export default async function CrewManagePage({
       {tab === "info" && (
         <>
           <section>
-            <h2 className="text-lg font-semibold">{t("crew.logoTitle")}</h2>
+            <h2 className="text-base font-extrabold">{t("crew.logoTitle")}</h2>
             <div className="mt-3">
               <CrewImageUpload crewId={crew.id} url={row.logo_url} kind="logo" />
             </div>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold">{t("crew.coverTitle")}</h2>
+            <h2 className="text-base font-extrabold">{t("crew.coverTitle")}</h2>
             <div className="mt-3">
               <CrewImageUpload crewId={crew.id} url={row.cover_url} kind="cover" />
             </div>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold">{t("crew.manageInfo")}</h2>
+            <h2 className="text-base font-extrabold">{t("crew.manageInfo")}</h2>
             <div className="mt-3 max-w-lg">
               <CrewInfoForm crew={row} />
             </div>
           </section>
 
           {myRole === "owner" && (
-            <section>
-              <h2 className="text-lg font-semibold text-red-400">
-                {t("crew.dangerZone")}
-              </h2>
-              <p className="mt-1 text-sm text-muted">{t("crew.deleteCrewDesc")}</p>
-              <div className="mt-3">
-                <CrewDeleteButton crewId={crew.id} />
+            <section className="rounded-2xl border border-danger-line bg-danger-card px-5 py-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-[15px] font-extrabold text-danger">
+                    {t("crew.dangerZone")}
+                  </h2>
+                  <p className="mt-1 text-[13px] text-muted">
+                    {t("crew.deleteCrewDesc")}
+                  </p>
+                </div>
+                <div className="ml-auto shrink-0">
+                  <CrewDeleteButton crewId={crew.id} />
+                </div>
               </div>
             </section>
           )}
@@ -262,7 +257,7 @@ export default async function CrewManagePage({
 
           {stats && (
             <section>
-              <h2 className="text-lg font-semibold">{t("crew.statsTitle")}</h2>
+              <h2 className="text-base font-extrabold">{t("crew.statsTitle")}</h2>
               <p className="mt-1 text-xs text-muted">{t("crew.statsWindow")}</p>
 
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -305,7 +300,7 @@ export default async function CrewManagePage({
                     return (
                       <li
                         key={x.name}
-                        className="flex items-center gap-3 rounded-md bg-surface px-4 py-2.5"
+                        className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-2.5"
                       >
                         <span
                           className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${tierBadgeClass(
@@ -314,13 +309,13 @@ export default async function CrewManagePage({
                         >
                           {x.name}
                         </span>
-                        <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-background">
+                        <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line">
                           <span
                             className="block h-full rounded-full bg-muted/60"
                             style={{ width: `${pct}%` }}
                           />
                         </span>
-                        <span className="w-16 shrink-0 text-right font-mono text-xs text-muted">
+                        <span className="tabular w-16 shrink-0 text-right text-xs text-muted">
                           {x.count}
                           <span className="ml-1 text-[10px]">({pct}%)</span>
                         </span>
@@ -333,7 +328,7 @@ export default async function CrewManagePage({
           )}
 
           <section id="members" className="scroll-mt-6">
-            <h2 className="text-lg font-semibold">{t("crew.manageMembers")}</h2>
+            <h2 className="text-base font-extrabold">{t("crew.manageMembers")}</h2>
             <div className="mt-3">
               <CrewMemberManage
                 slug={slug}
@@ -352,7 +347,7 @@ export default async function CrewManagePage({
       {/* ---------------- 회원 등급 ---------------- */}
       {tab === "tiers" && (
         <section>
-          <h2 className="text-lg font-semibold">{t("crew.tierTitle")}</h2>
+          <h2 className="text-base font-extrabold">{t("crew.tierTitle")}</h2>
           <div className="mt-3 max-w-2xl">
             <CrewTierManage crewId={crew.id} tiers={tiers} />
           </div>
@@ -363,7 +358,7 @@ export default async function CrewManagePage({
       {tab === "dues" && (
         <>
           <section>
-            <h2 className="text-lg font-semibold">{t("crew.duesFeeTitle")}</h2>
+            <h2 className="text-base font-extrabold">{t("crew.duesFeeTitle")}</h2>
             <p className="mt-1 text-xs text-muted">{t("crew.duesFeeDesc")}</p>
             <ul className="mt-3 flex flex-col gap-1.5">
               {tiers
@@ -398,7 +393,7 @@ export default async function CrewManagePage({
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold">{t("crew.duesTitle")}</h2>
+            <h2 className="text-base font-extrabold">{t("crew.duesTitle")}</h2>
             <div className="mt-3 max-w-lg">
               <CrewDuesLinksManage
                 crewId={crew.id}
@@ -412,7 +407,7 @@ export default async function CrewManagePage({
       {/* ---------------- 프로그램 ---------------- */}
       {tab === "programs" && (
         <section>
-          <h2 className="text-lg font-semibold">{t("crew.progAttach")}</h2>
+          <h2 className="text-base font-extrabold">{t("crew.progAttach")}</h2>
           <div className="mt-3">
             <CrewProgramAttach
               crewId={crew.id}

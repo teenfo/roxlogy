@@ -358,6 +358,7 @@ const es: Record<DictKey, string> = {
   "crew.errDuesPeriod": "El periodo debe tener formato AAAA-MM.",
   "crew.errDuesAmount": "El importe debe ser mayor que 0.",
   "crew.finEmpty": "Sin registros este mes.",
+  "crew.finEntryN": "{n} apuntes",
   "crew.finNote": "Visible solo para miembros plenos. Solo el staff puede añadir y eliminar.",
   "crew.finMembersOnly": "Las finanzas son visibles solo para miembros del crew.",
   "crew.fullOnly": "Solo miembros plenos",

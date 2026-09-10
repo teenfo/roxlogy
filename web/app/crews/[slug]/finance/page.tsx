@@ -10,6 +10,7 @@ import {
   CrewLedgerForm,
 } from "@/components/crew-ledger-form";
 import { CrewDuesMatrix, type BoardCharge } from "@/components/crew-dues-check";
+import { Badge, Card, Chip, SectionHead } from "@/components/ui/crew-ui";
 
 type LedgerRow = {
   id: string;
@@ -68,9 +69,9 @@ export default async function CrewFinancePage({
   if (!isFull) {
     return (
       <main>
-        <p className="rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("crew.finFullOnly")}
-        </p>
+        <Card className="px-4 py-10 text-center">
+          <p className="text-sm text-muted">{t("crew.finFullOnly")}</p>
+        </Card>
       </main>
     );
   }
@@ -123,89 +124,92 @@ export default async function CrewFinancePage({
       day: "numeric",
     });
 
+  // 날짜별 그룹 — 하루 합계를 머리글에 얹어 그날 돈이 어떻게 움직였는지 보이게
+  const byDate = new Map<string, LedgerRow[]>();
+  for (const r of entries) {
+    const arr = byDate.get(r.entry_date) ?? [];
+    arr.push(r);
+    byDate.set(r.entry_date, arr);
+  }
+  const dayNet = (rs: LedgerRow[]) =>
+    rs.reduce((a, r) => a + (r.kind === "income" ? r.amount : -r.amount), 0);
+
   return (
     <main>
-      {/* 월 네비게이션 */}
-      <div className="flex items-center justify-between">
-        <Link
-          href={linkFor(shiftMonth(month, -1))}
-          aria-label={t("crew.prevMonth")}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-sm text-accent hover:bg-surface"
-        >
-          ←
-        </Link>
-        <span className="text-sm font-bold">{monthLabel}</span>
-        <Link
-          href={linkFor(shiftMonth(month, 1))}
-          aria-label={t("crew.nextMonth")}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-sm text-accent hover:bg-surface"
-        >
-          →
-        </Link>
+      {/* 툴바 — 월 이동 + 장부/회비 세그먼트 */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center rounded-[10px] border border-line-mid bg-control">
+          <Link
+            href={linkFor(shiftMonth(month, -1))}
+            aria-label={t("crew.prevMonth")}
+            className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent hover:bg-card-hover"
+          >
+            ‹
+          </Link>
+          <span className="tabular px-2 text-sm font-bold">{monthLabel}</span>
+          <Link
+            href={linkFor(shiftMonth(month, 1))}
+            aria-label={t("crew.nextMonth")}
+            className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent hover:bg-card-hover"
+          >
+            ›
+          </Link>
+        </div>
+        {isStaff && (
+          <nav className="flex gap-1.5">
+            {(["ledger", "dues"] as const).map((v) => (
+              <Chip key={v} href={linkFor(month, v)} active={view === v}>
+                {t(v === "ledger" ? "crew.finTabLedger" : "crew.finTabDues")}
+              </Chip>
+            ))}
+          </nav>
+        )}
+        <span className="ml-auto shrink-0 text-xs text-muted">
+          {t("crew.finNote")}
+        </span>
       </div>
 
-      {/* 월 합계 + 누적 잔액 */}
+      {/* 요약 4카드 — 누적 잔액만 강조 */}
       <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-md bg-surface px-4 py-3">
+        <Card className="px-4 py-3.5">
           <p className="text-xs text-muted">{t("crew.finIncome")}</p>
-          <p className="mt-1 font-mono text-lg font-bold text-track">
-            {won(monthIncome)}
+          <p className="tabular mt-1 text-xl font-extrabold text-info">
+            +{won(monthIncome)}
           </p>
-        </div>
-        <div className="rounded-md bg-surface px-4 py-3">
+        </Card>
+        <Card className="px-4 py-3.5">
           <p className="text-xs text-muted">{t("crew.finExpense")}</p>
-          <p className="mt-1 font-mono text-lg font-bold text-red-400">
-            {won(monthExpense)}
+          <p className="tabular mt-1 text-xl font-extrabold text-danger">
+            −{won(monthExpense)}
           </p>
-        </div>
-        <div className="rounded-md bg-surface px-4 py-3">
+        </Card>
+        <Card className="px-4 py-3.5">
           <p className="text-xs text-muted">{t("crew.finMonthNet")}</p>
-          <p className="mt-1 font-mono text-lg font-bold">
+          <p className="tabular mt-1 text-xl font-extrabold">
             {won(monthIncome - monthExpense)}
           </p>
-        </div>
-        <div className="rounded-md bg-surface px-4 py-3">
+        </Card>
+        <Card highlight className="px-4 py-3.5">
           <p className="text-xs text-muted">{t("crew.finTotalBalance")}</p>
-          <p className="mt-1 font-mono text-lg font-bold text-accent">
+          <p className="tabular mt-1 text-xl font-extrabold text-accent">
             {won(totalBalance)}
           </p>
-        </div>
+        </Card>
       </section>
-
-      {/* 회비 · 장부 탭 (회비 보드는 운영진만) */}
-      {isStaff && (
-        <nav className="mt-5 flex gap-1.5">
-          {(["ledger", "dues"] as const).map((v) => (
-            <Link
-              key={v}
-              href={linkFor(month, v)}
-              className={`rounded-full px-3.5 py-1.5 text-sm ${
-                view === v
-                  ? "bg-accent font-bold text-background"
-                  : "bg-surface text-muted hover:text-foreground"
-              }`}
-            >
-              {t(v === "ledger" ? "crew.finTabLedger" : "crew.finTabDues")}
-            </Link>
-          ))}
-        </nav>
-      )}
 
       {/* 회비 청구·확정 — 운영진 전용, 보고 있는 달 기준 */}
       {view === "dues" && (
-        <section className="mt-5">
-          <h2 className="text-sm font-bold">
-            {t("crew.duesCheckTitle")}{" "}
-            <span className="font-normal text-muted">{monthLabel}</span>
-          </h2>
-          <div className="mt-3">
-            <CrewDuesMatrix
-              crewId={crew.id}
-              period={month}
-              periodLabel={monthLabel}
-              charges={charges}
-            />
-          </div>
+        <section className="mt-6">
+          <SectionHead
+            title={t("crew.duesCheckTitle")}
+            right={<span className="text-xs text-muted">{monthLabel}</span>}
+          />
+          <CrewDuesMatrix
+            crewId={crew.id}
+            period={month}
+            periodLabel={monthLabel}
+            charges={charges}
+          />
         </section>
       )}
 
@@ -217,54 +221,73 @@ export default async function CrewFinancePage({
             </div>
           )}
 
-          {/* 내역 */}
           {!entries.length ? (
-            <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-              {t("crew.finEmpty")}
-            </p>
+            <Card className="mt-6 px-4 py-10 text-center">
+              <p className="text-sm text-muted">{t("crew.finEmpty")}</p>
+            </Card>
           ) : (
-            <ul className="mt-6 flex flex-col gap-1.5">
-              {entries.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex min-w-0 items-center gap-3 rounded-md bg-surface px-4 py-3"
-                >
-                  <span className="shrink-0 text-xs font-semibold text-muted">
-                    {dayLabel(r.entry_date)}
-                  </span>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      r.kind === "income"
-                        ? "bg-track/15 text-track"
-                        : "bg-red-400/15 text-red-400"
-                    }`}
-                  >
-                    {r.kind === "income"
-                      ? t("crew.finKindIncome")
-                      : t("crew.finKindExpense")}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-sm">
-                    {r.source === "dues"
-                      ? t("crew.duesEntry", { detail: r.title })
-                      : r.title}
-                    {r.memo && (
-                      <span className="ml-2 text-xs text-muted">{r.memo}</span>
-                    )}
-                  </span>
-                  <span
-                    className={`shrink-0 font-mono text-sm font-semibold ${
-                      r.kind === "income" ? "text-track" : "text-red-400"
-                    }`}
-                  >
-                    {r.kind === "income" ? "+" : "−"}
-                    {won(r.amount)}
-                  </span>
-                  {isStaff && <CrewLedgerDelete id={r.id} />}
-                </li>
-              ))}
-            </ul>
+            <div className="mt-6 flex flex-col gap-4">
+              {[...byDate.keys()].map((d) => {
+                const rs = byDate.get(d)!;
+                const net = dayNet(rs);
+                return (
+                  <section key={d}>
+                    <div className="mb-1.5 flex items-baseline gap-2 px-1">
+                      <span className="text-sm font-extrabold">
+                        {dayLabel(d)}
+                      </span>
+                      <span className="text-xs text-muted">
+                        {t("crew.finEntryN", { n: rs.length })}
+                      </span>
+                      <span
+                        className={`tabular ml-auto text-sm font-bold ${
+                          net >= 0 ? "text-info" : "text-danger"
+                        }`}
+                      >
+                        {net >= 0 ? "+" : "−"}
+                        {won(Math.abs(net))}
+                      </span>
+                    </div>
+                    <Card className="divide-y divide-line overflow-hidden">
+                      {rs.map((r) => (
+                        <div
+                          key={r.id}
+                          className="flex min-w-0 items-center gap-3 px-5 py-3 transition-colors hover:bg-card-hover"
+                        >
+                          <Badge tone={r.kind === "income" ? "info" : "danger"}>
+                            {r.kind === "income"
+                              ? t("crew.finKindIncome")
+                              : t("crew.finKindExpense")}
+                          </Badge>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold">
+                              {r.source === "dues"
+                                ? t("crew.duesEntry", { detail: r.title })
+                                : r.title}
+                            </span>
+                            {r.memo && (
+                              <span className="block truncate text-[13px] text-muted">
+                                {r.memo}
+                              </span>
+                            )}
+                          </span>
+                          <span
+                            className={`tabular shrink-0 text-[15px] font-extrabold ${
+                              r.kind === "income" ? "text-info" : "text-danger"
+                            }`}
+                          >
+                            {r.kind === "income" ? "+" : "−"}
+                            {won(r.amount)}
+                          </span>
+                          {isStaff && <CrewLedgerDelete id={r.id} />}
+                        </div>
+                      ))}
+                    </Card>
+                  </section>
+                );
+              })}
+            </div>
           )}
-          <p className="mt-3 text-xs text-muted">{t("crew.finNote")}</p>
         </>
       )}
     </main>

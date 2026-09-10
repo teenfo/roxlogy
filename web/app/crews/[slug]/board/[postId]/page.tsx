@@ -92,7 +92,7 @@ export default async function CrewPostPage({
         {!!post.comments.length && (
           <ul className="mt-3 flex flex-col gap-px overflow-hidden rounded-md bg-muted/20">
             {post.comments.map((c) => (
-              <li key={c.id} className="bg-surface px-4 py-3">
+              <li key={c.id} className="bg-card px-4 py-3">
                 <div className="flex items-baseline gap-2">
                   <Link
                     href={`/u/${c.author_id}`}
