@@ -150,17 +150,21 @@ export default async function CrewSchedulePage({
 
   return (
     <main>
-      {/* 툴바 — 좌: 내 대회일정 등록 · 중앙: 월 이동 · 우: 모임 등록.
-          flex 가 아니라 grid 인 이유는, 한쪽 버튼이 없어도(스태프가 아니거나
-          비회원) 월 바가 가운데에 그대로 있어야 하기 때문이다. */}
-      <div className="grid items-start gap-3 max-md:grid-cols-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-        <div className="min-w-0 max-md:order-2">
-          {isMember && (
-            <RacePlanForm myPlans={(myPlans ?? []) as MyRacePlan[]} />
-          )}
+      {/* 내 대회일정 — 월 바 위 전체 폭. 등록 폼과 내 대회 목록이 함께
+          펼쳐지므로 좌우 칸에 끼우면 눌린다. */}
+      {isMember && (
+        <div className="mb-3">
+          <RacePlanForm myPlans={(myPlans ?? []) as MyRacePlan[]} />
         </div>
+      )}
 
-        <div className="flex flex-col items-center gap-1.5 max-md:order-1 max-md:col-span-2">
+      {/* 툴바 — 중앙: 월 이동 · 우: 모임 등록.
+          flex 가 아니라 grid 인 이유는, 모임 등록 버튼이 없어도(스태프가
+          아니면) 월 바가 가운데에 그대로 있어야 하기 때문이다. */}
+      <div className="grid items-start gap-3 max-md:grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <span aria-hidden className="max-md:hidden" />
+
+        <div className="flex flex-col items-center gap-1.5">
           <div className="flex items-center rounded-[10px] border border-line-mid bg-control">
             <Link
               href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
@@ -186,7 +190,7 @@ export default async function CrewSchedulePage({
           </p>
         </div>
 
-        <div className="flex min-w-0 justify-end max-md:order-3">
+        <div className="flex min-w-0 justify-end">
           {isStaff && <CrewMeetupForm crewId={crew.id} />}
         </div>
       </div>
