@@ -2,11 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { DIVISIONS } from "@/lib/divisions";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { dictLabel } from "@/lib/dict-label";
 import { duesErrText } from "@/lib/dues-error";
+import { Avatar } from "@/components/ui/crew-ui";
+import {
+  crewRoleBadgeClass,
+  crewRoleDictKey,
+  isStaffRole,
+  tierBadgeClass,
+} from "@/lib/crew-role";
 
 const input =
   "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
@@ -676,40 +683,103 @@ export function CrewRsvpButtons({
     ["declined", t("crew.rsvpDeclined")],
   ] as const;
 
+  // 상태별 색을 유지한다 — "불참"이 선택됐다고 옐로로 칠하면 뜻이 뒤집힌다.
+  const activeCls: Record<string, string> = {
+    going: "bg-accent text-background",
+    maybe: "bg-accent-dim/20 text-accent-dim ring-1 ring-accent-dim/40",
+    declined: "bg-danger-bg text-danger ring-1 ring-danger-line-strong",
+  };
+
   return (
     <div>
-      <div className="flex gap-2">
-        {opts.map(([v, label]) => (
-          <button
-            key={v}
-            type="button"
-            disabled={busy || closed}
-            onClick={() => set(v)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-50 ${
-              myStatus === v || (v === "going" && waitlisted)
-                ? v === "declined"
-                  ? "bg-red-400/20 text-red-400"
-                  : waitlisted && v === "going"
+      <div className="grid grid-cols-3 gap-1.5">
+        {opts.map(([v, label]) => {
+          const on = myStatus === v || (v === "going" && waitlisted);
+          return (
+            <button
+              key={v}
+              type="button"
+              disabled={busy || closed}
+              onClick={() => set(v)}
+              className={`flex h-10 items-center justify-center rounded-lg px-2 text-sm font-bold transition-colors disabled:opacity-50 ${
+                on
+                  ? waitlisted && v === "going"
                     ? "bg-accent/25 text-accent ring-1 ring-accent/50"
-                    : "bg-accent text-background"
-                : "bg-surface text-muted hover:text-foreground"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+                    : activeCls[v]
+                  : "border border-line-mid bg-control text-foreground/75 hover:border-[#555] hover:text-foreground"
+              }`}
+            >
+              {on && v === "going" && !waitlisted ? `✓ ${label}` : label}
+            </button>
+          );
+        })}
       </div>
       {waitlisted && (
         <p className="mt-2 text-xs text-accent">{t("crew.waitlistNote")}</p>
       )}
-      {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
+      {err && <p className="mt-2 text-xs text-danger">{err}</p>}
+    </div>
+  );
+}
+
+/** 모임 상세 우측 상단 "⋯" 드롭다운. 종료·취소처럼 자주 쓰지 않는 운영진
+ *  액션을 히어로 밖으로 내보내되 한 번의 클릭 거리에 둔다. */
+export function CrewEventMoreMenu({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrap} className="relative">
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-line-strong bg-control text-muted transition-colors hover:border-[#555] hover:text-foreground"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="absolute right-0 top-10 z-40 flex w-44 flex-col gap-0.5 rounded-[10px] border border-line-strong bg-control p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
 
 /** 모임 댓글 입력 — 크루원 전용, 댓글 허용 모임에만 렌더된다.
  *  권한(멤버·comments_allowed·members_only)은 RLS 가 최종 강제. */
-export function CrewEventCommentForm({ eventId }: { eventId: string }) {
+export function CrewEventCommentForm({
+  eventId,
+  myName,
+}: {
+  eventId: string;
+  /** 입력 줄 좌측 아바타용 — 서버가 내 표시 이름을 넘겨준다 */
+  myName: string;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [body, setBody] = useState("");
@@ -739,23 +809,28 @@ export function CrewEventCommentForm({ eventId }: { eventId: string }) {
 
   return (
     <>
-      <form onSubmit={submit} className="mt-4 flex gap-2">
-        <input
+      <form
+        onSubmit={submit}
+        className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-2.5 max-sm:grid-cols-[32px_minmax(0,1fr)_auto]"
+      >
+        <Avatar name={myName} size={36} className="max-sm:h-8 max-sm:w-8" />
+        <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={t("crew.commentPlaceholder")}
           maxLength={500}
-          className="flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          rows={2}
+          className="w-full min-w-0 resize-y rounded-lg border border-line-strong bg-page px-3 py-2 text-sm outline-none transition-colors focus:border-accent"
         />
         <button
           type="submit"
           disabled={busy || !body.trim()}
-          className="shrink-0 rounded-md border border-accent/50 px-4 text-sm font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
+          className="flex h-10 shrink-0 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background transition hover:brightness-110 disabled:opacity-40"
         >
           {t("crew.commentSubmit")}
         </button>
       </form>
-      {err && <p className="mt-1 text-xs text-red-400">{err}</p>}
+      {err && <p className="mt-1 text-xs text-danger">{err}</p>}
     </>
   );
 }
@@ -783,17 +858,17 @@ export function CrewMeetupCancel({ eventId, slug }: { eventId: string; slug: str
   }
 
   return (
-    <span className="inline-flex flex-col items-end gap-0.5">
+    <>
       <button
         type="button"
         onClick={cancel}
         disabled={busy}
-        className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
+        className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-danger transition-colors hover:bg-danger-card disabled:opacity-50"
       >
         {t("crew.meetupCancel")}
       </button>
-      {err && <span className="text-xs text-red-400">{err}</span>}
-    </span>
+      {err && <span className="px-3 text-[11px] text-danger">{err}</span>}
+    </>
   );
 }
 
@@ -815,24 +890,49 @@ export type AttendanceRow = {
  *  RSVP(오겠다)와 출석(실제로 왔다)은 별개라, 신청하지 않은 워크인도 체크된다. */
 const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 
+export type GoingEntry = { name: string; tier: string | null; color: string | null };
+
+/**
+ * 참석 명단 · 출석 체크 통합 카드 (2026-09 핸드오프).
+ *
+ * 두 목록은 서로 다른 것을 본다 — 명단은 "오겠다고 한 사람"(RSVP), 출석은
+ * "실제로 온 사람"이다. 둘을 한 카드의 탭으로 묶되 섞지 않는다.
+ * 출석 토글 권한은 crew_event_check_in RPC 가 강제한다.
+ */
 export function CrewAttendanceCheck({
   eventId,
   rows,
+  going,
   canEdit,
   started,
+  memberCount,
+  waitlistNames,
+  feeExempt,
+  settings,
 }: {
   eventId: string;
   rows: AttendanceRow[];
+  /** 참석 명단 탭 — 등급 배지가 붙는다 (crew_event_detail 이 채워 준다) */
+  going: GoingEntry[];
   canEdit: boolean;
   /** 모임이 이미 시작했는지. 시작 전에는 "아직 안 옴"이지 불참이 아니다.
    *  렌더 중에 Date.now() 를 부르면 순수하지 않으므로 서버에서 판정해 받는다. */
   started: boolean;
+  memberCount: number;
+  waitlistNames: string[];
+  feeExempt: boolean;
+  /** 운영진 모임 설정 토글 (CrewEventFeeToggle) — 서버에서 꽂아 준다 */
+  settings?: React.ReactNode;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  // 모임이 시작했으면 출석 체크가, 아니면 참석 명단이 볼 일이다.
+  const [tab, setTab] = useState<"attend" | "going">(
+    started ? "attend" : "going",
+  );
 
   async function toggle(userId: string, present: boolean) {
     setBusy(userId);
@@ -846,6 +946,36 @@ export function CrewAttendanceCheck({
     setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
+  }
+
+  /** 참석자 전원 출석 — 정기 모임에서 한 명씩 누르는 게 대부분 낭비다.
+   *  이미 체크된 사람은 건너뛰고, 한 건이라도 실패하면 거기서 멈추고 알린다. */
+  async function checkAllGoing() {
+    const targets = rows.filter(
+      (r) =>
+        !r.checked_in &&
+        (r.rsvp_status === "going" || r.rsvp_status === "waitlisted"),
+    );
+    if (!targets.length) return;
+    if (!window.confirm(t("crew.checkAllConfirm", { n: targets.length }))) return;
+    setBusy("all");
+    setErr(null);
+    const supabase = createClient();
+    for (const r of targets) {
+      const { error } = await supabase.rpc("crew_event_check_in", {
+        p_event: eventId,
+        p_user: r.user_id,
+        p_present: true,
+      });
+      if (error) {
+        setBusy(null);
+        setErr(duesErrText(t, error.message));
+        router.refresh();
+        return;
+      }
+    }
+    setBusy(null);
+    router.refresh();
   }
 
   /** 회차비 확정/해제 — 현장에서 돈을 받고 바로 처리할 수 있게 출석 옆에 둔다.
@@ -871,164 +1001,276 @@ export function CrewAttendanceCheck({
       (r.rsvp_status === "going" || r.rsvp_status === "waitlisted"),
   );
 
-  // 읽기 전용(일반 크루원)이면 출석한 사람만 보여준다.
-  if (!canEdit) {
-    return (
-      <div>
-        <p className="text-sm">
-          <b>{present.length}</b>
-          <span className="ml-1 text-muted">{t("crew.attendUnit")}</span>
-          {started && noShow.length > 0 && (
-            <span className="ml-2 text-xs text-muted">
-              {t("crew.attendNoShow", { n: noShow.length })}
-            </span>
-          )}
-        </p>
-        {present.length > 0 && (
-          <ul className="mt-2 flex flex-wrap gap-1.5">
-            {present.map((r) => (
-              <li
-                key={r.user_id}
-                className="rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent"
-              >
-                ✓ {r.display_name}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    );
-  }
-
-  // 운영진: 참석 신청자(going/waitlisted)를 먼저 보여주고, 나머지 크루원은
-  // 접어 둔다 — 워크인 체크가 필요할 때만 펼치면 된다.
+  // 출석 탭 기본은 참석 신청자 + 이미 체크된 사람. 나머지 크루원은 접어 둔다 —
+  // 워크인 체크가 필요할 때만 펼치면 된다.
   const rsvpd = rows.filter(
-    (r) => r.checked_in || r.rsvp_status === "going" || r.rsvp_status === "waitlisted",
+    (r) =>
+      r.checked_in ||
+      r.rsvp_status === "going" ||
+      r.rsvp_status === "waitlisted",
   );
   const rest = rows.filter((r) => !rsvpd.includes(r));
   const shown = showAll ? [...rsvpd, ...rest] : rsvpd;
 
   // 이 모임의 회차비 현황 — 현장에서 얼마 받았고 얼마 남았는지
   const due = rows.filter(
-    (r) => r.charge_id && (r.charge_status === "pending" || r.charge_status === "reported"),
+    (r) =>
+      r.charge_id &&
+      (r.charge_status === "pending" || r.charge_status === "reported"),
   );
   const paidSum = rows
     .filter((r) => r.charge_status === "confirmed")
     .reduce((a, r) => a + (r.charge_amount ?? 0), 0);
   const dueSum = due.reduce((a, r) => a + (r.charge_amount ?? 0), 0);
 
+  const rsvpLabel = (status: string | null) => {
+    if (status === "going") return [t("crew.rsvpGoing"), "text-success"];
+    if (status === "waitlisted") return [t("crew.rsvpWaitlisted"), "text-accent"];
+    if (status === "maybe") return [t("crew.rsvpMaybe"), "text-accent-dim"];
+    if (status === "declined") return [t("crew.rsvpDeclined"), "text-danger"];
+    return [t("crew.rsvpNone"), "text-muted"];
+  };
+
+  const tabBtn = (key: "attend" | "going", label: string, count: number) => {
+    const on = tab === key;
+    return (
+      <button
+        key={key}
+        type="button"
+        onClick={() => setTab(key)}
+        className={`flex h-[30px] items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
+          on ? "bg-accent text-background" : "text-muted hover:text-foreground"
+        }`}
+      >
+        {label}
+        <span
+          className={`tabular rounded-full px-1.5 text-[11px] font-bold ${
+            on ? "bg-[#6b5a00] text-accent" : "bg-line text-muted"
+          }`}
+        >
+          {count}
+        </span>
+      </button>
+    );
+  };
+
+  const rowCls =
+    "grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line-soft px-[22px] py-3 transition-colors hover:bg-card-hover max-md:px-4";
+
   return (
-    <div>
-      <p className="text-xs text-muted">
-        {t("crew.attendCounted", { n: present.length, total: rows.length })}
-        {started && noShow.length > 0 && (
-          <span className="ml-2 text-red-400">
-            {t("crew.attendNoShow", { n: noShow.length })}
+    <div className="overflow-hidden rounded-[14px] border border-line bg-card">
+      {/* 헤더 — 탭 + 운영진 설정 */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-[22px] py-3 max-md:px-4">
+        <div className="flex items-center gap-1 rounded-full border border-line-mid bg-page p-[3px]">
+          {/* 크루원도 두 탭을 다 본다 — 출석 탭이 읽기 전용일 뿐이다 */}
+          {tabBtn("attend", t("crew.attendCheckTab"), present.length)}
+          {tabBtn("going", t("crew.goingList"), going.length)}
+        </div>
+
+        {(settings || (canEdit && tab === "attend")) && (
+          <div className="ml-auto flex flex-wrap items-center gap-3 max-md:ml-0 max-md:w-full max-md:justify-end">
+            {settings && (
+              <span className="flex items-center gap-2.5">
+                <span className="text-xs text-muted">
+                  {t("crew.eventSettings")}
+                </span>
+                {settings}
+              </span>
+            )}
+            {canEdit && tab === "attend" && noShow.length > 0 && (
+              <button
+                type="button"
+                onClick={checkAllGoing}
+                disabled={busy != null}
+                className="flex h-8 items-center rounded-lg border border-line-accent bg-highlight px-3 text-[13px] font-bold text-accent transition hover:brightness-125 disabled:opacity-40"
+              >
+                {t("crew.checkAllGoing")}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 힌트 행 */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-line-soft px-[22px] py-2.5 text-[13px] text-muted max-md:px-4">
+        <span className="[word-break:keep-all]">
+          {feeExempt
+            ? t("crew.feeExemptNote")
+            : tab === "going"
+              ? t("crew.goingListNote")
+              : t("crew.attendTabNote")}
+        </span>
+        {canEdit && (
+          <span className="tabular shrink-0">
+            {t("crew.attendCounted", {
+              n: present.length,
+              total: memberCount || rows.length,
+            })}
+            {started && noShow.length > 0 && (
+              <span className="ml-2 text-danger">
+                {t("crew.attendNoShow", { n: noShow.length })}
+              </span>
+            )}
           </span>
         )}
-      </p>
-      {(paidSum > 0 || dueSum > 0) && (
-        <p className="mt-1 text-xs">
+      </div>
+
+      {/* 회차비 수납 요약 — 운영진만, 청구가 있을 때만 */}
+      {canEdit && (paidSum > 0 || dueSum > 0) && (
+        <p className="border-b border-line-soft px-[22px] py-2 text-xs max-md:px-4">
           <span className="text-muted">{t("crew.attendFeeTitle")} </span>
-          <span className="font-mono font-bold text-track">{won(paidSum)}</span>
+          <span className="tabular font-bold text-info">{won(paidSum)}</span>
           <span className="text-muted"> · </span>
-          <span className="font-mono font-bold text-accent">{won(dueSum)}</span>
+          <span className="tabular font-bold text-accent">{won(dueSum)}</span>
           <span className="text-muted"> {t("crew.attendFeeDue")}</span>
         </p>
       )}
-      {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
-      <ul className="mt-2 flex flex-col gap-1.5">
-        {shown.map((r) => (
-          <li
-            key={r.user_id}
-            className="flex items-center justify-between gap-3 rounded-md bg-surface px-4 py-2.5"
-          >
-            <span className="flex min-w-0 flex-col">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm">{r.display_name}</span>
-                {r.rsvp_status === "going" && (
-                  <span className="shrink-0 text-[10px] text-muted">
-                    {t("crew.rsvpGoing")}
-                  </span>
-                )}
-                {r.rsvp_status === "waitlisted" && (
-                  <span className="shrink-0 text-[10px] text-muted">
-                    ⏳ {t("crew.rsvpWaitlisted")}
-                  </span>
-                )}
-                {started && !r.checked_in &&
-                  (r.rsvp_status === "going" ||
-                    r.rsvp_status === "waitlisted") && (
-                    <span className="shrink-0 rounded-full bg-red-400/15 px-2 py-0.5 text-[10px] font-bold text-red-400">
-                      {t("crew.attendAbsent")}
-                    </span>
-                  )}
-              </span>
-              {r.email && (
-                <span className="truncate text-[11px] text-muted">{r.email}</span>
-              )}
-            </span>
-            <span className="flex shrink-0 items-center gap-2">
-              {/* 회차비 — 청구가 있을 때만. 무료 행사·회차비 없는 등급은 안 뜬다 */}
-              {r.charge_id && r.charge_amount != null && (
-                r.charge_status === "waived" ? (
-                  <span className="rounded-full bg-track/15 px-2.5 py-1 text-[11px] font-bold text-track">
-                    {t("crew.duesWaived")}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={busy != null}
-                    onClick={() =>
-                      settle(r.charge_id!, r.charge_status === "confirmed")
-                    }
-                    className={`rounded-full px-2.5 py-1 font-mono text-[11px] font-bold disabled:opacity-50 ${
-                      r.charge_status === "confirmed"
-                        ? "bg-track/15 text-track"
-                        : "bg-background text-accent ring-1 ring-accent/40"
-                    }`}
-                  >
-                    {r.charge_status === "confirmed" ? "✓ " : ""}
-                    {won(r.charge_amount)}
-                  </button>
-                )
-              )}
-              <button
-                type="button"
-                disabled={busy != null}
-                onClick={() => toggle(r.user_id, !r.checked_in)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold disabled:opacity-50 ${
-                  r.checked_in
-                    ? "bg-accent text-background"
-                    : "bg-background text-muted hover:text-foreground"
-                }`}
-              >
-                {r.checked_in ? `✓ ${t("crew.attendPresent")}` : t("crew.attendMark")}
-              </button>
-            </span>
-          </li>
-        ))}
-      </ul>
-      {!shown.length && (
-        <p className="mt-2 rounded-md bg-surface px-4 py-6 text-center text-xs text-muted">
-          {t("crew.attendNoRsvp")}
+
+      {err && (
+        <p className="border-b border-line-soft px-[22px] py-2 text-xs text-danger max-md:px-4">
+          {err}
         </p>
       )}
-      {rest.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setShowAll((v) => !v)}
-          className="mt-2 text-xs text-accent hover:underline"
-        >
-          {showAll
-            ? t("crew.attendHideOthers")
-            : t("crew.attendShowOthers", { n: rest.length })}
-        </button>
+
+      {/* 출석 체크 탭 — 운영진은 토글, 크루원은 읽기 전용 */}
+      {tab === "attend" ? (
+        <>
+          <ul className="grid sm:grid-cols-2">
+            {shown.map((r) => {
+              const [label, cls] = rsvpLabel(r.rsvp_status);
+              const dim =
+                !r.checked_in &&
+                r.rsvp_status !== "going" &&
+                r.rsvp_status !== "waitlisted";
+              return (
+                <li
+                  key={r.user_id}
+                  className={`${rowCls} ${dim ? "opacity-60" : ""}`}
+                >
+                  <Avatar name={r.display_name} size={36} />
+                  <span className="min-w-0">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-[15px] font-bold">
+                        {r.display_name}
+                      </span>
+                      {isStaffRole(r.role) && (
+                        <span
+                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${crewRoleBadgeClass(r.role)}`}
+                        >
+                          {t(crewRoleDictKey(r.role))}
+                        </span>
+                      )}
+                    </span>
+                    <span className={`mt-0.5 block text-xs ${cls}`}>
+                      {label}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {/* 회차비 — 청구가 있을 때만. 무료 행사·회차비 없는 등급은 안 뜬다 */}
+                    {canEdit &&
+                      r.charge_id &&
+                      r.charge_amount != null &&
+                      (r.charge_status === "waived" ? (
+                        <span className="rounded-md bg-label-bg px-2 py-1 text-[11px] font-bold text-label">
+                          {t("crew.duesWaived")}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={busy != null}
+                          onClick={() =>
+                            settle(r.charge_id!, r.charge_status === "confirmed")
+                          }
+                          className={`tabular rounded-md px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${
+                            r.charge_status === "confirmed"
+                              ? "bg-info-bg text-info"
+                              : "bg-page text-accent ring-1 ring-line-accent"
+                          }`}
+                        >
+                          {r.charge_status === "confirmed" ? "✓ " : ""}
+                          {won(r.charge_amount)}
+                        </button>
+                      ))}
+                    <button
+                      type="button"
+                      disabled={!canEdit || busy != null}
+                      onClick={() => toggle(r.user_id, !r.checked_in)}
+                      className={`flex h-8 items-center rounded-lg px-2.5 text-[13px] font-bold transition-colors disabled:opacity-100 ${
+                        r.checked_in
+                          ? "bg-accent text-background"
+                          : "border border-line-strong text-muted"
+                      } ${canEdit ? "disabled:opacity-50" : "cursor-default"}`}
+                    >
+                      {r.checked_in
+                        ? `✓ ${t("crew.attendPresent")}`
+                        : t("crew.attendMark")}
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          {!shown.length && (
+            <p className="px-[22px] py-8 text-center text-[13px] text-muted max-md:px-4">
+              {t("crew.attendNoRsvp")}
+            </p>
+          )}
+          {canEdit && rest.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="w-full px-[22px] py-3 text-[13px] font-bold text-accent hover:underline max-md:px-4"
+            >
+              {showAll
+                ? t("crew.attendHideOthers")
+                : t("crew.attendShowOthers", { n: rest.length })}
+            </button>
+          )}
+        </>
+      ) : (
+        /* 참석 명단 탭 — 등급 배지 (크루원에게만 채워져 온다) */
+        <>
+          <ul className="grid sm:grid-cols-2">
+            {going.map((g, i) => (
+              <li key={i} className={rowCls}>
+                <Avatar name={g.name} size={36} />
+                <span className="min-w-0">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-[15px] font-bold">
+                      {g.name}
+                    </span>
+                    {g.tier && (
+                      <span
+                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${tierBadgeClass(g.color)}`}
+                      >
+                        {g.tier}
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-success">
+                    {t("crew.rsvpGoing")}
+                  </span>
+                </span>
+                <span />
+              </li>
+            ))}
+          </ul>
+          {!going.length && (
+            <p className="px-[22px] py-8 text-center text-[13px] text-muted max-md:px-4">
+              —
+            </p>
+          )}
+          {waitlistNames.length > 0 && (
+            <p className="px-[22px] py-3 text-[13px] text-accent max-md:px-4">
+              ⏳ {t("crew.waitlistTitle")} ({waitlistNames.length}):{" "}
+              {waitlistNames.join(", ")}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
 }
-
 
 /** 모임 설정 토글 — 운영진 전용.
  *  · 무료 행사: 켜면 그 모임의 미납 회차비를 즉시 회수하고, 끄면 그 달을 다시
@@ -1141,7 +1383,7 @@ export function CrewEventShare({ url, title }: { url: string; title: string }) {
     <button
       type="button"
       onClick={share}
-      className="shrink-0 rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent"
+      className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-[#555]"
     >
       {done ? t("crew.shareCopied") : t("crew.shareLink")}
     </button>
@@ -1178,21 +1420,17 @@ export function CrewEventClose({
   }
 
   return (
-    <span className="flex items-center gap-2">
+    <>
       <button
         type="button"
         onClick={toggle}
         disabled={busy}
-        className={`rounded-md px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${
-          closed
-            ? "bg-surface text-muted hover:text-foreground"
-            : "bg-surface hover:text-accent"
-        }`}
+        className="w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors hover:bg-card-hover disabled:opacity-50"
       >
         {closed ? t("crew.reopen") : t("crew.close")}
       </button>
-      {err && <span className="text-xs text-red-400">{err}</span>}
-    </span>
+      {err && <span className="px-3 text-[11px] text-danger">{err}</span>}
+    </>
   );
 }
 
