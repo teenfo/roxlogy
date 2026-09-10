@@ -7,9 +7,11 @@ import { getT } from "@/lib/i18n";
 import { todayISOIn } from "@/lib/format";
 import {
   CrewMeetupForm,
+  CrewRsvpToggle,
   RacePlanForm,
   type MyRacePlan,
 } from "@/components/crew-schedule-forms";
+import { AvatarStack, Badge, Card } from "@/components/ui/crew-ui";
 
 type CalRow = {
   kind: "meetup" | "race" | "program";
@@ -91,6 +93,20 @@ export default async function CrewSchedulePage({
   ]);
   const cal = (rows ?? []) as CalRow[];
 
+  // 참석자 아바타용 이름 — crew_calendar 는 인원수만 준다.
+  // 별도 함수라 실패해도(구버전 DB) 아바타만 빠지고 목록은 그대로 나온다.
+  const { data: nameRows } = await supabase.rpc("crew_month_going_names", {
+    p_slug: slug,
+    p_from: from,
+    p_to: to,
+  });
+  const goingNames = new Map<string, string[]>(
+    ((nameRows ?? []) as { event_id: string; names: string[] }[]).map((r) => [
+      r.event_id,
+      r.names ?? [],
+    ]),
+  );
+
   // 날짜별 그룹
   const byDate = new Map<string, CalRow[]>();
   for (const r of cal) {
@@ -104,12 +120,6 @@ export default async function CrewSchedulePage({
     year: "numeric",
     month: "long",
   });
-  const dayLabel = (iso: string) =>
-    new Date(`${iso}T00:00:00`).toLocaleDateString(tag, {
-      month: "short",
-      day: "numeric",
-      weekday: "short",
-    });
   const timeLabel = (iso: string) =>
     new Date(iso).toLocaleTimeString(tag, {
       hour: "2-digit",
@@ -118,31 +128,53 @@ export default async function CrewSchedulePage({
     });
   const todayIso = todayISOIn(tz);
 
-  const kindBadge = {
-    meetup: ["bg-accent/15 text-accent", t("crew.schedKindMeetup")],
-    race: ["bg-track/15 text-track", t("crew.schedKindRace")],
-    program: ["bg-background text-muted", t("crew.schedKindProgram")],
+  // 요약 + "다음 모임" 판정 — 오늘 이후 가장 이른 미종료 모임 하나
+  const meetups = cal.filter((r) => r.kind === "meetup");
+  const goingCount = meetups.filter((r) => r.my_status === "going").length;
+  const nextMeetupId = meetups
+    .filter((r) => !r.closed && r.on_date >= todayIso)
+    .sort((a, b) => (a.starts_at ?? "").localeCompare(b.starts_at ?? ""))[0]
+    ?.ref_id;
+
+  const dayNum = (iso: string) => Number(iso.slice(8, 10));
+  const weekday = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString(tag, { weekday: "short" });
+  const isSunday = (iso: string) =>
+    new Date(`${iso}T00:00:00`).getDay() === 0;
+
+  const kindLabel = {
+    meetup: t("crew.schedKindMeetup"),
+    race: t("crew.schedKindRace"),
+    program: t("crew.schedKindProgram"),
   } as const;
 
   return (
     <main>
-      {/* 월 네비게이션 */}
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
-          aria-label={t("crew.prevMonth")}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-sm text-accent hover:bg-surface"
-        >
-          ←
-        </Link>
-        <span className="text-sm font-bold">{monthLabel}</span>
-        <Link
-          href={`/crews/${slug}/schedule?m=${shiftMonth(month, 1)}`}
-          aria-label={t("crew.nextMonth")}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-sm text-accent hover:bg-surface"
-        >
-          →
-        </Link>
+      {/* 툴바 — 월 이동 + 요약 + 등록 액션 */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center rounded-[10px] border border-line-mid bg-control">
+          <Link
+            href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
+            aria-label={t("crew.prevMonth")}
+            className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent hover:bg-card-hover"
+          >
+            ‹
+          </Link>
+          <span className="tabular px-2 text-sm font-bold">{monthLabel}</span>
+          <Link
+            href={`/crews/${slug}/schedule?m=${shiftMonth(month, 1)}`}
+            aria-label={t("crew.nextMonth")}
+            className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent hover:bg-card-hover"
+          >
+            ›
+          </Link>
+        </div>
+        <p className="text-[13px] text-muted">
+          {t("crew.schedSummary", {
+            meetups: meetups.length,
+            going: goingCount,
+          })}
+        </p>
       </div>
 
       {/* 등록 액션 */}
@@ -155,111 +187,136 @@ export default async function CrewSchedulePage({
         </div>
       )}
 
-      {/* 일정 리스트 */}
+      {/* 일정 리스트 — 날짜 블록 + 본문 + 우측 참석 */}
       {!dates.length ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("crew.schedEmpty")}
-        </p>
+        <Card className="mt-6 px-4 py-10 text-center">
+          <p className="text-sm text-muted">{t("crew.schedEmpty")}</p>
+        </Card>
       ) : (
-        <ul className="mt-6 flex flex-col gap-2">
-          {dates.map((d) => (
-            <li
-              key={d}
-              className={`rounded-md px-4 py-3 ${
-                d === todayIso
-                  ? "bg-accent/10 ring-1 ring-accent/40"
-                  : "bg-surface"
-              }`}
-            >
-              <p className="text-xs font-semibold text-muted">{dayLabel(d)}</p>
-              <ul className="mt-1.5 flex flex-col gap-1.5">
-                {byDate.get(d)!.map((r, i) => {
-                  const [badgeCls, badgeLabel] = kindBadge[r.kind];
-                  const inner = (
-                    <span className="flex min-w-0 flex-wrap items-center gap-2">
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeCls}`}
-                      >
-                        {badgeLabel}
-                      </span>
-                      <span className="min-w-0 truncate text-sm font-medium">
+        <ul className="mt-6 flex flex-col gap-2.5">
+          {dates.flatMap((d) =>
+            byDate.get(d)!.map((r, i) => {
+              const isNext = r.kind === "meetup" && r.ref_id === nextMeetupId;
+              const done = r.kind === "meetup" && r.closed;
+              const names = goingNames.get(r.ref_id) ?? [];
+              const body = (
+                <div
+                  className={`grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border px-5 py-4 transition-colors ${
+                    isNext
+                      ? "border-line-accent bg-highlight"
+                      : "border-line bg-card hover:bg-card-hover"
+                  } ${done ? "opacity-55" : ""}`}
+                >
+                  {/* 날짜 블록 */}
+                  <div className="border-r border-line-mid pr-3 text-center">
+                    <p
+                      className={`tabular text-[30px] font-extrabold leading-none ${
+                        isNext
+                          ? "text-accent"
+                          : done
+                            ? "text-muted"
+                            : isSunday(d)
+                              ? "text-sunday"
+                              : ""
+                      }`}
+                    >
+                      {dayNum(d)}
+                    </p>
+                    <p
+                      className={`mt-1 text-[13px] font-semibold ${
+                        isSunday(d) ? "text-sunday" : "text-muted"
+                      }`}
+                    >
+                      {weekday(d)}
+                    </p>
+                  </div>
+
+                  {/* 본문 */}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-[18px] font-bold">
                         {r.title}
                       </span>
-                      {r.members_only && (
-                        <span className="shrink-0 rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
-                          {t("crew.fullOnly")}
+                      {isNext && (
+                        <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-extrabold text-background">
+                          {t("crew.nextMeetup")}
                         </span>
                       )}
-                      {r.kind === "meetup" && r.closed && (
-                        <span className="shrink-0 rounded-full bg-muted/20 px-2 py-0.5 text-[10px] font-bold text-muted">
-                          {t("crew.closed")}
-                        </span>
+                      {r.kind !== "meetup" && (
+                        <Badge tone={r.kind === "race" ? "info" : "neutral"}>
+                          {kindLabel[r.kind]}
+                        </Badge>
+                      )}
+                      {r.members_only && (
+                        <Badge tone="label">{t("crew.fullOnly")}</Badge>
                       )}
                       {r.kind === "meetup" && r.fee_exempt && (
-                        <span className="shrink-0 rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
-                          {t("crew.feeExempt")}
-                        </span>
+                        <Badge tone="info">{t("crew.feeExempt")}</Badge>
                       )}
-                      {r.kind === "meetup" && r.starts_at && (
-                        <span className="text-xs text-muted">
-                          {timeLabel(r.starts_at)}
-                        </span>
+                      {done && <Badge tone="neutral">{t("crew.closed")}</Badge>}
+                    </div>
+                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-muted">
+                      {r.starts_at && (
+                        <>
+                          <span
+                            aria-hidden
+                            className="inline-block h-1.5 w-1.5 rounded-full bg-accent"
+                          />
+                          <span className="tabular font-semibold text-foreground/80">
+                            {timeLabel(r.starts_at)}
+                          </span>
+                        </>
                       )}
-                      {r.kind === "race" && r.starts_at && (
-                        <span className="text-xs text-muted">
-                          🕐 {timeLabel(r.starts_at)}
-                        </span>
-                      )}
+                      {r.subtitle && <span className="truncate">{r.subtitle}</span>}
                       {r.kind === "race" && r.member_name && (
-                        <span className="text-xs text-track">{r.member_name}</span>
+                        <span className="text-info">{r.member_name}</span>
                       )}
                       {r.kind === "race" && r.result_ms != null && (
-                        <span className="rounded-full bg-track/15 px-2 py-0.5 font-mono text-xs font-bold text-track">
+                        <span className="tabular font-bold text-info">
                           🏁 {fmtResult(r.result_ms)}
                         </span>
                       )}
-                      {r.subtitle && (
-                        <span className="truncate text-xs text-muted">
-                          {r.subtitle}
+                    </p>
+                  </div>
+
+                  {/* 우측 — 참석자 + 버튼 */}
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    {r.kind === "meetup" && (
+                      <>
+                        {names.length > 0 && <AvatarStack names={names} />}
+                        <span className="text-[12px] text-muted">
+                          {r.going_count
+                            ? t("crew.goingN", { n: r.going_count })
+                            : t("crew.goingNone")}
                         </span>
-                      )}
-                      {r.kind === "meetup" && (
-                        <span className="ml-auto shrink-0 text-xs text-muted">
-                          ✓ {r.going_count ?? 0}
-                          {r.my_status === "going" && (
-                            <span className="ml-1 text-accent">
-                              {t("crew.rsvpGoing")}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </span>
-                  );
-                  return (
-                    <li key={`${r.kind}-${r.ref_id}-${i}`}>
-                      {r.kind === "meetup" ? (
-                        <Link
-                          href={`/crews/${slug}/schedule/${r.ref_id}`}
-                          className="block rounded-md bg-background px-3 py-2 hover:ring-1 hover:ring-accent/40"
-                        >
-                          {inner}
-                        </Link>
-                      ) : r.kind === "program" ? (
-                        <Link
-                          href={`/programs/${r.ref_id}`}
-                          className="block rounded-md bg-background px-3 py-2 hover:ring-1 hover:ring-muted/40"
-                        >
-                          {inner}
-                        </Link>
-                      ) : (
-                        <div className="rounded-md bg-background px-3 py-2">{inner}</div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </li>
-          ))}
+                        {isMember && (
+                          <CrewRsvpToggle
+                            eventId={r.ref_id}
+                            myStatus={r.my_status}
+                            closed={r.closed}
+                          />
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+              const key = `${r.kind}-${r.ref_id}-${i}`;
+              return (
+                <li key={key}>
+                  {r.kind === "meetup" ? (
+                    <Link href={`/crews/${slug}/schedule/${r.ref_id}`}>
+                      {body}
+                    </Link>
+                  ) : r.kind === "program" ? (
+                    <Link href={`/programs/${r.ref_id}`}>{body}</Link>
+                  ) : (
+                    body
+                  )}
+                </li>
+              );
+            }),
+          )}
         </ul>
       )}
       {!user && (

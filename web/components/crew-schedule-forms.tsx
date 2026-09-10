@@ -1173,3 +1173,83 @@ export function CrewEventClose({
     </span>
   );
 }
+
+/**
+ * 일정 목록용 한 버튼 참석 토글 (디자인 핸드오프).
+ * 상세의 CrewRsvpButtons(참석/미정/불참 3지선다)와 달리 목록에서는 참석 여부만
+ * 빠르게 바꾼다. 참석을 끄면 응답 자체를 지운다 — 목록에서 끈 것을 "불참 선언"
+ * 으로 기록하면 불참 명단이 사실과 달라진다.
+ * 종료된 모임은 비활성 (최종 차단은 DB RLS).
+ */
+export function CrewRsvpToggle({
+  eventId,
+  myStatus,
+  closed = false,
+}: {
+  eventId: string;
+  myStatus: string | null;
+  closed?: boolean;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const going = myStatus === "going";
+  const waitlisted = myStatus === "waitlisted";
+
+  async function toggle() {
+    setBusy(true);
+    setErr(null);
+    const supabase = createClient();
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) {
+      setBusy(false);
+      return;
+    }
+    const { error } =
+      going || waitlisted
+        ? await supabase
+            .from("crew_event_rsvps")
+            .delete()
+            .eq("event_id", eventId)
+            .eq("user_id", u.user.id)
+        : await supabase.from("crew_event_rsvps").upsert(
+            { event_id: eventId, user_id: u.user.id, status: "going" },
+            { onConflict: "event_id,user_id" },
+          );
+    setBusy(false);
+    if (error) setErr(error.message);
+    else router.refresh();
+  }
+
+  if (closed) {
+    return (
+      <span className="inline-flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong px-3 text-xs font-semibold text-muted">
+        {going ? t("crew.rsvpDone") : t("crew.rsvpMissed")}
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={busy}
+        className={`inline-flex h-[34px] shrink-0 items-center rounded-lg px-3.5 text-xs font-bold transition-colors disabled:opacity-50 ${
+          going || waitlisted
+            ? "border border-line-accent bg-highlight text-accent"
+            : "bg-accent text-background hover:brightness-110"
+        }`}
+      >
+        {waitlisted
+          ? `⏳ ${t("crew.rsvpWaitlisted")}`
+          : going
+            ? `✓ ${t("crew.rsvpGoing")}`
+            : t("crew.rsvpJoin")}
+      </button>
+      {err && <span className="text-[10px] text-danger">{err}</span>}
+    </span>
+  );
+}

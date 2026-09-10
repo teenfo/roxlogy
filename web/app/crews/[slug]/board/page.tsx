@@ -9,6 +9,7 @@ import {
 import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { Badge, Card, Chip } from "@/components/ui/crew-ui";
 
 export default async function CrewBoardPage({
   params,
@@ -32,114 +33,110 @@ export default async function CrewBoardPage({
   ]);
   const canPost = isActiveMember(crew);
 
-  const chip = (active: boolean) =>
-    `shrink-0 rounded-full border px-3 py-1 text-xs ${
-      active
-        ? "border-accent text-accent"
-        : "border-muted/40 text-muted hover:border-foreground"
-    }`;
+  // 칩에 글 수를 붙인다 — 어느 분류에 글이 있는지 눌러 보기 전에 알 수 있게
+  const countByCat = new Map<string, number>();
+  for (const p of posts) {
+    countByCat.set(p.category, (countByCat.get(p.category) ?? 0) + 1);
+  }
 
   return (
     <main>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/crews/${slug}/board`} className={chip(!category)}>
-            {t("crew.all")}
-          </Link>
-          {POST_CATEGORIES.map((c) => (
-            <Link
-              key={c}
-              href={`/crews/${slug}/board?cat=${c}`}
-              className={chip(category === c)}
-            >
-              {t(`crew.cat.${c}` as DictKey)}
-            </Link>
-          ))}
-        </div>
+      {/* 필터 칩 + 글쓰기 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Chip href={`/crews/${slug}/board`} active={!category}>
+          {t("crew.all")}
+        </Chip>
+        {POST_CATEGORIES.map((c) => (
+          <Chip
+            key={c}
+            href={`/crews/${slug}/board?cat=${c}`}
+            active={category === c}
+            count={category == null ? countByCat.get(c) : undefined}
+          >
+            {t(`crew.cat.${c}` as DictKey)}
+          </Chip>
+        ))}
         {canPost && (
           <Link
             href={`/crews/${slug}/board/new`}
-            className="rounded-md bg-accent px-4 py-1.5 text-sm font-bold text-background hover:brightness-110"
+            className="ml-auto shrink-0 rounded-lg bg-accent px-4 py-2 text-[13px] font-bold text-background hover:brightness-110"
           >
-            {t("crew.newPost")}
+            + {t("crew.newPost")}
           </Link>
         )}
       </div>
 
-      {/* 최신 공지 5건 — 목록 상단 고정 영역 */}
+      {/* 고정 공지 */}
       {notices.length > 0 && (
-        <section className="mt-6 rounded-md border border-accent/25 bg-accent/5">
-          <ul className="flex flex-col gap-px">
+        <section className="mt-6">
+          <p className="mb-2 text-xs font-bold text-accent">
+            {t("crew.pinnedNotices")}
+          </p>
+          <Card highlight className="divide-y divide-line-accent/40 overflow-hidden">
             {notices.map((n) => (
-              <li key={n.id}>
-                <Link
-                  href={`/crews/${slug}/board/${n.id}`}
-                  className="flex items-center gap-2 px-4 py-2.5 hover:bg-accent/10"
-                >
-                  <span className="shrink-0 text-[11px] font-bold text-accent">
-                    📢 {t("crew.cat.notice")}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                    {n.title}
-                  </span>
-                  {n.members_only && (
-                    <span className="shrink-0 rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
-                      {t("crew.fullOnly")}
-                    </span>
-                  )}
-                  <span className="shrink-0 text-xs text-muted">
-                    {formatDateShort(n.created_at, tag, tz)}
-                  </span>
-                </Link>
-              </li>
+              <Link
+                key={n.id}
+                href={`/crews/${slug}/board/${n.id}`}
+                className="flex items-center gap-2.5 px-5 py-3 transition-colors hover:bg-accent/5"
+              >
+                <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[11px] font-extrabold text-background">
+                  {t("crew.cat.notice")}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[15px] font-bold">
+                  {n.title}
+                </span>
+                {n.members_only && (
+                  <Badge tone="label">{t("crew.fullOnly")}</Badge>
+                )}
+                <span className="shrink-0 text-[13px] text-muted">
+                  {n.author_name} · {formatDateShort(n.created_at, tag, tz)}
+                </span>
+              </Link>
             ))}
-          </ul>
+          </Card>
         </section>
       )}
 
-      {!posts.length ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("crew.emptyBoard")}
+      {/* 전체 글 */}
+      <section className="mt-6">
+        <p className="mb-2 text-xs font-bold text-muted">
+          {t("crew.allPosts")}
         </p>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-2">
-          {posts.map((p) => (
-            <li
-              key={p.id}
-              className={`rounded-md px-4 py-3.5 ${
-                p.pinned ? "bg-surface ring-1 ring-accent/30" : "bg-surface"
-              }`}
-            >
-              <Link href={`/crews/${slug}/board/${p.id}`} className="block">
-                <div className="flex items-center gap-2">
-                  <span className="shrink-0 rounded-full border border-muted/40 px-2 py-0.5 text-[10px] text-muted">
+        {!posts.length ? (
+          <Card className="px-4 py-10 text-center">
+            <p className="text-[13px] text-muted">{t("crew.emptyBoard")}</p>
+          </Card>
+        ) : (
+          <Card className="divide-y divide-line overflow-hidden">
+            {posts.map((p) => (
+              <Link
+                key={p.id}
+                href={`/crews/${slug}/board/${p.id}`}
+                className="block px-5 py-3.5 transition-colors hover:bg-card-hover"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Badge tone={p.category === "notice" ? "accent" : "neutral"}>
                     {t(`crew.cat.${p.category}` as DictKey)}
-                  </span>
-                  {p.pinned && (
-                    <span className="shrink-0 text-[10px] font-bold text-accent">
-                      PIN
-                    </span>
-                  )}
+                  </Badge>
+                  {p.pinned && <Badge outline>PIN</Badge>}
                   {p.members_only && (
-                    <span className="shrink-0 rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
-                      {t("crew.fullOnly")}
-                    </span>
+                    <Badge tone="label">{t("crew.fullOnly")}</Badge>
                   )}
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold hover:text-accent">
+                  <span className="min-w-0 flex-1 truncate text-[15px] font-bold">
                     {p.title}
                   </span>
                 </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 text-xs text-muted">
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-3 text-[13px] text-muted">
                   <span>{p.author_name}</span>
                   <span>{formatDateShort(p.created_at, tag, tz)}</span>
                   {p.comment_count > 0 && <span>💬 {p.comment_count}</span>}
                   {p.like_count > 0 && <span>♥ {p.like_count}</span>}
-                </div>
+                </p>
               </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+            ))}
+          </Card>
+        )}
+      </section>
 
       {!canPost && (
         <p className="mt-6 text-center text-xs text-muted">
