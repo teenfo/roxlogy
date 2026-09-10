@@ -124,3 +124,22 @@ body {
     animation: none;
   }
 }
+
+/* 날짜·시각 입력 — 다크 배경에서 브라우저 기본 달력 아이콘이 검게 묻혀
+   "누를 곳이 없는 칸"처럼 보인다. color-scheme 을 알려 주면 브라우저가
+   달력 아이콘과 팝업을 다크용으로 그린다. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"] {
+  color-scheme: dark;
+}
+
+input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
