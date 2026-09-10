@@ -501,21 +501,28 @@ async function loadSource() {
 
     const days = (a, b) =>
       Math.abs((Date.parse(a) - Date.parse(b)) / 86400000);
+    // 같은 회차로 볼 최대 날짜 차. 큐레이션은 조사 시점 예정일이라 몇 주 어긋날 수
+    // 있지만, 그 이상이면 같은 시즌에 같은 도시가 두 번 여는 것이다 — 방콕은
+    // 2026-08 과 2027-02 에 한 번씩. 캡 없이 "가장 가까운" 회차와 짝지으면 2027년
+    // 2월 대회가 8월 실측 날짜를 덮어써 지난 대회가 돼 버렸다(2026-09-10 실제 사고).
+    const PAIR_MAX_DAYS = 45;
     const used = new Set(); // 큐레이션과 짝지어진 API 행
     const merged = [];
     let paired = 0;
     for (const c of curated) {
       const cands = apiByCS.get(`${cityKey(c)}|${c.season}`) ?? [];
-      // 같은 시즌에 같은 도시가 여러 번이면 시작일이 제일 가까운 회차. 큐레이션에
-      // 날짜가 없으면 아직 안 열린 회차(첫 미사용)와 짝짓는다.
+      // 큐레이션에 날짜가 있으면 45일 안의 가장 가까운 회차만, 날짜가 없으면
+      // 아직 안 열린 회차(첫 미사용)와 짝짓는다.
       const free = cands.filter((r) => !used.has(r));
-      const best = !free.length
-        ? null
-        : c.start_date
-          ? free.reduce((m, r) =>
-              days(r.start_date, c.start_date) < days(m.start_date, c.start_date) ? r : m,
-            )
-          : free[0];
+      let best = null;
+      if (free.length && c.start_date) {
+        const nearest = free.reduce((m, r) =>
+          days(r.start_date, c.start_date) < days(m.start_date, c.start_date) ? r : m,
+        );
+        if (days(nearest.start_date, c.start_date) <= PAIR_MAX_DAYS) best = nearest;
+      } else if (free.length) {
+        best = free[0];
+      }
       if (!best) {
         merged.push(c); // 아직 API 에 없는 미래 대회 — 큐레이션 그대로
         continue;
