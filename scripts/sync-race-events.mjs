@@ -8,6 +8,20 @@
 // SYNC_DRY_RUN=1 이면 매핑 결과만 로그로 출력하고 DB 에 쓰지 않는다 —
 // 신규 소스의 응답 구조를 확인·검증하는 용도 (workflow_dispatch dry_run 입력).
 //
+// 병합 규칙 (2026-09-10 정교화):
+//   · 같은 대회 = (도시, 시즌). 예전엔 (도시, 시작일 ±7일)이라 큐레이션의 조사 시점
+//     날짜가 실측과 7일 넘게 어긋나면 별개 대회로 갈라져 중복이 생겼다("Perth 6월").
+//   · 양쪽에 있으면 한 행으로 합친다 — 이름·장소·URL 은 큐레이션(스폰서 표기가
+//     정확), 날짜는 API 실측. 한 시즌에 같은 도시가 두 번이면 시작일이 가장 가까운
+//     API 회차와 짝짓는다.
+//   · 시즌은 API 시즌 id → 큐레이션 명시값 → 시즌 카탈로그 날짜 범위 → 7월 경계
+//     순으로 정한다. 6월 대회는 시즌 경계에 걸려 있어 큐레이션에 시즌을 꼭 적을 것.
+//   · end_date 가 비면 start_date 로 채운다(1일 대회). 웹은 end_date 로 지난 대회를
+//     가르므로 비워 두면 영원히 "다가오는" 쪽에 남는다.
+//   · 동기화한 시즌 안에서 소스에 더는 없는 행은 지운다 — 단 크루 일정·내 대회
+//     계획이 참조하는 행은 남기고, 한 번에 10행 넘게 지우게 되면 데이터 사고로
+//     보고 중단한다. 소스에 없는 시즌(과거)은 손대지 않는다.
+//
 // 보안: 토큰·서비스 키는 CI 시크릿(서버 전용). 클라이언트 노출 금지.
 // 실행: node scripts/sync-race-events.mjs   (Node 20+ — 내장 fetch 사용)
 
@@ -130,7 +144,25 @@ function toDate(v) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
-/** 시즌 표기 정규화 → 'S9 2026/27'. 실패 시 시작일로 유추 (시즌 경계 6월 가정). */
+/** 시즌 카탈로그의 날짜 범위 (API 가 주면). fetchSeasonMap 이 채운다. */
+let SEASON_RANGES = []; // [{label, start, end}]
+
+/** 날짜 → 시즌 라벨. 카탈로그 범위가 있으면 그것으로, 없으면 7월 경계.
+ *  (6월은 경계에 걸린다 — S8 마지막 대회와 S9 개막 대회가 같은 달에 있다.
+ *   예전 6월 경계는 S8 6월 대회(부에노스아이레스 6/13)를 S9 로 붙였다.) */
+function seasonForDate(startDate) {
+  if (!startDate) return null;
+  const hit = SEASON_RANGES.find(
+    (r) => r.start && r.end && startDate >= r.start && startDate <= r.end,
+  );
+  if (hit) return hit.label;
+  const y = Number(startDate.slice(0, 4));
+  const m = Number(startDate.slice(5, 7));
+  const y1 = m >= 7 ? y : y - 1;
+  return `S${y1 - 2017} ${y1}/${String(y1 + 1).slice(-2)}`; // S8=2025/26 기준
+}
+
+/** 시즌 표기 정규화 → 'S9 2026/27'. 실패 시 시작일로 유추 (seasonForDate). */
 function normalizeSeason(rawSeason, startDate) {
   const s = rawSeason == null ? "" : String(rawSeason);
   const years = s.match(/(\d{4})\s*[\/–-]\s*(\d{2,4})/);
@@ -142,17 +174,11 @@ function normalizeSeason(rawSeason, startDate) {
     return `S${n} ${y1}/${y2s}`;
   }
   if (num && startDate) {
-    const y = Number(startDate.slice(0, 4));
-    const m = Number(startDate.slice(5, 7));
-    const y1 = m >= 6 ? y : y - 1;
-    return `S${num[1]} ${y1}/${String(y1 + 1).slice(-2)}`;
+    // 시즌 번호는 믿고 연도만 날짜로 정한다
+    const guess = seasonForDate(startDate);
+    return guess ? `S${num[1]} ${guess.slice(guess.indexOf(" ") + 1)}` : null;
   }
-  if (startDate) {
-    const y = Number(startDate.slice(0, 4));
-    const m = Number(startDate.slice(5, 7));
-    const y1 = m >= 6 ? y : y - 1;
-    return `S${y1 - 2017} ${y1}/${String(y1 + 1).slice(-2)}`;
-  }
+  if (startDate) return seasonForDate(startDate);
   return s || null;
 }
 
@@ -349,33 +375,41 @@ async function apiGet(url) {
   throw new Error(`result api rate-limited repeatedly (${url})`);
 }
 
-/** 시즌 카탈로그 → id → 'S9 2026/27' 표기 맵 */
+/** 시즌 카탈로그 → id → 'S9 2026/27' 표기 맵 + 현재·직전 시즌 슬러그.
+ *  카탈로그에 시작·종료일이 있으면 SEASON_RANGES 에 담아 시즌 유추에 쓴다
+ *  (필드명은 스펙마다 달라 후보를 넓게 본다 — 없으면 7월 경계 폴백). */
 async function fetchSeasonMap() {
   const json = await apiGet(`${RESULT_API_BASE}/seasons?per_page=50`);
   const map = new Map();
-  let currentSlug = null;
-  let maxN = -1;
+  const bySlugN = [];
   for (const s of json.data ?? []) {
     const n = Number(String(s.slug ?? "").match(/season-(\d+)/)?.[1] ?? NaN);
     const yy = String(s.label ?? "").match(/(\d{2})\s*\/\s*(\d{2})/);
-    if (Number.isFinite(n) && yy) {
-      map.set(s.id, `S${n} 20${yy[1]}/${yy[2]}`);
-      if (n > maxN) {
-        maxN = n;
-        currentSlug = s.slug;
-      }
-    }
+    if (!Number.isFinite(n) || !yy) continue;
+    const label = `S${n} 20${yy[1]}/${yy[2]}`;
+    map.set(s.id, label);
+    bySlugN.push({ n, slug: s.slug });
+    const start = toDate(pick(s, ["start_date", "starts_at", "from", "date_from", "begin"]));
+    const end = toDate(pick(s, ["end_date", "ends_at", "to", "date_to", "finish"]));
+    if (start && end) SEASON_RANGES.push({ label, start, end });
   }
-  return { map, currentSlug };
+  bySlugN.sort((a, b) => b.n - a.n);
+  return {
+    map,
+    currentSlug: bySlugN[0]?.slug ?? null,
+    previousSlug: bySlugN[1]?.slug ?? null,
+  };
 }
 
-/** 현재 시즌 이벤트 수집 — 서버 필터(season, from)로 요청 수 최소화 */
-async function fetchResultApiEvents(seasonSlug, fromDate) {
+/** 시즌 이벤트 수집. fromDate 를 주면 그 뒤만, 없으면 시즌 전체 —
+ *  정리(orphan 삭제)를 안전하게 하려면 시즌이 "완전"해야 해서 전체를 받는다. */
+async function fetchResultApiEvents(seasonSlug, fromDate = null) {
   const all = [];
   for (let page = 1; page <= 20; page++) {
     const url =
       `${RESULT_API_BASE}/events?season=${encodeURIComponent(seasonSlug)}` +
-      `&from=${fromDate}&per_page=100&page=${page}`;
+      (fromDate ? `&from=${fromDate}` : "") +
+      `&per_page=100&page=${page}`;
     const json = await apiGet(url);
     const arr = json.data ?? [];
     if (page === 1) {
@@ -413,7 +447,24 @@ function normalize(raw) {
   };
   if (!row.name || !row.city || !row.country) return null; // 필수 결측 → 스킵
   if (row.region && !REGIONS.has(row.region)) row.region = null;
+  fixDates(row);
+  if (!row.season && row.start_date) row.season = seasonForDate(row.start_date);
   return row;
+}
+
+/** end 가 비면 start 로(1일 대회), 뒤집혀 있으면 start 로 맞춘다 */
+function fixDates(row) {
+  if (row.start_date && !row.end_date) row.end_date = row.start_date;
+  if (row.start_date && row.end_date && row.end_date < row.start_date) {
+    row.end_date = row.start_date;
+  }
+  return row;
+}
+
+/** 병합 키: 같은 도시 = 같은 대회 (스폰서 접두·연도 접두·언어 차이를 무시) */
+function cityKey(row) {
+  const en = row.api_city ?? row.city_en ?? KO_CITY_EN[row.city] ?? row.city;
+  return stripYear(en).toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 async function loadCurated() {
@@ -428,39 +479,76 @@ async function loadSource() {
     // Result API 는 결과가 수집된(=이미 열린) 대회만 갖고 있다 — 미래 일정은
     // 큐레이션 JSON 이 소스. 둘을 병합하되, 같은 대회(도시 동일 + 시작일 ±7일)가
     // 양쪽에 있으면 이름 표기가 정확한 큐레이션 행을 우선한다.
-    const cutoff = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
-    const { map: seasonMap, currentSlug } = await fetchSeasonMap();
+    // 현재 시즌 + 직전 시즌을 통째로 받는다(시즌 말·개막이 겹치는 6~7월 대비).
+    const { map: seasonMap, currentSlug, previousSlug } = await fetchSeasonMap();
     if (!currentSlug) throw new Error("season catalog empty");
-    const raw = await fetchResultApiEvents(currentSlug, cutoff);
-    const apiRows = aggregateResultApi(raw, seasonMap);
+    const raw = [
+      ...(previousSlug ? await fetchResultApiEvents(previousSlug) : []),
+      ...(await fetchResultApiEvents(currentSlug)),
+    ];
+    const apiRows = aggregateResultApi(raw, seasonMap).map(fixDates);
     const curated = await loadCurated();
 
-    const near = (a, b) =>
-      Math.abs(
-        (Date.parse(a.start_date ?? 0) - Date.parse(b.start_date ?? 0)) / 86400000,
-      ) <= 7;
-    const dupOfCurated = (r) =>
-      curated.some(
-        (c) =>
-          c.city === r.city && c.start_date && r.start_date && near(c, r),
-      );
-    const fresh = apiRows.filter((r) => !dupOfCurated(r));
-    // (name, season) 충돌 시 API 실측이 큐레이션(조사 시점 날짜)을 덮어쓴다 —
-    // 같은 키가 한 upsert 에 두 번 있으면 Postgres ON CONFLICT 가 거부한다.
-    const byKey = new Map(curated.map((r) => [`${r.name}|${r.season}`, r]));
-    let replaced = 0;
-    for (const r of fresh) {
+    // (도시, 시즌) → API 회차들 (시작일 순)
+    const apiByCS = new Map();
+    for (const r of apiRows) {
+      const k = `${cityKey(r)}|${r.season}`;
+      const arr = apiByCS.get(k) ?? [];
+      arr.push(r);
+      apiByCS.set(k, arr);
+    }
+    for (const arr of apiByCS.values()) arr.sort((a, b) => a.start_date.localeCompare(b.start_date));
+
+    const days = (a, b) =>
+      Math.abs((Date.parse(a) - Date.parse(b)) / 86400000);
+    const used = new Set(); // 큐레이션과 짝지어진 API 행
+    const merged = [];
+    let paired = 0;
+    for (const c of curated) {
+      const cands = apiByCS.get(`${cityKey(c)}|${c.season}`) ?? [];
+      // 같은 시즌에 같은 도시가 여러 번이면 시작일이 제일 가까운 회차. 큐레이션에
+      // 날짜가 없으면 아직 안 열린 회차(첫 미사용)와 짝짓는다.
+      const free = cands.filter((r) => !used.has(r));
+      const best = !free.length
+        ? null
+        : c.start_date
+          ? free.reduce((m, r) =>
+              days(r.start_date, c.start_date) < days(m.start_date, c.start_date) ? r : m,
+            )
+          : free[0];
+      if (!best) {
+        merged.push(c); // 아직 API 에 없는 미래 대회 — 큐레이션 그대로
+        continue;
+      }
+      used.add(best);
+      paired++;
+      merged.push({
+        ...best,
+        // 이름·장소·URL·비고는 큐레이션이 정확하다(스폰서 표기, 실제 장소)
+        name: c.name,
+        venue: c.venue ?? best.venue,
+        official_url: c.official_url ?? best.official_url,
+        date_note: null, // 실측 날짜가 있으니 예정 비고는 지운다
+      });
+    }
+    for (const r of apiRows) if (!used.has(r)) merged.push(r);
+
+    // (name, season) 은 유니크 — 같은 키가 둘이면 upsert 가 거부되므로 뒤 것을 남긴다
+    const byKey = new Map();
+    let collided = 0;
+    for (const r of merged) {
       const k = `${r.name}|${r.season}`;
-      if (byKey.has(k)) replaced++;
+      if (byKey.has(k)) collided++;
       byKey.set(k, r);
     }
     const rows = [...byKey.values()];
     console.log(
       `result api: ${raw.length} division-rows → ${apiRows.length} weekends ` +
-        `(${apiRows.length - fresh.length} dup vs curated, ${replaced} replaced) ` +
+        `(${paired} paired with curated, ${collided} key collisions) ` +
         `+ curated ${curated.length} → ${rows.length}`,
     );
-    return { from: `${RESULT_API_BASE}/events + curated json`, rows };
+    // complete: 시즌 전체를 받았으니 이 시즌들 안에서는 orphan 정리가 안전하다
+    return { from: `${RESULT_API_BASE}/events + curated json`, rows, complete: true };
   }
   if (API_URL) {
     const res = await fetch(API_URL, {
@@ -483,7 +571,7 @@ async function main() {
 
   if (DRY_RUN && RESULT_API_TOKEN) await probeResultApi();
 
-  const { from, rows } = await loadSource();
+  const { from, rows, complete = false } = await loadSource();
   console.log(`source: ${from}`);
   console.log(`events: ${rows.length} valid`);
   if (!rows.length) {
@@ -519,8 +607,24 @@ async function main() {
       );
     }
     if (rows.length > 40) console.log(`… 외 ${rows.length - 40}건`);
+    if (SERVICE_ROLE) {
+      const seasons = [...new Set(rows.map((r) => r.season).filter(Boolean))];
+      const existing = await fetchExisting(seasons);
+      const keep = new Set(rows.map((r) => `${r.name}|${r.season}`));
+      const orphans = existing.filter((r) => !keep.has(`${r.name}|${r.season}`));
+      console.log(`── DRY RUN — 정리 대상 ${orphans.length}건 (참조 검사 전) ──`);
+      for (const r of orphans) console.log(`  · ${r.season} | ${r.start_date ?? "미정"} | ${r.name}`);
+    }
     return;
   }
+
+  // 동기화한 시즌의 기존 행 — 신규/갱신 집계와 사후 정리(orphan)에 쓴다
+  const seasons = [...new Set(rows.map((r) => r.season).filter(Boolean))];
+  const existing = await fetchExisting(seasons);
+  const keyOf = (r) => `${r.name}|${r.season}`;
+  const existingKeys = new Set(existing.map(keyOf));
+  const inserted = rows.filter((r) => !existingKeys.has(keyOf(r))).length;
+  console.log(`seasons: ${seasons.join(", ") || "-"} · existing ${existing.length} · new ${inserted} · update ${rows.length - inserted}`);
 
   // PostgREST 멱등 upsert (uq_race_events_name_season 유니크 인덱스 사용)
   const res = await fetch(
@@ -542,6 +646,70 @@ async function main() {
     process.exit(1);
   }
   console.log(`✓ upserted ${rows.length} events into race_events`);
+
+  // 큐레이션·제네릭 피드만으로는 시즌이 완전하지 않다 — API 실측 행을 orphan 으로
+  // 오인해 지울 수 있으니 정리는 API 경로에서만 한다.
+  if (complete) await pruneOrphans(existing, new Set(rows.map(keyOf)));
+  else console.log("prune: 소스가 시즌 전체를 담보하지 않아 정리 생략");
+}
+
+const REST = `${PROJECT_URL}/rest/v1`;
+const svcHeaders = () => ({
+  apikey: SERVICE_ROLE,
+  authorization: `Bearer ${SERVICE_ROLE}`,
+  "content-type": "application/json",
+});
+
+/** 해당 시즌들의 DB 행 (id·키·도시·날짜만) */
+async function fetchExisting(seasons) {
+  if (!seasons.length) return [];
+  const list = seasons.map((v) => `"${v.replace(/"/g, '\\"')}"`).join(",");
+  const url =
+    `${REST}/race_events?select=id,name,season,city,start_date,end_date` +
+    `&season=in.(${encodeURIComponent(list)})`;
+  const res = await fetch(url, { headers: svcHeaders() });
+  if (!res.ok) throw new Error(`fetch existing ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+/**
+ * 동기화한 시즌 안에서 소스에 더는 없는 행을 지운다.
+ *  · 크루 일정·내 대회 계획이 참조하는 행은 남긴다(FK 도 막지만 조용히 건너뛰려고).
+ *  · 한 번에 10행 넘게 지우게 되면 소스 장애(빈 응답 등)일 가능성이 크므로 중단.
+ *  · 소스에 없는 시즌(과거)은 애초에 existing 에 없어 건드리지 않는다.
+ */
+async function pruneOrphans(existing, keepKeys) {
+  const orphans = existing.filter((r) => !keepKeys.has(`${r.name}|${r.season}`));
+  if (!orphans.length) {
+    console.log("prune: 지울 행 없음");
+    return;
+  }
+  const ids = orphans.map((r) => r.id);
+  const inList = `in.(${ids.join(",")})`;
+  const referenced = new Set();
+  for (const [table, col] of [["crew_events", "race_event_id"], ["race_plans", "race_event_id"]]) {
+    const res = await fetch(
+      `${REST}/${table}?select=${col}&${col}=${inList}`,
+      { headers: svcHeaders() },
+    );
+    if (!res.ok) throw new Error(`prune refs ${table} ${res.status}: ${await res.text()}`);
+    for (const row of await res.json()) referenced.add(row[col]);
+  }
+  const kept = orphans.filter((r) => referenced.has(r.id));
+  const del = orphans.filter((r) => !referenced.has(r.id));
+  for (const r of kept) console.log(`prune: 참조 중이라 유지 — ${r.season} | ${r.name}`);
+  if (!del.length) return;
+  if (del.length > 10) {
+    console.log(`::warning::prune: 지울 행이 ${del.length}개 — 소스 이상으로 보고 정리를 건너뜁니다`);
+    for (const r of del) console.log(`  · ${r.season} | ${r.start_date ?? "미정"} | ${r.name}`);
+    return;
+  }
+  const res = await fetch(
+    `${REST}/race_events?id=in.(${del.map((r) => r.id).join(",")})`,
+    { method: "DELETE", headers: { ...svcHeaders(), prefer: "return=minimal" } },
+  );
+  if (!res.ok) throw new Error(`prune delete ${res.status}: ${await res.text()}`);
+  for (const r of del) console.log(`prune: 삭제 — ${r.season} | ${r.start_date ?? "미정"} | ${r.name}`);
 }
 
 main().catch((e) => {

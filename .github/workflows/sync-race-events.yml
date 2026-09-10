@@ -6,7 +6,8 @@ name: sync-race-events
 # 필요한 시크릿: SUPABASE_SERVICE_ROLE_KEY (서버 전용). 선택: HYROX_RESULT_API_TOKEN.
 on:
   schedule:
-    - cron: "0 6 * * 1" # 매주 월요일 06:00 UTC
+    - cron: "0 15 * * *" # 매일 KST 00:00 (15:00 UTC) — 대회 일정만
+    - cron: "0 6 * * 1"  # 매주 월요일 06:00 UTC — 벤치마크·개인 결과까지 (API 쿼터 절약)
   workflow_dispatch:
     inputs:
       dry_run:
@@ -47,6 +48,8 @@ jobs:
           fi
           node scripts/sync-race-events.mjs
       - name: Sync race benchmarks
+        # 매일 자정 크론에서는 건너뛴다 — 무거운 API 호출은 주 1회면 충분
+        if: github.event_name != 'schedule' || github.event.schedule == '0 6 * * 1'
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           HYROX_RESULT_API_TOKEN: ${{ secrets.HYROX_RESULT_API_TOKEN || inputs.api_token }}
@@ -57,6 +60,8 @@ jobs:
           fi
           node scripts/sync-race-benchmarks.mjs
       - name: Sync athlete results
+        # 매일 자정 크론에서는 건너뛴다 — 무거운 API 호출은 주 1회면 충분
+        if: github.event_name != 'schedule' || github.event.schedule == '0 6 * * 1'
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           HYROX_RESULT_API_TOKEN: ${{ secrets.HYROX_RESULT_API_TOKEN || inputs.api_token }}
