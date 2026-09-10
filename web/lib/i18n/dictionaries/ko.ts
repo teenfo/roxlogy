@@ -536,7 +536,6 @@ const ko: Record<DictKey, string> = {
   "crew.rsvpDone": "참석 완료",
   "crew.rsvpMissed": "미참석",
   "crew.nextMeetup": "다음 모임",
-  "crew.schedSummary": "모임 {meetups}개 · 참석 예정 {going}개",
   "crew.goingN": "{n}명 참석",
   "crew.goingNone": "아직 없음",
   "crew.rsvpMaybe": "미정",

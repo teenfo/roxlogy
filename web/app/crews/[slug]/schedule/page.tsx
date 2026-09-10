@@ -28,6 +28,8 @@ type CalRow = {
   members_only: boolean;
   fee_exempt: boolean;
   closed: boolean;
+  /** 공식 대회에 연결된 내 대회일정이면 그 대회 id */
+  event_id: string | null;
 };
 
 /** ms → h:mm:ss / m:ss */
@@ -128,13 +130,24 @@ export default async function CrewSchedulePage({
     });
   const todayIso = todayISOIn(tz);
 
-  // 요약 + "다음 모임" 판정 — 오늘 이후 가장 이른 미종료 모임 하나
-  const meetups = cal.filter((r) => r.kind === "meetup");
-  const goingCount = meetups.filter((r) => r.my_status === "going").length;
-  const nextMeetupId = meetups
-    .filter((r) => !r.closed && r.on_date >= todayIso)
-    .sort((a, b) => (a.starts_at ?? "").localeCompare(b.starts_at ?? ""))[0]
-    ?.ref_id;
+  // "다음 모임" = 오늘 이후 가장 이른 미종료 모임 하나.
+  const firstUpcoming = (rows: CalRow[]) =>
+    rows
+      .filter((r) => r.kind === "meetup" && !r.closed && r.on_date >= todayIso)
+      .sort((a, b) => (a.starts_at ?? "").localeCompare(b.starts_at ?? ""))[0]
+      ?.ref_id;
+
+  let nextMeetupId = firstUpcoming(cal);
+  // 미래 달을 보고 있으면 이 달 안에서 고른 건 "다음"이 아니다 — 그 사이에
+  // 더 이른 모임이 있다. 오늘부터 이 달 끝까지 다시 훑는다.
+  if (from > todayIso && to >= todayIso) {
+    const { data: aheadRows } = await supabase.rpc("crew_calendar", {
+      p_slug: slug,
+      p_from: todayIso,
+      p_to: to,
+    });
+    nextMeetupId = firstUpcoming((aheadRows ?? []) as CalRow[]);
+  }
 
   const dayNum = (iso: string) => Number(iso.slice(8, 10));
   const weekday = (iso: string) =>
@@ -150,47 +163,46 @@ export default async function CrewSchedulePage({
 
   return (
     <main>
-      {/* 내 대회일정 — 월 바 위 전체 폭. 등록 폼과 내 대회 목록이 함께
-          펼쳐지므로 좌우 칸에 끼우면 눌린다. */}
-      {isMember && (
+      {/* 내 대회일정 목록 — 등록 폼과 인라인 수정이 함께 펼쳐지므로 좌우 칸에
+          끼우지 않고 월 바 위 전체 폭에 둔다. 등록 버튼만 아래 툴바 좌측에. */}
+      {isMember && (myPlans ?? []).length > 0 && (
         <div className="mb-3">
-          <RacePlanForm myPlans={(myPlans ?? []) as MyRacePlan[]} />
+          <RacePlanForm myPlans={(myPlans ?? []) as MyRacePlan[]} part="list" />
         </div>
       )}
 
-      {/* 툴바 — 중앙: 월 이동 · 우: 모임 등록.
-          flex 가 아니라 grid 인 이유는, 모임 등록 버튼이 없어도(스태프가
-          아니면) 월 바가 가운데에 그대로 있어야 하기 때문이다. */}
-      <div className="grid items-start gap-3 max-md:grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-        <span aria-hidden className="max-md:hidden" />
-
-        <div className="flex flex-col items-center gap-1.5">
-          <div className="flex items-center rounded-[10px] border border-line-mid bg-control">
-            <Link
-              href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
-              aria-label={t("crew.prevMonth")}
-              className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent hover:bg-card-hover"
-            >
-              ‹
-            </Link>
-            <span className="tabular px-2 text-sm font-bold">{monthLabel}</span>
-            <Link
-              href={`/crews/${slug}/schedule?m=${shiftMonth(month, 1)}`}
-              aria-label={t("crew.nextMonth")}
-              className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent hover:bg-card-hover"
-            >
-              ›
-            </Link>
-          </div>
-          <p className="text-[13px] text-muted">
-            {t("crew.schedSummary", {
-              meetups: meetups.length,
-              going: goingCount,
-            })}
-          </p>
+      {/* 툴바 — 좌: 내 대회일정 등록 · 중앙: 월 이동 · 우: 모임 등록.
+          flex 가 아니라 grid 인 이유는, 한쪽 버튼이 없어도(스태프가 아니거나
+          비회원) 월 바가 가운데에 그대로 있어야 하기 때문이다. */}
+      <div className="grid items-center gap-3 max-md:grid-cols-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div className="flex min-w-0 max-md:order-2">
+          {isMember && (
+            <RacePlanForm
+              myPlans={(myPlans ?? []) as MyRacePlan[]}
+              part="trigger"
+            />
+          )}
         </div>
 
-        <div className="flex min-w-0 justify-end">
+        <div className="flex items-center justify-center rounded-[10px] border border-line-mid bg-control max-md:order-1 max-md:col-span-2 max-md:w-fit max-md:justify-self-center">
+          <Link
+            href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
+            aria-label={t("crew.prevMonth")}
+            className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent hover:bg-card-hover"
+          >
+            ‹
+          </Link>
+          <span className="tabular px-2 text-sm font-bold">{monthLabel}</span>
+          <Link
+            href={`/crews/${slug}/schedule?m=${shiftMonth(month, 1)}`}
+            aria-label={t("crew.nextMonth")}
+            className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent hover:bg-card-hover"
+          >
+            ›
+          </Link>
+        </div>
+
+        <div className="flex min-w-0 justify-end max-md:order-3">
           {isStaff && <CrewMeetupForm crewId={crew.id} />}
         </div>
       </div>
@@ -250,7 +262,12 @@ export default async function CrewSchedulePage({
                           ? `/crews/${slug}/schedule/${r.ref_id}`
                           : r.kind === "program"
                             ? `/programs/${r.ref_id}`
-                            : null;
+                            : // 공식 대회에 연결된 내 대회일정이면 그 대회
+                              // 페이지로 — 장소·일시·공식 링크·라이브 결과가
+                              // 이미 거기 있다. 직접 입력한 계획은 갈 곳이 없다.
+                              r.event_id
+                              ? `/events/${r.event_id}`
+                              : null;
 
                       const text = (
                         <>

@@ -263,7 +263,15 @@ type RaceEventRow = {
  *  크루 전용이 아니다: 개인 일정 화면(/schedule)과 크루 일정표 양쪽에서 쓴다.
  *  공식 대회(race_events)를 검색해 고르면 이름·날짜가 채워지고 대회에 연결되며,
  *  목록에 없는 대회는 입력한 이름 그대로 등록된다. */
-export function RacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
+export function RacePlanForm({
+  myPlans,
+  part,
+}: {
+  myPlans: MyRacePlan[];
+  /** 등록 버튼과 내 대회 목록을 다른 자리에 둘 때 나눠 그린다.
+   *  생략하면 지금까지처럼 둘 다 그린다. */
+  part?: "trigger" | "list";
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -400,9 +408,12 @@ export function RacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
     router.refresh();
   }
 
+  const showTrigger = part !== "list";
+  const showList = part !== "trigger";
+
   return (
     <div className="flex flex-col gap-2">
-      {!open ? (
+      {showTrigger && (
         <button
           type="button"
           onClick={openForm}
@@ -410,7 +421,17 @@ export function RacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
         >
           + {t("crew.racePlanAdd")}
         </button>
-      ) : (
+      )}
+      {showTrigger && open && (
+        /* 등록 폼은 입력이 여러 줄이라 툴바 칸에서는 눌린다 — 오버레이로 띄운다 */
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
         <form onSubmit={save} className="flex w-full flex-col gap-2 rounded-md bg-surface p-4">
           <p className="text-sm font-semibold">{t("crew.racePlanAdd")}</p>
           {/* 공식 대회 검색 — 자유 입력처럼 보이면 검색 기능을 아무도 못 찾는다.
@@ -513,8 +534,10 @@ export function RacePlanForm({ myPlans }: { myPlans: MyRacePlan[] }) {
             </button>
           </div>
         </form>
+          </div>
+        </div>
       )}
-      {myPlans.length > 0 && (
+      {showList && myPlans.length > 0 && (
         <ul className="flex flex-col gap-1">
           {myPlans.map((p) =>
             editId === p.id ? (

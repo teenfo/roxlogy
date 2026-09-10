@@ -183,13 +183,6 @@ export default async function CrewEventPage({
 
   return (
     <main className="flex flex-col gap-3.5">
-      <Link
-        href={`/crews/${slug}/schedule`}
-        className="w-fit text-[13px] text-muted transition-colors hover:text-foreground"
-      >
-        ← {t("crew.schedTab")}
-      </Link>
-
       {/* 히어로 — 날짜 블록 · 제목/메타 · 운영진 액션 */}
       <section className="overflow-hidden rounded-2xl border border-line-mid bg-card">
         <div className="grid grid-cols-[84px_minmax(0,1fr)_auto] items-start gap-5 px-6 py-[22px] max-md:grid-cols-[64px_minmax(0,1fr)] max-md:gap-4 max-md:px-4">
@@ -240,6 +233,13 @@ export default async function CrewEventPage({
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 max-md:col-span-2 max-md:justify-end">
+            {/* 목록으로 — 상단에 따로 두는 것보다 액션들과 한 줄에 있는 편이 찾기 쉽다 */}
+            <Link
+              href={`/crews/${slug}/schedule`}
+              className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-[#555]"
+            >
+              ← {t("crew.schedTab")}
+            </Link>
             <CrewEventShare url={shareUrl} title={ev.title} />
             {ev.is_staff && (
               /* 수정·종료·취소를 ⋯ 하나로. 수정 폼은 열면 오버레이로 뜬다 */

@@ -536,7 +536,6 @@ const es: Record<DictKey, string> = {
   "crew.rsvpDone": "Asistido",
   "crew.rsvpMissed": "No asistió",
   "crew.nextMeetup": "Próxima",
-  "crew.schedSummary": "{meetups} quedadas · {going} confirmadas",
   "crew.goingN": "{n} asisten",
   "crew.goingNone": "Nadie aún",
   "crew.rsvpMaybe": "Quizás",

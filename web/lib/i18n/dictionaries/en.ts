@@ -538,7 +538,6 @@ const en = {
   "crew.rsvpDone": "Attended",
   "crew.rsvpMissed": "Missed",
   "crew.nextMeetup": "Next up",
-  "crew.schedSummary": "{meetups} meetups · {going} going",
   "crew.goingN": "{n} going",
   "crew.goingNone": "No one yet",
   "crew.rsvpMaybe": "Maybe",
