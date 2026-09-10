@@ -240,6 +240,170 @@ export function CrewMeetupForm({
   );
 }
 
+/**
+ * 내 대회일정 상세의 편집 — 목록의 인라인 수정과 같은 필드·같은 검증을 쓴다.
+ * 펼치면 오버레이로 띄운다(입력이 여러 줄이라 카드 안에서는 눌린다).
+ * 삭제하면 돌아갈 계획이 없으므로 일정 목록으로 보낸다.
+ */
+export function RacePlanEditor({
+  plan,
+}: {
+  plan: {
+    id: string;
+    title: string;
+    race_date: string;
+    division: string | null;
+    bib: string | null;
+    note: string | null;
+  };
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(plan.title);
+  const [date, setDate] = useState(plan.race_date);
+  const [division, setDivision] = useState(plan.division ?? "");
+  const [bib, setBib] = useState(plan.bib ?? "");
+  const [note, setNote] = useState(plan.note ?? "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim() || !date || !bibOk(bib)) return;
+    setBusy(true);
+    setErr(null);
+    const { error } = await createClient()
+      .from("race_plans")
+      .update({
+        title: title.trim(),
+        race_date: date,
+        division: division.trim() || null,
+        bib: bib.trim() || null,
+        note: note.trim() || null,
+      })
+      .eq("id", plan.id);
+    setBusy(false);
+    if (error) return setErr(error.message);
+    setOpen(false);
+    router.refresh();
+  }
+
+  async function del() {
+    if (!window.confirm(t("crew.racePlanDelConfirm"))) return;
+    setBusy(true);
+    setErr(null);
+    const { error } = await createClient()
+      .from("race_plans")
+      .delete()
+      .eq("id", plan.id);
+    setBusy(false);
+    if (error) return setErr(error.message);
+    router.push("/schedule");
+    router.refresh();
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex h-9 items-center rounded-lg border border-line-strong bg-control px-4 text-[13px] font-semibold transition-colors hover:border-[#555]"
+      >
+        {t("common.edit")}
+      </button>
+      <button
+        type="button"
+        onClick={del}
+        disabled={busy}
+        className="flex h-9 items-center rounded-lg border border-danger-line-strong px-4 text-[13px] font-semibold text-danger transition-colors hover:bg-danger-card disabled:opacity-40"
+      >
+        {t("common.delete")}
+      </button>
+      {err && <p className="w-full text-xs text-danger">{err}</p>}
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <form
+              onSubmit={save}
+              className="flex w-full flex-col gap-2 rounded-md bg-surface p-4"
+            >
+              <p className="text-sm font-semibold">{t("crew.racePlanAdd")}</p>
+              <input
+                className={input}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={t("crew.racePlanTitlePh")}
+                maxLength={80}
+              />
+              <input
+                type="date"
+                className={input}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <select
+                  className={input}
+                  value={division}
+                  onChange={(e) => setDivision(e.target.value)}
+                >
+                  <option value="">{t("crew.racePlanDivisionPh")}</option>
+                  {DIVISIONS.map((d) => (
+                    <option key={d} value={d}>
+                      {t(`division.${d}` as Parameters<typeof t>[0])}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className={input}
+                  value={bib}
+                  onChange={(e) => setBib(e.target.value)}
+                  placeholder={t("crew.racePlanBibPh")}
+                  maxLength={8}
+                  inputMode="numeric"
+                />
+              </div>
+              <p className="text-xs text-muted">{t("crew.racePlanBibHint")}</p>
+              <input
+                className={input}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={t("crew.racePlanNotePh")}
+                maxLength={80}
+              />
+              {err && <p className="text-xs text-danger">{err}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={busy || !title.trim() || !date}
+                  className="rounded-md bg-track px-4 py-2 text-sm font-bold text-background disabled:opacity-40"
+                >
+                  {t("common.save")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
+                >
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export type PlanPartnerRow = {
   user_id: string;
   name: string;

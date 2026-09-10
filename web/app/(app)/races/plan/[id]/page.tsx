@@ -7,6 +7,7 @@ import { dictLabel } from "@/lib/dict-label";
 import { DOUBLES_DIVISIONS } from "@/lib/divisions";
 import { Avatar, Card } from "@/components/ui/crew-ui";
 import { RacePartnerBox, type PlanPartner } from "@/components/race-partner-box";
+import { RacePlanEditor } from "@/components/crew-schedule-forms";
 
 type PlanRow = {
   id: string;
@@ -150,14 +151,26 @@ export default async function RacePlanPage({
             </Link>
           )}
           {isOwner && (
-            <Link
-              href={`/predict?event=${encodeURIComponent(plan.title)}&date=${plan.race_date}`}
-              className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background transition hover:brightness-110"
-            >
-              {plan.goal_target_ms == null
-                ? t("events.setGoal")
-                : t("race.goalEdit")}
-            </Link>
+            <>
+              <Link
+                href={`/predict?event=${encodeURIComponent(plan.title)}&date=${plan.race_date}`}
+                className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background transition hover:brightness-110"
+              >
+                {plan.goal_target_ms == null
+                  ? t("events.setGoal")
+                  : t("race.goalEdit")}
+              </Link>
+              <RacePlanEditor
+                plan={{
+                  id: plan.id,
+                  title: plan.title,
+                  race_date: plan.race_date,
+                  division: plan.division,
+                  bib: plan.bib,
+                  note: plan.note,
+                }}
+              />
+            </>
           )}
         </div>
       </Card>
