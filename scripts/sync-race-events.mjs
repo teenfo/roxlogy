@@ -538,17 +538,39 @@ async function loadSource() {
         date_note: null, // 실측 날짜가 있으니 예정 비고는 지운다
       });
     }
-    for (const r of apiRows) if (!used.has(r)) merged.push(r);
-
-    // (name, season) 은 유니크 — 같은 키가 둘이면 upsert 가 거부되므로 뒤 것을 남긴다
+    // (name, season) 은 유니크. 큐레이션이 먼저 자리를 잡고, 짝지어지지 않은 API 회차가
+    // 같은 키를 쓰면(API 는 시즌 첫 회차를 "HYROX {City}" 로 부른다) 큐레이션을 덮어쓰지
+    // 않고 API 쪽 이름에 월·일을 붙여 비켜 간다 — 베이징: 큐레이션 9월 회차가 API 6월
+    // 회차에 지워진 적이 있다(2026-09-10).
     const byKey = new Map();
+    for (const r of merged) byKey.set(`${r.name}|${r.season}`, r);
     let collided = 0;
-    for (const r of merged) {
-      const k = `${r.name}|${r.season}`;
-      if (byKey.has(k)) collided++;
-      byKey.set(k, r);
+    const apiUnpaired = apiRows.filter((r) => !used.has(r));
+    for (const r of apiUnpaired) {
+      let name = r.name;
+      if (byKey.has(`${name}|${r.season}`)) {
+        collided++;
+        const [y, m, d] = r.start_date.split("-").map(Number);
+        const base = name.replace(/\s+\d{1,2}월$/, "");
+        name = `${base} ${m}월`;
+        if (byKey.has(`${name}|${r.season}`)) name = `${base} ${m}/${d}`;
+        if (byKey.has(`${name}|${r.season}`)) name = `${base} ${y}-${m}-${d}`;
+      }
+      byKey.set(`${name}|${r.season}`, { ...r, name });
     }
     const rows = [...byKey.values()];
+    if (DRY_RUN) {
+      console.log("── DRY RUN — API 회차 전체 (도시 | 시즌 | 날짜 | 짝) ──");
+      for (const r of [...apiRows].sort((a, b) => a.start_date.localeCompare(b.start_date))) {
+        const pair = used.has(r) ? "큐레이션과 병합" : "단독";
+        console.log(`  ${r.season} | ${r.start_date}~${r.end_date} | ${r.api_city} | ${pair}`);
+      }
+      console.log("── DRY RUN — 큐레이션 짝짓기 결과 ──");
+      for (const c of curated) {
+        const cands = apiByCS.get(`${cityKey(c)}|${c.season}`) ?? [];
+        console.log(`  ${c.season} | ${c.start_date ?? "미정"} | ${c.name} | API 후보 ${cands.length}개: ${cands.map((x) => x.start_date).join(", ") || "-"}`);
+      }
+    }
     console.log(
       `result api: ${raw.length} division-rows → ${apiRows.length} weekends ` +
         `(${paired} paired with curated, ${collided} key collisions) ` +
