@@ -450,6 +450,8 @@ const ko: Record<DictKey, string> = {
   "crew.finSettleAll": "이 달 {n}건 통장 반영",
   "crew.finSettleAllConfirm": "이 달 미반영 {n}건을 각 거래일로 통장 반영 처리할까요? 날짜가 다른 건은 개별로 고칠 수 있습니다.",
   "crew.finAdd": "내역 추가",
+  "crew.finEdit": "내역 수정",
+  "crew.finDuesLocked": "회비 확정으로 만들어진 내역입니다 — 종류·금액은 회비 청구와 짝을 이루므로 바꿀 수 없습니다.",
   "crew.finKindIncome": "수입",
   "crew.finKindAll": "전체",
   "crew.finFilterEmpty": "이 조건에 맞는 내역이 없습니다.",

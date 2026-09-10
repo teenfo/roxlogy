@@ -450,6 +450,8 @@ const es: Record<DictKey, string> = {
   "crew.finSettleAll": "Reflejar {n} de este mes",
   "crew.finSettleAllConfirm": "¿Marcar los {n} movimientos pendientes de este mes con su propia fecha? Después puedes corregir cada uno.",
   "crew.finAdd": "Añadir registro",
+  "crew.finEdit": "Editar movimiento",
+  "crew.finDuesLocked": "Creado al confirmar una cuota — el tipo y el importe están ligados al cargo y no se cambian aquí.",
   "crew.finKindIncome": "Ingreso",
   "crew.finKindAll": "Todo",
   "crew.finFilterEmpty": "Ningún movimiento coincide con este filtro.",

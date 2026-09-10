@@ -452,6 +452,8 @@ const en = {
   "crew.finSettleAll": "Clear {n} this month",
   "crew.finSettleAllConfirm": "Mark all {n} uncleared entries this month as cleared on their own entry date? You can fix individual dates afterwards.",
   "crew.finAdd": "Add entry",
+  "crew.finEdit": "Edit entry",
+  "crew.finDuesLocked": "Created by confirming dues — kind and amount are tied to the charge and can't be changed here.",
   "crew.finKindIncome": "Income",
   "crew.finKindAll": "All",
   "crew.finFilterEmpty": "No entries match this filter.",

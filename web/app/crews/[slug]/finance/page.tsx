@@ -466,7 +466,16 @@ export default async function CrewFinancePage({
                             {r.kind === "income" ? "+" : "−"}
                             {won(r.amount)}
                           </span>
-                          {isStaff && !closed && <CrewLedgerDelete id={r.id} />}
+                          {isStaff && !closed && (
+                            <>
+                              <CrewLedgerForm
+                                crewId={crew.id}
+                                today={todayISOIn(tz)}
+                                entry={r}
+                              />
+                              <CrewLedgerDelete id={r.id} />
+                            </>
+                          )}
                         </div>
                       ))}
                     </Card>

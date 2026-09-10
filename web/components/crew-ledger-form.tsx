@@ -18,34 +18,71 @@ const METHODS = {
   expense: ["cash", "card", "transfer", "other"],
 } as const satisfies Record<"income" | "expense", readonly string[]>;
 
+export type LedgerEntry = {
+  id: string;
+  entry_date: string;
+  kind: "income" | "expense";
+  amount: number;
+  title: string;
+  memo: string | null;
+  method: string | null;
+  settled_on: string | null;
+  source: string | null;
+};
+
 /**
- * 크루 회계 내역 추가 (스태프 전용).
+ * 크루 회계 내역 추가·수정 (스태프 전용).
  *
- * 툴바(월 선택 바 왼쪽)에 버튼으로 앉아 있고, 폼은 모달로 띄운다 — 툴바 안에서
- * 펼치면 월 선택 바와 탭이 아래로 밀려 내려간다.
+ * entry 를 주면 수정 모드가 된다 — 추가와 칸이 똑같아야 해서 한 컴포넌트로 둔다.
+ * 툴바(장부/회비 탭 오른쪽)나 내역 행에 버튼으로 앉아 있고, 폼은 모달로 띄운다.
+ * 툴바 안에서 펼치면 월 선택 바와 탭이 아래로 밀려 내려간다.
  */
 export function CrewLedgerForm({
   crewId,
   today,
+  entry,
 }: {
   crewId: string;
   /** 서버에서 계산한 사용자 시간대의 오늘 (UTC 로 하루 어긋나는 것 방지) */
   today: string;
+  /** 있으면 수정 모드 */
+  entry?: LedgerEntry;
 }) {
   const { t } = useI18n();
   const router = useRouter();
+  const editing = entry != null;
+  // 회비 확정으로 생긴 행은 청구(crew_dues_charges)와 금액이 짝을 이룬다.
+  // 여기서 금액·종류를 바꾸면 회비 보드와 장부가 어긋나므로 잠근다.
+  const fromDues = entry?.source === "dues";
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<"income" | "expense">("expense");
-  const [date, setDate] = useState(today);
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [memo, setMemo] = useState("");
+  const [kind, setKind] = useState<"income" | "expense">(
+    entry?.kind ?? "expense",
+  );
+  const [date, setDate] = useState(entry?.entry_date ?? today);
+  const [title, setTitle] = useState(entry?.title ?? "");
+  const [amount, setAmount] = useState(entry ? String(entry.amount) : "");
+  const [memo, setMemo] = useState(entry?.memo ?? "");
   // 결제 수단·통장 반영일 — 통장과 대사하려면 이 둘이 있어야 한다.
   // 둘 다 선택이다: 예전처럼 금액만 적고 넘어갈 수 있어야 한다.
-  const [method, setMethod] = useState("");
-  const [settledOn, setSettledOn] = useState("");
+  const [method, setMethod] = useState(entry?.method ?? "");
+  const [settledOn, setSettledOn] = useState(entry?.settled_on ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  /** 열 때마다 서버 값으로 되돌린다 — 고치다 취소한 값이 남으면 안 된다 */
+  function openModal() {
+    if (entry) {
+      setKind(entry.kind);
+      setDate(entry.entry_date);
+      setTitle(entry.title);
+      setAmount(String(entry.amount));
+      setMemo(entry.memo ?? "");
+      setMethod(entry.method ?? "");
+      setSettledOn(entry.settled_on ?? "");
+    }
+    setErr(null);
+    setOpen(true);
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -57,11 +94,7 @@ export function CrewLedgerForm({
     setBusy(true);
     setErr(null);
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const { error } = await supabase.from("crew_ledger").insert({
-      crew_id: crewId,
+    const values = {
       entry_date: date,
       kind,
       amount: Math.round(amt),
@@ -69,31 +102,61 @@ export function CrewLedgerForm({
       memo: memo.trim() || null,
       method: method || null,
       settled_on: settledOn || null,
-      created_by: user?.id,
-    });
+    };
+    const { error } = editing
+      ? await supabase
+          .from("crew_ledger")
+          .update(values)
+          .eq("id", entry.id)
+          .eq("crew_id", crewId)
+      : await (async () => {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          return supabase
+            .from("crew_ledger")
+            .insert({ ...values, crew_id: crewId, created_by: user?.id });
+        })();
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(
+        error.message.includes("ledger_month_closed")
+          ? t("crew.errMonthClosed")
+          : error.message,
+      );
       return;
     }
-    setTitle("");
-    setAmount("");
-    setMemo("");
-    setMethod("");
-    setSettledOn("");
+    if (!editing) {
+      setTitle("");
+      setAmount("");
+      setMemo("");
+      setMethod("");
+      setSettledOn("");
+    }
     setOpen(false);
     router.refresh();
   }
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex h-9 shrink-0 items-center rounded-[10px] border border-accent/40 px-3 text-sm font-semibold text-accent transition-colors hover:bg-accent/10"
-      >
-        + {t("crew.finAdd")}
-      </button>
+      {editing ? (
+        <button
+          type="button"
+          onClick={openModal}
+          aria-label={t("common.edit")}
+          className="-m-2 shrink-0 p-2 text-xs text-muted transition-colors hover:text-accent"
+        >
+          ✎
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={openModal}
+          className="flex h-9 shrink-0 items-center rounded-[10px] border border-accent/40 px-3 text-sm font-semibold text-accent transition-colors hover:bg-accent/10"
+        >
+          + {t("crew.finAdd")}
+        </button>
+      )}
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
@@ -109,11 +172,17 @@ export function CrewLedgerForm({
               onSubmit={save}
               className="flex flex-col gap-2 rounded-md bg-surface p-4"
             >
-              <p className="text-sm font-semibold">{t("crew.finAdd")}</p>
+              <p className="text-sm font-semibold">
+                {t(editing ? "crew.finEdit" : "crew.finAdd")}
+              </p>
+              {fromDues && (
+                <p className="text-[11px] text-muted">{t("crew.finDuesLocked")}</p>
+              )}
               <div className="flex flex-wrap gap-2">
                 <select
                   className={input}
                   value={kind}
+                  disabled={fromDues}
                   onChange={(e) => {
                     const k = e.target.value as "income" | "expense";
                     setKind(k);
@@ -139,6 +208,7 @@ export function CrewLedgerForm({
                   className={`${input} w-32`}
                   placeholder={t("crew.finAmount")}
                   value={amount}
+                  disabled={fromDues}
                   onChange={(e) => setAmount(e.target.value)}
                   required
                 />
@@ -199,7 +269,7 @@ export function CrewLedgerForm({
                   disabled={busy}
                   className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
                 >
-                  {busy ? t("common.saving") : t("crew.finSave")}
+                  {busy ? t("common.saving") : t(editing ? "common.save" : "crew.finSave")}
                 </button>
                 <button
                   type="button"
