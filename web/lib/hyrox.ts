@@ -31,8 +31,12 @@ export const STATIONS: StationDef[] = [
  * 스테이션은 브랜드 옐로(#FFD500)의 차트 톤 스텝. 록스존은 잔여
  * 카테고리라 뉴트럴 그레이 + 직접 라벨/갭으로 식별한다.
  */
+/** 세션 차트 3색 (2026-09 디자인 핸드오프).
+ *  런·스테이션·록스존을 화면마다 다른 색으로 그리면 스택바·랩 추이·스플릿을
+ *  나란히 볼 때 같은 종류를 눈으로 잇지 못한다. globals.css 토큰과 맞춘다:
+ *  런 = --info, 스테이션 = --accent-dim, 록스존 = 중립 회색. */
 export const CHART_COLORS = {
-  run: "#2D7DFF",
-  station: "#B29200",
-  roxzone: "#9A9A96",
+  run: "#7dd3fc",
+  station: "#e0c53a",
+  roxzone: "#666666",
 } as const;

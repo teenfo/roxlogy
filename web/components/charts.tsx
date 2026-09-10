@@ -16,9 +16,13 @@ import { CHART_COLORS } from "@/lib/hyrox";
 import { formatMs } from "@/lib/format";
 import { useI18n } from "@/components/i18n-provider";
 
-const SURFACE = "#1E1E1E";
-const GRID = "#2C2C2A";
+// 차트 안에서 쓰는 리터럴 — globals.css 토큰과 같은 값 (recharts 는 CSS 변수를
+// 직접 못 받는다). card/line-mid/muted 에 맞춰 둔다.
+const SURFACE = "#141414";
+const GRID = "#2a2a2a";
 const INK_MUTED = "#9A9A96";
+const FAST = "#6ee7a0";
+const SLOW = "#ff8a8a";
 
 type TooltipPayload = {
   payload?: { name?: string; label?: string; ms?: number; kind?: string };
@@ -99,12 +103,39 @@ export function SegmentSplitBars({
   );
 }
 
+/** 랩 점 — 최고/최저만 색으로 구분 */
+function LapDot(props: {
+  cx?: number;
+  cy?: number;
+  value?: number;
+  fastest: number | null;
+  slowest: number | null;
+}) {
+  const { cx, cy, value, fastest, slowest } = props;
+  if (cx == null || cy == null) return null;
+  const fill =
+    value != null && value === slowest && slowest !== fastest
+      ? SLOW
+      : value != null && value === fastest && slowest !== fastest
+        ? FAST
+        : CHART_COLORS.run;
+  return (
+    <circle cx={cx} cy={cy} r={4} fill={fill} stroke={SURFACE} strokeWidth={2} />
+  );
+}
+
 /** 런 랩 페이스 추이 — 단일 시리즈 라인 (제목이 시리즈명, 범례 없음) */
 export function RunLapLine({
   data,
 }: {
   data: { name: string; ms: number }[];
 }) {
+  // 가장 빠른·느린 랩만 색을 달리한다 — 8개 점이 같은 색이면 어느 랩이
+  // 무너졌는지 눈으로 찾아야 한다.
+  const times = data.map((d) => d.ms);
+  const fastest = times.length ? Math.min(...times) : null;
+  const slowest = times.length ? Math.max(...times) : null;
+
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
@@ -128,8 +159,8 @@ export function RunLapLine({
           type="monotone"
           dataKey="ms"
           stroke={CHART_COLORS.run}
-          strokeWidth={2}
-          dot={{ r: 4, fill: CHART_COLORS.run, stroke: SURFACE, strokeWidth: 2 }}
+          strokeWidth={2.5}
+          dot={<LapDot fastest={fastest} slowest={slowest} />}
           activeDot={{ r: 5 }}
         />
       </LineChart>
