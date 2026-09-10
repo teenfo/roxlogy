@@ -11,6 +11,8 @@ import {
 } from "@/components/crew-ledger-form";
 import { CrewDuesMatrix, type BoardCharge } from "@/components/crew-dues-check";
 import { Badge, Card, Chip, SectionHead } from "@/components/ui/crew-ui";
+import { CrewBankOpening } from "@/components/crew-bank-opening";
+import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 type LedgerRow = {
   id: string;
@@ -20,6 +22,10 @@ type LedgerRow = {
   title: string;
   source: string | null;
   memo: string | null;
+  /** 현금·카드·이체·기타. 예전 기록은 비어 있다 */
+  method: string | null;
+  /** 통장에 찍힌 날. 비어 있으면 아직 통장 미반영 */
+  settled_on: string | null;
 };
 
 /** YYYY-MM → [1일, 말일] */
@@ -77,26 +83,38 @@ export default async function CrewFinancePage({
   }
 
   const supabase = await createClient();
-  const [{ data: rows }, { data: allRows }, { data: chargeRows }] =
+  const [{ data: rows }, { data: allRows }, { data: chargeRows }, { data: bankRow }] =
     await Promise.all([
       supabase
         .from("crew_ledger")
-        .select("id, entry_date, kind, amount, title, memo, source")
+        .select(
+          "id, entry_date, kind, amount, title, memo, source, method, settled_on",
+        )
         .eq("crew_id", crew.id)
         .gte("entry_date", from)
         .lte("entry_date", to)
         .order("entry_date", { ascending: false })
         .order("created_at", { ascending: false }),
-      // 누적 잔액용 전체 합계 (kind별 sum)
+      // 누적 잔액용 전체 합계 (kind별 sum) + 통장 반영 여부
       supabase
         .from("crew_ledger")
-        .select("kind, amount")
+        .select("kind, amount, settled_on")
         .eq("crew_id", crew.id),
       // 회비 청구 보드 (운영진만 — RPC 가 스태프를 검증)
       isStaff && view === "dues"
         ? supabase.rpc("crew_dues_board", { p_slug: slug, p_period: month })
         : Promise.resolve({ data: null }),
+      // 통장 기초 잔액 — 정회원만 조회된다(crew_bank RLS)
+      supabase
+        .from("crew_bank")
+        .select("opening_balance, opening_on")
+        .eq("crew_id", crew.id)
+        .maybeSingle(),
     ]);
+  const bank = bankRow as {
+    opening_balance: number;
+    opening_on: string | null;
+  } | null;
   const entries = (rows ?? []) as LedgerRow[];
   const charges = (chargeRows ?? []) as BoardCharge[];
 
@@ -106,10 +124,21 @@ export default async function CrewFinancePage({
   const monthExpense = entries
     .filter((r) => r.kind === "expense")
     .reduce((a, r) => a + r.amount, 0);
-  const totalBalance = (allRows ?? []).reduce(
-    (a, r) => a + (r.kind === "income" ? r.amount : -r.amount),
-    0,
-  );
+  const all = (allRows ?? []) as {
+    kind: string;
+    amount: number;
+    settled_on: string | null;
+  }[];
+  const signed = (r: { kind: string; amount: number }) =>
+    r.kind === "income" ? r.amount : -r.amount;
+  // 장부 잔액 = 기록한 모든 거래. 통장 잔고 = 기초 잔액 + 통장에 찍힌 것만.
+  // 둘의 차이가 곧 "아직 통장에 안 들어온 돈"이라 대사가 된다.
+  const totalBalance = all.reduce((a, r) => a + signed(r), 0);
+  const settledNet = all
+    .filter((r) => r.settled_on != null)
+    .reduce((a, r) => a + signed(r), 0);
+  const bankBalance = (bank?.opening_balance ?? 0) + settledNet;
+  const unsettled = totalBalance - settledNet;
 
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString(tag, {
     year: "numeric",
@@ -197,6 +226,41 @@ export default async function CrewFinancePage({
         </Card>
       </section>
 
+      {/* 통장 — 장부와 따로 본다. 차이가 곧 미반영 금액이다 */}
+      <section className="mt-3">
+        <Card className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-xs text-muted">{t("crew.finBankBalance")}</p>
+            <p className="tabular mt-1 text-2xl font-extrabold">
+              {won(bankBalance)}
+            </p>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-muted">{t("crew.finUnsettled")}</p>
+            <p
+              className={`tabular mt-1 text-lg font-bold ${
+                unsettled === 0 ? "text-muted" : "text-accent"
+              }`}
+            >
+              {unsettled >= 0 ? "+" : "−"}
+              {won(Math.abs(unsettled))}
+            </p>
+          </div>
+          <div className="ml-auto flex items-center gap-3 max-md:ml-0 max-md:w-full">
+            <span className="text-[11px] text-muted [word-break:keep-all]">
+              {t("crew.finBankNote")}
+            </span>
+            {isStaff && (
+              <CrewBankOpening
+                crewId={crew.id}
+                openingBalance={bank?.opening_balance ?? 0}
+                openingOn={bank?.opening_on ?? null}
+              />
+            )}
+          </div>
+        </Card>
+      </section>
+
       {/* 회비 청구·확정 — 운영진 전용, 보고 있는 달 기준 */}
       {view === "dues" && (
         <section className="mt-6">
@@ -265,11 +329,29 @@ export default async function CrewFinancePage({
                                 ? t("crew.duesEntry", { detail: r.title })
                                 : r.title}
                             </span>
-                            {r.memo && (
-                              <span className="block truncate text-[13px] text-muted">
-                                {r.memo}
+                            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
+                              {r.method && (
+                                <span className="rounded-md bg-line px-1.5 py-0.5 text-[11px] font-bold text-foreground/75">
+                                  {t(`crew.finMethod.${r.method}` as DictKey)}
+                                </span>
+                              )}
+                              <span
+                                className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
+                                  r.settled_on
+                                    ? "bg-success-bg text-success"
+                                    : "bg-label-bg text-label"
+                                }`}
+                              >
+                                {r.settled_on
+                                  ? t("crew.finSettledOn", {
+                                      date: dayLabel(r.settled_on),
+                                    })
+                                  : t("crew.finUnsettledBadge")}
                               </span>
-                            )}
+                              {r.memo && (
+                                <span className="min-w-0 truncate">{r.memo}</span>
+                              )}
+                            </span>
                           </span>
                           <span
                             className={`tabular shrink-0 text-[15px] font-extrabold ${

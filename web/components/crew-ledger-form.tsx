@@ -18,6 +18,10 @@ export function CrewLedgerForm({ crewId }: { crewId: string }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
+  // 결제 수단·통장 반영일 — 통장과 대사하려면 이 둘이 있어야 한다.
+  // 둘 다 선택이다: 예전처럼 금액만 적고 넘어갈 수 있어야 한다.
+  const [method, setMethod] = useState("");
+  const [settledOn, setSettledOn] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -41,6 +45,8 @@ export function CrewLedgerForm({ crewId }: { crewId: string }) {
       amount: Math.round(amt),
       title: title.trim(),
       memo: memo.trim() || null,
+      method: method || null,
+      settled_on: settledOn || null,
       created_by: user?.id,
     });
     setBusy(false);
@@ -51,6 +57,8 @@ export function CrewLedgerForm({ crewId }: { crewId: string }) {
     setTitle("");
     setAmount("");
     setMemo("");
+    setMethod("");
+    setSettledOn("");
     setOpen(false);
     router.refresh();
   }
@@ -106,6 +114,29 @@ export function CrewLedgerForm({ crewId }: { crewId: string }) {
         maxLength={120}
         required
       />
+      <div className="flex flex-wrap gap-2">
+        <select
+          className={input}
+          value={method}
+          onChange={(e) => setMethod(e.target.value)}
+        >
+          <option value="">{t("crew.finMethodNone")}</option>
+          {(["cash", "card", "transfer", "other"] as const).map((mth) => (
+            <option key={mth} value={mth}>
+              {t(`crew.finMethod.${mth}` as Parameters<typeof t>[0])}
+            </option>
+          ))}
+        </select>
+        <label className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted">
+          {t("crew.finSettledLabel")}
+          <input
+            type="date"
+            className={`${input} min-w-0 flex-1`}
+            value={settledOn}
+            onChange={(e) => setSettledOn(e.target.value)}
+          />
+        </label>
+      </div>
       <input
         className={input}
         placeholder={t("crew.finMemo")}
