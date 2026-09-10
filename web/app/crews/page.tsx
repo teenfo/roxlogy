@@ -35,7 +35,7 @@ export default async function CrewDirectoryPage() {
     <>
       <CrewHeader loginNext="/crews" />
 
-      <main className="mx-auto w-full max-w-[960px] flex-1 px-6 pb-20 pt-8 max-md:px-4">
+      <main className="mx-auto w-full max-w-[960px] flex-1 px-6 pb-20 pt-8 max-md:px-4 max-md:pb-28">
         {/* 헤더 */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

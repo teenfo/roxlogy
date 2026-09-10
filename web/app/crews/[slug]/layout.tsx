@@ -53,7 +53,7 @@ export default async function CrewLayout({
     <>
       <CrewHeader loginNext={`/crews/${slug}`} />
 
-      <div className="mx-auto w-full max-w-[960px] flex-1 px-6 py-8">
+      <div className="mx-auto w-full max-w-[960px] flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         {crew.cover_url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -63,19 +63,21 @@ export default async function CrewLayout({
           />
         )}
         {/* 크루 헤더 */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3 sm:gap-4">
             {crew.logo_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={crew.logo_url}
                 alt=""
-                className="h-14 w-14 shrink-0 rounded-md object-cover"
+                className="h-12 w-12 shrink-0 rounded-md object-cover sm:h-14 sm:w-14"
               />
             )}
             <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-black tracking-tight">{crew.name}</h1>
+              <h1 className="truncate text-2xl font-black tracking-tight sm:text-3xl">
+                {crew.name}
+              </h1>
               {crew.crew_status === "pending" && (
                 <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent">
                   {t("crew.pendingBadge")}
@@ -99,16 +101,20 @@ export default async function CrewLayout({
             </p>
             </div>
           </div>
-          {crew.crew_status === "active" ? (
-            <CrewJoinButton
-              slug={slug}
-              status={crew.my_status}
-              role={crew.my_role}
-              loggedIn={!!user}
-            />
-          ) : (
-            <p className="max-w-48 text-xs text-muted">{t("crew.pendingNote")}</p>
-          )}
+          <div className="shrink-0">
+            {crew.crew_status === "active" ? (
+              <CrewJoinButton
+                slug={slug}
+                status={crew.my_status}
+                role={crew.my_role}
+                loggedIn={!!user}
+              />
+            ) : (
+              <p className="max-w-48 text-xs text-muted">
+                {t("crew.pendingNote")}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* 탭 — 활성 표시는 클라이언트에서 경로와 대조한다 */}

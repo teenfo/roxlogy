@@ -114,11 +114,6 @@ export function CrewJoinButton({
               </button>
             ))}
         </div>
-        {isOwner && (
-          <p className="max-w-48 text-right text-xs text-muted">
-            {t("crew.ownerCannotLeave")}
-          </p>
-        )}
         {err && <p className="text-xs text-red-400">{err}</p>}
       </div>
     );
