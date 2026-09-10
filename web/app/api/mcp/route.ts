@@ -983,7 +983,13 @@ const handler = createMcpHandler(
       if (e.type === "REQUEST_COMPLETED" && (e.duration ?? 0) > 5000) {
         console.warn(`[mcp] slow ${e.method} ${e.duration}ms`);
       } else if (e.type === "ERROR") {
-        console.error(`[mcp] error`, e.error);
+        // 구독 거절은 설계대로 동작한 것이다(maxSubscriptions: 0). 클라이언트는
+        // 계속 재시도하므로 error 로 남기면 Vercel 오류 대시보드가 이걸로 덮여
+        // 진짜 오류가 묻힌다.
+        const msg = e.error instanceof Error ? e.error.message : String(e.error);
+        if (!msg.includes("subscriptions/listen refused")) {
+          console.error(`[mcp] error`, e.error);
+        }
       }
     },
     instructions:
