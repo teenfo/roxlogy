@@ -2,10 +2,14 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { RacePlanForm, type MyRacePlan } from "@/components/crew-schedule-forms";
+import {
+  RacePlanForm,
+  normalizeRacePlans,
+} from "@/components/crew-schedule-forms";
 import {
   formatDateShort,
   programDayNumber,
+  todayISOIn,
   todayMidnightIn,
 } from "@/lib/format";
 
@@ -64,17 +68,19 @@ export default async function SchedulePage({
   // 같이 렌더해야 프로그램 없는 사용자가 막다른 길에 빠지지 않는다.
   const { data: planRows } = await supabase
     .from("race_plans")
-    .select("id, title, race_date, division, bib, note, goal_plan_id")
+    .select(
+      "id, title, race_date, division, bib, note, goal_plan_id, goal:goal_plans ( target_total_ms, run_total_ms, station_total_ms, roxzone_total_ms )",
+    )
     .eq("user_id", user!.id)
     .order("race_date");
-  const myPlans = (planRows ?? []) as MyRacePlan[];
+  const plans = normalizeRacePlans(planRows);
   const racePlanSection = (
     <section className="mt-8">
       <h2 className="text-sm font-semibold text-muted">
         {t("schedule.myRaces")}
       </h2>
       <div className="mt-3">
-        <RacePlanForm myPlans={myPlans} />
+        <RacePlanForm myPlans={plans} today={todayISOIn(tz)} />
       </div>
     </section>
   );

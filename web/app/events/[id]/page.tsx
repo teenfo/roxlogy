@@ -27,6 +27,8 @@ export async function generateMetadata({
   return { title: data ? `${data.name} — Roxlogy` : "Roxlogy" };
 }
 
+type MyGoal = { target_total_ms: number; event_name: string | null };
+
 type Crewmate = {
   user_id: string;
   display_name: string;
@@ -58,18 +60,31 @@ export default async function EventDetailPage({
   const [live, goal, { data: mateRows }] = await Promise.all([
     getEventLiveDetail(ev),
     user
-      ? supabase
-          .from("goal_plans")
-          .select("target_total_ms, event_name")
-          .order("created_at", { ascending: false })
-          .limit(10)
-          .then(({ data }) => {
-            const gs = data ?? [];
-            // 이 대회를 목표로 지정한 것 우선, 없으면 최근 목표
-            return (
-              gs.find((g) => g.event_name?.startsWith(ev.name)) ?? gs[0] ?? null
-            );
-          })
+      ? (async () => {
+          // 이 대회로 등록한 내 대회일정에 목표가 붙어 있으면 그게 정답이다 —
+          // 이름 매칭은 대회명을 손으로 고치면 바로 어긋난다.
+          const { data: linked } = await supabase
+            .from("race_plans")
+            .select("goal:goal_plans ( target_total_ms, event_name )")
+            .eq("user_id", user.id)
+            .eq("race_event_id", id)
+            .not("goal_plan_id", "is", null)
+            .order("race_date")
+            .limit(1)
+            .maybeSingle();
+          const g = (linked as { goal: MyGoal | MyGoal[] | null } | null)?.goal;
+          const one = Array.isArray(g) ? (g[0] ?? null) : (g ?? null);
+          if (one) return one;
+
+          const { data } = await supabase
+            .from("goal_plans")
+            .select("target_total_ms, event_name")
+            .order("created_at", { ascending: false })
+            .limit(10);
+          const gs = (data ?? []) as MyGoal[];
+          // 이 대회를 목표로 지정한 것 우선, 없으면 최근 목표
+          return gs.find((x) => x.event_name?.startsWith(ev.name)) ?? gs[0] ?? null;
+        })()
       : Promise.resolve(null),
     // 같은 대회에 나가는 크루원 — 나와 같은 크루인 사람만 내려온다(RPC 가 게이트)
     user

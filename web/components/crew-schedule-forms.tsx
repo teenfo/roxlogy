@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { dictLabel } from "@/lib/dict-label";
 import { duesErrText } from "@/lib/dues-error";
+import { formatMs as fmtMs } from "@/lib/format";
 import { Avatar } from "@/components/ui/crew-ui";
 import {
   crewRoleBadgeClass,
@@ -247,7 +248,27 @@ export type MyRacePlan = {
   bib: string | null;
   note: string | null;
   goal_plan_id: string | null; // 연결된 목표(goal_plans) — 있으면 목표 세우기 버튼 숨김
+  /** 연결된 목표의 스플릿. goal_plan_id 가 있으면 함께 내려온다 */
+  goal: {
+    target_total_ms: number;
+    run_total_ms: number | null;
+    station_total_ms: number | null;
+    roxzone_total_ms: number | null;
+  } | null;
 };
+
+/**
+ * supabase 임베드 정규화 — `goal:goal_plans ( … )` 는 FK 한 건이라 런타임에는
+ * 객체로 오지만 생성된 타입은 배열로 본다. 한쪽으로 맞춘다.
+ */
+export function normalizeRacePlans(rows: unknown): MyRacePlan[] {
+  return ((rows ?? []) as (Omit<MyRacePlan, "goal"> & {
+    goal: MyRacePlan["goal"] | MyRacePlan["goal"][] | null;
+  })[]).map((r) => ({
+    ...r,
+    goal: (Array.isArray(r.goal) ? (r.goal[0] ?? null) : r.goal) ?? null,
+  }));
+}
 
 const bibOk = (v: string) => v.trim() === "" || /^\d{4,8}$/.test(v.trim());
 
@@ -266,11 +287,15 @@ type RaceEventRow = {
 export function RacePlanForm({
   myPlans,
   part,
+  today,
 }: {
   myPlans: MyRacePlan[];
   /** 등록 버튼과 내 대회 목록을 다른 자리에 둘 때 나눠 그린다.
    *  생략하면 지금까지처럼 둘 다 그린다. */
   part?: "trigger" | "list";
+  /** 사용자 시간대의 오늘(YYYY-MM-DD). D-day 계산용 — 렌더 중 new Date() 를
+   *  쓰면 순수하지 않고 서버 UTC 기준이라 하루가 어긋난다. */
+  today: string;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -622,9 +647,7 @@ export function RacePlanForm({
                 {/* D-day — 남은 날이 보여야 준비 상태가 가늠된다 */}
                 {(() => {
                   const d = Math.round(
-                    (new Date(`${p.race_date}T00:00:00`).getTime() -
-                      new Date(new Date().toDateString()).getTime()) /
-                      86400000,
+                    (Date.parse(p.race_date) - Date.parse(today)) / 86400000,
                   );
                   if (d < 0) return null;
                   return (
@@ -643,7 +666,14 @@ export function RacePlanForm({
                     BIB {p.bib}
                   </span>
                 )}
-                {!p.goal_plan_id && (
+                {p.goal ? (
+                  <a
+                    href="/goals"
+                    className="tabular shrink-0 rounded-md border border-line-accent bg-highlight px-2 py-0.5 text-[11px] font-bold text-accent"
+                  >
+                    🎯 {fmtMs(p.goal.target_total_ms)}
+                  </a>
+                ) : (
                   <a
                     href={`/predict?event=${encodeURIComponent(p.title)}&date=${p.race_date}`}
                     className="shrink-0 text-accent hover:underline"
@@ -666,6 +696,30 @@ export function RacePlanForm({
                 >
                   ✕
                 </button>
+                {/* 목표 스플릿 — 총 기록만으로는 어디를 줄일지 안 보인다 */}
+                {p.goal &&
+                  (p.goal.run_total_ms != null ||
+                    p.goal.station_total_ms != null) && (
+                    <span className="tabular flex w-full flex-wrap gap-x-3 text-[11px] text-muted">
+                      {p.goal.run_total_ms != null && (
+                        <span>
+                          {t("landing.m.run")} {fmtMs(p.goal.run_total_ms)}
+                        </span>
+                      )}
+                      {p.goal.station_total_ms != null && (
+                        <span>
+                          {t("landing.m.station")}{" "}
+                          {fmtMs(p.goal.station_total_ms)}
+                        </span>
+                      )}
+                      {p.goal.roxzone_total_ms != null && (
+                        <span>
+                          {t("landing.m.roxzone")}{" "}
+                          {fmtMs(p.goal.roxzone_total_ms)}
+                        </span>
+                      )}
+                    </span>
+                  )}
               </li>
             ),
           )}

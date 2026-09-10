@@ -9,7 +9,7 @@ import {
   CrewMeetupForm,
   CrewRsvpToggle,
   RacePlanForm,
-  type MyRacePlan,
+  normalizeRacePlans,
 } from "@/components/crew-schedule-forms";
 import { AvatarStack, Badge, Card } from "@/components/ui/crew-ui";
 
@@ -88,11 +88,14 @@ export default async function CrewSchedulePage({
     isMember
       ? supabase
           .from("race_plans")
-          .select("id, title, race_date, division, bib, note, goal_plan_id")
+          .select(
+            "id, title, race_date, division, bib, note, goal_plan_id, goal:goal_plans ( target_total_ms, run_total_ms, station_total_ms, roxzone_total_ms )",
+          )
           .eq("user_id", user!.id)
           .order("race_date")
-      : Promise.resolve({ data: [] as MyRacePlan[] }),
+      : Promise.resolve({ data: [] }),
   ]);
+  const plans = normalizeRacePlans(myPlans);
   const cal = (rows ?? []) as CalRow[];
 
   // 참석자 아바타용 이름 — crew_calendar 는 인원수만 준다.
@@ -165,9 +168,13 @@ export default async function CrewSchedulePage({
     <main>
       {/* 내 대회일정 목록 — 등록 폼과 인라인 수정이 함께 펼쳐지므로 좌우 칸에
           끼우지 않고 월 바 위 전체 폭에 둔다. 등록 버튼만 아래 툴바 좌측에. */}
-      {isMember && (myPlans ?? []).length > 0 && (
+      {isMember && plans.length > 0 && (
         <div className="mb-3">
-          <RacePlanForm myPlans={(myPlans ?? []) as MyRacePlan[]} part="list" />
+          <RacePlanForm
+            myPlans={plans}
+            part="list"
+            today={todayIso}
+          />
         </div>
       )}
 
@@ -178,8 +185,9 @@ export default async function CrewSchedulePage({
         <div className="flex min-w-0 max-md:order-2">
           {isMember && (
             <RacePlanForm
-              myPlans={(myPlans ?? []) as MyRacePlan[]}
+              myPlans={plans}
               part="trigger"
+              today={todayIso}
             />
           )}
         </div>
