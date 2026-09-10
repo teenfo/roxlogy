@@ -227,6 +227,7 @@ const ko: Record<DictKey, string> = {
   "nav.leaderboard": "리더보드",
   "nav.feed": "피드",
   "nav.crews": "크루",
+  "nav.watch": "워치",
   "nav.events": "대회일정검색",
   "nav.exercises": "운동",
   "nav.predict": "계산기",

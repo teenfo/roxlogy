@@ -227,6 +227,7 @@ const es: Record<DictKey, string> = {
   "nav.leaderboard": "Clasificación",
   "nav.feed": "Feed",
   "nav.crews": "Crews",
+  "nav.watch": "Reloj",
   "nav.events": "Buscar eventos",
   "nav.exercises": "Ejercicios",
   "nav.predict": "Calculadora",

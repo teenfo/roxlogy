@@ -7,7 +7,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,25 +16,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -45,9 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -59,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import android.webkit.CookieManager
 import app.roxlogy.android.push.PushController
 import app.roxlogy.android.push.PushRegistration
+import app.roxlogy.android.push.ShellController
 import app.roxlogy.android.push.RoxMessagingService
 import app.roxlogy.android.sync.AuthClient
 import app.roxlogy.android.sync.GoalSync
@@ -73,15 +61,17 @@ import app.roxlogy.android.ui.RoxTextField
 import app.roxlogy.android.ui.theme.RoxAccent
 import app.roxlogy.android.ui.theme.RoxError
 import app.roxlogy.android.ui.theme.RoxMuted
-import app.roxlogy.android.ui.theme.RoxSurface
 import app.roxlogy.android.ui.theme.RoxTrack
 import app.roxlogy.android.ui.theme.RoxlogyTheme
 import kotlinx.coroutines.launch
 
 /**
  * 폰 앱 — Supabase 로그인/회원가입 → JWT 확보. 웹과 동일한 브랜드 디자인 시스템(다크·팔레트).
- * 로그인 후: 네이티브 하단 5탭(홈·세션·워치·피드·더보기) + WebView(roxlogy.com) 하이브리드.
- * 워치 탭만 네이티브(연결·목표전송·WOD), 나머지는 웹 화면. 워치연동은 백그라운드 상시 동작.
+ * 로그인 후: WebView(roxlogy.com) 하이브리드. 하단 탭바는 **웹이 그린다** — 웹 탭바(nav.ts)가
+ * 단일 출처이고, 앱 안에서는 거기에 "워치" 탭이 하나 더 붙어 `RoxNative.openWatch()` 로
+ * 네이티브 워치 화면(연결·목표전송·WOD)을 오버레이로 연다. (v0.7: 네이티브 탭바 제거 —
+ * 웹이 모바일 하단 탭바를 갖게 되면서 두 겹이 됐고, 탭 목록도 서로 어긋났다)
+ * 워치연동은 백그라운드 상시 동작.
  */
 class MainActivity : ComponentActivity() {
     private var startPath by mutableStateOf("/dashboard")
@@ -143,28 +133,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** 하단 탭. route=null 은 네이티브 화면(워치). */
-private enum class RoxTab(val label: String, val route: String?, val icon: ImageVector?) {
-    HOME("홈", "/dashboard", Icons.Filled.Home),
-    SESSIONS("세션", "/sessions", Icons.AutoMirrored.Filled.List),
-    WATCH("워치", null, null), // 브랜드 마크 아이콘 사용
-    CREW("크루", "/crews", Icons.Filled.Face),
-    FEED("피드", "/feed", Icons.Filled.Person),
-    MORE("더보기", "/settings/profile", Icons.Filled.Menu),
-}
-
-/** 웹 경로 → 하이라이트할 탭 (웹 안에서 링크로 이동해도 하단 탭 동기화). */
-private fun tabForPath(path: String): RoxTab? = when {
-    path == "/" || path.startsWith("/dashboard") -> RoxTab.HOME
-    path.startsWith("/sessions") || path.startsWith("/workouts") -> RoxTab.SESSIONS
-    path.startsWith("/crews") -> RoxTab.CREW
-    path.startsWith("/feed") || path.startsWith("/members") || path.startsWith("/u/") ||
-        path.startsWith("/leaderboard") -> RoxTab.FEED
-    path.startsWith("/settings") || path.startsWith("/goals") || path.startsWith("/programs") ||
-        path.startsWith("/races") || path.startsWith("/predict") -> RoxTab.MORE
-    else -> null
-}
-
 @Composable
 fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
     val context = LocalContext.current
@@ -172,17 +140,24 @@ fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
     val google = remember { GoogleSignInHelper(context) }
     var loggedIn by remember { mutableStateOf(TokenStore.isLoggedIn()) }
 
-    // WebView 이동 상태(하단 탭·알림 딥링크 공용) + 활성 탭
-    var tab by remember { mutableStateOf(tabForPath(startPath) ?: RoxTab.HOME) }
+    // WebView 이동 상태(알림 딥링크 공용) + 워치 오버레이
     var webPath by remember { mutableStateOf(startPath) }
     var webTick by remember { mutableIntStateOf(0) }
+    var watchOpen by remember { mutableStateOf(false) }
 
-    // 알림 딥링크(Activity → props): 실행 중 탭하면 해당 화면으로
+    // 웹 탭바의 "워치" 탭 → 브리지 → 여기. 컴포지션이 사라지면 참조를 놓는다.
+    DisposableEffect(Unit) {
+        val open: () -> Unit = { watchOpen = true }
+        ShellController.openWatch = open
+        onDispose { if (ShellController.openWatch === open) ShellController.openWatch = null }
+    }
+
+    // 알림 딥링크(Activity → props): 실행 중 탭하면 해당 웹 화면으로 (워치가 열려 있으면 닫는다)
     LaunchedEffect(navTick) {
         if (navTick > 0) {
             webPath = startPath
             webTick++
-            tab = tabForPath(startPath) ?: tab.takeIf { it != RoxTab.WATCH } ?: RoxTab.HOME
+            watchOpen = false
         }
     }
 
@@ -227,20 +202,13 @@ fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
         fun openWeb(path: String) {
             webPath = path
             webTick++
-            tab = tabForPath(path) ?: RoxTab.HOME
+            watchOpen = false
         }
 
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
-            bottomBar = {
-                RoxBottomBar(current = tab, onSelect = { t ->
-                    if (t == RoxTab.WATCH) tab = RoxTab.WATCH
-                    else t.route?.let { openWeb(it) }
-                })
-            },
-        ) { pad ->
+        // bottomBar 없음 — 하단 탭바는 웹이 그린다. Scaffold 는 시스템 바 인셋만 준다.
+        Scaffold(containerColor = MaterialTheme.colorScheme.background) { pad ->
             Box(Modifier.fillMaxSize().padding(pad)) {
-                // WebView 는 항상 컴포지션 유지(탭 전환에도 세션·스크롤 보존) — 워치 탭은 위에 오버레이.
+                // WebView 는 항상 컴포지션 유지(워치를 열었다 닫아도 세션·스크롤 보존) — 워치는 위에 오버레이.
                 WebAppScreen(
                     onLoggedOut = {
                         // 순서 중요: 구독 해제(delete + 토큰 폐기)는 아직 유효한 액세스 토큰이 필요.
@@ -252,10 +220,9 @@ fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
                     },
                     startPath = webPath,
                     navTick = webTick,
-                    onPathChanged = { p -> if (tab != RoxTab.WATCH) tabForPath(p)?.let { tab = it } },
                     modifier = Modifier.fillMaxSize().imePadding(),
                 )
-                if (tab == RoxTab.WATCH) {
+                if (watchOpen) {
                     Box(
                         Modifier
                             .fillMaxSize()
@@ -267,44 +234,12 @@ fun PhoneApp(startPath: String = "/dashboard", navTick: Int = 0) {
                         ) {
                             WatchScreen(
                                 onOpenWeb = { p -> openWeb(p) },
-                                onBack = { tab = RoxTab.HOME },
+                                onBack = { watchOpen = false },
                             )
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun RoxBottomBar(current: RoxTab, onSelect: (RoxTab) -> Unit) {
-    NavigationBar(containerColor = RoxSurface) {
-        RoxTab.entries.forEach { t ->
-            NavigationBarItem(
-                selected = current == t,
-                onClick = { onSelect(t) },
-                icon = {
-                    if (t.icon != null) {
-                        Icon(t.icon, contentDescription = t.label)
-                    } else {
-                        // 워치 탭(중앙) — 브랜드 마크로 앱 고유 가치를 강조
-                        Image(
-                            painter = painterResource(R.drawable.ic_rox_mark),
-                            contentDescription = t.label,
-                            modifier = Modifier.size(26.dp),
-                        )
-                    }
-                },
-                label = { Text(t.label, fontSize = 11.sp) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = RoxAccent,
-                    selectedTextColor = RoxAccent,
-                    unselectedIconColor = RoxMuted,
-                    unselectedTextColor = RoxMuted,
-                    indicatorColor = RoxAccent.copy(alpha = 0.14f),
-                ),
-            )
         }
     }
 }

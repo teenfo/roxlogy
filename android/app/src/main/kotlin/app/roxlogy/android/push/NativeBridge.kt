@@ -17,6 +17,17 @@ object PushController {
 }
 
 /**
+ * Activity ↔ 셸 네비게이션 연결점. 웹 탭바의 "워치" 탭이 브리지를 통해 네이티브
+ * 워치 화면을 연다. (앱 v0.7 — 네이티브 하단 탭바를 걷어내고 웹 탭바 하나로 통일)
+ * 정적 참조 누수 방지 규칙은 [PushController] 와 같다.
+ */
+object ShellController {
+    /** 네이티브 워치 화면 열기. Activity가 setContent 에서 설정. */
+    @Volatile
+    var openWatch: (() -> Unit)? = null
+}
+
+/**
  * WebView에 `RoxNative`로 주입되는 브리지. 웹 설정 화면이 앱(WebView) 안임을 감지하고
  * 네이티브 FCM 알림을 켜고/끌 수 있게 한다. (Web Push는 WebView 미지원이라 이 경로가 대체.)
  *
@@ -49,5 +60,11 @@ class RoxNativeBridge(private val context: Context) {
     @JavascriptInterface
     fun disable() {
         PushRegistration.unregister(context, fromUser = true)
+    }
+
+    /** 네이티브 워치 화면 열기 — 웹 하단 탭바의 "워치" 탭이 부른다(메인 스레드로 넘김). */
+    @JavascriptInterface
+    fun openWatch() {
+        Handler(Looper.getMainLooper()).post { ShellController.openWatch?.invoke() }
     }
 }

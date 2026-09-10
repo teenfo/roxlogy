@@ -89,6 +89,9 @@ fun WatchScreen(onOpenWeb: (String) -> Unit, onBack: () -> Unit) {
             RoxMark(size = 28.dp)
             Spacer(Modifier.width(10.dp))
             Text("워치", fontWeight = FontWeight.Black, fontSize = 18.sp, letterSpacing = 2.sp)
+            Spacer(Modifier.weight(1f))
+            // 네이티브 탭바가 없어져(v0.7) 뒤로가기 제스처 말고도 돌아갈 길이 보여야 한다
+            TextButton(onClick = onBack) { Text("닫기", color = RoxMuted, fontSize = 14.sp) }
         }
 
         Spacer(Modifier.height(20.dp))

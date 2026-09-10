@@ -228,6 +228,7 @@ const en = {
   "nav.leaderboard": "Leaderboard",
   "nav.feed": "Feed",
   "nav.crews": "Crews",
+  "nav.watch": "Watch",
   "nav.events": "Event finder",
   "nav.exercises": "Exercises",
   "nav.predict": "Calculator",

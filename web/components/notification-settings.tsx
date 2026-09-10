@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { roxNative } from "@/lib/native";
 import {
   SettingsCard,
   Toggle,
@@ -28,20 +29,6 @@ const TYPES = [
 ] as const;
 type TypeKey = (typeof TYPES)[number];
 
-// 안드로이드 앱(WebView)이 주입하는 네이티브 FCM 브리지. Web Push 미지원 환경의 대체 경로.
-type RoxNative = {
-  isAvailable?: () => boolean;
-  isConfigured?: () => boolean;
-  hasPermission?: () => boolean;
-  isEnabled?: () => boolean; // 권한 + 옵트아웃 아님 (구버전 앱엔 없을 수 있음)
-  enable?: () => void;
-  disable?: () => void;
-};
-function roxNative(): RoxNative | null {
-  if (typeof window === "undefined") return null;
-  const rn = (window as unknown as { RoxNative?: RoxNative }).RoxNative;
-  return rn && rn.isAvailable?.() ? rn : null;
-}
 
 export function NotificationSettings() {
   const { t } = useI18n();
