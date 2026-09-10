@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import {
+  SettingsCard,
+  Toggle,
+  btnGhost,
+  btnPrimary,
+} from "@/components/ui/settings-ui";
+import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import {
   pushSupported,
   currentSubscription,
   enablePush,
@@ -186,125 +193,128 @@ export function NotificationSettings() {
       .eq("id", user.id);
   }
 
-  return (
-    <section className="mt-6 max-w-md">
-      <h2 className="text-lg font-semibold">{t("notif.title")}</h2>
-      <p className="mt-1 text-sm text-muted">{t("notif.desc")}</p>
+  // 푸시가 꺼져 있어도 종류별 선호는 미리 정해둘 수 있다 — 흐리게만 보여준다.
+  const pushOn = native ? nativeOn : subscribed;
+  const canPush = native ? nativeConfigured : supported;
 
-      {supported || native ? (
-        <div className="mt-3 grid gap-3">
-          {native ? (
-            // 앱(WebView) — 네이티브 FCM. Firebase 설정 전이면 "준비 중" 안내.
-            !nativeConfigured ? (
-              <p className="rounded-md bg-surface px-4 py-3 text-sm text-muted">
-                {t("notif.native.preparing")}
-              </p>
-            ) : (
-              <>
-                <div className="flex items-center justify-between gap-4 rounded-md bg-surface px-4 py-3 text-sm">
-                  <span>{nativeOn ? t("notif.native.enabled") : t("notif.native.enable")}</span>
-                  <button
-                    type="button"
-                    onClick={nativeOn ? nativeDisable : nativeEnable}
-                    className={
-                      nativeOn
-                        ? "rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:text-foreground"
-                        : "rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
-                    }
-                  >
-                    {nativeOn ? t("notif.disable") : t("notif.native.enable")}
-                  </button>
-                </div>
-                {nativeOn && (
-                  <button
-                    type="button"
-                    onClick={test}
-                    disabled={busy}
-                    className="justify-self-start rounded-md border border-muted/40 px-3 py-1.5 text-xs text-foreground hover:border-foreground disabled:opacity-40"
-                  >
-                    {t("notif.test")}
-                  </button>
-                )}
-              </>
-            )
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-4 rounded-md bg-surface px-4 py-3 text-sm">
-                <span>{subscribed ? t("notif.enabled") : t("notif.enablePush")}</span>
-                <button
-                  type="button"
-                  onClick={toggleSubscribe}
-                  disabled={busy}
-                  className={
-                    subscribed
-                      ? "rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:text-foreground disabled:opacity-40"
-                      : "rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
-                  }
-                >
-                  {subscribed ? t("notif.disable") : t("notif.enablePush")}
-                </button>
-              </div>
-
-              {subscribed && (
-                <>
-                  <button
-                    type="button"
-                    onClick={test}
-                    disabled={busy}
-                    className="justify-self-start rounded-md border border-muted/40 px-3 py-1.5 text-xs text-foreground hover:border-foreground disabled:opacity-40"
-                  >
-                    {t("notif.test")}
-                  </button>
-                  {/* 앱+PWA 동시 구독 시 같은 기기에서 알림이 중복 수신되는 안내 */}
-                  <p className="text-xs text-muted">{t("notif.multiDevice")}</p>
-                </>
-              )}
-            </>
-          )}
-
-          {/* 종류별 선호 */}
-          <div className="rounded-md bg-surface px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-              {t("notif.types")}
-            </p>
-            <div className="mt-2 grid gap-2">
-              {TYPES.map((k) => (
-                <label key={k} className="flex items-center justify-between gap-4 text-sm">
-                  <span>{t(`notif.type.${k}`)}</span>
-                  <input
-                    type="checkbox"
-                    checked={prefs[k]}
-                    onChange={(e) => setPref(k, e.target.checked)}
-                    className="accent-accent"
-                  />
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* WOD 리마인더 시각 (사용자 입력) */}
-          <label className="flex flex-col gap-1.5 rounded-md bg-surface px-4 py-3 text-sm">
-            <span className="flex items-center justify-between gap-4">
-              {t("notif.wodTime")}
-              <input
-                type="time"
-                value={wodTime}
-                onChange={(e) => saveWodTime(e.target.value)}
-                className="rounded-md border border-muted/40 bg-background px-2 py-1.5 text-foreground outline-none focus:border-accent"
-              />
-            </span>
-            <span className="text-xs text-muted">{t("notif.wodTimeHint")}</span>
-          </label>
-
-          {err && <p className="text-sm text-red-400">{err}</p>}
-          {note && <p className="text-sm text-track">{note}</p>}
+  const banner = () => {
+    if (native && !nativeConfigured)
+      return (
+        <p className="px-[22px] py-4 text-sm text-muted max-md:px-4">
+          {t("notif.native.preparing")}
+        </p>
+      );
+    if (!canPush)
+      return (
+        <div className="px-[22px] py-4 max-md:px-4">
+          <p className="text-sm text-muted">{t("notif.unsupported")}</p>
+          <p className="mt-1 text-xs text-muted">{t("notif.iosHint")}</p>
         </div>
-      ) : (
-        <p className="mt-3 rounded-md bg-surface px-4 py-3 text-sm text-muted">
-          {t("notif.unsupported")}
-          <span className="mt-1 block text-xs">{t("notif.iosHint")}</span>
+      );
+
+    const onLabel = native ? t("notif.native.enabled") : t("notif.enabled");
+    const offLabel = native
+      ? t("notif.native.enable")
+      : t("notif.enablePush");
+
+    return (
+      <div
+        className={`flex items-center gap-3.5 border-b border-line px-[22px] py-4 max-md:px-4 ${
+          pushOn ? "bg-success-bg/15" : ""
+        }`}
+      >
+        <span
+          aria-hidden
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${
+            pushOn ? "bg-success-bg text-success" : "bg-line text-muted"
+          }`}
+        >
+          ◔
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold">{pushOn ? onLabel : offLabel}</p>
+          <p className="mt-0.5 text-xs text-muted">
+            {pushOn ? t("notif.multiDevice") : t("notif.pushOffDesc")}
+          </p>
+          {pushOn && (
+            <button
+              type="button"
+              onClick={test}
+              disabled={busy}
+              className="mt-1.5 text-xs font-bold text-accent hover:underline disabled:opacity-40"
+            >
+              {t("notif.test")}
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={
+            native
+              ? pushOn
+                ? nativeDisable
+                : nativeEnable
+              : toggleSubscribe
+          }
+          disabled={busy}
+          className={pushOn ? btnGhost : btnPrimary}
+        >
+          {pushOn ? t("notif.disable") : offLabel}
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <SettingsCard
+      id="notifications"
+      title={t("notif.title")}
+      desc={t("notif.desc")}
+      bodyClassName="flex flex-col"
+    >
+      {banner()}
+
+      {/* 종류별 선호 — 푸시가 꺼져 있으면 흐리게, 조작은 가능 */}
+      <div className={pushOn || !canPush ? "" : "opacity-50"}>
+        {TYPES.map((k) => (
+          <div
+            key={k}
+            className="flex items-center gap-4 border-b border-line-soft px-[22px] py-2.5 last:border-b-0 max-md:px-4"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">{t(`notif.type.${k}`)}</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {t(`notif.typeDesc.${k}` as DictKey)}
+              </p>
+              {/* WOD 시각은 별도 카드 대신 이 행 안에서 정한다 */}
+              {k === "wod_reminder" && prefs[k] && (
+                <label className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-muted">
+                  <input
+                    type="time"
+                    value={wodTime}
+                    onChange={(e) => saveWodTime(e.target.value)}
+                    className="h-8 rounded-lg border border-line-strong bg-page px-2 text-sm text-foreground outline-none focus:border-accent"
+                  />
+                  <span>{t("notif.wodTimeHint")}</span>
+                </label>
+              )}
+            </div>
+            <Toggle
+              checked={prefs[k]}
+              onChange={(v) => setPref(k, v)}
+              label={t(`notif.type.${k}`)}
+            />
+          </div>
+        ))}
+      </div>
+
+      {(err || note) && (
+        <p
+          className={`px-[22px] py-3 text-xs max-md:px-4 ${err ? "text-danger" : "text-success"}`}
+        >
+          {err ?? note}
         </p>
       )}
-    </section>
+    </SettingsCard>
   );
 }

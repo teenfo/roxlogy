@@ -1,12 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { LinkedAccounts } from "@/components/linked-accounts";
-import { LocaleSwitcher } from "@/components/locale-switcher";
+import {
+  InitialAvatar,
+  SettingsCard,
+  Toggle,
+  btnPrimary,
+  inputCls,
+  labelCls,
+} from "@/components/ui/settings-ui";
 
 const GENDERS = ["male", "female", "other"] as const;
 
@@ -33,12 +38,34 @@ type ProfileFields = {
   leaderboard_opt_in: boolean;
 };
 
+/** 우측에 단위를 얹은 숫자 입력 (신장 cm · 체중 kg) */
+function UnitInput({
+  unit,
+  ...props
+}: { unit: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <span className="relative flex min-w-0 items-center">
+      <input {...props} className={`${inputCls} pr-9`} />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute right-3 text-xs text-muted"
+      >
+        {unit}
+      </span>
+    </span>
+  );
+}
+
 export function ProfileForm({
   initial,
-  email,
+  currentYear,
+  lastSaved,
 }: {
   initial: ProfileFields;
-  email: string;
+  /** 나이 계산 기준 연도 — 렌더 중 new Date() 를 쓰지 않도록 서버에서 받는다 */
+  currentYear: number;
+  /** profiles.updated_at 을 서버 타임존으로 미리 포맷한 값 */
+  lastSaved: string | null;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -47,10 +74,7 @@ export function ProfileForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  function set<K extends keyof ProfileFields>(
-    key: K,
-    value: ProfileFields[K],
-  ) {
+  function set<K extends keyof ProfileFields>(key: K, value: ProfileFields[K]) {
     setFields((f) => ({ ...f, [key]: value }));
     setSaved(false);
   }
@@ -87,56 +111,61 @@ export function ProfileForm({
     router.refresh();
   }
 
+  // 나이는 출생연도에서 즉시 계산해 라벨 옆에 보여준다 (입력 검증용 힌트).
+  const year = Number(fields.birth_year);
+  const age = year >= 1920 && year <= 2020 ? currentYear - year : null;
+
   return (
-    <main>
-      <h1 className="text-2xl font-bold">{t("profile.title")}</h1>
-      <p className="mt-1 text-sm text-muted">{email}</p>
-
-      <div className="mt-6 max-w-md rounded-md bg-surface px-4 py-4">
-        <label className="flex items-center justify-between gap-4 text-sm">
-          <span>
-            {t("profile.language")}
-            <span className="mt-0.5 block text-xs text-muted">
-              {t("profile.languageDesc")}
+    <form onSubmit={handleSave}>
+      <SettingsCard
+        id="profile"
+        title={t("profile.secProfile")}
+        desc={t("profile.secProfileDesc")}
+        footer={
+          <>
+            <button type="submit" disabled={pending} className={btnPrimary}>
+              {t("common.save")}
+            </button>
+            <span
+              className={`text-xs ${
+                error ? "text-danger" : saved ? "text-success" : "text-muted"
+              }`}
+            >
+              {error
+                ? error
+                : pending
+                  ? t("common.saving")
+                  : saved
+                    ? t("profile.saved")
+                    : lastSaved
+                      ? t("profile.lastSaved", { date: lastSaved })
+                      : ""}
             </span>
-          </span>
-          <LocaleSwitcher />
-        </label>
-      </div>
-
-      <Link
-        href="/download"
-        className="mt-4 flex max-w-md items-center justify-between gap-4 rounded-md bg-surface px-4 py-4 text-sm hover:bg-surface/70"
+          </>
+        }
       >
-        <span>
-          {t("profile.getApp")}
-          <span className="mt-0.5 block text-xs text-muted">
-            {t("profile.getAppDesc")}
-          </span>
-        </span>
-        <span className="shrink-0 text-accent">→</span>
-      </Link>
+        {/* 이름 — 아바타 이니셜이 입력과 함께 바뀐다 */}
+        <div className="flex items-center gap-3.5">
+          <InitialAvatar name={fields.display_name || "?"} size={64} />
+          <label className="min-w-0 flex-1">
+            <span className="sr-only">{t("profile.displayName")}</span>
+            <input
+              value={fields.display_name}
+              onChange={(e) => set("display_name", e.target.value)}
+              placeholder={t("profile.displayName")}
+              className={`${inputCls} text-[15px] font-semibold`}
+            />
+          </label>
+        </div>
 
-      <LinkedAccounts />
-
-      <form onSubmit={handleSave} className="mt-6 grid max-w-md gap-4">
-        <label className="flex flex-col gap-1.5 text-sm text-muted">
-          {t("profile.displayName")}
-          <input
-            value={fields.display_name}
-            onChange={(e) => set("display_name", e.target.value)}
-            className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
-          />
-        </label>
-
-        <div className="flex gap-4">
-          {/* 디비전은 세션·레이스 단위로 관리 (여러 디비전 출전 가능) — 프로필에서 제거 */}
-          <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-muted">
+        {/* 디비전은 세션·레이스 단위로 관리 (여러 디비전 출전 가능) — 프로필에서 제거 */}
+        <div className="grid grid-cols-4 gap-3 max-md:grid-cols-2">
+          <label className={labelCls}>
             {t("profile.gender")}
             <select
               value={fields.gender}
               onChange={(e) => set("gender", e.target.value)}
-              className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+              className={inputCls}
             >
               <option value="">{t("dash.unset")}</option>
               {GENDERS.map((g) => (
@@ -146,8 +175,14 @@ export function ProfileForm({
               ))}
             </select>
           </label>
-          <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-muted">
-            {t("profile.birthYear")}
+
+          <label className={labelCls}>
+            <span>
+              {t("profile.birthYear")}
+              {age !== null && (
+                <span className="text-muted/70"> · {t("profile.ageN", { n: age })}</span>
+              )}
+            </span>
             <input
               type="number"
               min={1920}
@@ -155,79 +190,74 @@ export function ProfileForm({
               placeholder="1990"
               value={fields.birth_year}
               onChange={(e) => set("birth_year", e.target.value)}
-              className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+              className={inputCls}
             />
           </label>
-        </div>
 
-        <div className="flex gap-4">
           {/* 숫자 입력은 고유 폭(약 200px)이 있어 min-w-0 없이는 모바일에서
               한 줄 최소 폭이 컨테이너를 넘어 페이지 가로 오버플로를 일으킨다 */}
-          <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-muted">
-            {t("profile.height")}
-            <input
+          <label className={labelCls}>
+            {t("profile.heightShort")}
+            <UnitInput
+              unit="cm"
               type="number"
               min="0"
               step="0.1"
               value={fields.height_cm}
               onChange={(e) => set("height_cm", e.target.value)}
-              className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
             />
           </label>
-          <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-muted">
-            {t("profile.weight")}
-            <input
+          <label className={labelCls}>
+            {t("profile.weightShort")}
+            <UnitInput
+              unit="kg"
               type="number"
               min="0"
               step="0.1"
               value={fields.weight_kg}
               onChange={(e) => set("weight_kg", e.target.value)}
-              className="w-full min-w-0 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
             />
           </label>
         </div>
 
-        <label className="flex flex-col gap-1.5 text-sm text-muted">
+        <label className={labelCls}>
           {t("profile.instagram")}
-          <span className="flex items-center rounded-md border border-muted/30 bg-surface focus-within:border-accent">
-            <span className="pl-3 text-muted">@</span>
+          <span className="flex h-[42px] items-center rounded-lg border border-line-strong bg-page focus-within:border-accent">
+            <span className="pl-3 text-sm text-muted">@</span>
             <input
               value={fields.instagram}
               onChange={(e) => set("instagram", e.target.value)}
               placeholder="roxlogy"
               maxLength={80}
-              className="w-full min-w-0 bg-transparent px-2 py-2.5 text-foreground outline-none"
+              className="w-full min-w-0 bg-transparent px-2 text-sm text-foreground outline-none"
             />
           </span>
-          <span className="text-xs text-muted">{t("profile.instagramHint")}</span>
-        </label>
-
-        <label className="flex items-start gap-2 rounded-md bg-surface px-4 py-3 text-sm">
-          <input
-            type="checkbox"
-            checked={fields.leaderboard_opt_in}
-            onChange={(e) => set("leaderboard_opt_in", e.target.checked)}
-            className="mt-0.5 accent-accent"
-          />
-          <span>
-            {t("profile.leaderboardOptIn")}
-            <span className="mt-0.5 block text-xs text-muted">
-              {t("profile.leaderboardOptInHint")}
-            </span>
+          <span className="text-[11px] text-muted/80">
+            {t("profile.instagramHint")}
           </span>
         </label>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        {saved && <p className="text-sm text-track">{t("profile.saved")}</p>}
-
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-accent px-6 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
+        {/* 리더보드 표시 — 켜짐이 한눈에 보이도록 카드 자체가 색을 바꾼다 */}
+        <div
+          className={`flex items-center gap-4 rounded-[10px] border px-4 py-3.5 ${
+            fields.leaderboard_opt_in
+              ? "border-line-accent bg-highlight"
+              : "border-line bg-inset"
+          }`}
         >
-          {pending ? t("common.saving") : t("common.save")}
-        </button>
-      </form>
-    </main>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold">{t("profile.leaderboardOptIn")}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {t("profile.leaderboardOptInHint")}
+            </p>
+          </div>
+          <Toggle
+            checked={fields.leaderboard_opt_in}
+            onChange={(v) => set("leaderboard_opt_in", v)}
+            label={t("profile.leaderboardOptIn")}
+          />
+        </div>
+      </SettingsCard>
+    </form>
   );
 }
