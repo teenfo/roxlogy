@@ -267,7 +267,7 @@ export default async function CrewSchedulePage({
                               // 거기 있다). 남의 계획은 공식 대회 페이지로,
                               // 그마저 연결이 없으면 갈 곳이 없다.
                               r.member_id && r.member_id === user?.id
-                              ? `/races/plan/${r.ref_id}`
+                              ? `/schedule/race/${r.ref_id}`
                               : r.event_id
                                 ? `/events/${r.event_id}`
                                 : null;

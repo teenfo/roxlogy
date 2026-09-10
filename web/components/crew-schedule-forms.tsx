@@ -802,7 +802,7 @@ export function RacePlanForm({
                   MY RACE
                 </span>
                 <a
-                  href={`/races/plan/${p.id}`}
+                  href={`/schedule/race/${p.id}`}
                   className="truncate text-[15px] font-bold text-foreground hover:text-accent"
                 >
                   {p.title}
@@ -883,7 +883,7 @@ export function RacePlanForm({
                   </>
                 ) : (
                   <a
-                    href={`/races/plan/${p.id}`}
+                    href={`/schedule/race/${p.id}`}
                     className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${
                       p.my_status === "pending"
                         ? "bg-accent text-background"
