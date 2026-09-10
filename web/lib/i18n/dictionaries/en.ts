@@ -1532,6 +1532,7 @@ const en = {
   "crew.members": "members",
   "crew.posts": "posts",
   "crew.guestNote": "Browsing as a guest — sign in to join a crew and see its schedule.",
+  "crew.loginToSee": "The member list and the leaderboard are shown to signed-in users only.",
   "crew.directoryTitle": "Crews",
   "crew.directorySub": "Find a HYROX crew to train with",
   "crew.directoryEmpty": "No crews yet",

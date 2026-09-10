@@ -1511,6 +1511,7 @@ const ko: Record<DictKey, string> = {
   "crew.members": "명",
   "crew.posts": "게시글",
   "crew.guestNote": "게스트로 둘러보는 중입니다 — 가입하고 일정을 함께 보려면 로그인하세요.",
+  "crew.loginToSee": "멤버 목록과 기록 순위는 로그인한 사용자에게만 보여드립니다.",
   "crew.directoryTitle": "크루",
   "crew.directorySub": "함께 훈련하는 하이록스 크루를 찾아보세요",
   "crew.directoryEmpty": "등록된 크루가 없습니다",

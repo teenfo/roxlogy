@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCrew, getCrewRoster } from "@/lib/crew";
+import { getCachedUser } from "@/lib/supabase/auth";
+import { CrewLoginGate } from "@/components/crew-login-gate";
 import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
 import {
@@ -20,8 +22,14 @@ export default async function CrewMembersPage({
 }) {
   const { slug } = await params;
   const { tier } = await searchParams;
-  const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
+  const [crew, user, { t, tag, tz }] = await Promise.all([
+    getCrew(slug),
+    getCachedUser(),
+    getT(),
+  ]);
   if (!crew) notFound();
+  // 멤버 목록은 로그인 후에만 — crew_roster 도 같은 조건으로 막혀 있다
+  if (!user) return <CrewLoginGate next={`/crews/${slug}/members`} />;
   const roster = await getCrewRoster(slug);
 
   if (!roster.length)

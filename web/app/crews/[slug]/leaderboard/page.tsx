@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCrew, getCrewLeaderboard } from "@/lib/crew";
+import { getCachedUser } from "@/lib/supabase/auth";
+import { CrewLoginGate } from "@/components/crew-login-gate";
 import { getT } from "@/lib/i18n";
 import { formatMs, formatDateShort } from "@/lib/format";
 // 디비전 목록은 단일 출처를 쓴다 — 여기 하드코딩된 목록에 믹스 더블·믹스
@@ -19,8 +21,14 @@ export default async function CrewLeaderboardPage({
   const { division } = await searchParams;
   const div = (DIVISIONS as readonly string[]).includes(division ?? "") ? division! : null;
 
-  const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
+  const [crew, user, { t, tag, tz }] = await Promise.all([
+    getCrew(slug),
+    getCachedUser(),
+    getT(),
+  ]);
   if (!crew) notFound();
+  // 기록 순위도 로그인 후에만 — crew_leaderboard 도 같은 조건으로 막혀 있다
+  if (!user) return <CrewLoginGate next={`/crews/${slug}/leaderboard`} />;
   const rows = await getCrewLeaderboard(slug, div, 100);
 
   // 1위 대비 격차 — 아래 순위들이 얼마나 떨어져 있는지 바로 보이게

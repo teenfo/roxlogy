@@ -150,42 +150,46 @@ export default async function CrewSchedulePage({
 
   return (
     <main>
-      {/* 툴바 — 월 이동 + 요약 + 등록 액션 */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center rounded-[10px] border border-line-mid bg-control">
-          <Link
-            href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
-            aria-label={t("crew.prevMonth")}
-            className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent hover:bg-card-hover"
-          >
-            ‹
-          </Link>
-          <span className="tabular px-2 text-sm font-bold">{monthLabel}</span>
-          <Link
-            href={`/crews/${slug}/schedule?m=${shiftMonth(month, 1)}`}
-            aria-label={t("crew.nextMonth")}
-            className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent hover:bg-card-hover"
-          >
-            ›
-          </Link>
-        </div>
-        <p className="text-[13px] text-muted">
-          {t("crew.schedSummary", {
-            meetups: meetups.length,
-            going: goingCount,
-          })}
-        </p>
-      </div>
-
-      {/* 등록 액션 */}
-      {(isStaff || isMember) && (
-        <div className="mt-4 flex flex-col gap-3">
-          {isStaff && <CrewMeetupForm crewId={crew.id} />}
+      {/* 툴바 — 좌: 내 대회일정 등록 · 중앙: 월 이동 · 우: 모임 등록.
+          flex 가 아니라 grid 인 이유는, 한쪽 버튼이 없어도(스태프가 아니거나
+          비회원) 월 바가 가운데에 그대로 있어야 하기 때문이다. */}
+      <div className="grid items-start gap-3 max-md:grid-cols-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div className="min-w-0 max-md:order-2">
           {isMember && (
             <RacePlanForm myPlans={(myPlans ?? []) as MyRacePlan[]} />
           )}
         </div>
-      )}
+
+        <div className="flex flex-col items-center gap-1.5 max-md:order-1 max-md:col-span-2">
+          <div className="flex items-center rounded-[10px] border border-line-mid bg-control">
+            <Link
+              href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
+              aria-label={t("crew.prevMonth")}
+              className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent hover:bg-card-hover"
+            >
+              ‹
+            </Link>
+            <span className="tabular px-2 text-sm font-bold">{monthLabel}</span>
+            <Link
+              href={`/crews/${slug}/schedule?m=${shiftMonth(month, 1)}`}
+              aria-label={t("crew.nextMonth")}
+              className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent hover:bg-card-hover"
+            >
+              ›
+            </Link>
+          </div>
+          <p className="text-[13px] text-muted">
+            {t("crew.schedSummary", {
+              meetups: meetups.length,
+              going: goingCount,
+            })}
+          </p>
+        </div>
+
+        <div className="flex min-w-0 justify-end max-md:order-3">
+          {isStaff && <CrewMeetupForm crewId={crew.id} />}
+        </div>
+      </div>
 
       {/* 일정 리스트 — 날짜 블록 + 본문 + 우측 참석 */}
       {!dates.length ? (

@@ -1520,6 +1520,7 @@ const es: Record<DictKey, string> = {
   "crew.members": "miembros",
   "crew.posts": "publicaciones",
   "crew.guestNote": "Estás explorando como invitado — inicia sesión para unirte y ver el calendario.",
+  "crew.loginToSee": "La lista de miembros y la clasificación solo se muestran a usuarios con sesión iniciada.",
   "crew.directoryTitle": "Crews",
   "crew.directorySub": "Encuentra un crew de HYROX para entrenar",
   "crew.directoryEmpty": "Aún no hay crews",
