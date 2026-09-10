@@ -12,6 +12,10 @@ import {
 import { CrewDuesMatrix, type BoardCharge } from "@/components/crew-dues-check";
 import { Badge, Card, Chip, SectionHead } from "@/components/ui/crew-ui";
 import { CrewBankOpening } from "@/components/crew-bank-opening";
+import {
+  CrewLedgerSettle,
+  CrewLedgerSettleMonth,
+} from "@/components/crew-ledger-settle";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 type LedgerRow = {
@@ -139,6 +143,8 @@ export default async function CrewFinancePage({
     .reduce((a, r) => a + signed(r), 0);
   const bankBalance = (bank?.opening_balance ?? 0) + settledNet;
   const unsettled = totalBalance - settledNet;
+  // 이 달 미반영 건수 — 일괄 반영 버튼에 쓴다
+  const monthUnsettled = entries.filter((r) => r.settled_on == null).length;
 
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString(tag, {
     year: "numeric",
@@ -251,6 +257,14 @@ export default async function CrewFinancePage({
               {t("crew.finBankNote")}
             </span>
             {isStaff && (
+              <CrewLedgerSettleMonth
+                crewId={crew.id}
+                from={from}
+                to={to}
+                count={monthUnsettled}
+              />
+            )}
+            {isStaff && (
               <CrewBankOpening
                 crewId={crew.id}
                 openingBalance={bank?.opening_balance ?? 0}
@@ -335,19 +349,34 @@ export default async function CrewFinancePage({
                                   {t(`crew.finMethod.${r.method}` as DictKey)}
                                 </span>
                               )}
-                              <span
-                                className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
-                                  r.settled_on
-                                    ? "bg-success-bg text-success"
-                                    : "bg-label-bg text-label"
-                                }`}
-                              >
-                                {r.settled_on
-                                  ? t("crew.finSettledOn", {
-                                      date: dayLabel(r.settled_on),
-                                    })
-                                  : t("crew.finUnsettledBadge")}
-                              </span>
+                              {isStaff ? (
+                                <CrewLedgerSettle
+                                  id={r.id}
+                                  entryDate={r.entry_date}
+                                  settledOn={r.settled_on}
+                                  label={
+                                    r.settled_on
+                                      ? t("crew.finSettledOn", {
+                                          date: dayLabel(r.settled_on),
+                                        })
+                                      : null
+                                  }
+                                />
+                              ) : (
+                                <span
+                                  className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
+                                    r.settled_on
+                                      ? "bg-success-bg text-success"
+                                      : "bg-label-bg text-label"
+                                  }`}
+                                >
+                                  {r.settled_on
+                                    ? t("crew.finSettledOn", {
+                                        date: dayLabel(r.settled_on),
+                                      })
+                                    : t("crew.finUnsettledBadge")}
+                                </span>
+                              )}
                               {r.memo && (
                                 <span className="min-w-0 truncate">{r.memo}</span>
                               )}
