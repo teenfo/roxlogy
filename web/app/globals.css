@@ -10,6 +10,42 @@
   --track: #2d7dff;      /* Track Blue — 런/페이스 */
 }
 
+/* 크루 화면 재디자인 토큰 (2026-09 디자인 핸드오프).
+ * 브랜드 팔레트는 그대로 둔다 — 옐로는 브랜드 확정값 #ffd500 을 쓴다
+ * (디자인 시안의 #ffd60a 와는 육안 구분이 안 되는 차이).
+ * 여기서는 카드·보더·시맨틱 색의 '단계'만 추가한다. 기존 화면은 영향 없음. */
+:root {
+  /* 표면 단계 — 페이지가 가장 어둡고 카드가 한 단계 뜬다 */
+  --page: #0d0d0d;
+  --card: #141414;
+  --card-hover: #181818;
+  --inset: #101010;
+  --control: #171717;
+  --highlight: #181610; /* 옐로 강조 카드 */
+
+  /* 보더 단계 */
+  --line-soft: #1f1f1f;
+  --line: #222222;
+  --line-mid: #262626;
+  --line-strong: #333333;
+  --line-accent: #5a4d00;
+
+  /* 시맨틱 (전경/배경 쌍) */
+  --info: #7dd3fc;
+  --info-bg: #0c2a3a;
+  --danger: #ff8a8a;
+  --danger-bg: #3a0c0c;
+  --success: #6ee7a0;
+  --success-bg: #0f2e1c;
+  --label: #a5b4fc;
+  --label-bg: #1e2140;
+  --accent-dim: #e0c53a;
+  --sunday: #ff6b6b;
+  --danger-line: #4a1d1d;
+  --danger-line-strong: #7a2e2e;
+  --danger-card: #170f0f;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -17,6 +53,38 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-track: var(--track);
+
+  --color-page: var(--page);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-inset: var(--inset);
+  --color-control: var(--control);
+  --color-highlight: var(--highlight);
+
+  --color-line-soft: var(--line-soft);
+  --color-line: var(--line);
+  --color-line-mid: var(--line-mid);
+  --color-line-strong: var(--line-strong);
+  --color-line-accent: var(--line-accent);
+
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-label: var(--label);
+  --color-label-bg: var(--label-bg);
+  --color-accent-dim: var(--accent-dim);
+  --color-sunday: var(--sunday);
+  --color-danger-line: var(--danger-line);
+  --color-danger-line-strong: var(--danger-line-strong);
+  --color-danger-card: var(--danger-card);
+}
+
+/* 숫자는 자리를 맞춘다 — 금액·기록·날짜가 표에서 흔들리지 않게 */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 body {

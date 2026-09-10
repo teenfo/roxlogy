@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCrew } from "@/lib/crew";
 import { getCachedUser } from "@/lib/supabase/auth";
@@ -6,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { CrewJoinButton } from "@/components/crew-join-button";
 import { CrewHeader } from "@/components/crew-header";
+import { CrewTabs } from "@/components/crew-tabs";
 
 export default async function CrewLayout({
   children,
@@ -53,7 +53,7 @@ export default async function CrewLayout({
     <>
       <CrewHeader loginNext={`/crews/${slug}`} />
 
-      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+      <div className="mx-auto w-full max-w-[960px] flex-1 px-6 py-8">
         {crew.cover_url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -111,23 +111,8 @@ export default async function CrewLayout({
           )}
         </div>
 
-        {/* 탭 */}
-        <div className="mt-6 flex gap-2 overflow-x-auto border-b border-surface pb-px">
-          {tabs.map((tab) => (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="flex shrink-0 items-center gap-1.5 rounded-t-md px-3 py-2 text-sm text-muted hover:text-foreground"
-            >
-              {tab.label}
-              {!!tab.badge && (
-                <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold leading-none text-background">
-                  {tab.badge}
-                </span>
-              )}
-            </Link>
-          ))}
-        </div>
+        {/* 탭 — 활성 표시는 클라이언트에서 경로와 대조한다 */}
+        <CrewTabs tabs={tabs} />
 
         <div className="mt-6">{children}</div>
       </div>
