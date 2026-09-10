@@ -18,7 +18,7 @@ import { MobileTabBar } from "@/components/mobile-tabbar";
 const EX_TO_KEY = new Map(STATIONS.map((s) => [s.exerciseId, s.key]));
 
 export async function generateMetadata() {
-  const { t } = await getT();
+  const { t, tz } = await getT();
   return { title: t("meta.predict"), description: t("predict.desc") };
 }
 
@@ -53,7 +53,7 @@ export default async function PredictPage({
   const { data: upcoming } = await supabase
     .from("race_events")
     .select("id, name, city, start_date")
-    .gte("start_date", new Date().toISOString().slice(0, 10))
+    .gte("start_date", todayISOIn(tz))
     .order("start_date")
     .limit(50);
   if (user) {
