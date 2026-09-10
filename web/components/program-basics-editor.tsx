@@ -76,7 +76,7 @@ export function ProgramBasicsEditor({
           <form
             onSubmit={save}
             onClick={(e) => e.stopPropagation()}
-            className="flex w-full max-w-lg flex-col gap-3 rounded-[14px] border border-line bg-card p-5 text-left"
+            className="my-auto flex w-full max-w-lg flex-col gap-3 rounded-[14px] border border-line bg-card p-5 text-left"
           >
             <p className="text-sm font-bold">{t("programs.editBasics")}</p>
             <input

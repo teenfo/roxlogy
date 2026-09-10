@@ -99,8 +99,10 @@ export function CrewLedgerForm({
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
           onClick={() => setOpen(false)}
         >
+          {/* my-auto — 공간이 남으면 세로 중앙, 폼이 화면보다 길면 위에 붙어
+              스크롤된다. items-center 로 하면 긴 폼의 윗부분이 잘린다. */}
           <div
-            className="w-full max-w-lg text-left"
+            className="my-auto w-full max-w-lg text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <form
