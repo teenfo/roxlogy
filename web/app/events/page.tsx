@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { getRaceEvents } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
 import { eventDateNote, eventPlace } from "@/lib/event-display";
-import { LocaleSwitcher } from "@/components/locale-switcher";
+import { CrewHeader } from "@/components/crew-header";
+import { todayISOIn } from "@/lib/format";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -45,7 +45,7 @@ export default async function EventsPage({
   searchParams: Promise<{ q?: string; region?: string }>;
 }) {
   const { q, region } = await searchParams;
-  const { t, tag, locale } = await getT();
+  const { t, tag, locale, tz } = await getT();
 
   // 공개 대회 일정은 전역 캐시(1시간) — 검색·지역 필터는 메모리에서 처리
   const all = await getRaceEvents();
@@ -60,31 +60,18 @@ export default async function EventsPage({
     );
   });
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISOIn(tz);
   const upcoming = events.filter((e) => !e.end_date || e.end_date >= today);
   const past = events.filter((e) => e.end_date && e.end_date < today);
 
   return (
     <>
-      <header className="border-b border-surface">
-        <nav className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} />
-            <span className="text-sm font-black tracking-widest">ROXLOGY</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <LocaleSwitcher compact />
-            <Link
-              href="/login"
-              className="text-sm text-muted hover:text-foreground"
-            >
-              {t("common.login")}
-            </Link>
-          </div>
-        </nav>
-      </header>
+      {/* 공용 헤더 — 로그인돼 있으면 아바타·알림, 아니면 로그인 버튼.
+          예전엔 여기서 헤더를 직접 그리며 /login 을 고정해 두어 로그인 상태에서도
+          로그인 버튼이 보였다(상세 페이지는 이미 CrewHeader 를 쓰고 있었다). */}
+      <CrewHeader loginNext="/events" />
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         <h1 className="text-3xl font-black tracking-tight">{t("events.title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("events.desc")}</p>
 
