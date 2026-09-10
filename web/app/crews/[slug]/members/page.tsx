@@ -9,7 +9,7 @@ import {
   isStaffRole,
   tierBadgeClass,
 } from "@/lib/crew-role";
-import { Avatar, Card, Chip, ProgressBar } from "@/components/ui/crew-ui";
+import { Avatar, Card, Chip } from "@/components/ui/crew-ui";
 
 export default async function CrewMembersPage({
   params,
@@ -23,8 +23,6 @@ export default async function CrewMembersPage({
   const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
   const roster = await getCrewRoster(slug);
-  // 출석 횟수는 크루원에게만 내려온다 (crew_roster 가 비회원에게는 null)
-  const showAttend = roster.some((m) => m.attend_count != null);
 
   if (!roster.length)
     return (
@@ -66,30 +64,20 @@ export default async function CrewMembersPage({
             {key === STAFF ? t("crew.staff") : key}
           </Chip>
         ))}
-        {showAttend && (
-          <span className="ml-auto shrink-0 text-xs text-muted">
-            {t("crew.attendColHint")}
-          </span>
-        )}
       </div>
 
       <Card className="mt-5 overflow-hidden">
         {/* 헤더 */}
-        <div className="grid grid-cols-[minmax(0,1fr)_90px_70px] items-center gap-3 border-b border-line px-5 py-2.5 text-xs text-muted sm:grid-cols-[minmax(0,1fr)_90px_70px_150px]">
+        <div className="grid grid-cols-[minmax(0,1fr)_90px_70px] items-center gap-3 border-b border-line px-5 py-2.5 text-xs text-muted">
           <span>{t("crew.roster")}</span>
           <span>{t("crew.tierLabel")}</span>
           <span className="text-right">{t("crew.colSessions")}</span>
-          {showAttend && (
-            <span className="hidden text-right sm:block">
-              {t("crew.colAttend")}
-            </span>
-          )}
         </div>
         <ul className="divide-y divide-line">
           {shown.map((m) => (
             <li
               key={m.user_id}
-              className="grid grid-cols-[minmax(0,1fr)_90px_70px] items-center gap-3 px-5 py-3 transition-colors hover:bg-card-hover sm:grid-cols-[minmax(0,1fr)_90px_70px_150px]"
+              className="grid grid-cols-[minmax(0,1fr)_90px_70px] items-center gap-3 px-5 py-3 transition-colors hover:bg-card-hover"
             >
               <span className="flex min-w-0 items-center gap-3">
                 <Avatar name={m.display_name} />
@@ -132,17 +120,6 @@ export default async function CrewMembersPage({
               >
                 {m.session_count}
               </span>
-
-              {showAttend && (
-                /* 유료 / 전체 — 무료 행사가 섞이면 회비가 걸린 참석이 몇 번인지
-                   한 숫자로는 알 수 없다 */
-                <span className="hidden sm:block">
-                  <ProgressBar
-                    value={m.attend_paid_count ?? 0}
-                    total={m.attend_count ?? 0}
-                  />
-                </span>
-              )}
             </li>
           ))}
         </ul>

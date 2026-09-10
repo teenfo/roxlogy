@@ -715,7 +715,6 @@ const ko: Record<DictKey, string> = {
   "crew.colSessions": "세션",
   "crew.staff": "운영진",
   "crew.tierLabel": "등급",
-  "crew.colAttend": "출석",
   "crew.pendingAlert": "가입 신청 {n}건이 대기 중입니다",
   "crew.pendingAlertGo": "승인하러 가기 →",
   "crew.pendingRequests": "가입 신청",

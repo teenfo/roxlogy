@@ -715,7 +715,6 @@ const es: Record<DictKey, string> = {
   "crew.colSessions": "Sesiones",
   "crew.staff": "Dirección",
   "crew.tierLabel": "Categoría",
-  "crew.colAttend": "Asist.",
   "crew.pendingAlert": "{n} solicitud(es) de ingreso pendientes",
   "crew.pendingAlertGo": "Revisar →",
   "crew.pendingRequests": "Solicitudes",

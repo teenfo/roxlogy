@@ -717,7 +717,6 @@ const en = {
   "crew.colSessions": "Sessions",
   "crew.staff": "Staff",
   "crew.tierLabel": "Tier",
-  "crew.colAttend": "Attend",
   "crew.pendingAlert": "{n} join request(s) waiting",
   "crew.pendingAlertGo": "Review →",
   "crew.pendingRequests": "Join requests",

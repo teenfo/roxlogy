@@ -202,18 +202,3 @@ export function AvatarStack({
   );
 }
 
-/** 진행 바 — 출석률 등. 100% 초록 / 50%↑ 옐로 / 미만 빨강 */
-export function ProgressBar({ value, total }: { value: number; total: number }) {
-  const pct = total > 0 ? Math.min(100, (value / total) * 100) : 0;
-  const color = pct >= 100 ? "bg-success" : pct >= 50 ? "bg-accent" : "bg-danger";
-  return (
-    <span className="flex items-center gap-2">
-      <span className="h-1.5 w-full min-w-10 overflow-hidden rounded-full bg-line">
-        <span className={`block h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-      </span>
-      <span className="tabular shrink-0 text-[13px] font-bold">
-        {value}/{total}
-      </span>
-    </span>
-  );
-}
