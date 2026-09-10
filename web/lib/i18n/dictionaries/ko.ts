@@ -423,6 +423,8 @@ const ko: Record<DictKey, string> = {
   "crew.finOpeningOn": "기준일",
   "crew.finOpeningEdit": "기초 잔액 설정",
   "crew.finMethodNone": "결제 수단 미지정",
+  "crew.finMethodNoneIn": "수령 방법 미지정",
+  "crew.finCashInHint": "현금으로 받은 돈은 아직 통장에 없습니다 — 통장 반영일은 비워 두고, 은행에 넣은 날 반영 표시하세요.",
   "crew.finMethod.cash": "현금",
   "crew.finMethod.card": "카드",
   "crew.finMethod.transfer": "이체",

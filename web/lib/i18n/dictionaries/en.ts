@@ -425,6 +425,8 @@ const en = {
   "crew.finOpeningOn": "As of",
   "crew.finOpeningEdit": "Set opening balance",
   "crew.finMethodNone": "Method not set",
+  "crew.finMethodNoneIn": "No received-by set",
+  "crew.finCashInHint": "Cash you received isn't in the bank yet — leave the settled date empty and mark it on the day you deposit it.",
   "crew.finMethod.cash": "Cash",
   "crew.finMethod.card": "Card",
   "crew.finMethod.transfer": "Transfer",

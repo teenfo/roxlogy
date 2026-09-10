@@ -423,6 +423,8 @@ const es: Record<DictKey, string> = {
   "crew.finOpeningOn": "A fecha de",
   "crew.finOpeningEdit": "Fijar saldo inicial",
   "crew.finMethodNone": "Método sin definir",
+  "crew.finMethodNoneIn": "Sin forma de cobro",
+  "crew.finCashInHint": "El efectivo recibido aún no está en el banco — deja la fecha vacía y márcala el día que lo ingreses.",
   "crew.finMethod.cash": "Efectivo",
   "crew.finMethod.card": "Tarjeta",
   "crew.finMethod.transfer": "Transferencia",

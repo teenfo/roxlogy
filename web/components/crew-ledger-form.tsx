@@ -9,6 +9,16 @@ const input =
   "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 
 /**
+ * 수단은 "어떻게 냈나"가 아니라 "이 돈이 통장에 언제 찍히나"를 가늠하려고 있다.
+ * 그래서 수입에는 카드가 없다 — 받는 쪽에 카드 결제란 게 없고, 남겨 두면
+ * 통장 대사에서 뜻이 통하지 않는다.
+ */
+const METHODS = {
+  income: ["transfer", "cash", "other"],
+  expense: ["cash", "card", "transfer", "other"],
+} as const satisfies Record<"income" | "expense", readonly string[]>;
+
+/**
  * 크루 회계 내역 추가 (스태프 전용).
  *
  * 툴바(월 선택 바 왼쪽)에 버튼으로 앉아 있고, 폼은 모달로 띄운다 — 툴바 안에서
@@ -102,7 +112,14 @@ export function CrewLedgerForm({
                 <select
                   className={input}
                   value={kind}
-                  onChange={(e) => setKind(e.target.value as "income" | "expense")}
+                  onChange={(e) => {
+                    const k = e.target.value as "income" | "expense";
+                    setKind(k);
+                    // 수입으로 바꾸면 "카드"는 목록에서 사라진다 — 남겨 두면
+                    // 화면에 없는 값이 저장된다
+                    if (!(METHODS[k] as readonly string[]).includes(method))
+                      setMethod("");
+                  }}
                 >
                   <option value="income">{t("crew.finKindIncome")}</option>
                   <option value="expense">{t("crew.finKindExpense")}</option>
@@ -138,8 +155,14 @@ export function CrewLedgerForm({
                   value={method}
                   onChange={(e) => setMethod(e.target.value)}
                 >
-                  <option value="">{t("crew.finMethodNone")}</option>
-                  {(["cash", "card", "transfer", "other"] as const).map((mth) => (
+                  <option value="">
+                    {t(
+                      kind === "income"
+                        ? "crew.finMethodNoneIn"
+                        : "crew.finMethodNone",
+                    )}
+                  </option>
+                  {METHODS[kind].map((mth) => (
                     <option key={mth} value={mth}>
                       {t(`crew.finMethod.${mth}` as Parameters<typeof t>[0])}
                     </option>
@@ -155,6 +178,11 @@ export function CrewLedgerForm({
                   />
                 </label>
               </div>
+              {kind === "income" && method === "cash" && (
+                <p className="text-[11px] text-muted">
+                  {t("crew.finCashInHint")}
+                </p>
+              )}
               <input
                 className={input}
                 placeholder={t("crew.finMemo")}

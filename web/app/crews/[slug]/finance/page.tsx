@@ -198,9 +198,6 @@ export default async function CrewFinancePage({
     <main>
       {/* 툴바 — 내역 추가 + 월 이동 + 장부/회비 세그먼트 */}
       <div className="flex flex-wrap items-center gap-3">
-        {isStaff && view === "ledger" && !closed && (
-          <CrewLedgerForm crewId={crew.id} today={todayISOIn(tz)} />
-        )}
         <div className="flex items-center rounded-[10px] border border-line-mid bg-control">
           <Link
             href={linkFor(shiftMonth(month, -1))}
@@ -226,6 +223,9 @@ export default async function CrewFinancePage({
               </Chip>
             ))}
           </nav>
+        )}
+        {isStaff && view === "ledger" && !closed && (
+          <CrewLedgerForm crewId={crew.id} today={todayISOIn(tz)} />
         )}
         <div className="ml-auto flex flex-wrap items-center gap-2 max-md:ml-0 max-md:w-full">
           <span className="min-w-0 text-xs text-muted">{t("crew.finNote")}</span>
