@@ -30,7 +30,7 @@ export default async function RootLayout({
 }>) {
   const { locale } = await getT();
   return (
-    <html lang={locale} className="h-full antialiased">
+    <html lang={locale} className="h-full scroll-smooth antialiased">
       <body className="min-h-full flex flex-col">
         <I18nProvider locale={locale} dict={getDict(locale)}>
           <TzSync />
