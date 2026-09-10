@@ -86,9 +86,22 @@ export const NAV: NavItem[] = [
   { key: "feed", href: "/feed", label: "nav.feed", icon: "◫" },
 ];
 
+/**
+ * 비로그인 방문자에게 보여줄 메뉴 — 로그인 없이 열리는 페이지만 담는다.
+ * NAV 를 그대로 쓰면 모든 탭이 /login 리다이렉트로 끝나 막다른 길이 된다.
+ */
+export const PUBLIC_NAV: NavItem[] = [
+  { key: "crews", href: "/crews", label: "nav.crews", icon: "∞" },
+  { key: "events", href: "/events", label: "nav.events", icon: "◷" },
+  { key: "predict", href: "/predict", label: "nav.predict", icon: "◔" },
+];
+
 /** 현재 경로가 어느 1차 메뉴에 속하는가 */
-export function activeNavKey(pathname: string): string | null {
-  for (const item of NAV) {
+export function activeNavKey(
+  pathname: string,
+  items: NavItem[] = NAV,
+): string | null {
+  for (const item of items) {
     const hrefs = [item.href, ...(item.children?.map((c) => c.href) ?? [])];
     if (hrefs.some((h) => pathname === h || pathname.startsWith(`${h}/`))) {
       return item.key;

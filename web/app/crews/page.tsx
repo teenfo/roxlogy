@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCrewDirectory, getMyCrews } from "@/lib/crew";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { CrewHeader } from "@/components/crew-header";
 import { CrewFinder } from "@/components/crew-finder";
@@ -15,9 +16,10 @@ export async function generateMetadata() {
 }
 
 export default async function CrewDirectoryPage() {
-  const [crews, mine, { t, tag, tz }] = await Promise.all([
+  const [crews, mine, user, { t, tag, tz }] = await Promise.all([
     getCrewDirectory(),
     getMyCrews(),
+    getCachedUser(),
     getT(),
   ]);
 
@@ -47,12 +49,25 @@ export default async function CrewDirectoryPage() {
             </p>
           </div>
           <Link
-            href="/crews/new"
+            href={user ? "/crews/new" : "/login?next=%2Fcrews%2Fnew"}
             className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-extrabold text-background hover:brightness-110"
           >
             + {t("crew.createCta")}
           </Link>
         </div>
+
+        {/* 비로그인 안내 — 목록·소개는 그냥 보이고, 가입·일정만 로그인이 필요하다 */}
+        {!user && (
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-card px-4 py-3">
+            <span className="text-sm text-muted">{t("crew.guestNote")}</span>
+            <Link
+              href="/login?next=%2Fcrews"
+              className="text-sm font-bold text-accent hover:underline"
+            >
+              {t("common.login")} →
+            </Link>
+          </div>
+        )}
 
         {/* 내 크루 */}
         {mine.length > 0 && (

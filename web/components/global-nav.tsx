@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
-import { NAV, activeNavKey, type NavItem } from "@/lib/nav";
+import { NAV, PUBLIC_NAV, activeNavKey, type NavItem } from "@/lib/nav";
 
 /**
  * 글로벌 네비게이션 (2026-09 디자인 핸드오프).
@@ -26,7 +26,11 @@ export function GlobalNav({
 }) {
   const { t } = useI18n();
   const pathname = usePathname();
-  const active = activeNavKey(pathname);
+  // 비로그인은 공개 페이지만 — NAV 를 그대로 쓰면 탭 다섯 개가 전부
+  // /login 리다이렉트로 끝난다.
+  const loggedIn = !!displayName;
+  const items = loggedIn ? NAV : PUBLIC_NAV;
+  const active = activeNavKey(pathname, items);
   // 열림 상태에 "어느 경로에서 열었는지"를 같이 담는다. 이동하면 자동으로
   // 닫힌 것으로 계산된다 — effect 안에서 setState 하지 않기 위한 파생 상태.
   const [openAt, setOpenAt] = useState<{ key: string | null; at: string } | null>(
@@ -62,11 +66,11 @@ export function GlobalNav({
     };
   }, [open, menu]);
 
-  const currentLabel = NAV.find((n) => n.key === active)?.label;
+  const currentLabel = items.find((n) => n.key === active)?.label;
 
   const pill = (item: NavItem) => {
     const on = active === item.key;
-    const cls = `flex h-9 items-center gap-1.5 rounded-full px-4 text-sm transition-colors ${
+    const cls = `flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm transition-colors max-md:h-8 max-md:px-2.5 max-md:text-xs ${
       on
         ? "bg-accent font-extrabold text-background"
         : open === item.key
@@ -99,13 +103,16 @@ export function GlobalNav({
     );
   };
 
-  const openItem = NAV.find((n) => n.key === open && n.children);
+  const openItem = items.find((n) => n.key === open && n.children);
 
   return (
     <div ref={wrap} className="relative">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-3 px-6 max-md:h-[52px] max-md:px-4">
         {/* 로고 — 기존 마크를 그대로 쓴다 */}
-        <Link href="/dashboard" className="flex shrink-0 items-center gap-2.5">
+        <Link
+          href={loggedIn ? "/dashboard" : "/"}
+          className="flex shrink-0 items-center gap-2.5"
+        >
           <Image
             src="/roxlogy-mark.svg"
             alt="Roxlogy"
@@ -118,30 +125,42 @@ export function GlobalNav({
           </span>
         </Link>
 
-        {/* 모바일: 현재 섹션명 */}
-        {currentLabel && (
+        {/* 모바일: 현재 섹션명 (비로그인은 그 자리에 공개 탭을 그린다) */}
+        {loggedIn && currentLabel && (
           <span className="text-[17px] font-extrabold md:hidden">
             {t(currentLabel)}
           </span>
         )}
 
-        {/* 데스크톱·태블릿: 필 탭 */}
-        <nav className="mx-auto hidden items-center gap-1 rounded-full border border-line-mid bg-control p-1 md:flex">
-          {NAV.map(pill)}
+        {/* 필 탭 — 비로그인은 항목이 3개뿐이라 모바일에서도 그대로 보인다.
+            로그인 상태의 5개는 좁은 화면에 안 들어가 하단 탭바로 간다. */}
+        <nav
+          className={`mx-auto items-center gap-1 rounded-full border border-line-mid bg-control p-1 ${
+            loggedIn
+              ? "hidden md:flex"
+              : // 긴 로케일(es)에서도 페이지가 가로로 밀리지 않도록, 넘치면
+                // 필 바 안에서만 스크롤시킨다.
+                "flex min-w-0 max-md:gap-0.5 max-md:overflow-x-auto max-md:p-0.5 max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden"
+          }`}
+        >
+          {items.map(pill)}
         </nav>
 
         {/* 우측 유틸 */}
         <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
-          <Link
-            href="/search"
-            aria-label={t("nav.search")}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-line-mid bg-control text-muted transition-colors hover:text-foreground lg:h-9 lg:w-auto lg:px-4"
-          >
-            <span aria-hidden>⌕</span>
-            <span className="ml-2 hidden text-[13px] lg:inline">
-              {t("nav.searchPh")}
-            </span>
-          </Link>
+          {/* 검색은 (app) 그룹이라 비로그인이 누르면 로그인으로 튕긴다 */}
+          {loggedIn && (
+            <Link
+              href="/search"
+              aria-label={t("nav.search")}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line-mid bg-control text-muted transition-colors hover:text-foreground lg:h-9 lg:w-auto lg:px-4"
+            >
+              <span aria-hidden>⌕</span>
+              <span className="ml-2 hidden text-[13px] lg:inline">
+                {t("nav.searchPh")}
+              </span>
+            </Link>
+          )}
 
           {displayName ? (
             <>
