@@ -3,12 +3,35 @@ import { NextResponse, type NextRequest } from "next/server";
 import { optedOut, sessionOnly } from "@/lib/supabase/keep";
 import { safeNext } from "@/lib/site-url";
 
+/**
+ * 로그인이 필요한 경로 = app/(app) 아래 전부.
+ *
+ * 목록이 (app) 폴더와 어긋나면 안 된다: 여기 없는 경로는 (app)/layout.tsx 의
+ * redirect("/login") 로 떨어지는데, 레이아웃은 서버에서 pathname 을 알 수 없어
+ * next 를 붙이지 못한다 — 공유 링크를 받고 로그인한 사람이 원래 보려던 화면
+ * 대신 대시보드로 떨어졌다 (2026-09-10, 카톡 인앱 브라우저에서 확인).
+ * (app) 에 폴더를 추가하면 여기에도 추가할 것.
+ */
 const PROTECTED_PREFIXES = [
+  "/admin",
   "/dashboard",
-  "/sessions",
-  "/races",
-  "/settings",
   "/exercises",
+  "/feed",
+  "/goals",
+  "/insights",
+  "/leaderboard",
+  "/members",
+  "/notifications",
+  "/pft",
+  "/programs",
+  "/races",
+  "/runs",
+  "/schedule",
+  "/search",
+  "/sessions",
+  "/settings",
+  "/u",
+  "/workouts",
 ];
 
 export async function proxy(request: NextRequest) {
@@ -51,8 +74,12 @@ export async function proxy(request: NextRequest) {
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
+    // 쿼리까지 들고 가야 한다 — /schedule/race/x?from=... 처럼 쿼리가 화면을
+    // 결정하는 경로가 있다
+    const target = pathname + request.nextUrl.search;
     url.pathname = "/login";
-    url.searchParams.set("next", pathname);
+    url.search = "";
+    url.searchParams.set("next", target);
     return NextResponse.redirect(url);
   }
 
