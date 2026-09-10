@@ -195,37 +195,37 @@ export default async function CrewSchedulePage({
         </div>
       </div>
 
-      {/* 일정 리스트 — 날짜 블록 + 본문 + 우측 참석 */}
+      {/* 일정 리스트 — 날짜 하나에 카드 하나. 같은 날 일정이 여러 개면
+          날짜 블록을 반복하지 않고 그 안에 쌓는다. */}
       {!dates.length ? (
         <Card className="mt-6 px-4 py-10 text-center">
           <p className="text-sm text-muted">{t("crew.schedEmpty")}</p>
         </Card>
       ) : (
         <ul className="mt-6 flex flex-col gap-2.5">
-          {dates.flatMap((d) =>
-            byDate.get(d)!.map((r, i) => {
-              const isNext = r.kind === "meetup" && r.ref_id === nextMeetupId;
-              const done = r.kind === "meetup" && r.closed;
-              const names = goingNames.get(r.ref_id) ?? [];
-              const body = (
+          {dates.map((d) => {
+            const items = byDate.get(d)!;
+            const hasNext = items.some(
+              (r) => r.kind === "meetup" && r.ref_id === nextMeetupId,
+            );
+            return (
+              <li key={d}>
                 <div
-                  className={`grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border px-5 py-4 transition-colors ${
-                    isNext
+                  className={`grid grid-cols-[64px_minmax(0,1fr)] items-start gap-4 rounded-2xl border px-5 py-4 max-md:grid-cols-[52px_minmax(0,1fr)] max-md:gap-3 max-md:px-4 ${
+                    hasNext
                       ? "border-line-accent bg-highlight"
-                      : "border-line bg-card hover:bg-card-hover"
-                  } ${done ? "opacity-55" : ""}`}
+                      : "border-line bg-card"
+                  }`}
                 >
-                  {/* 날짜 블록 */}
-                  <div className="border-r border-line-mid pr-3 text-center">
+                  {/* 날짜 블록 — 그 날 전체가 한 번만 */}
+                  <div className="self-stretch border-r border-line-mid pr-3 text-center">
                     <p
-                      className={`tabular text-[30px] font-extrabold leading-none ${
-                        isNext
+                      className={`tabular text-[30px] font-extrabold leading-none max-md:text-2xl ${
+                        hasNext
                           ? "text-accent"
-                          : done
-                            ? "text-muted"
-                            : isSunday(d)
-                              ? "text-sunday"
-                              : ""
+                          : isSunday(d)
+                            ? "text-sunday"
+                            : ""
                       }`}
                     >
                       {dayNum(d)}
@@ -239,92 +239,117 @@ export default async function CrewSchedulePage({
                     </p>
                   </div>
 
-                  {/* 본문 */}
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-[18px] font-bold">
-                        {r.title}
-                      </span>
-                      {isNext && (
-                        <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-extrabold text-background">
-                          {t("crew.nextMeetup")}
-                        </span>
-                      )}
-                      {r.kind !== "meetup" && (
-                        <Badge tone={r.kind === "race" ? "info" : "neutral"}>
-                          {kindLabel[r.kind]}
-                        </Badge>
-                      )}
-                      {r.members_only && (
-                        <Badge tone="label">{t("crew.fullOnly")}</Badge>
-                      )}
-                      {r.kind === "meetup" && r.fee_exempt && (
-                        <Badge tone="info">{t("crew.feeExempt")}</Badge>
-                      )}
-                      {done && <Badge tone="neutral">{t("crew.closed")}</Badge>}
-                    </div>
-                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-muted">
-                      {r.starts_at && (
-                        <>
-                          <span
-                            aria-hidden
-                            className="inline-block h-1.5 w-1.5 rounded-full bg-accent"
-                          />
-                          <span className="tabular font-semibold text-foreground/80">
-                            {timeLabel(r.starts_at)}
-                          </span>
-                        </>
-                      )}
-                      {r.subtitle && <span className="truncate">{r.subtitle}</span>}
-                      {r.kind === "race" && r.member_name && (
-                        <span className="text-info">{r.member_name}</span>
-                      )}
-                      {r.kind === "race" && r.result_ms != null && (
-                        <span className="tabular font-bold text-info">
-                          🏁 {fmtResult(r.result_ms)}
-                        </span>
-                      )}
-                    </p>
-                  </div>
+                  <ul className="min-w-0 divide-y divide-line">
+                    {items.map((r, i) => {
+                      const isNext =
+                        r.kind === "meetup" && r.ref_id === nextMeetupId;
+                      const done = r.kind === "meetup" && r.closed;
+                      const names = goingNames.get(r.ref_id) ?? [];
+                      const href =
+                        r.kind === "meetup"
+                          ? `/crews/${slug}/schedule/${r.ref_id}`
+                          : r.kind === "program"
+                            ? `/programs/${r.ref_id}`
+                            : null;
 
-                  {/* 우측 — 참석자 + 버튼 */}
-                  <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    {r.kind === "meetup" && (
-                      <>
-                        {names.length > 0 && <AvatarStack names={names} />}
-                        <span className="text-[12px] text-muted">
-                          {r.going_count
-                            ? t("crew.goingN", { n: r.going_count })
-                            : t("crew.goingNone")}
-                        </span>
-                        {isMember && (
-                          <CrewRsvpToggle
-                            eventId={r.ref_id}
-                            myStatus={r.my_status}
-                            closed={r.closed}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
+                      const text = (
+                        <>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="truncate text-[18px] font-bold max-md:text-base">
+                              {r.title}
+                            </span>
+                            {isNext && (
+                              <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-extrabold text-background">
+                                {t("crew.nextMeetup")}
+                              </span>
+                            )}
+                            {r.kind !== "meetup" && (
+                              <Badge tone={r.kind === "race" ? "info" : "neutral"}>
+                                {kindLabel[r.kind]}
+                              </Badge>
+                            )}
+                            {r.members_only && (
+                              <Badge tone="label">{t("crew.fullOnly")}</Badge>
+                            )}
+                            {r.kind === "meetup" && r.fee_exempt && (
+                              <Badge tone="info">{t("crew.feeExempt")}</Badge>
+                            )}
+                            {done && (
+                              <Badge tone="neutral">{t("crew.closed")}</Badge>
+                            )}
+                          </div>
+                          <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-muted">
+                            {r.starts_at && (
+                              <>
+                                <span
+                                  aria-hidden
+                                  className="inline-block h-1.5 w-1.5 rounded-full bg-accent"
+                                />
+                                <span className="tabular font-semibold text-foreground/80">
+                                  {timeLabel(r.starts_at)}
+                                </span>
+                              </>
+                            )}
+                            {r.subtitle && (
+                              <span className="truncate">{r.subtitle}</span>
+                            )}
+                            {r.kind === "race" && r.member_name && (
+                              <span className="text-info">{r.member_name}</span>
+                            )}
+                            {r.kind === "race" && r.result_ms != null && (
+                              <span className="tabular font-bold text-info">
+                                🏁 {fmtResult(r.result_ms)}
+                              </span>
+                            )}
+                          </p>
+                        </>
+                      );
+
+                      return (
+                        <li
+                          key={`${r.kind}-${r.ref_id}-${i}`}
+                          className={`grid items-center gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_auto] ${
+                            done ? "opacity-55" : ""
+                          }`}
+                        >
+                          {/* 참석 토글은 링크 밖에 둔다 — 앵커 안에 버튼을
+                              넣으면 토글을 눌러도 상세로 넘어간다 */}
+                          {href ? (
+                            <Link
+                              href={href}
+                              className="block min-w-0 transition-opacity hover:opacity-80"
+                            >
+                              {text}
+                            </Link>
+                          ) : (
+                            <div className="min-w-0">{text}</div>
+                          )}
+
+                          {r.kind === "meetup" && (
+                            <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end sm:gap-1.5">
+                              {names.length > 0 && <AvatarStack names={names} />}
+                              <span className="text-xs text-muted">
+                                {r.going_count
+                                  ? t("crew.goingN", { n: r.going_count })
+                                  : t("crew.goingNone")}
+                              </span>
+                              {isMember && (
+                                <CrewRsvpToggle
+                                  eventId={r.ref_id}
+                                  myStatus={r.my_status}
+                                  closed={r.closed}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
-              );
-              const key = `${r.kind}-${r.ref_id}-${i}`;
-              return (
-                <li key={key}>
-                  {r.kind === "meetup" ? (
-                    <Link href={`/crews/${slug}/schedule/${r.ref_id}`}>
-                      {body}
-                    </Link>
-                  ) : r.kind === "program" ? (
-                    <Link href={`/programs/${r.ref_id}`}>{body}</Link>
-                  ) : (
-                    body
-                  )}
-                </li>
-              );
-            }),
-          )}
+              </li>
+            );
+          })}
         </ul>
       )}
       {!user && (

@@ -46,14 +46,25 @@ function toLocalInput(iso: string): string {
 export function CrewMeetupForm({
   crewId,
   event,
+  open: openProp,
+  onOpenChange,
 }: {
   crewId?: string;
   event?: MeetupEditable;
+  /** 트리거를 밖(⋯ 메뉴)에 둘 때 — 열림 상태를 부모가 쥔다 */
+  open?: boolean;
+  onOpenChange?: (next: boolean) => void;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const editing = !!event;
-  const [open, setOpen] = useState(false);
+  const controlled = openProp !== undefined;
+  const [openState, setOpenState] = useState(false);
+  const open = controlled ? openProp : openState;
+  const setOpen = (next: boolean) => {
+    if (controlled) onOpenChange?.(next);
+    else setOpenState(next);
+  };
   const [title, setTitle] = useState(event?.title ?? "");
   const [when, setWhen] = useState(
     event ? toLocalInput(event.starts_at) : "",
@@ -122,6 +133,8 @@ export function CrewMeetupForm({
   }
 
   if (!open) {
+    // 제어형이면 트리거는 부모(⋯ 메뉴)가 그린다
+    if (controlled) return null;
     return (
       <button
         type="button"
@@ -762,11 +775,72 @@ export function CrewEventMoreMenu({
         ⋯
       </button>
       {open && (
-        <div className="absolute right-0 top-10 z-40 flex w-44 flex-col gap-0.5 rounded-[10px] border border-line-strong bg-control p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]">
+        <div
+          // 항목을 고르면 닫는다 — 메뉴가 열린 채로 남으면 뒤에서 뭐가
+          // 바뀌었는지 안 보인다
+          onClick={() => setOpen(false)}
+          className="absolute right-0 top-10 z-40 flex w-44 flex-col gap-0.5 rounded-[10px] border border-line-strong bg-control p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]"
+        >
           {children}
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * 모임 상세의 운영진 액션 묶음 — ⋯ 메뉴에 수정·종료·취소를 모은다.
+ *
+ * 수정 폼은 입력이 여러 줄이라 메뉴 안이나 히어로 우측 칸에 그리면 눌린다.
+ * 열면 화면 가운데 오버레이로 띄운다.
+ */
+export function CrewEventStaffActions({
+  event,
+  children,
+}: {
+  event: MeetupEditable;
+  /** 종료/해제 · 취소 등 나머지 메뉴 항목 */
+  children: React.ReactNode;
+}) {
+  const { t } = useI18n();
+  const [edit, setEdit] = useState(false);
+
+  useEffect(() => {
+    if (!edit) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEdit(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [edit]);
+
+  return (
+    <>
+      <CrewEventMoreMenu label={t("crew.eventSettings")}>
+        <button
+          type="button"
+          onClick={() => setEdit(true)}
+          className="w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors hover:bg-card-hover"
+        >
+          {t("common.edit")}
+        </button>
+        {children}
+      </CrewEventMoreMenu>
+
+      {edit && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
+          onClick={() => setEdit(false)}
+        >
+          <div
+            className="w-full max-w-lg text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CrewMeetupForm event={event} open onOpenChange={setEdit} />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

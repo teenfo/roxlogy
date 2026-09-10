@@ -7,11 +7,10 @@ import {
   CrewAttendanceCheck,
   CrewEventFeeToggle,
   CrewEventClose,
-  CrewEventMoreMenu,
   CrewEventShare,
+  CrewEventStaffActions,
   CrewEventCommentForm,
   CrewMeetupCancel,
-  CrewMeetupForm,
   CrewRsvpButtons,
   type AttendanceRow,
 } from "@/components/crew-schedule-forms";
@@ -243,10 +242,21 @@ export default async function CrewEventPage({
           <div className="flex shrink-0 items-center gap-1.5 max-md:col-span-2 max-md:justify-end">
             <CrewEventShare url={shareUrl} title={ev.title} />
             {ev.is_staff && (
-              <CrewEventMoreMenu label={t("crew.eventSettings")}>
+              /* 수정·종료·취소를 ⋯ 하나로. 수정 폼은 열면 오버레이로 뜬다 */
+              <CrewEventStaffActions
+                event={{
+                  id: ev.id,
+                  title: ev.title,
+                  starts_at: ev.starts_at,
+                  location: ev.location,
+                  description: ev.description,
+                  capacity: ev.capacity,
+                  comments_allowed: ev.comments_allowed,
+                }}
+              >
                 <CrewEventClose eventId={ev.id} closed={ev.closed_at != null} />
                 <CrewMeetupCancel eventId={ev.id} slug={slug} />
-              </CrewEventMoreMenu>
+              </CrewEventStaffActions>
             )}
           </div>
         </div>
@@ -283,22 +293,6 @@ export default async function CrewEventPage({
           </div>
         </div>
       </section>
-
-      {ev.is_staff && (
-        <div className="flex justify-end">
-          <CrewMeetupForm
-            event={{
-              id: ev.id,
-              title: ev.title,
-              starts_at: ev.starts_at,
-              location: ev.location,
-              description: ev.description,
-              capacity: ev.capacity,
-              comments_allowed: ev.comments_allowed,
-            }}
-          />
-        </div>
-      )}
 
       {/* 소개 + 내 참석 — 모바일은 내 참석이 먼저(주 행동이다) */}
       <div
