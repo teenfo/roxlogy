@@ -2,11 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { getCrewDirectory } from "@/lib/crew";
 import { getT } from "@/lib/i18n";
-import { formatMs, formatDateShort } from "@/lib/format";
+import { formatMs, formatDateShort, todayISOIn } from "@/lib/format";
 import { makeLandingDemo } from "@/lib/landing-demo";
 import { CHART_COLORS } from "@/lib/hyrox";
 import { LocaleSwitcher } from "@/components/locale-switcher";
-import { Avatar } from "@/components/ui/crew-ui";
+import {
+  LandingCrewTicker,
+  type TickerCrew,
+} from "@/components/landing-crew-ticker";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 const sec = (s: number) => formatMs(s * 1000);
@@ -19,11 +22,42 @@ const ctaGhost =
 export default async function Landing() {
   // 크루 카드는 공개 RPC(crew_directory)라 비로그인에서도 그대로 내려온다.
   // 히어로 수치는 요청마다 새로 만드는 가짜 기록이다 — 실사용자 기록이 아니다.
-  const [{ t, tag, tz }, crews] = await Promise.all([getT(), getCrewDirectory(6)]);
+  // 활동 크루 — 목록 전체로 "N개 크루 활동 중"을 세고, 티커에는 앞 8개만.
+  const [{ t, tag, tz }, crews] = await Promise.all([
+    getT(),
+    getCrewDirectory(100),
+  ]);
   const demo = makeLandingDemo();
   const features = [1, 2, 3] as const;
 
   const pct = (v: number) => (v / demo.finish) * 100;
+
+  // 마지막 활동이 며칠 전인지 — 클라이언트 렌더에서 new Date() 를 쓰지 않도록
+  // 서버(사용자 시간대)에서 미리 계산해 넘긴다.
+  const todayISO = todayISOIn(tz);
+  const dayIn = (iso: string) =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(iso));
+  const ticker: TickerCrew[] = crews.slice(0, 8).map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    logoUrl: c.logo_url,
+    location: c.location,
+    memberCount: c.member_count,
+    daysAgo: c.last_active_at
+      ? Math.max(
+          0,
+          Math.round(
+            (Date.parse(todayISO) - Date.parse(dayIn(c.last_active_at))) /
+              86400000,
+          ),
+        )
+      : null,
+  }));
 
   return (
     <main className="flex flex-1 flex-col">
@@ -209,65 +243,49 @@ export default async function Landing() {
         ))}
       </section>
 
-      {/* 3. 크루 배너 — 실제 공개 크루를 활동순으로 (가짜 모임을 만들지 않는다) */}
+      {/* 3. 크루 — 좌 설명 + 우 활동 크루 티커 */}
       {crews.length > 0 && (
         <section className="mx-auto w-full max-w-[1120px] px-6 pb-20 max-md:px-5 max-md:pb-12">
-          <div className="rounded-2xl border border-line-accent bg-highlight px-7 py-6 max-md:px-5">
-            <div className="grid items-center gap-6 max-md:grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto]">
-              <div className="flex min-w-0 flex-col gap-2.5">
-                <p className="text-xs font-extrabold tracking-[0.1em] text-accent">
-                  CREW
-                </p>
-                <h2 className="text-xl font-extrabold [word-break:keep-all]">
-                  {t("landing.crewsTitle")}
-                </h2>
-                <p className="max-w-[560px] text-sm text-foreground/80 [word-break:keep-all]">
-                  {t("landing.crewsSub")}
-                </p>
-              </div>
+          <div className="grid items-center gap-9 overflow-hidden rounded-2xl border border-line-accent bg-highlight px-9 py-8 max-md:gap-5 max-md:px-5 max-md:py-6 md:grid-cols-[minmax(0,1fr)_380px]">
+            <div className="flex min-w-0 flex-col gap-4">
+              <p className="text-xs font-extrabold tracking-[0.1em] text-accent">
+                CREW
+              </p>
+              <h2 className="text-[30px] font-extrabold leading-tight tracking-[-0.02em] [word-break:keep-all] max-md:text-2xl">
+                {t("landing.crewsTitle")}
+              </h2>
+              <p className="max-w-[460px] text-[15px] leading-[1.65] text-foreground/80 [word-break:keep-all]">
+                {t("landing.crewsSub")}{" "}
+                <strong className="font-bold text-foreground">
+                  {t("landing.crewCount", { n: crews.length })}
+                </strong>
+              </p>
+
+              <ul className="flex flex-col gap-2">
+                {[1, 2, 3].map((n) => (
+                  <li key={n} className="flex items-center gap-2.5">
+                    <span
+                      aria-hidden
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success-bg text-[10px] text-success"
+                    >
+                      ✓
+                    </span>
+                    <span className="text-sm text-foreground/85 [word-break:keep-all]">
+                      {t(`landing.crewPoint${n}` as DictKey)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
 
               <Link
                 href="/crews"
-                className="flex h-11 shrink-0 items-center justify-center rounded-[10px] border border-line-accent px-5 text-sm font-bold text-accent transition-colors hover:border-[#8a7a2a] hover:bg-[#1f1c10] max-md:w-full"
+                className="mt-1.5 flex h-[46px] w-fit items-center rounded-[10px] border border-accent px-[22px] text-[15px] font-extrabold text-accent transition-colors hover:bg-accent hover:text-background max-md:w-full max-md:justify-center"
               >
                 {t("landing.crewsAll")}
               </Link>
             </div>
 
-            {/* 크루가 여럿이면 그대로 늘어난다 — crew_directory 가 활동순이다 */}
-            <div className="mt-5 border-t border-line-accent/60 pt-4">
-              <p className="text-[11px] font-bold tracking-[0.06em] text-accent/85">
-                {t("landing.activeCrews")}
-              </p>
-              <ul className="mt-2.5 flex flex-wrap gap-2">
-                {crews.map((c) => (
-                  <li key={c.slug} className="min-w-0">
-                    <Link
-                      href={`/crews/${c.slug}`}
-                      className="flex min-w-0 items-center gap-2.5 rounded-full border border-line bg-card px-3 py-2 transition-colors hover:border-line-strong hover:bg-card-hover"
-                    >
-                      {c.logo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={c.logo_url}
-                          alt=""
-                          className="h-[22px] w-[22px] shrink-0 rounded-full object-cover"
-                        />
-                      ) : (
-                        <Avatar name={c.name} size={22} />
-                      )}
-                      <span className="truncate text-[13px] font-bold">
-                        {c.name}
-                      </span>
-                      <span className="shrink-0 text-[11px] text-muted">
-                        {c.location ? `${c.location} · ` : ""}
-                        {c.member_count} {t("crew.members")}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <LandingCrewTicker crews={ticker} />
           </div>
         </section>
       )}

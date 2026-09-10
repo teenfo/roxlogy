@@ -96,3 +96,31 @@ body {
     "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
 }
+
+/* 랜딩 "지금 활동 중인 크루" 티커 — 목록을 두 번 그려 절반만큼 올린다.
+   Tailwind 유틸로는 keyframes 를 표현할 수 없어 여기 둔다. 애니메이션을
+   CSS 클래스로만 걸어 두면 JS 가 없어도 SSR 마크업이 그대로 유효하다. */
+@keyframes crew-scroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.crew-ticker {
+  animation: crew-scroll var(--crew-scroll-speed, 28s) linear infinite;
+  will-change: transform;
+}
+
+/* 읽는 동안은 멈춘다 */
+.crew-ticker-wrap:hover .crew-ticker {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crew-ticker {
+    animation: none;
+  }
+}
