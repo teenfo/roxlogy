@@ -1845,6 +1845,10 @@ export function CrewEventClose({
  * 상세의 CrewRsvpButtons(참석/미정/불참 3지선다)와 달리 목록에서는 참석 여부만
  * 빠르게 바꾼다. 참석을 끄면 응답 자체를 지운다 — 목록에서 끈 것을 "불참 선언"
  * 으로 기록하면 불참 명단이 사실과 달라진다.
+ *
+ * 미정·불참으로 답해 둔 경우에는 그 답을 칩으로 함께 보여준다. 예전에는
+ * 무응답과 똑같이 "참석하기" 만 떠서, 이미 답한 사실이 화면에서 사라지고
+ * 버튼을 누르면 그 답이 조용히 참석으로 덮였다.
  * 종료된 모임은 비활성 (최종 차단은 DB RLS).
  */
 export function CrewRsvpToggle({
@@ -1889,6 +1893,9 @@ export function CrewRsvpToggle({
     else router.refresh();
   }
 
+  // 미정·불참 — 이미 답한 상태다. 무응답과 구분해서 보여준다.
+  const answered = myStatus === "maybe" || myStatus === "declined";
+
   if (closed) {
     return (
       <span className="inline-flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong px-3 text-xs font-semibold text-muted">
@@ -1899,6 +1906,17 @@ export function CrewRsvpToggle({
 
   return (
     <span className="flex flex-col items-end gap-1">
+      {answered && (
+        <span
+          className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+            myStatus === "declined"
+              ? "bg-danger-bg text-danger"
+              : "bg-accent-dim/20 text-accent-dim"
+          }`}
+        >
+          {t(myStatus === "declined" ? "crew.rsvpDeclined" : "crew.rsvpMaybe")}
+        </span>
+      )}
       <button
         type="button"
         onClick={toggle}
