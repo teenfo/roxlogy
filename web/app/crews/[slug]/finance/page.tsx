@@ -54,10 +54,10 @@ export default async function CrewFinancePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ m?: string; tab?: string }>;
+  searchParams: Promise<{ m?: string; tab?: string; k?: string }>;
 }) {
   const { slug } = await params;
-  const { m, tab } = await searchParams;
+  const { m, tab, k } = await searchParams;
 
   const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
@@ -76,6 +76,10 @@ export default async function CrewFinancePage({
   const isStaff = crew.my_role === "owner" || crew.my_role === "coach";
   // 회비 보드는 운영진 전용 — 일반 정회원에게는 탭이 장부 하나뿐이다
   const view: "ledger" | "dues" = isStaff && tab === "dues" ? "dues" : "ledger";
+  // 수입·지출 필터. 합계는 달 전체 기준을 유지하고 목록만 걸러 낸다 —
+  // 필터를 걸었다고 이 달 수입 합계가 바뀌면 그건 다른 숫자다.
+  const kindFilter: "all" | "income" | "expense" =
+    k === "income" || k === "expense" ? k : "all";
 
   if (!isFull) {
     return (
@@ -176,17 +180,28 @@ export default async function CrewFinancePage({
     month: "long",
   });
   // 월을 옮겨도 보고 있던 탭이 유지되어야 한다
-  const linkFor = (mm: string, vv: "ledger" | "dues" = view) =>
-    `/crews/${slug}/finance?m=${mm}${vv === "dues" ? "&tab=dues" : ""}`;
+  const linkFor = (
+    mm: string,
+    vv: "ledger" | "dues" = view,
+    kk: "all" | "income" | "expense" = kindFilter,
+  ) =>
+    `/crews/${slug}/finance?m=${mm}` +
+    (vv === "dues" ? "&tab=dues" : "") +
+    (kk === "all" ? "" : `&k=${kk}`);
   const dayLabel = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString(tag, {
       month: "short",
       day: "numeric",
     });
 
+  const shown =
+    kindFilter === "all" ? entries : entries.filter((r) => r.kind === kindFilter);
+  const countOf = (kk: "all" | "income" | "expense") =>
+    kk === "all" ? entries.length : entries.filter((r) => r.kind === kk).length;
+
   // 날짜별 그룹 — 하루 합계를 머리글에 얹어 그날 돈이 어떻게 움직였는지 보이게
   const byDate = new Map<string, LedgerRow[]>();
-  for (const r of entries) {
+  for (const r of shown) {
     const arr = byDate.get(r.entry_date) ?? [];
     arr.push(r);
     byDate.set(r.entry_date, arr);
@@ -336,12 +351,36 @@ export default async function CrewFinancePage({
 
       {view === "ledger" && (
         <>
-          {!entries.length ? (
-            <Card className="mt-6 px-4 py-10 text-center">
-              <p className="text-sm text-muted">{t("crew.finEmpty")}</p>
+          {/* 수입·지출 필터 */}
+          {entries.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-1.5">
+              {(["all", "income", "expense"] as const).map((kk) => (
+                <Chip
+                  key={kk}
+                  href={linkFor(month, view, kk)}
+                  active={kindFilter === kk}
+                  count={countOf(kk)}
+                >
+                  {t(
+                    kk === "all"
+                      ? "crew.finKindAll"
+                      : kk === "income"
+                        ? "crew.finKindIncome"
+                        : "crew.finKindExpense",
+                  )}
+                </Chip>
+              ))}
+            </div>
+          )}
+
+          {!shown.length ? (
+            <Card className="mt-4 px-4 py-10 text-center">
+              <p className="text-sm text-muted">
+                {t(entries.length ? "crew.finFilterEmpty" : "crew.finEmpty")}
+              </p>
             </Card>
           ) : (
-            <div className="mt-6 flex flex-col gap-4">
+            <div className="mt-4 flex flex-col gap-4">
               {[...byDate.keys()].map((d) => {
                 const rs = byDate.get(d)!;
                 const net = dayNet(rs);

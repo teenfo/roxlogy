@@ -492,7 +492,7 @@ export function ProgramBuilder({
             type="button"
             onClick={() => copyWeek(week)}
             disabled={busy}
-            className="shrink-0 text-xs text-[#777] hover:text-foreground disabled:opacity-40 max-md:hidden"
+            className="shrink-0 text-xs text-[#777] hover:text-foreground disabled:opacity-40"
           >
             {t("programs.copyWeek")} →
           </button>
@@ -1137,8 +1137,8 @@ function ExercisePicker({
 
       {/* 선택 확인 행 — 카테고리에 맞는 칸만 */}
       {picked && (
-        <div className="grid gap-2 rounded-[10px] border border-line-accent bg-highlight p-2.5 md:grid-cols-[1.4fr_repeat(4,1fr)_1.4fr_auto]">
-          <span className="flex min-w-0 flex-col justify-center">
+        <div className="grid grid-cols-2 gap-2 rounded-[10px] border border-line-accent bg-highlight p-2.5 md:grid-cols-[1.4fr_repeat(4,1fr)_1.4fr_auto]">
+          <span className="col-span-2 flex min-w-0 flex-col justify-center md:col-span-1">
             <span className="text-[10px] font-bold text-[#8a7a2a]">
               {t("programs.selectedEx")}
             </span>
@@ -1172,7 +1172,7 @@ function ExercisePicker({
               />
             </label>
           ))}
-          <label className="flex min-w-0 flex-col gap-0.5">
+          <label className="col-span-2 flex min-w-0 flex-col gap-0.5 md:col-span-1">
             <span className="text-[10px] text-muted">{t("programs.targetPh")}</span>
             <input
               value={draft.note}
@@ -1195,7 +1195,7 @@ function ExercisePicker({
               setTimeout(() => searchRef.current?.focus(), 0);
             }}
             disabled={busy}
-            className="flex h-9 items-center justify-center self-end rounded-lg bg-accent px-3 text-[13px] font-extrabold text-background transition hover:brightness-110 disabled:opacity-40 max-md:w-full"
+            className="col-span-2 flex h-9 items-center justify-center self-end rounded-lg bg-accent px-3 text-[13px] font-extrabold text-background transition hover:brightness-110 disabled:opacity-40 md:col-span-1"
           >
             {t("programs.addItem")} ↵
           </button>
