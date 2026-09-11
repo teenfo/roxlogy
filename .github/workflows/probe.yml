@@ -1,13 +1,41 @@
-# 외부 결과 사이트/배포 응답 프로브 (수동 실행 전용).
-# 샌드박스 egress가 막힌 환경에서 검증용 — 단건 조회만 수행한다.
+# 프로브 워크플로 — 두 가지 일을 한다.
+#   1) probe: 외부 결과 사이트/배포 응답 단건 조회 (수동 실행 전용, url 입력 필요).
+#      샌드박스 egress 가 막힌 환경에서 검증용.
+#   2) permission-probe: anon 키 + 전용 프로브 계정 2개로 운영 PostgREST·GoTrue·사이트·
+#      /api/mcp 를 찔러 "거부되어야 하는 것"이 거부되고 "되어야 하는 것"이 되는지 단언
+#      (scripts/db-permission-probe.mjs, 감사 A09). 매일 KST 새벽 1회 + 수동 실행.
+#      하나라도 어긋나면 실패한다. 시크릿이 비어 있어도 실패한다(조용한 통과 금지).
+#
+# 필요한 시크릿 (서비스 키는 절대 넣지 말 것 — 스크립트가 키의 role 을 읽어 anon 이 아니면
+# 시작조차 하지 않지만, 시크릿에 존재하는 것 자체가 노출면이다)
+#   SUPABASE_ANON_KEY            publishable/anon 키 (없으면 NEXT_PUBLIC_SUPABASE_ANON_KEY 대체)
+#   PROBE_USER_EMAIL / PROBE_USER_PASSWORD
+#       활성 프로브 계정 — 이메일 확인 완료, 관리자 아님, 어떤 크루 운영진도 아님. 프로브가
+#       매 실행 이 계정의 MCP 토큰을 재발급·폐기하므로 전용 계정이어야 한다.
+#   PROBE_DISABLED_EMAIL / PROBE_DISABLED_PASSWORD
+#       관리자가 정지(profiles.disabled=true)시킨 프로브 계정 — 프로브는 이 계정을 바꾸지 않는다.
+#   PROBE_FOREIGN_CREW_SLUG (선택)  활성 프로브 계정이 운영진이 아닌 실제 크루 slug.
+#
+# 운영 메모
+#   · 공개 레포의 schedule 워크플로는 60일간 커밋이 없으면 GitHub 이 자동 비활성화한다
+#     (Actions 탭에 "This scheduled workflow is disabled" 배너). 장기 방치 시 감시가
+#     조용히 꺼지므로, 알림이 오지 않는 것을 "다 괜찮다"로 읽지 말고 Actions 탭에서
+#     마지막 실행 시각을 확인할 것.
+#   · secrets 컨텍스트 값은 GitHub 이 로그에서 자동으로 가린다(::add-mask:: 불필요).
+#     스크립트도 64자 hex 토큰을 출력에서 가린다.
 name: probe
 on:
+  schedule:
+    - cron: "30 19 * * *" # 매일 KST 04:30 (19:30 UTC) — permission-probe 만
   workflow_dispatch:
     inputs:
       url:
-        description: URL to fetch
-        required: true
+        # 예전엔 required 였다. permission_probe 만 돌리는 수동 실행에서 URL 을 억지로
+        # 채우지 않도록 선택으로 바꿨다 — 비어 있으면 probe 잡을 건너뛴다.
+        description: URL to fetch (leave empty to skip the fetch probe)
+        required: false
         type: string
+        default: ""
       grep:
         description: optional extended-regex; matches printed with context
         required: false
@@ -38,8 +66,15 @@ on:
         required: false
         type: boolean
         default: false
+      permission_probe:
+        description: run scripts/db-permission-probe.mjs (permission regression probe; anon key + probe accounts)
+        required: false
+        type: boolean
+        default: false
 jobs:
   probe:
+    # 스케줄 실행에는 url 이 없다 — 수동 + url 이 있을 때만.
+    if: github.event_name == 'workflow_dispatch' && inputs.url != ''
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -65,3 +100,25 @@ jobs:
           else
             head -c 3000 page.html
           fi
+
+  permission-probe:
+    # 매일 스케줄 + 수동(permission_probe 체크). 스케줄 이벤트에서는 inputs 가 비어
+    # 있으므로 event_name 으로 먼저 가른다.
+    if: github.event_name == 'schedule' || inputs.permission_probe == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Permission regression probe (anon key + probe accounts)
+        env:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          PROBE_USER_EMAIL: ${{ secrets.PROBE_USER_EMAIL }}
+          PROBE_USER_PASSWORD: ${{ secrets.PROBE_USER_PASSWORD }}
+          PROBE_DISABLED_EMAIL: ${{ secrets.PROBE_DISABLED_EMAIL }}
+          PROBE_DISABLED_PASSWORD: ${{ secrets.PROBE_DISABLED_PASSWORD }}
+          PROBE_FOREIGN_CREW_SLUG: ${{ secrets.PROBE_FOREIGN_CREW_SLUG }}
+        # 시크릿이 비어 있어도 스크립트가 해당 단언을 FAIL 로 보고하고 exit 1 — 조용한 통과 금지.
+        run: node scripts/db-permission-probe.mjs

@@ -1,0 +1,64 @@
+# 웹(Next.js) 정적 검증 — 타입·lint·빌드 (감사 A09, 2026-09-11).
+#
+# 왜 필요한가: Vercel 이 배포마다 빌드하긴 하지만 그건 배포 뒤에 아는 것이고, lint 는
+# 아예 돌지 않는다. A01(프론트와 보안 트리거 간 계약 불일치)·A04(proxy 와 route 충돌)
+# 처럼 "각 파일만 보면 멀쩡한" 회귀는 타입·lint·빌드를 한 번에 돌려야 잡힌다.
+# main 직접 커밋 워크플로라 PR 게이트는 없다 — 대신 push 마다 돌려 빨간불을 빨리 낸다.
+# (pull_request 트리거는 두지 않는다: 이 레포는 PR 을 만들지 않으므로 죽은 설정이다.)
+#
+# 이 검사는 "현재 main 에서 통과" 가 전제다 — 항상 빨간 체크는 회귀 신호를 소음에
+# 묻는다. lint 오류가 기존 코드에 있으면 continue-on-error 로 덮지 말고 그 코드를 고칠 것
+# (2026-09-11 에 dashboard/page.tsx·predict-form.tsx 의 react-hooks 오류 2건을 그렇게 고쳤다).
+name: web-ci
+
+on:
+  push:
+    paths:
+      - "web/**"
+      - ".github/workflows/web-ci.yml"
+  workflow_dispatch:
+
+# concurrency 로 앞선 실행을 취소하지 않는다 — main 에 연달아 푸시할 때 커밋마다 결과가
+# 남아야 어느 커밋이 깨뜨렸는지 짚을 수 있다. 러너 시간은 감수한다(15분 상한).
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Next 16 은 node >= 20.9. 개발 환경(22)과 맞춘다.
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install (lockfile 그대로)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        # 경고는 허용, 오류만 실패. 경고까지 막으려면 --max-warnings 0 을 붙일 것.
+        run: npm run lint
+
+      - name: Build (DB 없이)
+        # 빌드는 DB 에 닿지 않아도 통과한다 — 페이지는 전부 cookies() 를 쓰는 동적
+        # 렌더라 prerender 단계에서 Supabase 를 호출하지 않고, sitemap 은 env 누락·
+        # RPC 오류를 빈 목록으로 처리한다. 2026-09-11 에 같은 더미 값으로 로컬 사본을
+        # 빌드해 exit 0 (정적 53페이지)을 확인했다. URL 은 Supabase CLI 로컬 기본
+        # 포트 — DNS 조회 없이 즉시 connection refused 라 결정적이다.
+        # 실제 키를 넣지 않는 이유: 이 단계의 목적은 컴파일·prerender 검증이지 데이터
+        # 검증이 아니고, 운영 DB 를 CI 빌드마다 두드릴 이유가 없다.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
+        run: npm run build
