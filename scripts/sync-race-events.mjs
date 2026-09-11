@@ -18,9 +18,15 @@
 //     순으로 정한다. 6월 대회는 시즌 경계에 걸려 있어 큐레이션에 시즌을 꼭 적을 것.
 //   · end_date 가 비면 start_date 로 채운다(1일 대회). 웹은 end_date 로 지난 대회를
 //     가르므로 비워 두면 영원히 "다가오는" 쪽에 남는다.
-//   · 동기화한 시즌 안에서 소스에 더는 없는 행은 지운다 — 단 크루 일정·내 대회
-//     계획이 참조하는 행은 남기고, 한 번에 10행 넘게 지우게 되면 데이터 사고로
-//     보고 중단한다. 소스에 없는 시즌(과거)은 손대지 않는다.
+//   · 소스에 더는 없는 행은 지운다 — 단 "완전성이 입증된 시즌"(completeSeasons)
+//     안에서만. 시즌이 완전하다 = Result API 의 그 시즌 페이지를 meta.last_page 까지
+//     다 받았고, 빈 응답이 아니며, 회차 수가 DB 의 API 실측 행(api_city 있음) 대비
+//     절반 아래로 줄지 않았을 때. 큐레이션·제네릭 피드만으로는 어떤 시즌도 완전하지
+//     않다. 크루 일정·내 대회 계획이 참조하는 행은 남기고, 한 번에 10행 넘게 지우게
+//     되면 데이터 사고로 보고 중단한다. 지우기 전에 대상 행 전체를 JSON 으로 로그에
+//     남긴다(복구용). (2026-09-11 감사 A08 — 예전엔 병합 결과에 나온 시즌 전체를
+//     정리 범위로 잡아, 큐레이션에 섞인 과거 시즌의 API 전용 행이 orphan 으로 보일 수
+//     있었고 20페이지 상한·빈 응답도 "완전"으로 쳤다.)
 //
 // 보안: 토큰·서비스 키는 CI 시크릿(서버 전용). 클라이언트 노출 금지.
 // 실행: node scripts/sync-race-events.mjs   (Node 20+ — 내장 fetch 사용)
@@ -381,6 +387,7 @@ async function apiGet(url) {
 async function fetchSeasonMap() {
   const json = await apiGet(`${RESULT_API_BASE}/seasons?per_page=50`);
   const map = new Map();
+  const labelBySlug = new Map(); // 시즌 슬러그 → 라벨 (완전성 집합은 라벨 기준)
   const bySlugN = [];
   for (const s of json.data ?? []) {
     const n = Number(String(s.slug ?? "").match(/season-(\d+)/)?.[1] ?? NaN);
@@ -388,6 +395,7 @@ async function fetchSeasonMap() {
     if (!Number.isFinite(n) || !yy) continue;
     const label = `S${n} 20${yy[1]}/${yy[2]}`;
     map.set(s.id, label);
+    labelBySlug.set(s.slug, label);
     bySlugN.push({ n, slug: s.slug });
     const start = toDate(pick(s, ["start_date", "starts_at", "from", "date_from", "begin"]));
     const end = toDate(pick(s, ["end_date", "ends_at", "to", "date_to", "finish"]));
@@ -396,32 +404,83 @@ async function fetchSeasonMap() {
   bySlugN.sort((a, b) => b.n - a.n);
   return {
     map,
+    labelBySlug,
     currentSlug: bySlugN[0]?.slug ?? null,
     previousSlug: bySlugN[1]?.slug ?? null,
   };
 }
 
-/** 시즌 이벤트 수집. fromDate 를 주면 그 뒤만, 없으면 시즌 전체 —
- *  정리(orphan 삭제)를 안전하게 하려면 시즌이 "완전"해야 해서 전체를 받는다. */
-async function fetchResultApiEvents(seasonSlug, fromDate = null) {
-  const all = [];
-  for (let page = 1; page <= 20; page++) {
+const MAX_PAGES = 20;
+
+/** 시즌 이벤트 수집 → { rows, complete, reason, weekends }.
+ *  complete 는 orphan 삭제의 유일한 근거라 보수적으로 판정한다 — 아래 하나라도 걸리면 false:
+ *   · meta.last_page 에 도달하지 못함 (MAX_PAGES 상한에 걸렸거나, meta 가 없거나,
+ *     그 전에 빈 페이지가 와서 끊김). 상한에 걸린 채 "끝"으로 치면 뒷 페이지 회차가
+ *     전부 orphan 으로 보인다.
+ *   · 응답이 비어 있음 — API 가 200 + [] 를 돌려주는 장애를 정상으로 보면 시즌 전체가
+ *     삭제 후보가 된다(10건 상한이 막아도 1~10건은 지워진다).
+ *   · 회차(도시×시작일) 수가 baselineWeekends 의 절반 아래 — 직전 실행까지 DB 에 쌓인
+ *     API 실측 행 대비 급감은 부분 응답으로 본다. 기준값이 null/0 이면 검사 생략.
+ *   · fromDate 로 범위를 잘라 받음 (부분 범위는 정의상 불완전).
+ *  incomplete 여도 rows 는 그대로 돌려준다 — upsert 는 해도 되고 삭제만 하면 안 된다. */
+async function fetchResultApiEvents(
+  seasonSlug,
+  { fromDate = null, baselineWeekends = null } = {},
+) {
+  const rows = [];
+  let reachedLast = false;
+  let emptyPageAt = null;
+  let pages = 0;
+  for (let page = 1; page <= MAX_PAGES; page++) {
     const url =
       `${RESULT_API_BASE}/events?season=${encodeURIComponent(seasonSlug)}` +
       (fromDate ? `&from=${fromDate}` : "") +
       `&per_page=100&page=${page}`;
     const json = await apiGet(url);
     const arr = json.data ?? [];
+    pages = page;
     if (page === 1) {
       console.log("── result api raw sample (매핑 검증용) ──");
       console.log(JSON.stringify(arr.slice(0, 2), null, 2));
     }
-    if (!arr.length) break;
-    all.push(...arr);
+    if (!arr.length) {
+      emptyPageAt = page;
+      break;
+    }
+    rows.push(...arr);
     const last = json.meta?.last_page ?? null;
-    if (last != null && page >= Number(last)) break;
+    if (last != null && page >= Number(last)) {
+      reachedLast = true;
+      break;
+    }
   }
-  return all;
+  // 회차 수는 aggregateResultApi 와 같은 (도시, 시작일) 묶음으로 센다 — 디비전×요일
+  // 행 수는 회차당 여러 개라 DB 행 수와 비교할 수 없다.
+  const weekendKeys = new Set();
+  for (const r of rows) {
+    const city = stripYear(r.city).toLowerCase();
+    const start = toDate(r.start_date);
+    if (city && start) weekendKeys.add(`${city}|${start}`);
+  }
+  const weekends = weekendKeys.size;
+  let reason = null;
+  if (fromDate) reason = `from=${fromDate} 부분 범위`;
+  else if (!rows.length) reason = "빈 응답";
+  else if (!reachedLast) {
+    reason =
+      emptyPageAt != null
+        ? `${emptyPageAt}페이지가 비어 meta.last_page 전에 끊김`
+        : `${MAX_PAGES}페이지 상한 도달 (meta.last_page 미도달)`;
+  } else if (baselineWeekends && weekends < baselineWeekends * 0.5) {
+    reason = `회차 급감 (${weekends} < DB API 실측 ${baselineWeekends}행의 50%)`;
+  }
+  const complete = reason == null;
+  console.log(
+    `result api ${seasonSlug}: ${rows.length} division-rows · ${weekends} weekends · ${pages} page(s) · ` +
+      (complete ? "complete" : `incomplete — ${reason}`) +
+      (baselineWeekends ? "" : " · 급감 검사 생략(DB 기준값 없음)"),
+  );
+  return { rows, complete, reason, weekends };
 }
 
 /** 소스 레코드(제네릭/큐레이션) → race_events 행으로 정규화 + 검증 */
@@ -480,12 +539,29 @@ async function loadSource() {
     // 큐레이션 JSON 이 소스. 둘을 병합하되, 같은 대회(도시 동일 + 시작일 ±7일)가
     // 양쪽에 있으면 이름 표기가 정확한 큐레이션 행을 우선한다.
     // 현재 시즌 + 직전 시즌을 통째로 받는다(시즌 말·개막이 겹치는 6~7월 대비).
-    const { map: seasonMap, currentSlug, previousSlug } = await fetchSeasonMap();
+    const { map: seasonMap, labelBySlug, currentSlug, previousSlug } =
+      await fetchSeasonMap();
     if (!currentSlug) throw new Error("season catalog empty");
-    const raw = [
-      ...(previousSlug ? await fetchResultApiEvents(previousSlug) : []),
-      ...(await fetchResultApiEvents(currentSlug)),
-    ];
+    const slugs = [previousSlug, currentSlug].filter(Boolean);
+    // 급감 판정 기준값 = 직전 실행까지 DB 에 쌓인 그 시즌의 API 실측 행 수(api_city 있음).
+    // 시즌 전체 행 수를 쓰면 안 된다 — 시즌 초반엔 큐레이션(미래 일정)이 대부분이라
+    // API 회차가 늘 절반 아래로 보여 정리가 영영 안 돈다(2026-09-11 S9: 31행 중 API 15행).
+    // 서비스 키가 없는 드라이런은 기준값 없이 돌고, 그땐 급감 검사만 생략된다.
+    const baseline = SERVICE_ROLE
+      ? await countApiBackedBySeason(slugs.map((s) => labelBySlug.get(s)).filter(Boolean))
+      : null;
+    if (!baseline) console.log("급감 검사: SERVICE_ROLE 없음 → 생략");
+    const raw = [];
+    const completeSeasons = new Set(); // 라벨 기준 — orphan 정리는 이 안에서만
+    for (const slug of slugs) {
+      const label = labelBySlug.get(slug) ?? null;
+      const r = await fetchResultApiEvents(slug, {
+        baselineWeekends: label && baseline ? (baseline.get(label) ?? 0) : null,
+      });
+      raw.push(...r.rows);
+      // 라벨을 모르는 슬러그는 어느 시즌이 완전한지 말할 수 없으니 집합에 넣지 않는다
+      if (r.complete && label) completeSeasons.add(label);
+    }
     const apiRows = aggregateResultApi(raw, seasonMap).map(fixDates);
     const curated = await loadCurated();
 
@@ -574,10 +650,12 @@ async function loadSource() {
     console.log(
       `result api: ${raw.length} division-rows → ${apiRows.length} weekends ` +
         `(${paired} paired with curated, ${collided} key collisions) ` +
-        `+ curated ${curated.length} → ${rows.length}`,
+        `+ curated ${curated.length} → ${rows.length} · ` +
+        `complete seasons: ${[...completeSeasons].join(", ") || "없음"}`,
     );
-    // complete: 시즌 전체를 받았으니 이 시즌들 안에서는 orphan 정리가 안전하다
-    return { from: `${RESULT_API_BASE}/events + curated json`, rows, complete: true };
+    // completeSeasons: 페이지 끝까지 받았고 비정상 축소가 없는 시즌만 — orphan 정리는
+    // 이 집합 안에서만 한다. 큐레이션이 다른 시즌을 섞어도 그 시즌은 정리 범위가 아니다.
+    return { from: `${RESULT_API_BASE}/events + curated json`, rows, completeSeasons };
   }
   if (API_URL) {
     const res = await fetch(API_URL, {
@@ -587,9 +665,11 @@ async function loadSource() {
     const json = await res.json();
     // 배열이거나 {events:[...]}/{data:[...]} 형태를 허용
     const arr = Array.isArray(json) ? json : (json.events ?? json.data ?? []);
-    return { from: API_URL, rows: arr.map(normalize).filter(Boolean) };
+    // 제네릭 피드는 시즌 완전성을 말해 주지 않는다 → 정리 범위 없음
+    return { from: API_URL, rows: arr.map(normalize).filter(Boolean), completeSeasons: new Set() };
   }
-  return { from: "curated json", rows: await loadCurated() };
+  // 큐레이션은 미래 일정 위주라 API 실측 행을 담보하지 못한다 → 정리 범위 없음
+  return { from: "curated json", rows: await loadCurated(), completeSeasons: new Set() };
 }
 
 async function main() {
@@ -600,9 +680,10 @@ async function main() {
 
   if (DRY_RUN && RESULT_API_TOKEN) await probeResultApi();
 
-  const { from, rows, complete = false } = await loadSource();
+  const { from, rows, completeSeasons = new Set() } = await loadSource();
   console.log(`source: ${from}`);
   console.log(`events: ${rows.length} valid`);
+  console.log(`prune scope (완전성 입증 시즌): ${[...completeSeasons].join(", ") || "없음"}`);
   if (!rows.length) {
     console.log("nothing to sync");
     return;
@@ -636,19 +717,25 @@ async function main() {
       );
     }
     if (rows.length > 40) console.log(`… 외 ${rows.length - 40}건`);
+    // 실제 실행과 같은 경로(범위 제한 → 참조 검사 → 10건 상한 → 백업 JSON)를 DELETE 만
+    // 빼고 돌린다 — 드라이런 출력이 실제 삭제 결과와 어긋나지 않게.
     if (SERVICE_ROLE) {
-      const seasons = [...new Set(rows.map((r) => r.season).filter(Boolean))];
-      const existing = await fetchExisting(seasons);
+      console.log("── DRY RUN — 정리 시뮬레이션 (DELETE 미실행) ──");
+      const existing = await fetchExisting([...completeSeasons]);
       const keep = new Set(rows.map((r) => `${r.name}|${r.season}`));
-      const orphans = existing.filter((r) => !keep.has(`${r.name}|${r.season}`));
-      console.log(`── DRY RUN — 정리 대상 ${orphans.length}건 (참조 검사 전) ──`);
-      for (const r of orphans) console.log(`  · ${r.season} | ${r.start_date ?? "미정"} | ${r.name}`);
+      await pruneOrphans(existing, keep, completeSeasons, { dryRun: true });
+    } else {
+      console.log("── DRY RUN — SERVICE_ROLE 없음: DB 비교(정리 대상) 생략 ──");
     }
     return;
   }
 
-  // 동기화한 시즌의 기존 행 — 신규/갱신 집계와 사후 정리(orphan)에 쓴다
-  const seasons = [...new Set(rows.map((r) => r.season).filter(Boolean))];
+  // 동기화한 시즌의 기존 행 — 신규/갱신 집계와 사후 정리(orphan)에 쓴다.
+  // completeSeasons 도 합친다: API 행이 전부 날짜 폴백으로 다른 라벨을 받는 극단적
+  // 경우에도 정리 범위 시즌의 기존 행이 조회에서 빠지지 않게.
+  const seasons = [
+    ...new Set([...rows.map((r) => r.season).filter(Boolean), ...completeSeasons]),
+  ];
   const existing = await fetchExisting(seasons);
   const keyOf = (r) => `${r.name}|${r.season}`;
   const existingKeys = new Set(existing.map(keyOf));
@@ -676,10 +763,9 @@ async function main() {
   }
   console.log(`✓ upserted ${rows.length} events into race_events`);
 
-  // 큐레이션·제네릭 피드만으로는 시즌이 완전하지 않다 — API 실측 행을 orphan 으로
-  // 오인해 지울 수 있으니 정리는 API 경로에서만 한다.
-  if (complete) await pruneOrphans(existing, new Set(rows.map(keyOf)));
-  else console.log("prune: 소스가 시즌 전체를 담보하지 않아 정리 생략");
+  // 정리는 완전성이 입증된 시즌 안에서만 — 큐레이션·제네릭 피드 경로는 집합이 비어
+  // 자동으로 건너뛴다. API 실측 행을 orphan 으로 오인해 지우지 않기 위해서다.
+  await pruneOrphans(existing, new Set(rows.map(keyOf)), completeSeasons);
 }
 
 const REST = `${PROJECT_URL}/rest/v1`;
@@ -701,20 +787,64 @@ async function fetchExisting(seasons) {
   return res.json();
 }
 
+/** 시즌별 API 실측 행 수(api_city 가 채워진 행) — 회차 급감 판정의 기준값.
+ *  실패하면 던진다: 기준값 없이 정리를 돌리느니 이번 실행을 시끄럽게 멈추는 편이 낫다. */
+async function countApiBackedBySeason(seasons) {
+  const counts = new Map();
+  if (!seasons.length) return counts;
+  const list = seasons.map((v) => `"${v.replace(/"/g, '\\"')}"`).join(",");
+  const url =
+    `${REST}/race_events?select=season&api_city=not.is.null` +
+    `&season=in.(${encodeURIComponent(list)})`;
+  const res = await fetch(url, { headers: svcHeaders() });
+  if (!res.ok) throw new Error(`count api-backed ${res.status}: ${await res.text()}`);
+  for (const r of await res.json()) counts.set(r.season, (counts.get(r.season) ?? 0) + 1);
+  return counts;
+}
+
+/** 지울 행의 전체 컬럼 — 삭제 전 복구용 백업 로그에 쓴다 */
+async function fetchFullRows(ids) {
+  if (!ids.length) return [];
+  const res = await fetch(
+    `${REST}/race_events?select=*&id=in.(${ids.join(",")})`,
+    { headers: svcHeaders() },
+  );
+  if (!res.ok) throw new Error(`prune backup fetch ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
 /**
- * 동기화한 시즌 안에서 소스에 더는 없는 행을 지운다.
+ * 완전성이 입증된 시즌(completeSeasons) 안에서 소스에 더는 없는 행을 지운다.
+ *  · 범위 밖 시즌의 행은 orphan 으로 보여도 손대지 않는다 — 큐레이션에 과거 시즌이
+ *    섞이거나 페이지가 잘린 시즌의 API 전용 행을 지우는 사고를 막기 위해.
  *  · 크루 일정·내 대회 계획이 참조하는 행은 남긴다(FK 도 막지만 조용히 건너뛰려고).
- *  · 한 번에 10행 넘게 지우게 되면 소스 장애(빈 응답 등)일 가능성이 크므로 중단.
- *  · 소스에 없는 시즌(과거)은 애초에 existing 에 없어 건드리지 않는다.
+ *  · 한 번에 10행 넘게 지우게 되면 소스 장애일 가능성이 크므로 중단.
+ *  · 지우기 직전에 대상 행 전체(모든 컬럼)를 JSON 한 줄로 로그에 남긴다 — 오삭제 시
+ *    그 JSON 을 그대로 upsert 하면 복구된다.
+ *  · dryRun 이면 DELETE 만 빼고 같은 경로를 돌려 드라이런 출력이 실제와 같게 한다.
  */
-async function pruneOrphans(existing, keepKeys) {
-  const orphans = existing.filter((r) => !keepKeys.has(`${r.name}|${r.season}`));
+async function pruneOrphans(existing, keepKeys, completeSeasons, { dryRun = false } = {}) {
+  const tag = dryRun ? "prune(dry)" : "prune";
+  if (!completeSeasons.size) {
+    console.log(`${tag}: 완전성이 입증된 시즌이 없어 정리 생략`);
+    return;
+  }
+  const scope = existing.filter((r) => completeSeasons.has(r.season));
+  const outside = existing.length - scope.length;
+  console.log(
+    `${tag}: 범위 = 시즌 ${[...completeSeasons].join(", ")} (${scope.length}행` +
+      (outside ? `, 범위 밖 ${outside}행은 손대지 않음)` : ")"),
+  );
+  const orphans = scope.filter((r) => !keepKeys.has(`${r.name}|${r.season}`));
   if (!orphans.length) {
-    console.log("prune: 지울 행 없음");
+    console.log(`${tag}: 지울 행 없음`);
     return;
   }
   const ids = orphans.map((r) => r.id);
   const inList = `in.(${ids.join(",")})`;
+  // 참조 중인 행은 지우지 않는다. FK 는 on delete set null 이라 DB 가 막지는 않지만,
+  // 크루 일정·레이스 계획이 가리키던 대회가 조용히 사라지면 안 된다. 참조 테이블을
+  // 새로 추가하면 이 목록에도 올릴 것.
   const referenced = new Set();
   for (const [table, col] of [["crew_events", "race_event_id"], ["race_plans", "race_event_id"]]) {
     const res = await fetch(
@@ -726,11 +856,22 @@ async function pruneOrphans(existing, keepKeys) {
   }
   const kept = orphans.filter((r) => referenced.has(r.id));
   const del = orphans.filter((r) => !referenced.has(r.id));
-  for (const r of kept) console.log(`prune: 참조 중이라 유지 — ${r.season} | ${r.name}`);
+  for (const r of kept) console.log(`${tag}: 참조 중이라 유지 — ${r.season} | ${r.name}`);
   if (!del.length) return;
   if (del.length > 10) {
-    console.log(`::warning::prune: 지울 행이 ${del.length}개 — 소스 이상으로 보고 정리를 건너뜁니다`);
+    console.log(`::warning::${tag}: 지울 행이 ${del.length}개 — 소스 이상으로 보고 정리를 건너뜁니다`);
     for (const r of del) console.log(`  · ${r.season} | ${r.start_date ?? "미정"} | ${r.name}`);
+    return;
+  }
+  // 복구용 백업 — 삭제 대상의 전체 컬럼. 행 수가 안 맞으면(동시 변경) 지우지 않는다.
+  const backup = await fetchFullRows(del.map((r) => r.id));
+  if (backup.length !== del.length) {
+    throw new Error(`${tag}: 백업 행 수 불일치 (${backup.length} ≠ ${del.length}) — 삭제 중단`);
+  }
+  console.log(`${tag}: 삭제 전 백업 ${backup.length}행 (복구용 JSON — 그대로 upsert 하면 복원)`);
+  console.log(JSON.stringify(backup));
+  if (dryRun) {
+    for (const r of del) console.log(`${tag}: 삭제 예정 — ${r.season} | ${r.start_date ?? "미정"} | ${r.name}`);
     return;
   }
   const res = await fetch(
