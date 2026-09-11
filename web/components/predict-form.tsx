@@ -122,26 +122,40 @@ export function PredictForm({
       ? upcomingEvents.find((e) => e.id === eventChoice)
       : null;
 
-  // 목표 대회의 실측 통계 (지난 회차 포함) — 선택 시 서버 프록시에서 로드
-  const [eventStats, setEventStats] = useState<{
+  // 목표 대회의 실측 통계 (지난 회차 포함) — 선택 시 서버 프록시에서 로드.
+  // 통계는 "어느 대회의 것인지"(id)와 함께 보관하고 렌더 때 현재 선택과 대조한다.
+  // 예전엔 effect 첫 줄에서 setEventStats(null) 로 지웠는데, effect 안의 동기 setState 는
+  // react-hooks/set-state-in-effect 위반(렌더가 한 번 더 돈다)이다. 선택이 바뀌면 id 가
+  // 어긋나 자동으로 null 이 되므로 지우는 코드가 필요 없다.
+  type EventStats = {
     source: string;
     label: string;
     divisions: EventDivisionStat[];
+  };
+  const [eventStatsFor, setEventStatsFor] = useState<{
+    id: string;
+    stats: EventStats | null;
   } | null>(null);
+  const chosenEventId = chosenEvent?.id ?? null;
   useEffect(() => {
-    setEventStats(null);
-    if (!chosenEvent) return;
+    if (!chosenEventId) return;
     let cancelled = false;
-    fetch(`/api/events/${chosenEvent.id}/stats`)
+    fetch(`/api/events/${chosenEventId}/stats`)
       .then((r) => r.json())
       .then((b) => {
-        if (!cancelled) setEventStats(b.stats ?? null);
+        if (!cancelled) {
+          setEventStatsFor({ id: chosenEventId, stats: b.stats ?? null });
+        }
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [chosenEvent?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [chosenEventId]);
+  const eventStats =
+    chosenEventId && eventStatsFor?.id === chosenEventId
+      ? eventStatsFor.stats
+      : null;
 
   // 선택 디비전에 해당하는 대회 통계 행 (없으면 open, 그래도 없으면 첫 행)
   const eventDivStat = useMemo(() => {

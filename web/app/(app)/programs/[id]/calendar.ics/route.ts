@@ -7,7 +7,9 @@ import { formatTarget, type WorkoutTarget } from "@/lib/target";
  *  두 가지 접근 경로:
  *  - 로그인 세션(다운로드 버튼): RLS 로 공개/본인 소유만 조회.
  *  - ?token= (캘린더 구독): 구글/애플 서버가 비로그인으로 주기 fetch —
- *    program_calendar() RPC 가 프로그램별 비밀 토큰을 검증한다.
+ *    program_calendar() RPC 가 프로그램별 비밀 토큰을 검증한다(불일치면 null → 404).
+ *    이 경로는 proxy.ts 의 로그인 검사에서 정규식으로 제외돼 있어(감사 A04)
+ *    접근 통제는 전적으로 이 route 가 맡는다 — 토큰 없는 비로그인은 401.
  *  구독 URL 을 등록해 두면 프로그램 수정이 캘린더에 자동 반영된다
  *  (갱신 주기는 캘린더 서비스가 결정 — 구글 12~24시간, 애플 15분~). */
 
@@ -161,6 +163,14 @@ export async function GET(
     cal = (data as Cal | null) ?? null;
   } else {
     // 다운로드 경로 — 세션 + RLS. 날짜는 요청자 본인의 활성 등록에서.
+    //
+    // proxy 가 이 경로를 로그인 검사에서 제외하므로(구독 fetch 통과용, 감사 A04)
+    // 토큰 없는 비로그인 요청은 여기서 직접 막는다. RLS 에만 맡기면 공개
+    // 프로그램 트리를 anon 으로 읽은 뒤 "no start_date" 400 으로 끝나 —
+    // 자격증명이 없다는 사실이 응답에 드러나지 않는다.
+    const { data: claims } = await supabase.auth.getClaims();
+    if (!claims?.claims) return new Response("unauthorized", { status: 401 });
+
     const { data } = await supabase
       .from("programs")
       .select(

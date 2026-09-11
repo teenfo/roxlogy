@@ -4,6 +4,24 @@ import { optedOut, sessionOnly } from "@/lib/supabase/keep";
 import { safeNext } from "@/lib/site-url";
 
 /**
+ * 로그인 검사의 유일한 예외: `/programs/<uuid>/calendar.ics`.
+ *
+ * 구글·애플 캘린더 서버는 쿠키 없이 `?token=` 만 들고 주기적으로 fetch 한다.
+ * 그런데 `/programs` 가 보호 접두이고 matcher 도 `.ics` 를 거르지 않아, 이 요청이
+ * route 의 토큰 검증에 닿기도 전에 `/login` 으로 307 되어 캘린더가 ICS 대신
+ * 로그인 HTML 을 받았다 (감사 A04, 2026-09-11). 그렇다고 `/programs` 전체를
+ * 열면 프로그램 화면이 통째로 노출되므로, 정규식으로 **정확히 이 경로만** 뺀다.
+ * 접근 통제는 route 가 맡는다: 토큰이 있으면 program_calendar() RPC 가 검증하고,
+ * 토큰이 없으면 route 가 세션을 확인해 401 을 돌려준다.
+ *
+ * pathname 은 WHATWG URL 파서가 `..`·`%2e%2e` 세그먼트를 이미 정규화한 값이라
+ * `/programs/<uuid>/calendar.ics/../` 같은 우회는 다른 경로로 접혀 보호 목록에
+ * 걸린다. 정규식은 앵커(`^`·`$`)를 두어 접미·접두 변형도 통과시키지 않는다.
+ */
+const ICS_SUBSCRIBE_RE =
+  /^\/programs\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/calendar\.ics$/i;
+
+/**
  * 로그인이 필요한 경로 = app/(app) 아래 전부.
  *
  * 목록이 (app) 폴더와 어긋나면 안 된다: 여기 없는 경로는 (app)/layout.tsx 의
@@ -33,6 +51,18 @@ const PROTECTED_PREFIXES = [
   "/u",
   "/workouts",
 ];
+
+/**
+ * 이 pathname 에 로그인 세션이 있어야 하는가.
+ *
+ * NextRequest 없이 순수 문자열만 받는 이유: 판정 로직을 node 스크립트로 바로
+ * 검증하기 위해서다(비로그인 ICS 통과 / 비로그인 `/programs` 차단 / 경로 변형
+ * 우회 없음). proxy() 는 이 함수 하나로 보호 여부를 정한다.
+ */
+export function requiresLogin(pathname: string): boolean {
+  if (ICS_SUBSCRIBE_RE.test(pathname)) return false;
+  return PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+}
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -70,9 +100,8 @@ export async function proxy(request: NextRequest) {
   const user = claims?.claims ? { id: claims.claims.sub } : null;
 
   const { pathname } = request.nextUrl;
-  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
 
-  if (!user && isProtected) {
+  if (!user && requiresLogin(pathname)) {
     const url = request.nextUrl.clone();
     // 쿼리까지 들고 가야 한다 — /schedule/race/x?from=... 처럼 쿼리가 화면을
     // 결정하는 경로가 있다

@@ -114,8 +114,10 @@ export default async function DashboardPage() {
   const crewRefs = (myCrews ?? [])
     .map((m) => (Array.isArray(m.crews) ? m.crews[0] : m.crews) as CrewRef | null)
     .filter((c): c is CrewRef => !!c?.slug);
-  const agendaFrom = new Date().toISOString().slice(0, 10);
-  const agendaTo = new Date(Date.now() + 14 * 86400000)
+  // react-hooks/purity: 렌더 중 Date.now() 호출을 막는다 — 기준 시각 하나에서 파생.
+  const agendaBase = new Date();
+  const agendaFrom = agendaBase.toISOString().slice(0, 10);
+  const agendaTo = new Date(agendaBase.getTime() + 14 * 86400000)
     .toISOString()
     .slice(0, 10);
   const crewAgenda: { crew: CrewRef; rows: CrewCalRow[] }[] = [];
