@@ -4,7 +4,13 @@ import { z } from "zod";
 
 /**
  * Roxlogy MCP 서버 — 사용자가 자신의 AI(Claude 등)를 훈련·레이스·크루
- * 데이터에 연결하는 읽기 전용 엔드포인트 (Streamable HTTP).
+ * 데이터에 연결하는 엔드포인트 (Streamable HTTP).
+ *
+ * 범위: 토큰은 기본 읽기 전용이다. 쓰기 도구는 사용자가 설정에서 '변경 허용'
+ * (profiles.mcp_write)을 켠 토큰에서만 동작하고, 강제는 DB 가 한다 — 운영진
+ * 아닌 쓰기 RPC 는 {error:'read_only_token'} 을, 운영진 쓰기 RPC 는
+ * mcp_staff_crew 가 null 을 돌려준다(2026-09-11 감사 A03). 여기서는 그 결과에
+ * 사용자가 풀 수 있는 안내만 붙인다.
  *
  * 인증: 설정 페이지에서 발급하는 개인 MCP 토큰(Authorization: Bearer).
  * 데이터 접근은 전부 SECURITY DEFINER RPC(mcp_*)가 토큰을 검증해 그 사용자
@@ -34,6 +40,31 @@ async function rpc(fn: string, args: Record<string, unknown>) {
       if (error.message.includes(code)) return { error: code, hint };
     }
     throw new Error(error.message);
+  }
+  return data;
+}
+
+/** 읽기 전용 토큰이 쓰기 도구를 부른 경우의 안내. 강제는 DB 가 한다. */
+const READ_ONLY_HINT =
+  "이 토큰은 읽기 전용입니다. Roxlogy 설정 > 프로필 > 내 AI 연결(MCP) 에서 '변경 허용'을 켜면 쓰기 도구를 쓸 수 있습니다. 켜기 전에는 재시도해도 같은 결과입니다.";
+
+/** 쓰기 도구 공통 게이트.
+ *  운영진 아닌 쓰기 RPC 는 {error:'read_only_token'} 을 돌려주고, 운영진 쓰기
+ *  RPC 는 mcp_staff_crew 가 null 이라 그냥 null 을 돌려준다 — null 은 "운영진
+ *  아님/토큰 무효"와 겹치므로 그때만 mcp_write_enabled 로 구분한다(무효 토큰이면
+ *  null → not_found_or_invalid_token 그대로). 정상 경로엔 추가 왕복이 없다. */
+async function writeRpc(fn: string, args: Record<string, unknown>) {
+  const data = await rpc(fn, args);
+  const readOnly =
+    data !== null &&
+    typeof data === "object" &&
+    (data as { error?: unknown }).error === "read_only_token";
+  if (readOnly) return { error: "read_only_token", hint: READ_ONLY_HINT };
+  if (data === null || data === undefined) {
+    const enabled = await rpc("mcp_write_enabled", { p_token: args.p_token });
+    if (enabled === false) {
+      return { error: "read_only_token", hint: READ_ONLY_HINT };
+    }
   }
   return data;
 }
@@ -207,7 +238,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, kind, amount, title, date, memo, method, settled_on }, ctx) =>
         out(
-          await rpc("mcp_add_ledger", {
+          await writeRpc("mcp_add_ledger", {
             p_token: tok(ctx),
             p_slug: slug,
             p_kind: kind,
@@ -241,7 +272,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, title, starts_at, location, description, kind, capacity }, ctx) =>
         out(
-          await rpc("mcp_add_meetup", {
+          await writeRpc("mcp_add_meetup", {
             p_token: tok(ctx),
             p_slug: slug,
             p_title: title,
@@ -269,7 +300,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, title, body, pinned }, ctx) =>
         out(
-          await rpc("mcp_post_notice", {
+          await writeRpc("mcp_post_notice", {
             p_token: tok(ctx),
             p_slug: slug,
             p_title: title,
@@ -309,7 +340,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, user_id }, ctx) =>
         out(
-          await rpc("mcp_approve_member", {
+          await writeRpc("mcp_approve_member", {
             p_token: tok(ctx),
             p_slug: slug,
             p_user_id: user_id,
@@ -358,7 +389,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, entry_id, month, on, clear }, ctx) =>
         out(
-          await rpc("mcp_settle_ledger", {
+          await writeRpc("mcp_settle_ledger", {
             p_token: tok(ctx),
             p_slug: slug,
             p_entry_id: entry_id ?? null,
@@ -384,7 +415,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, amount, on }, ctx) =>
         out(
-          await rpc("mcp_set_bank_opening", {
+          await writeRpc("mcp_set_bank_opening", {
             p_token: tok(ctx),
             p_slug: slug,
             p_amount: amount,
@@ -408,7 +439,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, period, reopen }, ctx) =>
         out(
-          await rpc("mcp_close_month", {
+          await writeRpc("mcp_close_month", {
             p_token: tok(ctx),
             p_slug: slug,
             p_period: period,
@@ -446,7 +477,7 @@ const handler = createMcpHandler(
       },
       async ({ name_ko, name_en, note, confirm_new }, ctx) =>
         out(
-          await rpc("mcp_request_exercise", {
+          await writeRpc("mcp_request_exercise", {
             p_token: tok(ctx),
             p_name_ko: name_ko,
             p_name_en: name_en ?? null,
@@ -539,7 +570,7 @@ const handler = createMcpHandler(
       },
       async ({ title, weeks, days, level, description, week_pattern }, ctx) =>
         out(
-          await rpc("mcp_create_program", {
+          await writeRpc("mcp_create_program", {
             p_token: tok(ctx),
             p_title: title,
             p_weeks: weeks,
@@ -593,7 +624,7 @@ const handler = createMcpHandler(
       },
       async ({ program_id, day_index, focus, notes, workouts }, ctx) =>
         out(
-          await rpc("mcp_set_program_day", {
+          await writeRpc("mcp_set_program_day", {
             p_token: tok(ctx),
             p_program: program_id,
             p_day_index: day_index,
@@ -626,7 +657,7 @@ const handler = createMcpHandler(
         ctx,
       ) =>
         out(
-          await rpc("mcp_update_program", {
+          await writeRpc("mcp_update_program", {
             p_token: tok(ctx),
             p_program: program_id,
             p_title: title ?? null,
@@ -655,7 +686,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, program_id, start_date, end_date, repeat }, ctx) =>
         out(
-          await rpc("mcp_attach_crew_program", {
+          await writeRpc("mcp_attach_crew_program", {
             p_token: tok(ctx),
             p_slug: slug,
             p_program: program_id,
@@ -684,7 +715,7 @@ const handler = createMcpHandler(
       },
       async ({ program_id, start_date, repeat, end_date }, ctx) =>
         out(
-          await rpc("mcp_start_program", {
+          await writeRpc("mcp_start_program", {
             p_token: tok(ctx),
             p_program: program_id,
             p_start_date: start_date ?? null,
@@ -706,7 +737,7 @@ const handler = createMcpHandler(
       },
       async ({ program_id }, ctx) =>
         out(
-          await rpc("mcp_stop_program", {
+          await writeRpc("mcp_stop_program", {
             p_token: tok(ctx),
             p_program: program_id ?? null,
           }),
@@ -753,7 +784,7 @@ const handler = createMcpHandler(
         ctx,
       ) =>
         out(
-          await rpc("mcp_update_meetup", {
+          await writeRpc("mcp_update_meetup", {
             p_token: tok(ctx),
             p_slug: slug,
             p_event: event_id,
@@ -782,7 +813,7 @@ const handler = createMcpHandler(
       },
       async ({ event_id, status }, ctx) =>
         out(
-          await rpc("mcp_rsvp", {
+          await writeRpc("mcp_rsvp", {
             p_token: tok(ctx),
             p_event: event_id,
             p_status: status,
@@ -851,7 +882,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, user_id, month, amount }, ctx) =>
         out(
-          await rpc("mcp_set_dues_paid", {
+          await writeRpc("mcp_set_dues_paid", {
             p_token: tok(ctx),
             p_slug: slug,
             p_user_id: user_id,
@@ -874,7 +905,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, month }, ctx) =>
         out(
-          await rpc("mcp_report_dues", {
+          await writeRpc("mcp_report_dues", {
             p_token: tok(ctx),
             p_slug: slug,
             p_month: month ?? null,
@@ -916,7 +947,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, event_id, user_id, present }, ctx) =>
         out(
-          await rpc("mcp_check_in", {
+          await writeRpc("mcp_check_in", {
             p_token: tok(ctx),
             p_slug: slug,
             p_event: event_id,
@@ -942,7 +973,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, event_id, free, members_only, closed }, ctx) =>
         out(
-          await rpc("mcp_set_meetup_flags", {
+          await writeRpc("mcp_set_meetup_flags", {
             p_token: tok(ctx),
             p_slug: slug,
             p_event: event_id,
@@ -980,7 +1011,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, user_id, tier }, ctx) =>
         out(
-          await rpc("mcp_set_member_tier", {
+          await writeRpc("mcp_set_member_tier", {
             p_token: tok(ctx),
             p_slug: slug,
             p_user_id: user_id,
@@ -1016,7 +1047,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, month, kind }, ctx) =>
         out(
-          await rpc("mcp_sync_dues", {
+          await writeRpc("mcp_sync_dues", {
             p_token: tok(ctx),
             p_slug: slug,
             p_month: month ?? null,
@@ -1039,7 +1070,7 @@ const handler = createMcpHandler(
       },
       async ({ slug, charge_id, reason }, ctx) =>
         out(
-          await rpc("mcp_waive_dues", {
+          await writeRpc("mcp_waive_dues", {
             p_token: tok(ctx),
             p_slug: slug,
             p_charge: charge_id,
@@ -1095,7 +1126,7 @@ const handler = createMcpHandler(
       },
       async (a, ctx) =>
         out(
-          await rpc("mcp_add_pft", {
+          await writeRpc("mcp_add_pft", {
             p_token: tok(ctx),
             p_total_ms: a.total_ms,
             p_tested_on: a.tested_on ?? null,
@@ -1112,7 +1143,7 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.2.0" },
+    serverInfo: { name: "roxlogy", version: "3.3.0" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
@@ -1138,6 +1169,7 @@ const handler = createMcpHandler(
       "Roxlogy 하이록스 훈련 데이터 API. 시간 값은 밀리초(ms). " +
       "크루 도구의 slug 는 get_profile 의 crews 목록에서 얻는다. " +
       '응답이 {"error":"not_found_or_invalid_token"} 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다 — 빈 목록([])과 구분된다. ' +
+      '토큰은 기본 읽기 전용이다 — 쓰기 도구는 사용자가 Roxlogy 설정(프로필 > 내 AI 연결)에서 "변경 허용"을 켠 토큰에서만 동작하고, 아니면 {"error":"read_only_token"} 이 온다. 그때는 재시도하지 말고 사용자에게 설정을 켜 달라고 안내한다. ' +
       "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
       "쓰기 도구(회계 기록·통장 반영·기초 잔액·월 마감·모임 등록/수정/상태변경·공지·승인·등급 지정·출석 체크·" +
       "회비 확정/맞추기/면제·프로그램 생성/수정/일차 수정/시작/중지·크루 연결·PFT 기록·운동 등록 요청)는 " +

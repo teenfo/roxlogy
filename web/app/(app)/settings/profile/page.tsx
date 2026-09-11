@@ -130,7 +130,10 @@ export default async function ProfileSettingsPage() {
                 />
               </div>
               <div className="overflow-hidden rounded-[14px] border border-line bg-card">
-                <McpConnect token={profile?.mcp_token ?? ""} />
+                <McpConnect
+                  token={profile?.mcp_token ?? ""}
+                  writeEnabled={Boolean(profile?.mcp_write)}
+                />
               </div>
             </div>
           </section>
