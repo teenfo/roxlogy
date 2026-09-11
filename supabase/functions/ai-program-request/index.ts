@@ -29,6 +29,13 @@ Deno.serve(async (req) => {
   if (!user) return json({ error: "unauthorized" }, 401);
 
   const admin = createClient(URL_, SERVICE);
+  // 정지 계정(profiles.disabled) 거부 — Data API 는 마이그레이션 086 의 pre-request 관문이 막지만,
+  // 이 함수는 service role 로 ai_jobs 에 쓰므로 여기서 직접 확인한다(감사 A02).
+  const { data: prof, error: profErr } = await admin.from("profiles")
+    .select("disabled").eq("id", user.id).maybeSingle();
+  if (profErr) return json({ error: profErr.message }, 500);
+  if (!prof || prof.disabled) return json({ error: "account_disabled" }, 403);
+
   const { error } = await admin.from("ai_jobs")
     .insert({ kind: "program", user_id: user.id });
   if (error) {

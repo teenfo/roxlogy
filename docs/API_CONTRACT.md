@@ -101,6 +101,7 @@ Content-Type: application/json
 |---|---|---|
 | 400 | `invalid_json` / `invalid_session` / `invalid_segments` / `invalid_payload` | 스키마 위반 (재전송해도 실패 — 페이로드 수정 필요). `invalid_payload` 는 uuid·타임스탬프·정수 형식 오류 |
 | 401 | `unauthenticated` | 토큰 없음/만료 — 재로그인 후 재시도 |
+| 403 | `account_disabled` | 정지 계정 — 재시도하지 않는다. 오프라인 큐는 비우지 말고 사용자에게 정지 상태를 보인다 (마이그레이션 086) |
 | 405 | `method_not_allowed` | POST만 허용 |
 | 413 | `payload_too_large` / `too_many_samples` | 상한 초과 — 분할 불가(세션 단위 원자성)이므로 클라이언트 버그로 취급 |
 | 500 | `internal` | 서버 오류 — 지수 백오프 재시도 (멱등이므로 안전) |
@@ -108,7 +109,7 @@ Content-Type: application/json
 ## 클라이언트 재시도 정책
 
 - 네트워크 오류·5xx: 지수 백오프(2s, 4s, 8s… 최대 5회) 후 다음 동기화 주기로 이월. 멱등이므로 중복 전송 안전.
-- 4xx: 재시도하지 않는다 (401만 토큰 갱신 후 1회 재시도).
+- 4xx: 재시도하지 않는다 (401만 토큰 갱신 후 1회 재시도. 403 `account_disabled` 는 재로그인해도 풀리지 않는다).
 
 ---
 
