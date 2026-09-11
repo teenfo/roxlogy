@@ -18,6 +18,10 @@ pg_cron(1분) → Edge `analysis-dispatch`
   결과를 수령 — Edge 실행시간 제한과 무관하게 32b 장시간 추론도 안전.
 - **중복 안전**: 지표는 `analysis_status` pending→processing CAS, AI 는 `ai_jobs`
   부분 유니크 클레임. 게이트웨이/Mac 다운 시 클레임 회수 후 자동 재시도.
+  완료 수령·프로그램 제출은 `ai_jobs_claim()` / `ai_jobs_submit_claim()` 로 10분 임대를
+  잡은 실행만 처리한다(마이그레이션 088, 감사 A07). `claim_count` 가 5를 넘은 작업은 포기해
+  영구 실패 작업이 무한 재시도되지 않는다. 프로그램 실체화는 `ai_materialize_program()`
+  한 트랜잭션(A06) — 일부 INSERT 실패 시 빈 프로그램이 남지 않는다.
 - 프롬프트는 이 레포(`supabase/functions/analysis-dispatch`) 소유. 게이트웨이
   roles.yaml 은 모델 정책만 — 모델 교체는 게이트웨이 한 줄, 서비스 코드 무변경.
 - 합계·격차는 함수가 미리 계산해 프롬프트에 주입(소형 모델 산술 오류 방지).

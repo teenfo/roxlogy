@@ -10,7 +10,11 @@
 // 시크릿: LLMGW_URL(예: https://hosub.duckdns.org/llm), LLMGW_TOKEN(커밋 금지),
 //         AI_ROLE(선택, 기본 coach_feedback). 미설정이면 지표 계산만 동작.
 // 인증: verify_jwt(게이트웨이) — 크론은 anon 키로 호출. 중복 실행 안전:
-//   지표는 pending→processing CAS, AI 는 ai_jobs 부분 유니크 클레임.
+//   지표는 pending→processing CAS, AI 제출은 ai_jobs 부분 유니크 클레임(세션·레이스·
+//   주간) / 제출 임대(프로그램 요청), AI 결과 수령은 ai_jobs_claim() 임대(10분).
+//   저장은 DB 함수 한 번(ai_materialize_program / ai_replace_insights)으로 원자화하고
+//   모든 쓰기의 {error} 를 확인한다 — 저장이 확정된 뒤에만 done·알림·작업 삭제
+//   (감사 2026-09-11 A06·A07, 마이그레이션 088).
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
@@ -29,6 +33,13 @@ const SUBMIT_PER_RUN = 3;
 // 클레임 충돌(23505)로 전부 스킵돼 백로그가 한 건도 줄지 않는다 — 이미 물려 있는
 // 행을 건너뛰고 아직 안 보낸 행까지 닿도록 넉넉히 조회한다.
 const SCAN_LIMIT = 30;
+
+// AI 작업 수령/제출 임대 길이 — DB 함수(ai_jobs_claim / ai_jobs_submit_claim)의
+// interval '10 minutes' 와 같아야 한다. 여기 값은 "임대 중인 행을 조회에서 거르는"
+// 용도뿐이고, 실제 판정은 서버 now() 로 DB 함수가 한다.
+const CLAIM_LEASE_MS = 10 * 60 * 1000;
+// 같은 완료 작업이 이만큼 잡히고도 끝나지 않으면 포기한다(영구 실패의 무한 재시도 방지)
+const MAX_CLAIMS = 5;
 
 const SYSTEM_PROMPT =
   "너는 Roxlogy의 하이록스(HYROX) 트레이닝 코치다. 데이터를 근거로 담백하고 " +
@@ -403,13 +414,34 @@ async function gwPoll(jobId: string): Promise<{ status: string; response?: strin
   }
 }
 
+// ---------------------------------------------------------------- DB 오류 판정
+// supabase-js 는 실패해도 throw 하지 않고 {error} 로 resolve 한다 (CLAUDE.md).
+type DbErr = { code?: string; message?: string } | null;
+
+/** 다시 시도해도 같은 결과인 오류인지 — 모델 출력(내용) 문제·존재하지 않는 사용자·
+ *  제약 위반은 재시도 의미가 없다. 그 외(네트워크·일시 장애)는 임대 만료 뒤 재시도. */
+function isFinalDbError(e: DbErr): boolean {
+  if (!e) return false;
+  const m = e.message ?? "";
+  if (m.startsWith("ai_program_invalid") || m.startsWith("ai_insight_invalid")) return true;
+  const c = e.code ?? "";
+  // 23503 FK(사용자 삭제됨), 23514 check, 22xxx 데이터 예외
+  return c === "23503" || c === "23514" || c.startsWith("22");
+}
+
 // ---------------------------------------------------------------- 알림
+/** enqueue_notification(옵트아웃 존중) → push-dispatch 크론이 발송.
+ *  실패하면 false — 호출자는 작업을 지우지 않고 남겨 임대 만료 뒤 다시 알린다. */
 // deno-lint-ignore no-explicit-any
-async function notify(db: any, userId: string, typeKey: string, title: string, body: string, url: string) {
-  // enqueue_notification(옵트아웃 존중) → push-dispatch 크론이 발송
-  await db.rpc("enqueue_notification", {
+async function notify(db: any, userId: string, typeKey: string, title: string, body: string, url: string): Promise<boolean> {
+  const { error } = await db.rpc("enqueue_notification", {
     p_user_id: userId, p_type_key: typeKey, p_title: title, p_body: body, p_url: url,
   });
+  if (error) {
+    console.error(`notify ${typeKey} 실패 (${userId}):`, error.message);
+    return false;
+  }
+  return true;
 }
 
 /** 인사이트 종류별 완료 알림 문구·이동 경로 */
@@ -421,94 +453,95 @@ function insightNotice(kind: string, refId: string | null): [string, string, str
   return ["AI 주간 리포트 등록", "지난주 훈련 리포트가 준비됐습니다.", "/dashboard"];
 }
 
-/** 32b 가 출력한 프로그램 JSON 을 programs/일자/워크아웃/아이템으로 생성. 성공 시 program id. */
-// deno-lint-ignore no-explicit-any
-async function materializeProgram(db: any, userId: string, raw: string): Promise<string | null> {
-  // 코드펜스·앞뒤 잡문 방어: 첫 '{' ~ 마지막 '}' 만 취함
+/** 32b 출력에서 프로그램 JSON 객체만 꺼낸다 (코드펜스·앞뒤 잡문 방어: 첫 '{' ~ 마지막 '}').
+ *  구조 검증·실체화는 DB 함수 ai_materialize_program 이 한다. */
+function parseProgramPlan(raw: string): Record<string, unknown> | null {
   const s = raw.indexOf("{"), e = raw.lastIndexOf("}");
   if (s < 0 || e <= s) return null;
-  let plan: {
-    title?: string; description?: string; level?: string;
-    days?: { day_index?: number; focus?: string; title?: string;
-      items?: {
-        exercise?: string; note?: string;
-        distance_m?: number; weight_kg?: number;
-        reps?: number; sets?: number; duration_s?: number;
-      }[] }[];
-  };
-  try { plan = JSON.parse(raw.slice(s, e + 1)); } catch { return null; }
-  if (!plan.title || !Array.isArray(plan.days) || plan.days.length === 0) return null;
-
-  // 운동 이름 → id 해석. name_ko 완전일치만 보면 '스키에르그'(별칭)·표기 차이가
-  // 전부 미매칭이 되므로, 서버의 resolve_exercise(정규화 + aliases)를 쓴다.
-  const resolveCache = new Map<string, string | null>();
-  const resolveExercise = async (name?: string): Promise<string | null> => {
-    const key = (name ?? "").trim();
-    if (!key) return null;
-    if (resolveCache.has(key)) return resolveCache.get(key) ?? null;
-    const { data } = await db.rpc("resolve_exercise", { p_name: key });
-    const id = (data as string | null) ?? null;
-    resolveCache.set(key, id);
-    return id;
-  };
-
-  const level = ["beginner", "intermediate", "advanced", "elite"].includes(plan.level ?? "")
-    ? plan.level : null;
-  const { data: prog, error: progErr } = await db.from("programs").insert({
-    owner_id: userId,
-    title: String(plan.title).slice(0, 80),
-    description: `${String(plan.description ?? "").slice(0, 500)}\n\n(AI 생성 — 최근 코칭 인사이트 기반)`.trim(),
-    weeks: 1, level, is_public: false,
-  }).select("id").single();
-  if (progErr || !prog) return null;
-
-  for (const day of plan.days.slice(0, 7)) {
-    const idx = Number(day.day_index);
-    if (!Number.isInteger(idx) || idx < 1 || idx > 7) continue;
-    const { data: d } = await db.from("program_days").insert({
-      program_id: prog.id, day_index: idx, focus: day.focus?.slice(0, 60) ?? null,
-    }).select("id").single();
-    if (!d) continue;
-    const items = Array.isArray(day.items) ? day.items.slice(0, 10) : [];
-    if (items.length === 0) continue; // 휴식일
-    const { data: tmpl } = await db.from("workout_templates").insert({
-      program_day_id: d.id,
-      title: day.title?.slice(0, 80) || day.focus?.slice(0, 80) || `Day ${idx}`,
-      type: "wod", structure: {},
-    }).select("id").single();
-    if (!tmpl) continue;
-    // 처방은 구조화 필드로 저장한다 (20260830000011 계약) — note-only 로 넣으면
-    // 주간 볼륨·계획 대비 수행 통계에서 이 프로그램만 빠진다.
-    const num = (v: unknown, max: number): number | undefined => {
-      const n = typeof v === "number" ? v : Number(v);
-      return Number.isFinite(n) && n > 0 && n <= max ? Math.round(n * 100) / 100 : undefined;
-    };
-    const rows: Record<string, unknown>[] = [];
-    for (const [i, it] of items.entries()) {
-      const exId = await resolveExercise(it.exercise);
-      const target: Record<string, unknown> = {};
-      const dist = num(it.distance_m, 200000);
-      if (dist) target.distance_m = Math.round(dist);
-      const kg = num(it.weight_kg, 1000);
-      if (kg) target.weight_kg = kg;
-      const reps = num(it.reps, 10000);
-      if (reps) target.reps = Math.round(reps);
-      const sets = num(it.sets, 100);
-      if (sets) target.sets = Math.round(sets);
-      const dur = num(it.duration_s, 86400);
-      if (dur) target.duration_s = Math.round(dur);
-      // 매칭 실패한 운동 이름은 잃지 않도록 note 앞에 남긴다
-      const note = [exId ? null : it.exercise, it.note]
-        .filter(Boolean).join(" — ").slice(0, 300);
-      if (note) target.note = note;
-      rows.push({
-        template_id: tmpl.id, seq: i + 1, exercise_id: exId,
-        target: Object.keys(target).length ? target : null,
-      });
-    }
-    if (rows.length) await db.from("workout_template_items").insert(rows);
+  try {
+    const plan = JSON.parse(raw.slice(s, e + 1));
+    return plan && typeof plan === "object" && !Array.isArray(plan) ? plan : null;
+  } catch {
+    return null;
   }
-  return prog.id;
+}
+
+type MaterializeResult =
+  | { ok: true; id: string }
+  /** final=true: 재시도해도 같은 결과(모델 출력 불량 등) → 실패 알림 후 작업 삭제.
+   *  final=false: 일시 오류 → 작업을 남겨 임대 만료 뒤 재시도. */
+  | { ok: false; final: boolean; reason: string };
+
+/** 프로그램 JSON → programs/일차/워크아웃/아이템. 실체화는 DB 함수 한 번(한 트랜잭션)
+ *  으로 하므로 하위 INSERT 가 실패하면 상위 programs 행도 남지 않는다(감사 A06).
+ *  같은 작업(ai_job_id)의 두 번째 실체화는 유니크 인덱스가 막는다(감사 A07). */
+// deno-lint-ignore no-explicit-any
+async function materializeProgram(db: any, jobId: string, userId: string, raw: string): Promise<MaterializeResult> {
+  // 이전 실행이 실체화 뒤(알림·삭제 전) 죽었으면 프로그램이 이미 있다 — 다시 만들지 않는다
+  const { data: existing, error: exErr } = await db.from("programs")
+    .select("id").eq("ai_job_id", jobId).maybeSingle();
+  if (exErr) return { ok: false, final: false, reason: `programs 조회: ${exErr.message}` };
+  if (existing?.id) return { ok: true, id: existing.id as string };
+
+  const plan = parseProgramPlan(raw);
+  if (!plan) return { ok: false, final: true, reason: "출력이 JSON 객체가 아님" };
+
+  const { data, error } = await db.rpc("ai_materialize_program", {
+    p_owner: userId, p_program: plan, p_job_id: jobId,
+  });
+  if (error) {
+    // 23505 = 다른 실행이 (임대가 만료된 뒤) 먼저 실체화함 — 그쪽이 알림·삭제까지 맡는다
+    if (error.code === "23505") return { ok: false, final: false, reason: "이미 실체화됨(경합)" };
+    return { ok: false, final: isFinalDbError(error), reason: error.message ?? "rpc error" };
+  }
+  if (typeof data !== "string" || !data) {
+    return { ok: false, final: false, reason: "ai_materialize_program 이 id 를 돌려주지 않음" };
+  }
+  return { ok: true, id: data };
+}
+
+type JobRow = { id: string; kind: string; user_id: string; ref_id: string | null; job_id: string | null };
+
+/** 작업 행 삭제. 실패해도 던지지 않는다 — 남은 행은 임대 만료 뒤 재처리되는데,
+ *  재처리는 멱등(프로그램은 ai_job_id 로 재사용, 인사이트는 같은 키로 교체)이라
+ *  중복 생성은 없다(알림만 한 번 더 갈 수 있다). */
+// deno-lint-ignore no-explicit-any
+async function deleteJob(db: any, id: string): Promise<boolean> {
+  const { error } = await db.from("ai_jobs").delete().eq("id", id);
+  if (error) {
+    console.error(`ai_jobs 삭제 실패 ${id}:`, error.message);
+    return false;
+  }
+  return true;
+}
+
+/** 최종 실패 처리: 세션/레이스는 ai_status=failed(retry_failed_ai 크론이 최대 5회
+ *  재큐잉), 프로그램은 실패 알림. 그 뒤 작업 삭제. 상태/알림 쓰기가 실패하면
+ *  작업을 남겨 임대 만료 뒤 다시 시도하되, force(클레임 상한)면 그래도 지운다. */
+// deno-lint-ignore no-explicit-any
+async function finalizeFailure(db: any, jb: JobRow, force: boolean): Promise<void> {
+  if (jb.kind === "session" || jb.kind === "race") {
+    const table = jb.kind === "session" ? "sessions" : "race_results";
+    const { error } = await db.from(table).update({ ai_status: "failed" }).eq("id", jb.ref_id);
+    if (error) {
+      console.error(`${table} ai_status=failed 실패 ${jb.ref_id}:`, error.message);
+      if (!force) return;
+    }
+  } else if (jb.kind === "program") {
+    const ok = await notify(db, jb.user_id, "ai_program", "AI 프로그램 생성 실패",
+      "프로그램 생성에 실패했습니다. 다시 시도해 주세요.", "/programs");
+    if (!ok && !force) return;
+  }
+  await deleteJob(db, jb.id);
+}
+
+/** 프로그램 요청의 제출 임대를 푼다(게이트웨이 불가 등으로 제출하지 못했을 때).
+ *  풀지 못해도 10분 뒤 임대가 만료돼 다른 실행이 이어받는다. */
+// deno-lint-ignore no-explicit-any
+async function releaseSubmitClaim(db: any, id: string): Promise<void> {
+  const { error } = await db.from("ai_jobs")
+    .update({ submit_claimed_at: null }).eq("id", id).is("job_id", null);
+  if (error) console.error(`제출 임대 해제 실패 ${id}:`, error.message);
 }
 
 // ---------------------------------------------------------------- 메인
@@ -521,39 +554,51 @@ Deno.serve(async (req) => {
   const out = { metrics: 0, submitted: 0, collected: 0, failed: 0 };
 
   // ---------- 1) 파생 지표 (pending → processing CAS → 계산 → done)
-  const { data: pend } = await db.from("sessions")
+  const { data: pend, error: pendErr } = await db.from("sessions")
     .select("id").eq("analysis_status", "pending").is("deleted_at", null)
     .order("started_at", { ascending: true }).limit(5);
+  if (pendErr) console.error("pending 세션 조회 실패:", pendErr.message);
   for (const s of pend ?? []) {
-    const { data: claimed } = await db.from("sessions")
+    const { data: claimed, error: casErr } = await db.from("sessions")
       .update({ analysis_status: "processing" })
       .eq("id", s.id).eq("analysis_status", "pending").select("id");
-    if (!claimed || claimed.length === 0) continue;
+    if (casErr || !claimed || claimed.length === 0) continue;
     try {
-      const { data: segs } = await db.from("session_segments")
+      const { data: segs, error: segErr } = await db.from("session_segments")
         .select("id,seq,kind,split_time_ms,erg_samples(samples)")
         .eq("session_id", s.id).order("seq", { ascending: true });
+      if (segErr) throw new Error(`세그먼트 조회: ${segErr.message}`);
       const segments = (segs ?? []) as unknown as Seg[];
       const dev = runLapDeviationMs(segments);
-      await db.from("session_metrics").upsert({
+      // 저장 결과의 error 를 반드시 본다 — 안 보면 지표 없이 done 이 된다(감사 A06)
+      const { error: smErr } = await db.from("session_metrics").upsert({
         session_id: s.id,
         run_lap_deviation_ms: dev,
         roxzone_total_ms: roxzoneTotalMs(segments),
         pacing_grade: dev != null ? pacingGrade(dev) : null,
       }, { onConflict: "session_id" });
+      if (smErr) throw new Error(`session_metrics 저장: ${smErr.message}`);
       for (const seg of segments) {
         const erg = seg.erg_samples;
         const raw = Array.isArray(erg) ? erg[0]?.samples : erg?.samples;
         if (!raw) continue;
         const gm = segmentMetrics(raw);
         if (!gm) continue;
-        await db.from("segment_metrics").upsert({ segment_id: seg.id, ...gm }, { onConflict: "segment_id" });
+        const { error: gmErr } = await db.from("segment_metrics")
+          .upsert({ segment_id: seg.id, ...gm }, { onConflict: "segment_id" });
+        if (gmErr) throw new Error(`segment_metrics 저장 (${seg.id}): ${gmErr.message}`);
       }
-      await db.from("sessions").update({ analysis_status: "done" }).eq("id", s.id);
+      const { error: doneErr } = await db.from("sessions")
+        .update({ analysis_status: "done" }).eq("id", s.id).eq("analysis_status", "processing");
+      if (doneErr) throw new Error(`done 전환: ${doneErr.message}`);
       out.metrics++;
     } catch (e) {
       console.error(`metrics failed ${s.id}:`, e);
-      await db.from("sessions").update({ analysis_status: "failed" }).eq("id", s.id);
+      out.failed++;
+      const { error: fErr } = await db.from("sessions")
+        .update({ analysis_status: "failed" }).eq("id", s.id).eq("analysis_status", "processing");
+      // 이마저 실패하면 processing 으로 남는다 — 자동 회수 경로는 없다(로그로만 남김)
+      if (fErr) console.error(`failed 전환도 실패 ${s.id}:`, fErr.message);
     }
   }
 
@@ -566,78 +611,120 @@ Deno.serve(async (req) => {
   }
 
   // ---------- 2) 제출된 잡 수령
-  const { data: jobs } = await db.from("ai_jobs")
-    .select("id,kind,user_id,ref_id,period_start,job_id").not("job_id", "is", null).limit(20);
+  // 임대(10분) 중인 작업은 조회에서 거른다(클라이언트 시각). 실제 임대 판정은 서버
+  // now() 를 쓰는 ai_jobs_claim() 이 한다. 처리기가 도중에 죽으면 claimed_at 만
+  // 남고, 만료 뒤 다른 실행이 다시 잡아 이어받는다(감사 A07).
+  const leaseCutoff = new Date(Date.now() - CLAIM_LEASE_MS).toISOString();
+  const { data: jobs, error: jobsErr } = await db.from("ai_jobs")
+    .select("id,kind,user_id,ref_id,period_start,job_id,claim_count")
+    .not("job_id", "is", null)
+    .or(`claimed_at.is.null,claimed_at.lt.${leaseCutoff}`)
+    .order("created_at", { ascending: true }).limit(20);
+  if (jobsErr) console.error("ai_jobs 조회 실패:", jobsErr.message);
   for (const jb of jobs ?? []) {
     const jr = await gwPoll(jb.job_id!);
     if (!jr) continue; // 게이트웨이 일시 불가 — 다음 크론에
-    if (jr.status === "ok" && jr.response) {
-      if (jb.kind === "program") {
-        // 프로그램 JSON → 실체화 + 완료/실패 알림
-        const progId = await materializeProgram(db, jb.user_id, jr.response);
-        if (progId) {
-          await notify(db, jb.user_id, "ai_program", "AI 훈련 프로그램 도착",
-            "코칭 인사이트 기반 7일 프로그램이 준비됐습니다.", `/programs/${progId}`);
-        } else {
-          console.error(`program materialize 실패 ${jb.job_id}`);
-          await notify(db, jb.user_id, "ai_program", "AI 프로그램 생성 실패",
-            "프로그램 생성에 실패했습니다. 다시 시도해 주세요.", "/programs");
+    // pending 이면 잡지 않고 그대로 둔다 — 잡아 두면 10분 동안 폴링이 멈춘다
+    if (jr.status !== "ok" && jr.status !== "failed") continue;
+
+    // 결과가 있을 때만 원자적으로 잡는다: UPDATE … WHERE 임대 없음 RETURNING.
+    // 두 실행이 겹치면 한쪽만 행을 받고, 진 쪽은 건너뛴다.
+    const { data: claimRows, error: claimErr } = await db.rpc("ai_jobs_claim", { p_id: jb.id });
+    const claim = Array.isArray(claimRows) ? claimRows[0] : null;
+    if (claimErr || !claim) continue;
+    // 같은 작업이 계속 실패하면(예: 사용자 삭제로 FK 위반) 상한에서 포기한다
+    const giveUp = Number(claim.claim_count ?? 0) >= MAX_CLAIMS;
+
+    if (jr.status === "failed" || !jr.response) {
+      console.error(`gw job failed ${jb.job_id}: ${jr.error ?? "empty response"}`);
+      await finalizeFailure(db, jb, giveUp);
+      out.failed++;
+      continue;
+    }
+
+    if (jb.kind === "program") {
+      // 프로그램 JSON → DB 함수 한 번으로 실체화(한 트랜잭션). 하위 저장 실패면
+      // 성공 id 가 나오지 않으므로 "도착" 알림도 가지 않는다(감사 A06).
+      const r = await materializeProgram(db, jb.id, jb.user_id, jr.response);
+      if (!r.ok) {
+        console.error(`program materialize 실패 ${jb.job_id}: ${r.reason}`);
+        if (r.final || giveUp) {
+          await finalizeFailure(db, jb, giveUp);
+          out.failed++;
         }
-        await db.from("ai_jobs").delete().eq("id", jb.id);
-        out.collected++;
+        // 일시 오류: 임대만 남긴다 → 10분 뒤 다른 실행이 이어받는다
         continue;
       }
-      // delete + insert 재생성 (부분 유니크 인덱스라 upsert 불가)
-      let del = db.from("ai_insights").delete().eq("user_id", jb.user_id).eq("kind", jb.kind);
-      if (jb.ref_id) del = del.eq("ref_id", jb.ref_id);
-      if (jb.period_start) del = del.eq("period_start", jb.period_start);
-      await del;
-      await db.from("ai_insights").insert({
-        user_id: jb.user_id, kind: jb.kind, content: jr.response.trim(),
-        model: `llmgw/${AI_ROLE}`, ref_id: jb.ref_id, period_start: jb.period_start,
-      });
-      if (jb.kind === "session") await db.from("sessions").update({ ai_status: "done" }).eq("id", jb.ref_id);
-      if (jb.kind === "race") await db.from("race_results").update({ ai_status: "done" }).eq("id", jb.ref_id);
-      // 인사이트 등록 완료 알림 (옵트아웃은 enqueue_notification 이 처리)
-      const [nTitle, nBody, nUrl] = insightNotice(jb.kind, jb.ref_id);
-      await notify(db, jb.user_id, "ai_insight", nTitle, nBody, nUrl);
-      await db.from("ai_jobs").delete().eq("id", jb.id);
-      out.collected++;
-    } else if (jr.status === "failed") {
-      console.error(`gw job failed ${jb.job_id}: ${jr.error}`);
-      if (jb.kind === "session") await db.from("sessions").update({ ai_status: "failed" }).eq("id", jb.ref_id);
-      if (jb.kind === "race") await db.from("race_results").update({ ai_status: "failed" }).eq("id", jb.ref_id);
-      if (jb.kind === "program") {
-        await notify(db, jb.user_id, "ai_program", "AI 프로그램 생성 실패",
-          "프로그램 생성에 실패했습니다. 다시 시도해 주세요.", "/programs");
-      }
-      await db.from("ai_jobs").delete().eq("id", jb.id);
-      out.failed++;
+      // 저장이 확정된 뒤에만 알림·삭제. 알림에 실패하면 작업을 남겨 임대 만료 뒤
+      // 다시 알린다 — 프로그램은 ai_job_id 로 찾아 재사용하므로 중복 생성은 없다.
+      const notified = await notify(db, jb.user_id, "ai_program", "AI 훈련 프로그램 도착",
+        "코칭 인사이트 기반 7일 프로그램이 준비됐습니다.", `/programs/${r.id}`);
+      if (!notified && !giveUp) continue;
+      if (await deleteJob(db, jb.id)) out.collected++;
+      continue;
     }
-    // pending → 그대로 둠
+
+    // 인사이트: delete+insert 와 ai_status=done 을 DB 함수 한 번(한 트랜잭션)으로.
+    // 옛 코드처럼 두 문장을 따로 보내면 INSERT 실패 시 기존 인사이트만 사라졌다.
+    const { error: repErr } = await db.rpc("ai_replace_insights", {
+      p_user: jb.user_id, p_kind: jb.kind, p_ref_id: jb.ref_id, p_period_start: jb.period_start,
+      p_content: jr.response.trim(), p_model: `llmgw/${AI_ROLE}`,
+    });
+    if (repErr) {
+      console.error(`insight 저장 실패 ${jb.job_id}: ${repErr.message}`);
+      if (isFinalDbError(repErr) || giveUp) {
+        await finalizeFailure(db, jb, giveUp);
+        out.failed++;
+      }
+      continue;
+    }
+    // 인사이트 등록 완료 알림 (옵트아웃은 enqueue_notification 이 처리)
+    const [nTitle, nBody, nUrl] = insightNotice(jb.kind, jb.ref_id);
+    const notified = await notify(db, jb.user_id, "ai_insight", nTitle, nBody, nUrl);
+    if (!notified && !giveUp) continue;
+    if (await deleteJob(db, jb.id)) out.collected++;
   }
 
   // 제출 중 크래시 잔재(10분 넘게 job_id 없는 클레임) 회수.
   // program 은 사용자 요청 큐라 제외 — 게이트웨이가 오래 죽어 있어도 요청이 사라지면 안 됨.
   const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  await db.from("ai_jobs").delete().is("job_id", null).lt("created_at", cutoff).neq("kind", "program");
+  const { error: staleErr } = await db.from("ai_jobs")
+    .delete().is("job_id", null).lt("created_at", cutoff).neq("kind", "program");
+  if (staleErr) console.error("잔재 클레임 회수 실패:", staleErr.message);
 
   // ---------- 2.5) AI 프로그램 요청 제출 (사용자 버튼 → ai-program-request 가 큐잉)
-  const { data: progReqs } = await db.from("ai_jobs")
-    .select("id,user_id").eq("kind", "program").is("job_id", null).limit(2);
+  // 제출 임대(submit_claimed_at, 10분) 중인 요청은 거른다. 제출 도중 실행이 죽으면
+  // 임대 만료 뒤 다른 실행이 재제출한다 — 게이트웨이 잡 하나가 고아로 남을 수는
+  // 있지만 job_id 는 하나만 기록되므로 프로그램은 하나만 만들어진다.
+  const { data: progReqs, error: prErr } = await db.from("ai_jobs")
+    .select("id,user_id").eq("kind", "program").is("job_id", null)
+    .or(`submit_claimed_at.is.null,submit_claimed_at.lt.${leaseCutoff}`)
+    .order("created_at", { ascending: true }).limit(2);
+  if (prErr) console.error("프로그램 요청 조회 실패:", prErr.message);
   for (const pr of progReqs ?? []) {
+    // 외부 제출 전에 원자적으로 잡는다 — 두 실행이 같은 요청을 둘 다 보내지 않게
+    const { data: got, error: scErr } = await db.rpc("ai_jobs_submit_claim", { p_id: pr.id });
+    if (scErr || got !== true) continue;
+
     // 최근 코칭 인사이트(최신 3건) — 약점·격차의 근거
-    const { data: insights } = await db.from("ai_insights")
+    const { data: insights, error: insErr } = await db.from("ai_insights")
       .select("kind,content").eq("user_id", pr.user_id)
       .neq("kind", "program").order("created_at", { ascending: false }).limit(3);
-    const { data: goal } = await db.from("goal_plans")
+    const { data: goal, error: goalErr } = await db.from("goal_plans")
       .select("target_total_ms,run_total_ms,station_total_ms,roxzone_total_ms")
       .eq("user_id", pr.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
     // 허용 운동 목록: 하이록스 스테이션 전부 + 보조 카테고리 (이름 그대로 매칭)
-    const { data: exs } = await db.from("exercises")
+    const { data: exs, error: exErr } = await db.from("exercises")
       .select("name_ko,station_type,category")
       .or("station_type.not.is.null,category.in.(running,conditioning,strength)")
       .limit(140);
+    // 조회 실패를 "없음"으로 오판하면 근거 없는 프로그램이 나간다 — 임대를 풀고 다음에
+    if (insErr || goalErr || exErr) {
+      console.error(`프로그램 프롬프트 재료 조회 실패 ${pr.id}:`,
+        (insErr ?? goalErr ?? exErr)?.message);
+      await releaseSubmitClaim(db, pr.id);
+      continue;
+    }
     const exNames = (exs ?? []).map((x: { name_ko: string }) => x.name_ko);
 
     const lines = [
@@ -654,16 +741,27 @@ Deno.serve(async (req) => {
     lines.push("", "## 사용 가능한 운동 목록 (exercise 값은 이 중에서 그대로)", exNames.join(", "));
 
     const jobId = await gwSubmit(lines.join("\n"), { kind: "program", ref: pr.user_id }, PROGRAM_SYSTEM);
-    if (!jobId) continue; // 게이트웨이 불가 — 요청은 큐에 유지, 다음 크론 재시도
-    await db.from("ai_jobs").update({ job_id: jobId }).eq("id", pr.id);
+    if (!jobId) {
+      // 게이트웨이 불가 — 요청은 큐에 유지. 임대를 풀어 다음 크론이 바로 재시도한다
+      await releaseSubmitClaim(db, pr.id);
+      continue;
+    }
+    const { error: recErr } = await db.from("ai_jobs")
+      .update({ job_id: jobId }).eq("id", pr.id).is("job_id", null);
+    if (recErr) {
+      // 게이트웨이 잡은 고아가 되고, 임대 만료 뒤 재제출된다(요청은 사라지지 않는다)
+      console.error(`job_id 기록 실패 ${pr.id}:`, recErr.message);
+      continue;
+    }
     out.submitted++;
   }
 
   // ---------- 3) 신규 제출 — 세션
-  const { data: sess } = await db.from("sessions")
+  const { data: sess, error: sessErr } = await db.from("sessions")
     .select("id,user_id,started_at,total_time_ms")
     .eq("ai_status", "pending").eq("analysis_status", "done").is("deleted_at", null)
     .order("started_at", { ascending: false }).limit(SCAN_LIMIT);
+  if (sessErr) console.error("AI 대기 세션 조회 실패:", sessErr.message);
   let sessSubmitted = 0;
   for (const s of sess ?? []) {
     if (sessSubmitted >= SUBMIT_PER_RUN) break;
@@ -671,13 +769,20 @@ Deno.serve(async (req) => {
     const { data: claim, error: claimErr } = await db.from("ai_jobs")
       .insert({ kind: "session", user_id: s.user_id, ref_id: s.id }).select("id").single();
     if (claimErr || !claim) continue;
-    const { data: segs } = await db.from("session_segments")
+    const { data: segs, error: segErr } = await db.from("session_segments")
       .select("id,seq,kind,machine_type,split_time_ms,avg_hr,max_hr,exercises(name_ko),segment_metrics(avg_power,avg_spm,avg_pace_500)")
       .eq("session_id", s.id).order("seq", { ascending: true });
+    if (segErr) {
+      // 조회 실패를 "세그먼트 없음"으로 오판하면 세션이 영구 skip 된다 — 클레임을 풀고 다음에
+      console.error(`세그먼트 조회 실패 ${s.id}:`, segErr.message);
+      await deleteJob(db, claim.id);
+      continue;
+    }
     const segments = (segs ?? []) as unknown as Seg[];
     if (segments.length === 0) {
-      await db.from("sessions").update({ ai_status: "skip" }).eq("id", s.id);
-      await db.from("ai_jobs").delete().eq("id", claim.id);
+      const { error: skipErr } = await db.from("sessions").update({ ai_status: "skip" }).eq("id", s.id);
+      if (skipErr) console.error(`skip 전환 실패 ${s.id}:`, skipErr.message);
+      await deleteJob(db, claim.id);
       continue;
     }
     // 에르그 단독 세션(머신 스테이션만) → 전용 프롬프트, 그 외 → 시뮬 프롬프트
@@ -685,8 +790,13 @@ Deno.serve(async (req) => {
     let prompt: string;
     if (isErg) {
       const mseg = segments.find((g) => g.machine_type)!;
-      const { data: raw } = await db.from("erg_samples")
+      const { data: raw, error: rawErr } = await db.from("erg_samples")
         .select("samples,strokes").eq("segment_id", mseg.id).maybeSingle();
+      if (rawErr) {
+        console.error(`erg_samples 조회 실패 ${mseg.id}:`, rawErr.message);
+        await deleteJob(db, claim.id);
+        continue;
+      }
       const sm = Array.isArray(mseg.segment_metrics) ? mseg.segment_metrics[0] : mseg.segment_metrics;
       prompt = ergSessionPrompt(
         s,
@@ -696,29 +806,41 @@ Deno.serve(async (req) => {
         ((raw?.strokes ?? []) as Record<string, number | null>[]).slice(0, 2000),
       );
     } else {
-      const { data: m } = await db.from("session_metrics")
+      const { data: m, error: mErr } = await db.from("session_metrics")
         .select("run_lap_deviation_ms,pacing_grade").eq("session_id", s.id).maybeSingle();
-      const { data: goal } = await db.from("goal_plans")
+      const { data: goal, error: goalErr } = await db.from("goal_plans")
         .select("target_total_ms,run_total_ms,station_total_ms,roxzone_total_ms")
         .eq("user_id", s.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (mErr || goalErr) {
+        console.error(`프롬프트 재료 조회 실패 ${s.id}:`, (mErr ?? goalErr)?.message);
+        await deleteJob(db, claim.id);
+        continue;
+      }
       prompt = sessionPrompt(s, segments, m, goal);
     }
     const jobId = await gwSubmit(prompt, { kind: "session", ref: s.id });
-    if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); break; }
-    await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
+    if (!jobId) { await deleteJob(db, claim.id); break; }
+    const { error: recErr } = await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
+    if (recErr) {
+      // job_id 없는 클레임은 10분 뒤 회수돼 재제출된다(게이트웨이 잡 하나가 고아로 남는다)
+      console.error(`job_id 기록 실패 ${claim.id}:`, recErr.message);
+      continue;
+    }
     out.submitted++;
     sessSubmitted++;
   }
 
   // ---------- 4) 신규 제출 — 레이스
-  const { data: races } = await db.from("race_results")
+  const { data: races, error: racesErr } = await db.from("race_results")
     .select("id,user_id,event,event_date,division,total_time_ms,splits")
     .eq("ai_status", "pending").order("created_at", { ascending: false }).limit(SCAN_LIMIT);
+  if (racesErr) console.error("AI 대기 레이스 조회 실패:", racesErr.message);
   let raceSubmitted = 0;
   for (const race of races ?? []) {
     if (raceSubmitted >= SUBMIT_PER_RUN) break;
     if (!race.splits && !race.total_time_ms) {
-      await db.from("race_results").update({ ai_status: "skip" }).eq("id", race.id);
+      const { error: skipErr } = await db.from("race_results").update({ ai_status: "skip" }).eq("id", race.id);
+      if (skipErr) console.error(`레이스 skip 전환 실패 ${race.id}:`, skipErr.message);
       continue;
     }
     const { data: claim, error: claimErr } = await db.from("ai_jobs")
@@ -739,31 +861,43 @@ Deno.serve(async (req) => {
       ...raceSplitsPrompt(sp, race.total_time_ms),
     ].join("\n");
     const jobId = await gwSubmit(prompt, { kind: "race", ref: race.id });
-    if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); break; }
-    await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
+    if (!jobId) { await deleteJob(db, claim.id); break; }
+    const { error: recErr } = await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
+    if (recErr) {
+      console.error(`job_id 기록 실패 ${claim.id}:`, recErr.message);
+      continue; // 10분 뒤 잔재 회수 → 재제출
+    }
     out.submitted++;
     raceSubmitted++;
   }
 
   // ---------- 5) 신규 제출 — 주간 리포트 (최근 14일 활동 사용자, 휴식 주 포함, 멱등)
   const since = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
-  const { data: recent } = await db.from("sessions")
+  const { data: recent, error: recentErr } = await db.from("sessions")
     .select("user_id").is("deleted_at", null).gte("started_at", since).limit(1000);
+  if (recentErr) console.error("최근 활동 사용자 조회 실패:", recentErr.message);
   const userIds = [...new Set((recent ?? []).map((r) => r.user_id))].slice(0, 20);
   for (const uid of userIds) {
-    const { data: prof } = await db.from("profiles").select("timezone").eq("id", uid).maybeSingle();
+    const { data: prof, error: profErr } = await db.from("profiles").select("timezone").eq("id", uid).maybeSingle();
+    if (profErr) continue; // 타임존을 모르면 주간 경계가 틀린다 — 다음 크론에
     const { start, end } = weekPeriod(prof?.timezone ?? null);
-    const { data: exists } = await db.from("ai_insights")
+    const { data: exists, error: exErr } = await db.from("ai_insights")
       .select("id").eq("user_id", uid).eq("kind", "weekly").eq("period_start", start).limit(1);
-    if (exists && exists.length > 0) continue;
+    if (exErr || (exists && exists.length > 0)) continue;
     const { data: claim, error: claimErr } = await db.from("ai_jobs")
       .insert({ kind: "weekly", user_id: uid, period_start: start }).select("id").single();
     if (claimErr || !claim) continue;
-    const { data: weekSessions } = await db.from("sessions")
+    const { data: weekSessions, error: wsErr } = await db.from("sessions")
       .select("id,started_at,total_time_ms,session_metrics(run_lap_deviation_ms,pacing_grade)")
       .eq("user_id", uid).is("deleted_at", null)
       .gte("started_at", `${start}T00:00:00Z`).lte("started_at", `${end}T23:59:59Z`)
       .order("started_at", { ascending: true }).limit(50);
+    if (wsErr) {
+      // 조회 실패를 "휴식 주"로 오판하면 엉뚱한 리포트가 나간다 — 클레임을 풀고 다음에
+      console.error(`주간 세션 조회 실패 ${uid}:`, wsErr.message);
+      await deleteJob(db, claim.id);
+      continue;
+    }
     let prompt: string;
     if (!weekSessions || weekSessions.length === 0) {
       // 휴식 주 — 직전 4주 이력을 컨텍스트로 회복/재개 코멘트를 생성한다.
@@ -771,14 +905,15 @@ Deno.serve(async (req) => {
       const histStart = new Date(
         new Date(`${start}T00:00:00Z`).getTime() - 28 * 24 * 3600 * 1000,
       ).toISOString().slice(0, 10);
-      const { data: hist } = await db.from("sessions")
+      const { data: hist, error: histErr } = await db.from("sessions")
         .select("started_at,total_time_ms")
         .eq("user_id", uid).is("deleted_at", null)
         .gte("started_at", `${histStart}T00:00:00Z`)
         .lte("started_at", `${end}T23:59:59Z`)
         .order("started_at", { ascending: true }).limit(100);
-      if (!hist || hist.length === 0) {
-        await db.from("ai_jobs").delete().eq("id", claim.id);
+      if (histErr || !hist || hist.length === 0) {
+        if (histErr) console.error(`이력 조회 실패 ${uid}:`, histErr.message);
+        await deleteJob(db, claim.id);
         continue;
       }
       prompt = [
@@ -807,8 +942,12 @@ Deno.serve(async (req) => {
       prompt = lines.join("\n");
     }
     const jobId = await gwSubmit(prompt, { kind: "weekly", ref: `${uid}:${start}` });
-    if (!jobId) { await db.from("ai_jobs").delete().eq("id", claim.id); continue; }
-    await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
+    if (!jobId) { await deleteJob(db, claim.id); continue; }
+    const { error: recErr } = await db.from("ai_jobs").update({ job_id: jobId }).eq("id", claim.id);
+    if (recErr) {
+      console.error(`job_id 기록 실패 ${claim.id}:`, recErr.message);
+      continue; // 10분 뒤 잔재 회수 → 재제출
+    }
     out.submitted++;
   }
 
