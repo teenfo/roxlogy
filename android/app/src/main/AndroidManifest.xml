@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 푸시 알림 표시 (Android 13+ 런타임 권한) -->
@@ -9,14 +10,19 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
+    <!-- 백업 규칙: 로그인 토큰 파일(rox_tokens.xml)은 백업·기기 이전에서 제외 — res/xml 두 파일 주석 참조.
+         fullBackupContent 는 API 30 이하, dataExtractionRules 는 API 31+ 에 적용된다(감사 R05). -->
     <application
         android:name=".RoxApp"
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Roxlogy">
+        android:theme="@style/Theme.Roxlogy"
+        tools:targetApi="31">
 
         <activity
             android:name=".MainActivity"

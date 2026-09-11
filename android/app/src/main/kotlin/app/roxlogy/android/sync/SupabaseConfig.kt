@@ -2,6 +2,7 @@ package app.roxlogy.android.sync
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import app.roxlogy.android.BuildConfig
@@ -35,8 +36,16 @@ object SupabaseConfig {
  * Supabase Auth 토큰 저장소 (액세스 + 리프레시).
  * 메모리 캐시 + EncryptedSharedPreferences 영속(콜드스타트 후 로그인 복원, WebView 세션 주입 시드).
  * 앱 시작 시 [init]을 한 번 호출해 디스크에서 복원한다.
+ *
+ * 백업: 이 파일(`rox_tokens.xml`)은 res/xml/backup_rules.xml·data_extraction_rules.xml 에서 백업·기기
+ * 이전 대상에서 제외한다 — 마스터키(Android Keystore)는 따라가지 않아 복원해도 복호화되지 않는다(감사 R05).
  */
 object TokenStore {
+    private const val TAG = "RoxToken"
+
+    /** EncryptedSharedPreferences 파일명. 백업 제외 규칙(res/xml)의 `rox_tokens.xml` 과 같아야 한다. */
+    const val PREFS_NAME = "rox_tokens"
+
     @Volatile
     private var access: String? = null
 
@@ -46,23 +55,60 @@ object TokenStore {
     @Volatile
     private var prefs: SharedPreferences? = null
 
-    /** 앱 시작 시 1회. 암호화 저장소를 열고 저장된 토큰을 메모리로 복원. */
+    /** 열기 + 읽기가 모두 성공했을 때의 결과. */
+    private class Opened(val prefs: SharedPreferences, val access: String?, val refresh: String?)
+
+    /**
+     * 앱 시작 시 1회. 암호화 저장소를 열고 저장된 토큰을 메모리로 복원.
+     *
+     * 복호화 실패(키 불일치) 처리: 파일이 남아 있는 한 실패가 매 실행 반복돼 새 로그인도 영영 저장되지
+     * 않으므로(이전에는 조용히 메모리 전용으로 빠졌다), 파일을 지우고 한 번 더 연다. 결과적으로 토큰이
+     * 없어지고 MainActivity 가 로그인 화면을 띄운다(재로그인). 대표 원인: 백업/기기 이전으로 파일만
+     * 복원되고 마스터키(Android Keystore)는 새 것일 때, 또는 Keystore 초기화.
+     *
+     * 동기화: 콜드스타트 때 MainActivity 와 RoxMessagingService(백그라운드 스레드)가 동시에 부를 수
+     * 있어 리셋 경로가 겹치지 않게 한다.
+     */
+    @Synchronized
     fun init(context: Context) {
         if (prefs != null) return
-        val p = runCatching {
-            val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-            EncryptedSharedPreferences.create(
-                "rox_tokens",
-                masterKeyAlias,
-                context.applicationContext,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-            )
-        }.getOrNull() ?: return
-        prefs = p
-        access = p.getString(KEY_ACCESS, null)
-        refresh = p.getString(KEY_REFRESH, null)
+        val app = context.applicationContext
+
+        // 마스터키 확보 실패는 파일 문제가 아니므로 파일을 지우지 않는다 — 이번 실행은 메모리 전용.
+        // (Keystore 의 일시 장애로 멀쩡한 세션을 날리지 않기 위해 파일 열기와 분리했다.)
+        val masterKeyAlias = runCatching { MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC) }
+            .onFailure { Log.w(TAG, "master key unavailable: ${it.javaClass.simpleName}") }
+            .getOrNull() ?: return
+
+        val opened = openAndRead(app, masterKeyAlias) ?: run {
+            Log.w(TAG, "token store unreadable with current master key; resetting (re-login required)")
+            runCatching { app.deleteSharedPreferences(PREFS_NAME) }
+                .onFailure { Log.w(TAG, "delete token store failed: ${it.javaClass.simpleName}") }
+            openAndRead(app, masterKeyAlias)
+        } ?: return // 두 번 다 실패 — 이번 실행은 메모리 전용(이전 동작과 같음)
+
+        prefs = opened.prefs
+        access = opened.access
+        refresh = opened.refresh
     }
+
+    /**
+     * 저장소를 열고 토큰을 읽는다. create() 는 키셋 복호화 실패, getString() 은 값 복호화 실패
+     * (SecurityException)를 던지므로 둘 다 같은 runCatching 안에 둔다. 실패하면 null.
+     */
+    private fun openAndRead(app: Context, masterKeyAlias: String): Opened? = runCatching {
+        val p = EncryptedSharedPreferences.create(
+            PREFS_NAME,
+            masterKeyAlias,
+            app,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
+        Opened(p, p.getString(KEY_ACCESS, null), p.getString(KEY_REFRESH, null))
+    }.onFailure {
+        // 메시지에 토큰이 섞일 일은 없지만, 클래스명만 남겨 로그를 단순하게 유지한다.
+        Log.w(TAG, "token store open/read failed: ${it.javaClass.simpleName}")
+    }.getOrNull()
 
     fun set(accessToken: String?, refreshToken: String?) {
         access = accessToken

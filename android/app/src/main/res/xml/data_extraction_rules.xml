@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  백업·기기 이전 규칙 (Android 12 / API 31 이상 — Manifest android:dataExtractionRules).
+  클라우드 백업과 기기 간 직접 이전(device-transfer)은 규칙이 따로라 둘 다 적는다.
+  API 30 이하는 backup_rules.xml 이 적용된다. 두 파일의 제외 목록은 같아야 한다.
+
+  왜 rox_tokens.xml 을 제외하나: backup_rules.xml 주석 참조 — 마스터키(Android Keystore)가 따라가지
+  않는 암호화 토큰 파일이라 복원해도 복호화되지 않고, 자격증명은 백업 대상이 아니다(감사 R05).
+  참고: https://developer.android.com/identity/data/autobackup#include-exclude-android-12
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude
+            domain="sharedpref"
+            path="rox_tokens.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude
+            domain="sharedpref"
+            path="rox_tokens.xml" />
+    </device-transfer>
+</data-extraction-rules>
