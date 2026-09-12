@@ -36,6 +36,34 @@ export default async function PftPage() {
     .order("created_at", { ascending: false });
 
   const rows = (data ?? []) as PftResult[];
+
+  // 레이스 보드 — 내가 참가한 최근 레이스 + 만들 수 있는지(관리자·크루 운영진)
+  const [{ data: myRaces }, { data: staffRows }, { data: profile }] = await Promise.all([
+    supabase
+      .from("pft_race_entries")
+      .select("joined_at, finished_at, total_ms, pft_races ( code, title, status, created_at )")
+      .eq("user_id", user!.id)
+      .order("joined_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("crew_members")
+      .select("id")
+      .eq("user_id", user!.id)
+      .eq("status", "active")
+      .in("role", ["owner", "coach"])
+      .limit(1),
+    supabase.from("profiles").select("is_admin").eq("id", user!.id).maybeSingle(),
+  ]);
+  type RaceRow = {
+    joined_at: string;
+    finished_at: string | null;
+    total_ms: number | null;
+    pft_races: { code: string; title: string; status: string; created_at: string } | { code: string; title: string; status: string; created_at: string }[] | null;
+  };
+  const races = ((myRaces ?? []) as unknown as RaceRow[])
+    .map((r) => ({ ...r, race: Array.isArray(r.pft_races) ? r.pft_races[0] : r.pft_races }))
+    .filter((r) => r.race);
+  const canCreateRace = !!profile?.is_admin || (staffRows ?? []).length > 0;
   const best = rows.reduce<PftResult | null>(
     (a, r) => (a == null || r.total_ms < a.total_ms ? r : a),
     null,
@@ -71,6 +99,20 @@ export default async function PftPage() {
           >
             {t("pft.add")}
           </Link>
+          <Link
+            href="/pft/race/join"
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+          >
+            {t("pft.race.join")}
+          </Link>
+          {canCreateRace && (
+            <Link
+              href="/pft/race/new"
+              className="flex h-10 items-center rounded-lg border border-line-accent bg-highlight px-4 text-sm font-semibold text-accent hover:brightness-110"
+            >
+              {t("pft.race.create")}
+            </Link>
+          )}
           <Link
             href="/pft/measure"
             className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110"
@@ -339,6 +381,30 @@ export default async function PftPage() {
         </ol>
         <p className="mt-2 text-xs text-muted">{t("pft.rulesBadge")}</p>
       </section>
+      {/* 레이스 보드 — 최근 참가 */}
+      {races.length > 0 && (
+        <Card className="p-4 sm:p-5">
+          <p className="text-sm font-bold">{t("pft.race.mine")}</p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {races.map((r) => (
+              <li key={r.race!.code}>
+                <Link
+                  href={`/pft/race/${r.race!.code}`}
+                  className="flex flex-wrap items-center gap-3 rounded-xl bg-inset px-3.5 py-2.5 hover:bg-card-hover"
+                >
+                  <span className="font-mono text-xs font-bold tracking-[0.2em] text-muted">{r.race!.code}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.race!.title}</span>
+                  <span className="text-xs text-muted">
+                    {r.finished_at
+                      ? formatMs(r.total_ms)
+                      : t(r.race!.status === "closed" ? "pft.race.closed" : "pft.race.open")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
     </main>
   );
 }
