@@ -344,9 +344,18 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-accent">{t("pft.race.staff")}</p>
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{race.title}</h1>
           <p className="mt-1 text-sm text-muted">
-            {t("pft.race.code")}{" "}
-            <span className="font-mono font-bold tracking-[0.2em] text-foreground">{race.code}</span>
-            {" · "}
+            {race.join_open ? (
+              <>
+                {t("pft.race.code")}{" "}
+                <span className="font-mono font-bold tracking-[0.2em] text-foreground">{race.code}</span>
+                {" · "}
+              </>
+            ) : (
+              <>
+                {t("pft.race.staffAddedOnly")}
+                {" · "}
+              </>
+            )}
             <span className={closed ? "text-muted" : "text-success"}>{t(closed ? "pft.race.closed" : "pft.race.open")}</span>
             {offline && (
               <>

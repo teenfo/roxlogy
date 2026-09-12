@@ -15,6 +15,8 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [crew, setCrew] = useState(crews[0]?.slug ?? "");
+  // 참가 방식 — 코드로 스스로 참가 vs 운영진이 추가(코드 없음)
+  const [joinOpen, setJoinOpen] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -26,6 +28,7 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
     const { data, error } = await supabase.rpc("pft_race_create", {
       p_title: title.trim(),
       p_crew_slug: crew || null,
+      p_join_open: joinOpen,
     });
     setBusy(false);
     if (error) return setErr(error.message);
@@ -58,6 +61,34 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
           ))}
         </select>
       </label>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 text-xs text-muted">{t("pft.race.fldJoinMode")}</legend>
+        {(
+          [
+            ["code", true, "pft.race.joinModeCode", "pft.race.joinModeCodeHint"],
+            ["staff", false, "pft.race.joinModeStaff", "pft.race.joinModeStaffHint"],
+          ] as const
+        ).map(([key, value, label, hint]) => (
+          <label
+            key={key}
+            className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 ${
+              joinOpen === value ? "border-accent bg-highlight" : "border-line-soft bg-inset"
+            }`}
+          >
+            <input
+              type="radio"
+              name="join-mode"
+              className="mt-0.5 h-4 w-4 accent-accent"
+              checked={joinOpen === value}
+              onChange={() => setJoinOpen(value)}
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-bold">{t(label)}</span>
+              <span className="mt-0.5 block text-xs text-muted">{t(hint)}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
       {err && <p role="alert" className="text-sm text-danger">{err}</p>}
       <button
         type="submit"

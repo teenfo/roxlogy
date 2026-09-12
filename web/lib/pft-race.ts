@@ -12,6 +12,8 @@ export type RaceInfo = {
   crew: string | null;
   crew_slug: string | null;
   created_at: string;
+  /** 참가 코드로 자가 참가를 허용하는 레이스인지. false 면 운영진이 참가자를 추가한다(코드 비공개). */
+  join_open: boolean;
 };
 
 export type RaceEntry = {

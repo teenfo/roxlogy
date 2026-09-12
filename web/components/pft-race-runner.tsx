@@ -40,6 +40,7 @@ export function PftRaceRunner({
 
   const [entry, setEntry] = useState<MyEntry | null>(initialEntry);
   const [status, setStatus] = useState(race.status);
+  const [joinOpen, setJoinOpen] = useState(race.join_open);
   const [scaled, setScaled] = useState(initialEntry?.scaled ?? false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -75,6 +76,9 @@ export function PftRaceRunner({
   const running = joined && local.startedLocal != null && !finished && !!entry?.started_at;
   const done = splits.length >= PFT_STATIONS.length;
   const closed = status === "closed";
+  // 코드는 "아직 참가하지 않은 사람"에게만 필요하다 — 이미 참가했으면 다시 보여 주지 않는다.
+  // (운영진은 불러 줘야 하므로 계속 보인다. 코드 없는 레이스는 아무에게도 보이지 않는다.)
+  const showCode = joinOpen && (!joined || canManage);
   // 뷰에 주는 시작 시각 — 서버가 시작을 알 때만 (스태프가 초기화하면 다시 대기)
   const startedAt = joined && entry?.started_at && local.startedLocal != null ? local.startedLocal : null;
 
@@ -254,6 +258,16 @@ export function PftRaceRunner({
     persist({ startedLocal: null, pending: [] });
   };
 
+  const setJoinMode = async (next: boolean) => {
+    const j = (await call("pft_race_set_join_open", { p_race: race.id, p_open: next })) as
+      | { ok?: boolean }
+      | null;
+    if (!j?.ok) return;
+    setJoinOpen(next);
+    setNotice(t(next ? "pft.race.joinOpenedDone" : "pft.race.joinClosedDone"));
+    router.refresh();
+  };
+
   const setRaceStatus = async (next: "open" | "closed") => {
     if (next === "closed" && !window.confirm(t("pft.race.closeConfirm"))) return;
     const j = (await call("pft_race_set_status", { p_race: race.id, p_status: next })) as
@@ -302,8 +316,14 @@ export function PftRaceRunner({
       headerExtra={
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted">
-            {t("pft.race.title")} · {t("pft.race.code")}{" "}
-            <span className="font-mono font-bold tracking-[0.2em] text-foreground">{race.code}</span>
+            {t("pft.race.title")}
+            {showCode && (
+              <>
+                {" · "}
+                {t("pft.race.code")}{" "}
+                <span className="font-mono font-bold tracking-[0.2em] text-foreground">{race.code}</span>
+              </>
+            )}
             {" · "}
             <span className={closed ? "text-muted" : "text-success"}>
               {t(closed ? "pft.race.closed" : "pft.race.open")}
@@ -328,15 +348,19 @@ export function PftRaceRunner({
           )}
           {!joined && (
             <div className="rounded-2xl border border-line bg-card p-5">
-              <p className="text-sm text-muted">{t("pft.race.joinDesc")}</p>
-              <button
-                type="button"
-                onClick={join}
-                disabled={busy || closed}
-                className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-black text-background hover:brightness-110 disabled:opacity-40"
-              >
-                {t("pft.race.join")}
-              </button>
+              <p className="text-sm text-muted">
+                {joinOpen ? t("pft.race.joinDesc") : t("pft.race.staffAddedOnly")}
+              </p>
+              {joinOpen && (
+                <button
+                  type="button"
+                  onClick={join}
+                  disabled={busy || closed}
+                  className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-black text-background hover:brightness-110 disabled:opacity-40"
+                >
+                  {t("pft.race.join")}
+                </button>
+              )}
               {closed && <p className="mt-2 text-xs text-muted">{t("pft.race.closedNote")}</p>}
             </div>
           )}
@@ -391,7 +415,10 @@ export function PftRaceRunner({
         canManage ? (
           <div className="rounded-2xl border border-line bg-card p-4 sm:p-5">
             <p className="text-sm font-bold">{t("pft.race.manage")}</p>
-            <p className="mt-1 text-xs text-muted">{t("pft.race.manageDesc")}</p>
+            <p className="mt-1 text-xs text-muted">
+              {t("pft.race.manageDesc")}{" "}
+              {t(joinOpen ? "pft.race.joinModeOpenNow" : "pft.race.joinModeClosedNow", { code: race.code })}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Link
                 href={`/pft/race/${race.code}/staff`}
@@ -399,6 +426,9 @@ export function PftRaceRunner({
               >
                 {t("pft.race.staffOpen")}
               </Link>
+              <button type="button" onClick={() => setJoinMode(!joinOpen)} disabled={busy} className={btn}>
+                {t(joinOpen ? "pft.race.joinModeClose" : "pft.race.joinModeOpen")}
+              </button>
               {closed ? (
                 <button type="button" onClick={() => setRaceStatus("open")} disabled={busy} className={btn}>
                   {t("pft.race.reopen")}

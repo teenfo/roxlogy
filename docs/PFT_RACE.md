@@ -1,13 +1,28 @@
 # PFT 레이스 보드 (현장 측정 중계) — 2026-09-12
 
 ## 흐름
-1. **생성**: 전체 관리자 또는 크루 운영진이 `/pft/race/new` 에서 레이스를 만든다 → 6자리 참가 코드.
-2. **참가**: 참가자가 `/pft/race/join` 에 코드를 넣거나 `/pft/race/<코드>` 를 열어 참가한다.
+1. **생성**: 전체 관리자 또는 크루 운영진이 `/pft/race/new` 에서 레이스를 만든다. 만들 때 **참가 방식**을 고른다.
+2. **참가**: 코드 레이스는 참가자가 `/pft/race/join` 에 코드를 넣거나 `/pft/race/<코드>` 를 열어 참가한다.
+   코드 없는 레이스는 운영진이 스태프 타이밍에서 참가자를 추가한다.
 3. **측정**: 참가자 폰(파트너가 들고 눌러도 됨)에서 ▶ 시작 → 종목이 끝날 때마다 큰 버튼 한 번.
    각 탭이 서버에 동기화된다. 오프라인이면 localStorage 큐에 쌓였다가 순서대로 재전송.
 4. **중계**: `/board/<코드>` 공개 보드(로그인 불필요, TV·프로젝터용)가 Realtime 으로 순위·진행을 보여 준다.
 5. **완주**: 6번째 스플릿에서 `pft_results` 행이 자동 생성돼 개인 기록·리더보드·배지에 반영된다.
 6. **종료**: 운영진이 종료하면 참가·기록이 잠긴다(다시 열 수 있음).
+
+## 참가 방식 (마이그레이션 094)
+`pft_races.join_open` 이 갈래를 정한다.
+- **참가 코드 발급**(기본, `true`) — 6자리 코드를 보드·참가자 화면에 보여 주고 누구나 코드로 참가한다.
+- **코드 없이**(`false`) — 코드를 어디에도 보여 주지 않고 `pft_race_join` 이 `join_closed` 로 막는다. 운영진이 `pft_race_staff_add` 로 추가한다.
+- 코드 자체는 **항상 발급**한다 — `/pft/race/<코드>`·`/board/<코드>` 의 URL 키이기 때문이다. 코드 없는 레이스에서 코드는 주소일 뿐이고, 참가 여부는 서버가 `join_open` 으로 판정한다.
+- 운영진은 참가자 화면의 레이스 관리 카드에서 `pft_race_set_join_open` 으로 언제든 바꾼다(코드 참가 열기/닫기).
+
+## 이미 참가한 사람에게는 코드를 묻지 않는다
+코드는 "아직 참가하지 않은 사람"에게만 쓸모가 있다.
+- 보드: 엔트리에 내가 있으면 참가 코드 블록 대신 "내 측정 화면"(`/pft/race/<코드>`) 버튼을 보여 주고, 대기 행의 코드 안내와 푸터의 참가 CTA 도 같은 링크로 바뀐다.
+- 보드의 참가 CTA 는 `/pft/race/join`(코드 입력)이 아니라 그 레이스로 **바로** 간다 — 보드 앞에 선 사람에게 방금 본 코드를 다시 입력하게 하지 않는다.
+- 참가자 화면: 이미 참가했으면 헤더에서 코드를 뺀다. 운영진은 불러 줘야 하므로 계속 보인다.
+- `pft_race_join` 은 이미 엔트리가 있으면 `join_open` 과 무관하게 통과시킨다(코드 없는 레이스에 스태프가 추가한 사람 포함).
 
 ## 측정 화면은 하나다
 일반 측정(`/pft/measure`)과 레이스 측정(`/pft/race/<코드>`)은 같은 화면 `web/components/pft-measure-view.tsx`(표시 전용)를 쓴다.
@@ -30,7 +45,7 @@
 
 ## DB (마이그레이션 092)
 - `pft_races(code, title, crew_id, created_by, status open|closed)`, `pft_race_entries(race_id, user_id, started_at, splits int[], finished_at, total_ms, scaled, result_id)`.
-- 읽기는 누구나(RLS select true), 쓰기는 RPC 만: `pft_race_create`, `pft_race_set_status`(운영진), `pft_race_join`, `pft_race_start`, `pft_race_split`, `pft_race_undo`, `pft_race_reset`, `pft_race_my_entry`(본인), `pft_race_board`(anon 허용), 스태프용 `pft_race_search_members`, `pft_race_staff_add/start/split/undo/reset/remove`(운영진, 093).
+- 읽기는 누구나(RLS select true), 쓰기는 RPC 만: `pft_race_create`, `pft_race_set_status`(운영진), `pft_race_join`, `pft_race_start`, `pft_race_split`, `pft_race_undo`, `pft_race_reset`, `pft_race_my_entry`(본인), `pft_race_board`(anon 허용), 참가 방식 `pft_race_set_join_open`(운영진, 094), 스태프용 `pft_race_search_members`, `pft_race_staff_add/start/split/undo/reset/remove`(운영진, 093).
 - `pft_race_entries` 는 `supabase_realtime` 게시 + replica identity full. 보드는 변경 이벤트를 신호로만 쓰고 데이터는 `pft_race_board()` 로 다시 읽는다(이름 해석 포함). 5초 폴링 예비.
 
 ## 순위

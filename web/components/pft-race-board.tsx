@@ -84,6 +84,10 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   const waiting = rows.filter((r) => r.state === "waiting");
   const leader = finished[0] ?? null;
   const closed = data.race.status === "closed";
+  // 이미 참가한 사람에게는 코드를 다시 묻지 않는다 — 코드 블록 대신 내 측정 화면으로 안내
+  const joinedMe = meId != null && data.entries.some((e) => e.user_id === meId);
+  const showCode = data.race.join_open && !closed && !joinedMe;
+  const raceHref = `/pft/race/${data.race.code}`;
 
   // 리더보드 페이지 로테이션
   const pages = Math.max(1, Math.ceil(finished.length / PAGE_SIZE));
@@ -149,15 +153,31 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               wide
             />
           </div>
-          <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
-            <span className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.codeLabel")}</span>
-            <span className="flex h-[52px] items-center rounded-xl border border-line-strong bg-page px-5 font-mono text-2xl font-extrabold tracking-[0.32em]">
-              {data.race.code}
-            </span>
-            <Link href="/pft/race/join" className="text-[11px] text-[#8a7a2a] hover:text-accent">
-              roxlogy.com/pft/race/join
-            </Link>
-          </div>
+          {showCode && (
+            <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
+              <span className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.codeLabel")}</span>
+              <span className="flex h-[52px] items-center rounded-xl border border-line-strong bg-page px-5 font-mono text-2xl font-extrabold tracking-[0.32em]">
+                {data.race.code}
+              </span>
+              <span className="text-[11px] text-[#8a7a2a]">{t("pft.race.joinUrlHint")}</span>
+            </div>
+          )}
+          {joinedMe && (
+            <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
+              <span className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.youAreIn")}</span>
+              <Link
+                href={raceHref}
+                className="flex h-[52px] items-center rounded-xl bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110"
+              >
+                {t("pft.race.myScreen")}
+              </Link>
+            </div>
+          )}
+          {!data.race.join_open && !joinedMe && (
+            <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
+              <span className="max-w-[180px] text-center text-[11px] text-[#777]">{t("pft.race.staffAddedOnly")}</span>
+            </div>
+          )}
         </div>
       </section>
 
@@ -193,7 +213,9 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                   </span>
                 ))}
                 {waiting.length > 6 && <span>+{waiting.length - 6}</span>}
-                <span className="ml-auto text-[#777]">{t("pft.race.joinHint", { code: data.race.code })}</span>
+                {showCode && (
+                  <span className="ml-auto text-[#777]">{t("pft.race.joinHint", { code: data.race.code })}</span>
+                )}
               </div>
             )}
           </div>
@@ -309,9 +331,19 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                 silver: formatMs(PFT_CUTOFFS.under45.silver),
               })}
             </span>
-            <Link href={meId ? "/pft" : "/pft/race/join"} className="font-bold text-accent hover:underline">
-              {meId ? t("pft.race.allResults") : t("pft.race.joinCta")}
-            </Link>
+            {joinedMe ? (
+              <Link href={raceHref} className="font-bold text-accent hover:underline">
+                {t("pft.race.myScreen")} →
+              </Link>
+            ) : showCode ? (
+              <Link href={raceHref} className="font-bold text-accent hover:underline">
+                {t("pft.race.joinCta")} →
+              </Link>
+            ) : meId ? (
+              <Link href="/pft" className="font-bold text-accent hover:underline">
+                {t("pft.race.allResults")}
+              </Link>
+            ) : null}
           </footer>
         </section>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
@@ -18,7 +19,7 @@ export function PftBoardTopBar({ closed }: { closed: boolean }) {
   return (
     <div className="flex h-14 items-center justify-between border-b border-line-soft px-4 md:px-7">
       <Link href="/" className="flex items-center gap-2.5 text-base font-extrabold tracking-[0.08em]">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-black text-background">R</span>
+        <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} priority />
         ROXLOGY
       </Link>
       <div className="flex items-center gap-3.5 text-[13px] text-muted">
