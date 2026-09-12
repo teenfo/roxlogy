@@ -44,6 +44,8 @@ type Day = {
       exercise_id: string | null;
       target: WorkoutTarget | null;
       exercises: { name_ko: string; name_en: string } | null;
+      pending_exercise: string | null;
+      exercise_request_id: string | null;
     }[];
   }[];
 };
@@ -71,7 +73,7 @@ export default async function ProgramDetailPage({
          workout_templates (
            id, title, type,
            workout_template_items (
-             id, seq, exercise_id, target,
+             id, seq, exercise_id, target, pending_exercise, exercise_request_id,
              exercises ( name_ko, name_en )
            )
          )
@@ -316,7 +318,17 @@ export default async function ProgramDetailPage({
                                     {i + 1}
                                   </span>
                                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                                    {exName(it.exercises)}
+                                    {it.exercises
+                                      ? exName(it.exercises)
+                                      : (it.pending_exercise ?? "—")}
+                                    {!it.exercises && it.pending_exercise && (
+                                      <span
+                                        title={t("programs.pendingHint")}
+                                        className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-accent"
+                                      >
+                                        {t("programs.pendingBadge")}
+                                      </span>
+                                    )}
                                   </span>
                                   <span className="flex flex-wrap items-center gap-1.5 max-md:order-last max-md:w-full max-md:pl-8">
                                     {targetParts(it.target, locale).map((part, j) => (

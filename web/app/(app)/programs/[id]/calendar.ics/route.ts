@@ -179,7 +179,7 @@ export async function GET(
            id, day_index, focus, notes,
            workout_templates (
              title,
-             workout_template_items ( seq, target, exercises ( name_ko, name_en ) )
+             workout_template_items ( seq, target, pending_exercise, exercises ( name_ko, name_en ) )
            )
          )`,
       )
@@ -203,6 +203,7 @@ export async function GET(
           workout_template_items: {
             seq: number;
             target: WorkoutTarget | null;
+            pending_exercise: string | null;
             exercises: { name_ko: string; name_en: string } | null;
           }[];
         }[];
@@ -225,8 +226,9 @@ export async function GET(
               .sort((a, b) => a.seq - b.seq)
               .map((it) => ({
                 target: it.target,
-                name_ko: it.exercises?.name_ko ?? null,
-                name_en: it.exercises?.name_en ?? null,
+                // 승인 대기 항목은 입력 이름 그대로 (program_calendar RPC 와 같은 규칙)
+                name_ko: it.exercises?.name_ko ?? it.pending_exercise ?? null,
+                name_en: it.exercises?.name_en ?? it.pending_exercise ?? null,
               })),
           })),
         })),

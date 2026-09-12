@@ -37,6 +37,9 @@ export type Item = {
   exercise_id: string | null;
   target: WorkoutTarget | null;
   exercises: { name_ko: string; name_en: string } | null;
+  /** 미등록 운동(승인 대기) — 등록 요청이 승인되면 서버 트리거가 exercise_id 를 채운다 */
+  pending_exercise: string | null;
+  exercise_request_id: string | null;
 };
 export type Workout = {
   id: string;
@@ -315,6 +318,8 @@ export function ProgramBuilder({
                   seq: it.seq,
                   exercise_id: it.exercise_id,
                   target: it.target,
+                  pending_exercise: it.pending_exercise,
+                  exercise_request_id: it.exercise_request_id,
                 })),
               );
             if (itemErr) return { error: itemErr };
@@ -406,20 +411,33 @@ export function ProgramBuilder({
     );
   };
 
-  /** 운동 DB 에 없는 종목 — 관리자만 추가할 수 있으니 등록 요청으로 남긴다 */
-  const requestExercise = async (name: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    const ok = await run(
-      () =>
-        supabase
-          .from("exercise_requests")
-          .insert({ requested_by: user.id, name_ko: name.trim() }),
-      { refresh: false },
-    );
-    if (ok) window.alert(t("programs.newExRequested", { q: name.trim() }));
+  /** 운동 DB 에 없는 종목 — "승인 대기" 항목으로 바로 넣는다.
+   *  등록 요청은 request_exercise_placeholder RPC 가 같은 이름끼리 합쳐 만들고,
+   *  관리자가 승인하면 서버 트리거가 이 항목의 exercise_id 를 채운다(마이그레이션 090). */
+  const requestExercise = async (w: Workout, name: string) => {
+    const q = name.trim().slice(0, 60);
+    if (!q) return;
+    const nextSeq =
+      w.workout_template_items.reduce((m, i) => Math.max(m, i.seq), 0) + 1;
+    const ok = await run(async () => {
+      const { data: reqId, error } = await supabase.rpc(
+        "request_exercise_placeholder",
+        { p_name: q },
+      );
+      if (error) return { error };
+      return await supabase.from("workout_template_items").insert({
+        template_id: w.id,
+        seq: nextSeq,
+        exercise_id: null,
+        target: null,
+        pending_exercise: q,
+        exercise_request_id: reqId as string,
+      });
+    });
+    if (ok) {
+      setPick((s) => ({ ...s, [w.id]: { ...EMPTY_DRAFT } }));
+      window.alert(t("programs.newExRequested", { q }));
+    }
   };
 
   const jumpToWeek = (w: number) => {
@@ -650,7 +668,7 @@ function DayCard({
   onAddItem: (w: Workout) => void;
   onDelItem: (id: string) => void;
   onMoveItem: (w: Workout, id: string, dir: -1 | 1) => void;
-  onRequestExercise: (name: string) => void;
+  onRequestExercise: (w: Workout, name: string) => void;
 }) {
   const { t } = useI18n();
   const items = day.workout_templates.reduce(
@@ -754,7 +772,7 @@ function DayCard({
               onAddItem={() => onAddItem(w)}
               onDelItem={onDelItem}
               onMoveItem={(id, dir) => onMoveItem(w, id, dir)}
-              onRequestExercise={onRequestExercise}
+              onRequestExercise={(name) => onRequestExercise(w, name)}
             />
           ))}
           <AddWorkoutButton busy={busy} onAdd={onAddWorkout} />
@@ -919,7 +937,15 @@ function WorkoutCard({
                 {i + 1}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                {exName(it.exercises)}
+                {it.exercises ? exName(it.exercises) : (it.pending_exercise ?? "—")}
+                {!it.exercises && it.pending_exercise && (
+                  <span
+                    title={t("programs.pendingHint")}
+                    className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-accent"
+                  >
+                    {t("programs.pendingBadge")}
+                  </span>
+                )}
               </span>
               <span className="flex flex-wrap items-center gap-1.5 max-md:order-last max-md:w-full max-md:pl-8">
                 {targetParts(it.target, locale).map((part, j) => (

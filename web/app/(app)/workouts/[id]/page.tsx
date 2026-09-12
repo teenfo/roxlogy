@@ -30,6 +30,7 @@ type Item = {
   seq: number;
   target: WorkoutTarget | null;
   exercises: { id: string; name_ko: string; name_en: string } | null;
+  pending_exercise: string | null;
 };
 
 type CompRow = {
@@ -53,7 +54,7 @@ export default async function WorkoutPage({
     .select(
       `id, title, type,
        program_days ( day_index, focus, programs ( id, title ) ),
-       workout_template_items ( id, seq, target, exercises ( id, name_ko, name_en ) )`,
+       workout_template_items ( id, seq, target, pending_exercise, exercises ( id, name_ko, name_en ) )`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -101,7 +102,13 @@ export default async function WorkoutPage({
       | null;
     return {
       id: it.id,
-      name: ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : "—",
+      name: ex
+        ? locale === "ko"
+          ? ex.name_ko
+          : ex.name_en
+        : it.pending_exercise
+          ? `${it.pending_exercise} (${t("programs.pendingBadge")})`
+          : "—",
       exerciseId: ex?.id ?? null,
       targetParts: targetParts(it.target, locale),
     };

@@ -49,7 +49,7 @@ export default async function AdminContentPage({
   ).map((r) => {
     // AI 프로그램 생성(ai_materialize_program, 마이그레이션 089)이 남긴 요청은 메모가
     // 이 접두어로 시작한다 — 접두어 뒤에는 프로그램 제목이 붙는다.
-    const m = r.note?.match(/^AI 프로그램 생성에서 자동 요청(?: — (.*))?$/s);
+    const m = r.note?.match(/^AI 프로그램 생성에서 자동 요청(?: — (.*))?$/);
     return {
       id: r.id,
       name_ko: r.name_ko,

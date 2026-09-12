@@ -467,7 +467,7 @@ const handler = createMcpHandler(
       {
         title: "운동 등록 요청",
         description:
-          "운동 DB 에 없는 운동의 등록을 요청한다 (관리자 승인 후 추가됨 — 승인 전에는 워크아웃에 쓸 수 없다). 이미 있는 운동이면 already_exists, 표기만 다를 수 있는 유사 운동이 있으면 similar_existing 후보를 돌려준다 — 사용자에게 같은 운동인지 확인하고, 같은 운동이면 그 등록 이름을 쓰고, 정말 새 운동이면 confirm_new=true 로 재요청하라.",
+          "운동 DB 에 없는 운동의 등록을 요청한다 (관리자 승인 후 추가됨). 프로그램 등록 중이라면 이 도구 대신 그냥 그 이름으로 create_program/set_program_day 를 부르면 된다 — 승인 대기 항목으로 저장되고 요청도 자동으로 남는다. 이미 있는 운동이면 already_exists, 표기만 다를 수 있는 유사 운동이 있으면 similar_existing 후보를 돌려준다 — 사용자에게 같은 운동인지 확인하고, 같은 운동이면 그 등록 이름을 쓰고, 정말 새 운동이면 confirm_new=true 로 재요청하라.",
         inputSchema: z.object({
           name_ko: z.string().min(1).max(60),
           name_en: z.string().max(60).optional(),
@@ -517,7 +517,7 @@ const handler = createMcpHandler(
         title: "훈련 프로그램 생성",
         description:
           "훈련 프로그램(템플릿)을 일차 계획과 함께 한 번에 생성한다. days 는 [{day_index(1부터, 주수×7 이내), focus(한 줄 요약), notes(상세 와드), workouts?}] 배열. " +
-          "workouts 아이템의 exercise 는 운동 DB(list_exercises)에 등록된 이름(한/영)만 허용 — 미등록 이름이 있으면 unknown_exercises 로 전체 거부되며 이름별 유사 후보(suggestions)가 함께 온다 — 표기 차이로 보이면 사용자 확인 후 후보 이름으로 재시도하고, 실제 없는 운동은 request_exercise 로 등록을 요청하라. " +
+          "workouts 아이템의 exercise 는 운동 DB(list_exercises)의 등록 이름(한/영·별칭)을 우선 쓴다. 미등록 이름은 '승인 대기' 항목으로 저장되고 등록 요청이 자동으로 남으며, 관리자가 승인하면 항목이 자동으로 채워진다(응답의 pending_exercises 를 사용자에게 알려라). 단, 유사 후보가 있는 이름은 오타일 수 있어 unknown_exercises 로 돌려주며 suggestions 가 함께 온다 — 사용자에게 확인해 같은 운동이면 후보 이름으로, 정말 새 운동이면 confirm_unknown=true 로 재시도하라. " +
           "아이템 처방은 숫자 필드로 구조화해 넣어라: distance_m(거리 m)·weight_kg(무게)·reps(세트당 횟수)·sets(세트)·duration_s(시간 초)·rest_s(세트 사이 휴식 초) — 통계 집계에 쓰이므로 '400m 8세트 세트간 90초'는 note 가 아니라 distance_m:400, sets:8, rest_s:90 으로. note 에는 강도·큐잉 등 숫자로 안 담기는 것만. " +
           "week_pattern 은 훈련 요일 배열(0=월 … 6=일, 예: [0,2,4] = 월·수·금). 넣으면 빌더가 '3일차 = 금요일'을 보여주고 주 단위로 묶어 준다 — 주 N회 계획이면 꼭 넣어라. " +
           "workouts 를 생략한 일차는 휴식일로 남는다 — 주간 패턴에 맞춰 쉬는 날도 일차로 만들어 두면 일정이 요일과 어긋나지 않는다. " +
@@ -566,9 +566,13 @@ const handler = createMcpHandler(
             .optional(),
           description: z.string().max(2000).optional(),
           week_pattern: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+          confirm_unknown: z
+            .boolean()
+            .optional()
+            .describe("유사 후보가 있어 unknown_exercises 로 거부된 이름을 사용자 확인 후 그대로 '승인 대기' 항목으로 저장한다"),
         }),
       },
-      async ({ title, weeks, days, level, description, week_pattern }, ctx) =>
+      async ({ title, weeks, days, level, description, week_pattern, confirm_unknown }, ctx) =>
         out(
           await writeRpc("mcp_create_program", {
             p_token: tok(ctx),
@@ -578,6 +582,7 @@ const handler = createMcpHandler(
             p_level: level ?? "intermediate",
             p_description: description ?? null,
             p_week_pattern: week_pattern ?? null,
+            p_confirm_unknown: confirm_unknown ?? false,
           }),
         ),
     );
@@ -587,7 +592,7 @@ const handler = createMcpHandler(
       {
         title: "프로그램 일차 수정",
         description:
-          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. workouts 를 주면 그 일차의 워크아웃을 통째로 교체한다(운동은 list_exercises 의 등록 이름만). 아이템 처방은 distance_m·weight_kg·reps·sets·duration_s·rest_s 숫자 필드로 구조화하고 note 에는 강도·큐잉만. " +
+          "내 프로그램의 특정 일차(day_index)를 수정/추가한다. workouts 를 주면 그 일차의 워크아웃을 통째로 교체한다(운동 이름 규칙은 create_program 과 같다 — 미등록 이름은 승인 대기 항목, 유사 후보가 있으면 unknown_exercises → 확인 후 confirm_unknown=true). 아이템 처방은 distance_m·weight_kg·reps·sets·duration_s·rest_s 숫자 필드로 구조화하고 note 에는 강도·큐잉만. " +
           "workouts 에 빈 배열([])을 주면 그 일차는 휴식일이 된다(일차는 남고 워크아웃만 사라진다). focus·notes·workouts 를 모두 생략하면 그 일차 자체를 삭제한다. 워크아웃 교체·일차 삭제는 되돌릴 수 없으니 실행 전 사용자에게 확인받아라.",
         inputSchema: z.object({
           program_id: z.string().uuid(),
@@ -620,9 +625,10 @@ const handler = createMcpHandler(
             )
             .max(5)
             .optional(),
+          confirm_unknown: z.boolean().optional(),
         }),
       },
-      async ({ program_id, day_index, focus, notes, workouts }, ctx) =>
+      async ({ program_id, day_index, focus, notes, workouts, confirm_unknown }, ctx) =>
         out(
           await writeRpc("mcp_set_program_day", {
             p_token: tok(ctx),
@@ -631,6 +637,7 @@ const handler = createMcpHandler(
             p_focus: focus ?? null,
             p_notes: notes ?? null,
             p_workouts: workouts ?? null,
+            p_confirm_unknown: confirm_unknown ?? false,
           }),
         ),
     );

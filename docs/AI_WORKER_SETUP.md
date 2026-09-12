@@ -22,9 +22,10 @@ pg_cron(1분) → Edge `analysis-dispatch`
   잡은 실행만 처리한다(마이그레이션 088, 감사 A07). `claim_count` 가 5를 넘은 작업은 포기해
   영구 실패 작업이 무한 재시도되지 않는다. 프로그램 실체화는 `ai_materialize_program()`
   한 트랜잭션(A06) — 일부 INSERT 실패 시 빈 프로그램이 남지 않는다.
-  운동 DB 에 없는 이름은 exercise_requests 에 pending 요청을 자동으로 남기고(마이그레이션
-  089, 요청자 = 프로그램 소유자), 아이템은 exercise_id 없이 이름을 note 에 둔다 — 관리자가
-  어드민 > 콘텐츠에서 승인하면 다음 생성부터 매칭된다.
+  운동 DB 에 없는 이름은 "승인 대기" 항목(workout_template_items.pending_exercise +
+  exercise_request_id)으로 저장되고 exercise_requests 에 pending 요청이 자동으로 남는다
+  (마이그레이션 089·090, 요청자 = 프로그램 소유자). 관리자가 어드민 > 콘텐츠에서 승인하면
+  트리거가 그 요청을 기다리던 모든 항목의 exercise_id 를 채운다 — MCP·웹 빌더도 같은 규칙.
 - 프롬프트는 이 레포(`supabase/functions/analysis-dispatch`) 소유. 게이트웨이
   roles.yaml 은 모델 정책만 — 모델 교체는 게이트웨이 한 줄, 서비스 코드 무변경.
 - 합계·격차는 함수가 미리 계산해 프롬프트에 주입(소형 모델 산술 오류 방지).
