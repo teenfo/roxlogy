@@ -394,7 +394,12 @@ export default async function PftPage() {
       {/* 레이스 보드 — 최근 참가 */}
       {races.length > 0 && (
         <Card className="p-4 sm:p-5">
-          <p className="text-sm font-bold">{t("pft.race.mine")}</p>
+          <p className="flex items-baseline justify-between gap-3 text-sm font-bold">
+            {t("pft.race.mine")}
+            <Link href="/pft/race" className="text-xs font-semibold text-accent hover:underline">
+              {t("pft.race.viewAll")}
+            </Link>
+          </p>
           <ul className="mt-2 flex flex-col gap-1.5">
             {races.map((r) => (
               <li key={r.race!.code}>
@@ -417,7 +422,12 @@ export default async function PftPage() {
       )}
       {created.length > 0 && (
         <Card className="p-4 sm:p-5">
-          <p className="text-sm font-bold">{t("pft.race.created")}</p>
+          <p className="flex items-baseline justify-between gap-3 text-sm font-bold">
+            {t("pft.race.created")}
+            <Link href="/pft/race" className="text-xs font-semibold text-accent hover:underline">
+              {t("pft.race.viewAll")}
+            </Link>
+          </p>
           <ul className="mt-2 flex flex-col gap-1.5">
             {created.map((r) => (
               <li key={r.code}>

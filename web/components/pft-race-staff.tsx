@@ -323,16 +323,10 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   // 검색 결과 — 입력을 지우면 바로 사라진다(마지막 응답이 아직 남아 있어도)
   const results = q.trim() && fetched && fetched.q === q.trim() ? fetched.rows : null;
 
-  // 카드 순서: 측정 중(앞선 종목 먼저) → 대기 → 완주
-  const order = { running: 0, waiting: 1, finished: 2 } as const;
-  const entries = [...data.entries].sort((a, b) => {
-    const sa = entryState(a);
-    const sb = entryState(b);
-    if (order[sa] !== order[sb]) return order[sa] - order[sb];
-    if (sa === "running") return b.splits.length - a.splits.length;
-    if (sa === "finished") return (a.total_ms ?? 0) - (b.total_ms ?? 0);
-    return 0;
-  });
+  // 카드 순서는 "참가 순서"로 고정한다(서버가 joined_at 순으로 준다).
+  // 진행에 따라 다시 정렬하면 종목을 찍을 때마다 카드가 자리를 옮겨서,
+  // 스태프가 누가 어디 있었는지를 놓친다. 상태는 색·라벨로만 나타낸다.
+  const entries = data.entries;
   const waiting = entries.filter((e) => entryState(e) === "waiting");
   const stationLabel = (i: number) => t(PFT_STATIONS[i].label as DictKey);
 
@@ -583,7 +577,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         <span key={st.key} className="flex flex-col items-center gap-1">
                           <span
                             className={`h-2 w-full rounded-full ${cur ? "motion-safe:animate-pulse" : ""}`}
-                            style={{ background: fin ? PFT_COLORS[st.key] : cur ? "var(--accent)" : "var(--line)" }}
+                            style={{ background: fin || cur ? PFT_COLORS[st.key] : "var(--line)" }}
                           />
                           <span className="tabular text-[10px] text-muted">{ms != null ? formatMs(ms) : ""}</span>
                         </span>
@@ -596,7 +590,10 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       type="button"
                       onClick={() => tap(e)}
                       disabled={closed}
-                      className="mt-3 flex h-16 w-full flex-col items-center justify-center rounded-2xl bg-accent text-background hover:brightness-110 active:brightness-95 disabled:opacity-40"
+                      // 버튼 색 = 지금 찍을 종목의 색. 6칸 바의 현재 칸과 같은 색이라
+                      // 어느 종목을 찍는 중인지 색만으로 알아본다.
+                      style={{ background: PFT_COLORS[PFT_STATIONS[current].key] }}
+                      className="mt-3 flex h-16 w-full flex-col items-center justify-center rounded-2xl text-[#141414] hover:brightness-110 active:brightness-95 disabled:opacity-40"
                     >
                       <span className="text-[11px] font-bold opacity-80">{t("pft.race.tapHint", { n: current + 1 })}</span>
                       <span className="text-xl font-black">{t("pft.race.staffTap", { station: stationLabel(current) })} ✓</span>
