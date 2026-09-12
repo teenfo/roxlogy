@@ -415,6 +415,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       )}
       {closed && <p className="text-xs text-danger">{t("pft.race.closedNote")}</p>}
 
+      {!closed && (
       <div className="grid gap-4 md:grid-cols-2">
         {/* 참가자 추가 */}
         <section className="rounded-2xl border border-line bg-card p-4 sm:p-5">
@@ -521,11 +522,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           )}
         </section>
       </div>
+      )}
 
       {/* 참가자 카드 */}
       <section>
         <p className="text-sm font-bold">{t("pft.race.staffAthletes", { n: entries.length })}</p>
-        <p className="mt-0.5 text-xs text-muted">{t("pft.race.staffHint")}</p>
+        {!closed && <p className="mt-0.5 text-xs text-muted">{t("pft.race.staffHint")}</p>}
         {entries.length === 0 ? (
           <p className="mt-2 rounded-2xl border border-line bg-card px-4 py-8 text-center text-sm text-muted">
             {t("pft.race.noEntries")}
@@ -538,13 +540,21 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
               const splits = [...e.splits, ...mine];
               const current = splits.length;
               const done = state === "finished" || current >= PFT_STATIONS.length;
-              const elapsed = e.started_at ? Math.max(0, now - Date.parse(e.started_at)) : 0;
+              // 종료된 레이스에서 완주하지 못한 사람은 미완주(DNF) — 경과가 계속 흐르면 안 된다
+              const dnf = closed && state !== "finished";
+              const elapsed = e.started_at && !closed ? Math.max(0, now - Date.parse(e.started_at)) : 0;
               const total = e.total_ms ?? (done ? splits[splits.length - 1] : null);
               return (
                 <li
                   key={e.entry_id}
                   className={`rounded-2xl border p-4 ${
-                    state === "running" ? "border-line-accent bg-highlight" : state === "finished" ? "border-line bg-card" : "border-line-soft bg-card opacity-80"
+                    dnf
+                      ? "border-line-soft bg-card opacity-80"
+                      : state === "running"
+                        ? "border-line-accent bg-highlight"
+                        : state === "finished"
+                          ? "border-line bg-card"
+                          : "border-line-soft bg-card opacity-80"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -558,12 +568,24 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         )}
                       </p>
                       <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                        {state === "finished" ? t("pft.race.finished") : state === "running" ? t("pft.race.running") : t("pft.race.waiting")}
+                        {dnf
+                          ? t("pft.race.dnf")
+                          : state === "finished"
+                            ? t("pft.race.finished")
+                            : state === "running"
+                              ? t("pft.race.running")
+                              : t("pft.race.waiting")}
                         {mine.length > 0 && ` · ${t("pft.race.staffPending", { n: mine.length })}`}
                       </p>
                     </div>
-                    <p className={`tabular text-3xl font-black leading-none ${state === "running" && !done ? "text-accent" : ""}`}>
-                      {state === "finished" ? formatMs(total) : state === "running" ? fmtClock(elapsed) : "0:00.0"}
+                    <p className={`tabular text-3xl font-black leading-none ${!dnf && state === "running" && !done ? "text-accent" : dnf ? "text-muted" : ""}`}>
+                      {state === "finished"
+                        ? formatMs(total)
+                        : dnf
+                          ? "—"
+                          : state === "running"
+                            ? fmtClock(elapsed)
+                            : "0:00.0"}
                     </p>
                   </div>
 
@@ -585,7 +607,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     })}
                   </div>
 
-                  {state === "running" && !done && (
+                  {state === "running" && !done && !closed && (
                     <button
                       type="button"
                       onClick={() => tap(e)}
@@ -604,7 +626,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       {t("pft.race.staffPending", { n: mine.length })}
                     </p>
                   )}
-                  {state === "waiting" && (
+                  {state === "waiting" && !closed && (
                     <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-muted">
                       <input
                         type="checkbox"
@@ -618,6 +640,11 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     </label>
                   )}
 
+                  {closed ? (
+                    <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-xs text-muted">
+                      {t("pft.race.closedLocked")}
+                    </p>
+                  ) : (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {(state === "running" || state === "finished") && (
                       <button
@@ -648,6 +675,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       {t("pft.race.staffRemove")}
                     </button>
                   </div>
+                  )}
                 </li>
               );
             })}

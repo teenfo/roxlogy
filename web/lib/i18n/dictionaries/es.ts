@@ -149,6 +149,8 @@ const es: Record<DictKey, string> = {
   "pft.race.open": "En curso",
   "pft.race.closed": "Cerrada",
   "pft.race.closedNote": "Carrera cerrada. No se puede unir ni registrar.",
+  "pft.race.closedLocked": "Esta carrera está cerrada. Reábrela para cambiar algo.",
+  "pft.race.dnf": "DNF",
   "pft.race.openBoard": "Abrir tablero",
   "pft.race.share": "Compartir tablero",
   "pft.race.shareText": "{title} — Carrera PFT de Roxlogy\\nCódigo: {code}\\nTablero: {url}",

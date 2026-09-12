@@ -150,6 +150,8 @@ const en = {
   "pft.race.open": "Live",
   "pft.race.closed": "Closed",
   "pft.race.closedNote": "This race is closed. Joining and recording are locked.",
+  "pft.race.closedLocked": "This race is closed. Reopen it to make changes.",
+  "pft.race.dnf": "DNF",
   "pft.race.openBoard": "Open board",
   "pft.race.share": "Share board",
   "pft.race.shareText": "{title} — Roxlogy PFT race\\nJoin code: {code}\\nBoard: {url}",

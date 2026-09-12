@@ -145,7 +145,11 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
         <div className="flex flex-wrap items-center gap-3.5">
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4" role="status">
             <Stat label={t("pft.race.stats.total")} value={String(rows.length)} />
-            <Stat label={t("pft.race.stats.running")} value={String(running.length)} tone="accent" />
+            <Stat
+              label={closed ? t("pft.race.dnf") : t("pft.race.stats.running")}
+              value={String(running.length)}
+              tone={closed ? undefined : "accent"}
+            />
             <Stat label={t("pft.race.stats.finished")} value={String(finished.length)} tone="success" />
             <Stat
               label={t("pft.race.stats.best")}
@@ -187,8 +191,10 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
         <section className="flex flex-col overflow-hidden rounded-2xl border border-line bg-card">
           <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
             <p className="flex items-center gap-2.5 text-[17px] font-extrabold">
-              {t("pft.race.running")}
-              <span className={`${pill} bg-highlight text-accent`}>{running.length}</span>
+              {closed ? t("pft.race.dnf") : t("pft.race.running")}
+              <span className={`${pill} ${closed ? "bg-line text-muted" : "bg-highlight text-accent"}`}>
+                {running.length}
+              </span>
             </p>
             <span className="hidden text-xs text-[#777] md:inline">{t("pft.race.segHeader")}</span>
           </header>
@@ -197,7 +203,14 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               <p className="flex flex-1 items-center justify-center py-10 text-sm text-muted">{t("pft.race.noRunning")}</p>
             ) : (
               running.slice(0, RUNNING_MAX).map((r) => (
-                <LiveRow key={r.entry_id} r={r} now={now} leaderSplits={leader?.splits ?? null} stationLabel={stationLabel} />
+                <LiveRow
+                  key={r.entry_id}
+                  r={r}
+                  now={now}
+                  closed={closed}
+                  leaderSplits={leader?.splits ?? null}
+                  stationLabel={stationLabel}
+                />
               ))
             )}
             {running.length > RUNNING_MAX && (
@@ -402,20 +415,23 @@ function Avatar({ name, size }: { name: string; size: number }) {
 function LiveRow({
   r,
   now,
+  closed,
   leaderSplits,
   stationLabel,
 }: {
   r: RankedEntry;
   now: number;
+  /** 종료된 레이스 — 경과를 멈추고 미완주로 표시한다 */
+  closed: boolean;
   leaderSplits: number[] | null;
   stationLabel: (i: number) => string;
 }) {
   const { t } = useI18n();
   const cur = r.current ?? 0;
-  const elapsed = r.elapsed ?? 0;
+  const elapsed = closed ? (r.splits[r.splits.length - 1] ?? 0) : (r.elapsed ?? 0);
   const curElapsed = elapsed - (cur === 0 ? 0 : r.splits[cur - 1]);
-  const progress = segmentProgress(r, curElapsed, leaderSplits);
-  const fresh = !!r.started_at && now - Date.parse(r.started_at) < 30_000;
+  const progress = closed ? null : segmentProgress(r, curElapsed, leaderSplits);
+  const fresh = !closed && !!r.started_at && now - Date.parse(r.started_at) < 30_000;
   return (
     <div
       className={`grid grid-cols-[44px_minmax(0,1fr)] items-center gap-3.5 rounded-[14px] border bg-page px-4 py-3.5 md:grid-cols-[56px_minmax(0,1fr)_auto] md:gap-[18px] md:px-[18px] motion-safe:animate-[rowin_.3s_ease-out] ${
@@ -429,20 +445,30 @@ function LiveRow({
           {r.scaled && (
             <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">{t("pft.scaledTag")}</span>
           )}
-          <span className="hidden h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-highlight px-2.5 text-xs font-extrabold text-accent md:inline-flex">
-            {cur + 1}/6 {stationLabel(cur)}
+          <span
+            className={`hidden h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-extrabold md:inline-flex ${
+              closed ? "bg-line text-muted" : "bg-highlight text-accent"
+            }`}
+          >
+            {closed ? t("pft.race.dnf") : `${cur + 1}/6 ${stationLabel(cur)}`}
           </span>
-          <span className="tabular shrink-0 text-[26px] font-extrabold leading-none md:hidden">{fmtClock(elapsed)}</span>
+          <span className="tabular shrink-0 text-[26px] font-extrabold leading-none md:hidden">
+            {closed ? "—" : fmtClock(elapsed)}
+          </span>
         </div>
-        <span className="inline-flex h-6 w-fit items-center gap-1.5 whitespace-nowrap rounded-full bg-highlight px-2.5 text-xs font-extrabold text-accent md:hidden">
-          {cur + 1}/6 {stationLabel(cur)}
+        <span
+          className={`inline-flex h-6 w-fit items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-extrabold md:hidden ${
+            closed ? "bg-line text-muted" : "bg-highlight text-accent"
+          }`}
+        >
+          {closed ? t("pft.race.dnf") : `${cur + 1}/6 ${stationLabel(cur)}`}
         </span>
         <div className="grid grid-cols-3 gap-1.5 md:grid-cols-6" aria-label={t("pft.race.progressLabel", { done: r.splits.length })}>
           {PFT_STATIONS.map((st, i) => {
             const done = i < r.splits.length;
             const isCur = i === cur;
             const ms = segmentMs(r.splits, i);
-            const width = done ? 100 : isCur ? (progress ?? 100) : 0;
+            const width = done ? 100 : isCur && !closed ? (progress ?? 100) : 0;
             return (
               <div key={st.key} className="flex flex-col gap-1.5">
                 <div className="relative h-2.5 overflow-hidden rounded-[5px] bg-[#1c1c1c]">
@@ -455,8 +481,8 @@ function LiveRow({
                 </div>
                 <div className="tabular flex justify-between text-xs">
                   <span className="truncate text-[#777]">{stationLabel(i)}</span>
-                  <span className={`font-bold ${done ? "text-[#c9c9c9]" : isCur ? "text-accent" : "text-[#555]"}`}>
-                    {done && ms != null ? formatMs(ms) : isCur ? fmtClock(curElapsed) : "—"}
+                  <span className={`font-bold ${done ? "text-[#c9c9c9]" : isCur && !closed ? "text-accent" : "text-[#555]"}`}>
+                    {done && ms != null ? formatMs(ms) : isCur && !closed ? fmtClock(curElapsed) : "—"}
                   </span>
                 </div>
               </div>
@@ -466,7 +492,7 @@ function LiveRow({
       </div>
       <div className="hidden min-w-[120px] text-right md:block">
         <p className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.elapsedLabel")}</p>
-        <p className="tabular text-4xl font-extrabold leading-[1.1]">{fmtClock(elapsed)}</p>
+        <p className="tabular text-4xl font-extrabold leading-[1.1]">{closed ? "—" : fmtClock(elapsed)}</p>
       </div>
     </div>
   );

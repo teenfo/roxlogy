@@ -126,9 +126,11 @@ export function PftRaceRunner({
     offsetRef.current = Date.parse(serverNow) - Date.now();
   }, [serverNow]);
 
-  // 다른 기기(스태프 타이밍·파트너 폰)에서 찍은 변화 반영 — 5초 폴링
+  // 다른 기기(스태프 타이밍·파트너 폰)에서 찍은 변화와 레이스 종료를 따라간다.
+  // 완주한 뒤에도 멈추지 않는다 — 멈추면 그 사이 레이스가 종료돼도 이 화면은 모르고
+  // "완주 취소" 같은 버튼을 계속 내주게 된다(서버는 거부하므로 헛손질이 된다).
   useEffect(() => {
-    if (!joined || finished) return;
+    if (!joined) return;
     const supabase = createClient();
     let cancelled = false;
     const sync = async () => {
@@ -145,7 +147,8 @@ export function PftRaceRunner({
         persist({ startedLocal: null, pending: [] });
       }
     };
-    const id = window.setInterval(() => void sync(), 5000);
+    // 완주 뒤에는 바뀔 일이 드물어 간격을 늘린다(종료 반영은 15초면 충분하다)
+    const id = window.setInterval(() => void sync(), finished ? 15000 : 5000);
     return () => {
       cancelled = true;
       window.clearInterval(id);

@@ -149,6 +149,8 @@ const ko: Record<DictKey, string> = {
   "pft.race.open": "진행 중",
   "pft.race.closed": "종료됨",
   "pft.race.closedNote": "종료된 레이스입니다. 참가·기록이 잠겨 있습니다.",
+  "pft.race.closedLocked": "종료된 레이스입니다. 다시 열어야 수정할 수 있습니다.",
+  "pft.race.dnf": "미완주",
   "pft.race.openBoard": "보드 열기",
   "pft.race.share": "보드 공유",
   "pft.race.shareText": "{title} — Roxlogy PFT 레이스\\n참가 코드: {code}\\n보드: {url}",
