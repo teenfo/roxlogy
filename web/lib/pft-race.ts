@@ -109,3 +109,48 @@ export function fmtClock(ms: number): string {
 export function clockNow(): number {
   return Date.now();
 }
+
+/** i번째 구간 소요(ms) — 찍힌 구간만. 아니면 null */
+export function segmentMs(splits: number[], i: number): number | null {
+  if (i >= splits.length) return null;
+  return splits[i] - (i === 0 ? 0 : splits[i - 1]);
+}
+
+/** 현재 구간 진행률(0~100). 기준 = 리더의 같은 구간 스플릿, 없으면 본인 직전 구간 평균.
+ *  기준이 없으면 null(펄스만). 상한 100. */
+export function segmentProgress(
+  r: RaceEntry,
+  currentElapsedMs: number,
+  leaderSplits: number[] | null,
+): number | null {
+  const i = r.splits.length;
+  const ref =
+    leaderSplits && leaderSplits.length > i
+      ? segmentMs(leaderSplits, i)
+      : r.splits.length > 0
+        ? r.splits[r.splits.length - 1] / r.splits.length
+        : null;
+  if (!ref || ref <= 0) return null;
+  return Math.min(100, Math.round((currentElapsedMs / ref) * 100));
+}
+
+/** 아바타 색 — 이름 해시로 팔레트에서 고른다(보드 전용) */
+const AVATAR_PALETTE = ["#ffd60a", "#f4a261", "#8ecae6", "#b5e48c", "#e0aaff", "#ffafcc"];
+export function avatarColor(name: string): string {
+  let h = 0;
+  for (const ch of name) h = (h + ch.charCodeAt(0)) % 9973;
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+}
+
+export function initialOf(name: string): string {
+  const s = name.trim();
+  return s ? Array.from(s)[0].toUpperCase() : "?";
+}
+
+/** 시:분:초 (현장 시계·완주 시각) — 브라우저 로컬 시간대 */
+export function fmtWallClock(d: Date, withSeconds = true): string {
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return withSeconds ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
+}

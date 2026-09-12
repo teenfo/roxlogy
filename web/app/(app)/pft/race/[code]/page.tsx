@@ -4,6 +4,7 @@ import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { PftRaceRunner } from "@/components/pft-race-runner";
 import type { BoardData, MyEntry } from "@/lib/pft-race";
+import { PFT_STATIONS } from "@/lib/pft";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -20,12 +21,25 @@ export default async function PftRaceRunPage({ params }: { params: Promise<{ cod
   const board = (boardRaw as BoardData | null) ?? null;
   if (!board) notFound();
 
-  const [{ data: mine }, { data: manage }, { data: me }] = await Promise.all([
+  const [{ data: mine }, { data: manage }, { data: me }, { data: bestRow }] = await Promise.all([
     supabase.rpc("pft_race_my_entry", { p_race: board.race.id }),
     supabase.rpc("pft_race_can_manage", { p_race: board.race.id }),
     supabase.from("profiles").select("birth_year").eq("id", user!.id).maybeSingle(),
+    // 내 최고 기록 — 일반 측정과 같은 "예상 완주"·구간 PB 비교에 쓴다
+    supabase
+      .from("pft_results")
+      .select("total_ms, run_ms, burpee_ms, lunge_ms, row_ms, pushup_ms, wallball_ms")
+      .eq("user_id", user!.id)
+      .is("deleted_at", null)
+      .order("total_ms", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
   ]);
   const age = me?.birth_year != null ? new Date().getFullYear() - Number(me.birth_year) : null;
+  const best =
+    bestRow && PFT_STATIONS.every((st) => bestRow[st.col] != null)
+      ? { totalMs: bestRow.total_ms as number, splits: PFT_STATIONS.map((st) => bestRow[st.col] as number) }
+      : null;
 
   return (
     <main className="mx-auto w-full max-w-lg">
@@ -35,6 +49,7 @@ export default async function PftRaceRunPage({ params }: { params: Promise<{ cod
         serverNow={board.server_now}
         canManage={manage === true}
         defaultAge={age}
+        best={best}
       />
     </main>
   );

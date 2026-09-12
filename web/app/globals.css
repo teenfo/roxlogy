@@ -165,3 +165,24 @@ input::-webkit-calendar-picker-indicator {
 input::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* PFT 중계 보드 — LIVE 점 펄스, 새 행 진입. prefers-reduced-motion 은 motion-safe: 접두어로 걸러진다. */
+@keyframes livepulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes rowin {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

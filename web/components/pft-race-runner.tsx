@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { formatMs } from "@/lib/format";
-import { PFT_STATIONS, badgeClass, badgeDictKey, pftBadge } from "@/lib/pft";
-import { fmtClock, type MyEntry, type RaceInfo } from "@/lib/pft-race";
+import { PFT_STATIONS } from "@/lib/pft";
+import { PftMeasureView, type PftBest } from "@/components/pft-measure-view";
+import type { MyEntry, RaceInfo } from "@/lib/pft-race";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 /**
- * 참가자 화면 — 시작·종목 완료를 찍으면 서버에 동기화된다. 파트너가 이 폰을 들고 눌러 준다.
+ * 레이스 참가자 화면 — 일반 측정(/pft/measure)과 같은 PftMeasureView 를 쓴다.
+ * 다른 점은 저장 위치뿐: 시작·종목 완료가 레이스 서버에 동기화되고, 6번째 완료에서
+ * 서버가 기록(pft_results)을 자동 생성한다. 파트너가 이 폰을 들고 눌러 준다.
  *
  * 시각: 시작을 누른 순간의 폰 시각을 기준으로 경과(ms)를 재서 스플릿으로 보낸다(서버 시각이
  * 아니라 폰이 잰 값 — 네트워크 지연·오프라인과 무관하게 정확). 보내지 못한 스플릿은
@@ -23,12 +25,14 @@ export function PftRaceRunner({
   serverNow,
   canManage,
   defaultAge,
+  best = null,
 }: {
   race: RaceInfo;
   initialEntry: MyEntry | null;
   serverNow: string;
   canManage: boolean;
   defaultAge: number | null;
+  best?: PftBest | null;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -69,10 +73,10 @@ export function PftRaceRunner({
   // 화면상의 스플릿 = 서버에 있는 것 + 아직 못 보낸 것
   const splits = [...serverSplits, ...local.pending];
   const running = joined && local.startedLocal != null && !finished && !!entry?.started_at;
-  const current = splits.length;
   const done = splits.length >= PFT_STATIONS.length;
-  const elapsed = local.startedLocal != null ? now - local.startedLocal : 0;
   const closed = status === "closed";
+  // 뷰에 주는 시작 시각 — 서버가 시작을 알 때만 (스태프가 초기화하면 다시 대기)
+  const startedAt = joined && entry?.started_at && local.startedLocal != null ? local.startedLocal : null;
 
   const persist = (v: { startedLocal: number | null; pending: number[] }) => {
     setLocal(v);
@@ -243,7 +247,7 @@ export function PftRaceRunner({
   };
 
   const reset = async () => {
-    if (!window.confirm(t("pft.resetConfirm"))) return;
+    if (splits.length && !window.confirm(t("pft.resetConfirm"))) return;
     const j = (await call("pft_race_reset", { p_race: race.id })) as MyEntry | null;
     if (!j) return;
     setEntry(j);
@@ -272,246 +276,147 @@ export function PftRaceRunner({
     }
   };
 
-  const total = done ? splits[splits.length - 1] : null;
-  const badge = total != null ? pftBadge(total, defaultAge, scaled) : null;
-  const stationLabel = (i: number) => t(PFT_STATIONS[i].label as DictKey);
+  const btn = "flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-sm font-semibold hover:border-muted/60";
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* 헤더 */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-accent">
-            {t("pft.race.title")}
-          </p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{race.title}</h1>
-          <p className="mt-1 text-sm text-muted">
-            {t("pft.race.code")} <span className="font-mono font-bold tracking-[0.2em] text-foreground">{race.code}</span>
+    <PftMeasureView
+      title={race.title}
+      description={!joined ? t("pft.race.joinDesc") : running && !done ? t("pft.race.partnerHint") : undefined}
+      startedAt={startedAt}
+      splits={splits}
+      now={now}
+      scaled={scaled}
+      defaultAge={defaultAge}
+      best={best}
+      busy={busy}
+      err={err}
+      startDisabled={closed}
+      completeDisabled={closed}
+      undoDisabled={closed}
+      resetDisabled={closed || local.pending.length > 0}
+      onStart={start}
+      onComplete={tap}
+      onUndo={undo}
+      onReset={reset}
+      hideTimer={!joined}
+      headerExtra={
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted">
+            {t("pft.race.title")} · {t("pft.race.code")}{" "}
+            <span className="font-mono font-bold tracking-[0.2em] text-foreground">{race.code}</span>
             {" · "}
             <span className={closed ? "text-muted" : "text-success"}>
               {t(closed ? "pft.race.closed" : "pft.race.open")}
             </span>
+          </span>
+          <span className="flex flex-wrap gap-2 sm:ml-auto">
+            <Link href={`/board/${race.code}`} target="_blank" className={btn}>
+              {t("pft.race.openBoard")}
+            </Link>
+            <button type="button" onClick={copyBoard} className={btn}>
+              {copied ? t("common.copied") : t("pft.race.share")}
+            </button>
+          </span>
+        </div>
+      }
+      beforeClock={
+        <>
+          {notice && (
+            <p role="status" className="text-sm text-success">
+              {notice}
+            </p>
+          )}
+          {!joined && (
+            <div className="rounded-2xl border border-line bg-card p-5">
+              <p className="text-sm text-muted">{t("pft.race.joinDesc")}</p>
+              <button
+                type="button"
+                onClick={join}
+                disabled={busy || closed}
+                className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-black text-background hover:brightness-110 disabled:opacity-40"
+              >
+                {t("pft.race.join")}
+              </button>
+              {closed && <p className="mt-2 text-xs text-muted">{t("pft.race.closedNote")}</p>}
+            </div>
+          )}
+          {joined && startedAt == null && (
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={scaled}
+                onChange={(e) => setScaled(e.target.checked)}
+                className="accent-accent"
+              />
+              {t("pft.fScaled")}
+            </label>
+          )}
+          {joined && closed && !done && <p className="text-xs text-danger">{t("pft.race.closedNote")}</p>}
+        </>
+      }
+      clockNote={
+        local.pending.length > 0 ? (
+          <p role="status" className="mt-0.5 text-xs">
+            {t("pft.race.syncPending", { n: local.pending.length })}
           </p>
+        ) : undefined
+      }
+      finishExtra={
+        <div className="mt-5 border-t border-[#3a3200] pt-4">
+          <p className="text-xs text-muted">
+            {local.pending.length > 0
+              ? t("pft.race.syncPending", { n: local.pending.length })
+              : entry?.result_id
+                ? t("pft.race.savedNote")
+                : t("pft.race.notSavedNote")}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/pft" className="flex h-9 items-center rounded-lg bg-accent px-4 text-sm font-bold text-background">
+              {t("pft.title")}
+            </Link>
+            {!closed && finished && (
+              <button
+                type="button"
+                onClick={undo}
+                disabled={busy}
+                className="flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold"
+              >
+                ↶ {t("pft.race.undoFinish")}
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/board/${race.code}`}
-            target="_blank"
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
-          >
-            {t("pft.race.openBoard")}
-          </Link>
-          <button
-            type="button"
-            onClick={copyBoard}
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
-          >
-            {copied ? t("common.copied") : t("pft.race.share")}
-          </button>
-        </div>
-      </div>
-
-      {err && <p role="alert" className="text-sm text-danger">{err}</p>}
-      {notice && <p role="status" className="text-sm text-success">{notice}</p>}
-
-      {/* 참가 전 */}
-      {!joined && (
-        <div className="rounded-2xl border border-line bg-card p-5">
-          <p className="text-sm text-muted">{t("pft.race.joinDesc")}</p>
-          <button
-            type="button"
-            onClick={join}
-            disabled={busy || closed}
-            className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-black text-background hover:brightness-110 disabled:opacity-40"
-          >
-            {t("pft.race.join")}
-          </button>
-          {closed && <p className="mt-2 text-xs text-muted">{t("pft.race.closedNote")}</p>}
-        </div>
-      )}
-
-      {/* 참가 후 — 측정 */}
-      {joined && (
-        <div className="rounded-2xl border border-line bg-card p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                {done ? t("pft.race.finished") : running ? t("pft.race.running") : t("pft.race.ready")}
-              </p>
-              <p className={`tabular mt-1 text-5xl font-black leading-none ${running && !done ? "text-accent" : ""}`}>
-                {done ? formatMs(total) : running ? fmtClock(elapsed) : "0:00.0"}
-              </p>
-              {local.pending.length > 0 && (
-                <p role="status" className="mt-1 text-xs text-muted">
-                  {t("pft.race.syncPending", { n: local.pending.length })}
-                </p>
+      }
+      afterList={
+        canManage ? (
+          <div className="rounded-2xl border border-line bg-card p-4 sm:p-5">
+            <p className="text-sm font-bold">{t("pft.race.manage")}</p>
+            <p className="mt-1 text-xs text-muted">{t("pft.race.manageDesc")}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href={`/pft/race/${race.code}/staff`}
+                className="flex h-9 items-center rounded-lg bg-accent px-3 text-sm font-bold text-background hover:brightness-110"
+              >
+                {t("pft.race.staffOpen")}
+              </Link>
+              {closed ? (
+                <button type="button" onClick={() => setRaceStatus("open")} disabled={busy} className={btn}>
+                  {t("pft.race.reopen")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setRaceStatus("closed")}
+                  disabled={busy}
+                  className="flex h-9 items-center rounded-lg border border-danger-line-strong px-3 text-sm font-semibold text-danger hover:bg-danger-card"
+                >
+                  {t("pft.race.close")}
+                </button>
               )}
             </div>
-            {!running && !done && (
-              <label className="flex items-center gap-2 text-sm text-muted">
-                <input
-                  type="checkbox"
-                  checked={scaled}
-                  onChange={(e) => setScaled(e.target.checked)}
-                  className="accent-accent"
-                />
-                {t("pft.scaledTag")}
-              </label>
-            )}
-            {running && !done && (
-              <span className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={undo}
-                  disabled={!splits.length || busy}
-                  className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-muted/60 disabled:opacity-40"
-                >
-                  ↶ {t("pft.mUndo")}
-                </button>
-                <button
-                  type="button"
-                  onClick={reset}
-                  disabled={busy || local.pending.length > 0}
-                  className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-danger-line-strong hover:text-danger disabled:opacity-40"
-                >
-                  {t("pft.mReset")}
-                </button>
-              </span>
-            )}
           </div>
-
-          {/* 진행 바 */}
-          <div className="mt-3 grid grid-cols-6 gap-1" aria-hidden>
-            {PFT_STATIONS.map((st, i) => (
-              <span
-                key={st.key}
-                className={`h-1.5 rounded-full ${
-                  i < splits.length ? "bg-success" : running && i === current ? "bg-accent" : "bg-line"
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* 큰 버튼 — 파트너가 누른다 */}
-          {!running && !done && (
-            <button
-              type="button"
-              onClick={start}
-              disabled={busy || closed}
-              className="mt-4 h-20 w-full rounded-2xl bg-accent text-2xl font-black text-background hover:brightness-110 disabled:opacity-40"
-            >
-              ▶ {t("pft.mStart")}
-            </button>
-          )}
-          {running && !done && (
-            <button
-              type="button"
-              onClick={tap}
-              disabled={closed}
-              className="mt-4 flex h-28 w-full flex-col items-center justify-center rounded-2xl bg-accent text-background hover:brightness-110 active:brightness-95 disabled:opacity-40"
-            >
-              <span className="text-sm font-bold opacity-80">
-                {t("pft.race.tapHint", { n: current + 1 })}
-              </span>
-              <span className="text-3xl font-black">{stationLabel(current)} ✓</span>
-            </button>
-          )}
-          {done && (
-            <div className="mt-4 rounded-xl border border-line-accent bg-highlight p-4">
-              <p className="text-sm">
-                {t("pft.race.doneMsg", { total: formatMs(total) })}{" "}
-                {badge && (
-                  <span className={`ml-1 rounded-md px-2 py-0.5 text-xs font-bold ${badgeClass(badge)}`}>
-                    {t(badgeDictKey(badge))}
-                  </span>
-                )}
-              </p>
-              <p className="mt-1 text-xs text-muted">
-                {entry?.result_id ? t("pft.race.savedNote") : t("pft.race.notSavedNote")}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link href="/pft" className="flex h-9 items-center rounded-lg bg-accent px-4 text-sm font-bold text-background">
-                  {t("pft.title")}
-                </Link>
-                {!closed && (
-                  <button
-                    type="button"
-                    onClick={undo}
-                    disabled={busy}
-                    className="flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold"
-                  >
-                    ↶ {t("pft.race.undoFinish")}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-          {!done && <p className="mt-3 text-xs text-muted">{t("pft.race.partnerHint")}</p>}
-          {closed && !done && <p className="mt-2 text-xs text-danger">{t("pft.race.closedNote")}</p>}
-
-          {/* 종목 목록 */}
-          <ol className="mt-4 flex flex-col gap-1.5">
-            {PFT_STATIONS.map((st, i) => {
-              const fin = i < splits.length;
-              const cur = running && !done && i === current;
-              const ms = fin ? splits[i] - (i === 0 ? 0 : splits[i - 1]) : null;
-              return (
-                <li
-                  key={st.key}
-                  className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
-                    cur ? "border-accent bg-highlight" : fin ? "border-line bg-inset" : "border-line-soft opacity-50"
-                  }`}
-                >
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold ${
-                      cur ? "bg-accent text-background" : fin ? "bg-success-bg text-success" : "bg-line text-muted"
-                    }`}
-                  >
-                    {i + 1}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-sm font-bold">{t(st.label as DictKey)}</span>
-                  <span className="tabular text-sm font-bold">{ms != null ? formatMs(ms) : ""}</span>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      )}
-
-      {/* 운영 */}
-      {canManage && (
-        <div className="rounded-2xl border border-line bg-card p-4 sm:p-5">
-          <p className="text-sm font-bold">{t("pft.race.manage")}</p>
-          <p className="mt-1 text-xs text-muted">{t("pft.race.manageDesc")}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link
-              href={`/pft/race/${race.code}/staff`}
-              className="flex h-9 items-center rounded-lg bg-accent px-3 text-sm font-bold text-background hover:brightness-110"
-            >
-              {t("pft.race.staffOpen")}
-            </Link>
-            {closed ? (
-              <button
-                type="button"
-                onClick={() => setRaceStatus("open")}
-                disabled={busy}
-                className="flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-sm font-semibold"
-              >
-                {t("pft.race.reopen")}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setRaceStatus("closed")}
-                disabled={busy}
-                className="flex h-9 items-center rounded-lg border border-danger-line-strong px-3 text-sm font-semibold text-danger hover:bg-danger-card"
-              >
-                {t("pft.race.close")}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+        ) : undefined
+      }
+    />
   );
 }
