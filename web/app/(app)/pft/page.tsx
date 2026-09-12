@@ -134,6 +134,62 @@ export default async function PftPage() {
 
       {error && <p role="alert" className="text-sm text-danger">{error.message}</p>}
 
+      {/* 레이스 보드 — 최근 참가 */}
+      {races.length > 0 && (
+        <Card className="p-4 sm:p-5">
+          <p className="flex items-baseline justify-between gap-3 text-sm font-bold">
+            {t("pft.race.mine")}
+            <Link href="/pft/race" className="text-xs font-semibold text-accent hover:underline">
+              {t("pft.race.viewAll")}
+            </Link>
+          </p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {races.map((r) => (
+              <li key={r.race!.code}>
+                <Link
+                  href={`/pft/race/${r.race!.code}`}
+                  className="flex flex-wrap items-center gap-3 rounded-xl bg-inset px-3.5 py-2.5 hover:bg-card-hover"
+                >
+                  <span className="font-mono text-xs font-bold tracking-[0.2em] text-muted">{r.race!.code}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.race!.title}</span>
+                  <span className="text-xs text-muted">
+                    {r.finished_at
+                      ? formatMs(r.total_ms)
+                      : t(r.race!.status === "closed" ? "pft.race.closed" : "pft.race.open")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+      {created.length > 0 && (
+        <Card className="p-4 sm:p-5">
+          <p className="flex items-baseline justify-between gap-3 text-sm font-bold">
+            {t("pft.race.created")}
+            <Link href="/pft/race" className="text-xs font-semibold text-accent hover:underline">
+              {t("pft.race.viewAll")}
+            </Link>
+          </p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {created.map((r) => (
+              <li key={r.code}>
+                <Link
+                  href={`/pft/race/${r.code}/staff`}
+                  className="flex flex-wrap items-center gap-3 rounded-xl bg-inset px-3.5 py-2.5 hover:bg-card-hover"
+                >
+                  <span className="font-mono text-xs font-bold tracking-[0.2em] text-muted">{r.code}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.title}</span>
+                  <span className="text-xs text-muted">
+                    {t(r.status === "closed" ? "pft.race.closed" : "pft.race.open")} · {t("pft.race.staff")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {best ? (
         <section className="grid gap-3 lg:grid-cols-[1.3fr_1fr]">
           {/* MY BEST */}
@@ -391,61 +447,6 @@ export default async function PftPage() {
         </ol>
         <p className="mt-2 text-xs text-muted">{t("pft.rulesBadge")}</p>
       </section>
-      {/* 레이스 보드 — 최근 참가 */}
-      {races.length > 0 && (
-        <Card className="p-4 sm:p-5">
-          <p className="flex items-baseline justify-between gap-3 text-sm font-bold">
-            {t("pft.race.mine")}
-            <Link href="/pft/race" className="text-xs font-semibold text-accent hover:underline">
-              {t("pft.race.viewAll")}
-            </Link>
-          </p>
-          <ul className="mt-2 flex flex-col gap-1.5">
-            {races.map((r) => (
-              <li key={r.race!.code}>
-                <Link
-                  href={`/pft/race/${r.race!.code}`}
-                  className="flex flex-wrap items-center gap-3 rounded-xl bg-inset px-3.5 py-2.5 hover:bg-card-hover"
-                >
-                  <span className="font-mono text-xs font-bold tracking-[0.2em] text-muted">{r.race!.code}</span>
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.race!.title}</span>
-                  <span className="text-xs text-muted">
-                    {r.finished_at
-                      ? formatMs(r.total_ms)
-                      : t(r.race!.status === "closed" ? "pft.race.closed" : "pft.race.open")}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-      {created.length > 0 && (
-        <Card className="p-4 sm:p-5">
-          <p className="flex items-baseline justify-between gap-3 text-sm font-bold">
-            {t("pft.race.created")}
-            <Link href="/pft/race" className="text-xs font-semibold text-accent hover:underline">
-              {t("pft.race.viewAll")}
-            </Link>
-          </p>
-          <ul className="mt-2 flex flex-col gap-1.5">
-            {created.map((r) => (
-              <li key={r.code}>
-                <Link
-                  href={`/pft/race/${r.code}/staff`}
-                  className="flex flex-wrap items-center gap-3 rounded-xl bg-inset px-3.5 py-2.5 hover:bg-card-hover"
-                >
-                  <span className="font-mono text-xs font-bold tracking-[0.2em] text-muted">{r.code}</span>
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.title}</span>
-                  <span className="text-xs text-muted">
-                    {t(r.status === "closed" ? "pft.race.closed" : "pft.race.open")} · {t("pft.race.staff")}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
     </main>
   );
 }

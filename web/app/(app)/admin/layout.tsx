@@ -17,6 +17,7 @@ export default async function AdminLayout({
     { href: "/admin/users", key: "admin.tabUsers" },
     { href: "/admin/content", key: "admin.tabContent" },
     { href: "/admin/crews", key: "admin.tabCrews" },
+    { href: "/admin/races", key: "admin.tabRaces" },
     { href: "/admin/moderation", key: "admin.tabModeration" },
   ] as const;
 
