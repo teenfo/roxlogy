@@ -11,8 +11,11 @@ export type ExerciseRequest = {
   name_en: string | null;
   /** AI 요청이면 프로그램 제목, 사용자 요청이면 입력한 메모 */
   note: string | null;
-  /** "ai" = AI 프로그램 생성이 자동으로 남김, "user" = MCP·웹에서 사람이 요청 */
-  source: "ai" | "user";
+  /** "ai" = AI 프로그램 생성, "mcp" = MCP 프로그램 등록이 자동으로 남김, "user" = 사람이 직접 요청 */
+  source: "ai" | "mcp" | "user";
+  /** 이 요청을 기다리는 프로그램 항목 수 / 프로그램 수 (승인하면 자동으로 채워진다) */
+  waitingItems: number;
+  waitingPrograms: number;
   created_at: string;
   requester: string;
 };
@@ -97,19 +100,27 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
       {items.map((r) => (
         <div key={r.id} className="rounded-md bg-surface px-4 py-2.5">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {r.source === "ai" && (
+            {r.source !== "user" && (
               <span
-                title={t("admin.exReqAiHint")}
+                title={t(r.source === "ai" ? "admin.exReqAiHint" : "admin.exReqMcpHint")}
                 className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent"
               >
-                {t("admin.exReqAi")}
+                {t(r.source === "ai" ? "admin.exReqAi" : "admin.exReqMcp")}
               </span>
             )}
             <span className="text-sm font-semibold">{r.name_ko}</span>
             {r.name_en && <span className="text-xs text-muted">{r.name_en}</span>}
+            {r.waitingItems > 0 && (
+              <span
+                title={t("admin.exReqWaitingHint")}
+                className="shrink-0 rounded-md border border-line-mid bg-background px-1.5 py-0.5 text-[11px] font-bold tabular"
+              >
+                {t("admin.exReqWaiting", { n: r.waitingItems, p: r.waitingPrograms })}
+              </span>
+            )}
             {r.note && (
               <span className="min-w-0 flex-1 truncate text-xs text-muted">
-                {r.source === "ai" ? `${t("admin.exReqAiProgram")}: ${r.note}` : r.note}
+                {r.source !== "user" ? `${t("admin.exReqAiProgram")}: ${r.note}` : r.note}
               </span>
             )}
             <span className="ml-auto shrink-0 text-xs text-muted">{r.requester}</span>

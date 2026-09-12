@@ -36,6 +36,12 @@ export default async function AdminContentPage({
     .select("id, name_ko, name_en, note, created_at, profiles ( display_name )")
     .eq("status", "pending")
     .order("created_at");
+  // 요청별 대기 항목 수 — 관리자 RPC (RLS 가 남의 비공개 프로그램 항목을 가리므로)
+  const { data: waitingRaw } = await supabase.rpc("admin_exercise_request_waiting");
+  const waiting = (waitingRaw ?? {}) as Record<
+    string,
+    { items: number; programs: number }
+  >;
   type ReqRow = {
     id: string;
     name_ko: string;
@@ -54,8 +60,16 @@ export default async function AdminContentPage({
       id: r.id,
       name_ko: r.name_ko,
       name_en: r.name_en,
-      note: m ? (m[1]?.trim() || null) : r.note,
-      source: m ? ("ai" as const) : ("user" as const),
+      note: m
+        ? (m[1]?.trim() || null)
+        : (r.note?.replace(/^MCP 프로그램 등록에서 자동 요청(?: — )?/, "").trim() || null),
+      source: m
+        ? ("ai" as const)
+        : r.note?.startsWith("MCP 프로그램 등록에서 자동 요청")
+          ? ("mcp" as const)
+          : ("user" as const),
+      waitingItems: waiting[r.id]?.items ?? 0,
+      waitingPrograms: waiting[r.id]?.programs ?? 0,
       created_at: r.created_at,
       requester: r.profiles?.display_name ?? "—",
     };

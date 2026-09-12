@@ -27,6 +27,7 @@ const TONE: Record<string, string> = {
   ai_insight: "bg-info-bg text-info",
   ai_program: "bg-info-bg text-info",
   crew_join_request: "bg-success-bg text-success",
+  exercise_request: "bg-success-bg text-success",
   new_follower: "bg-success-bg text-success",
   race_partner: "bg-[#2a1a10] text-[#f4a261]",
   race_imported: "bg-[#2a1a10] text-[#f4a261]",
