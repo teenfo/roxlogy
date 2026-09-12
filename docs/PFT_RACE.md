@@ -16,11 +16,21 @@
 
 ## DB (마이그레이션 092)
 - `pft_races(code, title, crew_id, created_by, status open|closed)`, `pft_race_entries(race_id, user_id, started_at, splits int[], finished_at, total_ms, scaled, result_id)`.
-- 읽기는 누구나(RLS select true), 쓰기는 RPC 만: `pft_race_create`, `pft_race_set_status`(운영진), `pft_race_join`, `pft_race_start`, `pft_race_split`, `pft_race_undo`, `pft_race_reset`, `pft_race_my_entry`(본인), `pft_race_board`(anon 허용).
+- 읽기는 누구나(RLS select true), 쓰기는 RPC 만: `pft_race_create`, `pft_race_set_status`(운영진), `pft_race_join`, `pft_race_start`, `pft_race_split`, `pft_race_undo`, `pft_race_reset`, `pft_race_my_entry`(본인), `pft_race_board`(anon 허용), 스태프용 `pft_race_search_members`, `pft_race_staff_add/start/split/undo/reset/remove`(운영진, 093).
 - `pft_race_entries` 는 `supabase_realtime` 게시 + replica identity full. 보드는 변경 이벤트를 신호로만 쓰고 데이터는 `pft_race_board()` 로 다시 읽는다(이름 해석 포함). 5초 폴링 예비.
 
 ## 순위
 완주(총시간↑) → 진행 중(더 앞선 종목, 같으면 경과↑) → 대기(참가 순). 코드: `web/lib/pft-race.ts`.
 
+## 스태프 타이밍 (마이그레이션 093)
+운영진(전체 관리자·크루 운영진)이 `/pft/race/<코드>/staff` 에서 **한 기기로 여러 참가자**를 찍는다. 참가자 폰이 없어도 된다.
+- **등록**: 이름 검색(`pft_race_search_members` — 크루 레이스면 그 크루 활성 회원, 아니면 전체 프로필) → `pft_race_staff_add`.
+- **웨이브 출발**: 대기 중 참가자를 체크해 `pft_race_staff_start(race, entries[])` — 같은 서버 `now()` 로 일괄 출발. 이미 출발·완주한 엔트리는 건너뛴다. 응답 `server_now` 로 스태프 기기의 시계 오프셋을 맞춘다.
+- **종목 완료**: 참가자 카드의 큰 버튼. 경과 = (기기 시각 + 서버 오프셋) − `started_at`. 참가자별 localStorage 큐(`roxlogy.pft.staff.<코드>`)에 쌓였다가 순서대로 `pft_race_staff_split` 로 전송.
+- **취소·초기화·제거**: `pft_race_staff_undo` / `pft_race_staff_reset` / `pft_race_staff_remove`(완주 기록은 soft delete).
+- 스플릿 적용·완주 처리·취소 규칙은 자가 타이밍과 **한 코드**다: 내부 `_pft_apply_split/_pft_apply_undo/_pft_apply_reset` 을 자가 RPC(`pft_race_split/undo/reset`)와 스태프 RPC 가 같이 호출한다. 스태프 RPC 는 모두 `pft_race_can_manage` 로 막는다.
+- 참가자 화면은 5초마다 `pft_race_my_entry` 를 다시 읽어 스태프가 출발·기록·초기화한 것을 따라간다. 두 경로가 같은 엔트리를 동시에 찍으면 서버의 단조 증가 규칙이 뒤늦은 쪽을 거부한다.
+- 진입: 참가자 화면의 레이스 관리 카드 "스태프 타이밍 열기", `/pft` 허브의 "내가 만든 레이스".
+
 ## 아직 없는 것
-- 운영진이 한 태블릿으로 여러 명을 찍는 "스태프 타이밍" 모드, 웨이브(조) 공통 출발, 게스트(비회원) 참가, QR 코드, MCP 도구.
+- 게스트(비회원) 참가, QR 코드, MCP 도구.

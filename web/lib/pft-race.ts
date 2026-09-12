@@ -104,3 +104,8 @@ export function fmtClock(ms: number): string {
   const d = Math.floor((t % 1000) / 100);
   return `${m}:${String(s).padStart(2, "0")}.${d}`;
 }
+
+/** 기기 시계(ms). 이벤트 핸들러·effect 에서만 부른다 — 렌더 중에는 쓰지 말 것. */
+export function clockNow(): number {
+  return Date.now();
+}

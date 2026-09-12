@@ -38,12 +38,19 @@ export default async function PftPage() {
   const rows = (data ?? []) as PftResult[];
 
   // 레이스 보드 — 내가 참가한 최근 레이스 + 만들 수 있는지(관리자·크루 운영진)
-  const [{ data: myRaces }, { data: staffRows }, { data: profile }] = await Promise.all([
+  const [{ data: myRaces }, { data: createdRaces }, { data: staffRows }, { data: profile }] = await Promise.all([
     supabase
       .from("pft_race_entries")
       .select("joined_at, finished_at, total_ms, pft_races ( code, title, status, created_at )")
       .eq("user_id", user!.id)
       .order("joined_at", { ascending: false })
+      .limit(5),
+    // 내가 만든 레이스 — 참가하지 않아도 스태프 타이밍으로 들어갈 수 있게
+    supabase
+      .from("pft_races")
+      .select("code, title, status, created_at")
+      .eq("created_by", user!.id)
+      .order("created_at", { ascending: false })
       .limit(5),
     supabase
       .from("crew_members")
@@ -64,6 +71,9 @@ export default async function PftPage() {
     .map((r) => ({ ...r, race: Array.isArray(r.pft_races) ? r.pft_races[0] : r.pft_races }))
     .filter((r) => r.race);
   const canCreateRace = !!profile?.is_admin || (staffRows ?? []).length > 0;
+  const created = ((createdRaces ?? []) as { code: string; title: string; status: string; created_at: string }[]).filter(
+    (r) => !races.some((x) => x.race!.code === r.code),
+  );
   const best = rows.reduce<PftResult | null>(
     (a, r) => (a == null || r.total_ms < a.total_ms ? r : a),
     null,
@@ -398,6 +408,27 @@ export default async function PftPage() {
                     {r.finished_at
                       ? formatMs(r.total_ms)
                       : t(r.race!.status === "closed" ? "pft.race.closed" : "pft.race.open")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+      {created.length > 0 && (
+        <Card className="p-4 sm:p-5">
+          <p className="text-sm font-bold">{t("pft.race.created")}</p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {created.map((r) => (
+              <li key={r.code}>
+                <Link
+                  href={`/pft/race/${r.code}/staff`}
+                  className="flex flex-wrap items-center gap-3 rounded-xl bg-inset px-3.5 py-2.5 hover:bg-card-hover"
+                >
+                  <span className="font-mono text-xs font-bold tracking-[0.2em] text-muted">{r.code}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.title}</span>
+                  <span className="text-xs text-muted">
+                    {t(r.status === "closed" ? "pft.race.closed" : "pft.race.open")} · {t("pft.race.staff")}
                   </span>
                 </Link>
               </li>

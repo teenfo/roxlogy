@@ -60,6 +60,8 @@ export function PftRaceRunner({
   const lastTapRef = useRef(0);
   const wakeRef = useRef<WakeLockSentinel | null>(null);
   const flushingRef = useRef(false);
+  // 서버 시각 − 폰 시각. effect 에서 채운다(렌더 중 Date.now() 호출 금지)
+  const offsetRef = useRef(0);
 
   const joined = !!entry;
   const finished = !!entry?.finished_at;
@@ -111,6 +113,37 @@ export function PftRaceRunner({
       wakeRef.current = null;
     };
   }, [running, done]);
+
+  useEffect(() => {
+    offsetRef.current = Date.parse(serverNow) - Date.now();
+  }, [serverNow]);
+
+  // 다른 기기(스태프 타이밍·파트너 폰)에서 찍은 변화 반영 — 5초 폴링
+  useEffect(() => {
+    if (!joined || finished) return;
+    const supabase = createClient();
+    let cancelled = false;
+    const sync = async () => {
+      const { data: mine } = await supabase.rpc("pft_race_my_entry", { p_race: race.id });
+      if (cancelled || !mine) return;
+      const m = mine as MyEntry;
+      setEntry(m);
+      setStatus(m.status);
+      if (m.started_at && local.startedLocal == null) {
+        // 스태프가 출발시킨 경우: 서버 시작 시각을 이 폰 시계로 역산
+        persist({ startedLocal: Date.parse(m.started_at) - offsetRef.current, pending: [] });
+      } else if (!m.started_at && local.startedLocal != null && !local.pending.length) {
+        // 스태프가 초기화한 경우
+        persist({ startedLocal: null, pending: [] });
+      }
+    };
+    const id = window.setInterval(() => void sync(), 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joined, finished, race.id, local.startedLocal, local.pending.length]);
 
   // 큐 전송 — 순서대로 하나씩. 실패하면 3초 뒤 다시.
   useEffect(() => {
@@ -451,6 +484,12 @@ export function PftRaceRunner({
           <p className="text-sm font-bold">{t("pft.race.manage")}</p>
           <p className="mt-1 text-xs text-muted">{t("pft.race.manageDesc")}</p>
           <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href={`/pft/race/${race.code}/staff`}
+              className="flex h-9 items-center rounded-lg bg-accent px-3 text-sm font-bold text-background hover:brightness-110"
+            >
+              {t("pft.race.staffOpen")}
+            </Link>
             {closed ? (
               <button
                 type="button"
