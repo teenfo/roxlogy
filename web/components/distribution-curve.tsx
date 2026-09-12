@@ -125,7 +125,7 @@ export async function DistributionCurve({
           {t("dist.slower")} →
         </text>
       </svg>
-      <p className="mt-1 text-[11px] text-muted">{caption}</p>
+      <p className="mt-1 text-xs text-muted">{caption}</p>
     </section>
   );
 }

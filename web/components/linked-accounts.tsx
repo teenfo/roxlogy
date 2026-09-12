@@ -107,7 +107,7 @@ export function LinkedAccounts({ email }: { email: string }) {
           <p className="text-sm font-semibold">{t("profile.provider.email")}</p>
           <p className="truncate text-[13px] text-muted">{email}</p>
         </div>
-        <span className="shrink-0 rounded-[5px] bg-success-bg px-2 py-[3px] text-[11px] font-bold text-success">
+        <span className="shrink-0 rounded-[5px] bg-success-bg px-2 py-[3px] text-xs font-bold text-success">
           {t("profile.primary")}
         </span>
       </div>
@@ -139,7 +139,7 @@ export function LinkedAccounts({ email }: { email: string }) {
                 {busy === "unlink" ? t("profile.unlinking") : t("profile.unlink")}
               </button>
             ) : (
-              <span className="max-w-[9rem] shrink-0 text-right text-[11px] text-muted">
+              <span className="max-w-[9rem] shrink-0 text-right text-xs text-muted">
                 {t("profile.lastIdentity")}
               </span>
             )

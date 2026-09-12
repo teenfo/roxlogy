@@ -45,6 +45,12 @@
   --danger-line: #4a1d1d;
   --danger-line-strong: #7a2e2e;
   --danger-card: #170f0f;
+
+  /* 작은 텍스트용 회색 단계 (UI 감사 2026-09-12 P1) — 임의 hex(#555·#666·#777)를 대체.
+   * #141414 위 대비: muted-2 ≈ 5.2:1, muted-3 ≈ 4.6:1 (둘 다 AA 본문 기준 통과).
+   * placeholder 는 muted-3, 비활성·장식 텍스트는 muted-2 를 쓴다. */
+  --muted-2: #8c8c88;
+  --muted-3: #808080;
 }
 
 @theme inline {
@@ -82,6 +88,22 @@
   --color-danger-line: var(--danger-line);
   --color-danger-line-strong: var(--danger-line-strong);
   --color-danger-card: var(--danger-card);
+  --color-muted-2: var(--muted-2);
+  --color-muted-3: var(--muted-3);
+}
+
+/* 키보드 포커스 링 — 전역 (UI 감사 2026-09-12 P0).
+ * 유틸리티 outline-none 은 @layer utilities 안에 있고 이 규칙은 레이어 밖이라 항상 이긴다:
+ * 마우스 클릭(:focus)에는 나타나지 않고 키보드 이동(:focus-visible)에만 2px 옐로 링이 뜬다.
+ * offset 으로 배경·보더와 분리하고, 스크롤 컨테이너 안에서도 잘리지 않게 outline 을 쓴다(box-shadow 아님).
+ * 입력류는 보더가 이미 accent 로 바뀌므로 offset 0 으로 겹쳐 그린다. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+:where(input, select, textarea):focus-visible {
+  outline-offset: 0;
 }
 
 /* 숫자는 자리를 맞춘다 — 금액·기록·날짜가 표에서 흔들리지 않게 */

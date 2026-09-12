@@ -68,7 +68,7 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
           </span>
         )}
       </div>
-      {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-xs text-red-400">{err}</p>}
 
       <ul className="mt-2 flex flex-col gap-1">
         {charges.slice(0, 12).map((c) => (
@@ -107,7 +107,7 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
                   type="button"
                   onClick={() => report(c.charge_id, false)}
                   disabled={busy != null}
-                  className="text-[11px] text-muted hover:text-red-400 disabled:opacity-50"
+                  className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
                 >
                   {t("crew.duesCancelReport")}
                 </button>
@@ -117,7 +117,7 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
                 type="button"
                 onClick={() => report(c.charge_id, true)}
                 disabled={busy != null}
-                className="rounded-md bg-accent px-2.5 py-1 text-[11px] font-bold text-background hover:brightness-110 disabled:opacity-40"
+                className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
               >
                 {t("crew.duesReport")}
               </button>
@@ -306,9 +306,9 @@ export function CrewDuesMatrix({
         </div>
       </div>
 
-      {err && <p className="text-xs text-danger">{err}</p>}
+      {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       {note && <p className="text-xs text-accent">{note}</p>}
-      <p className="text-[11px] text-muted">{t("crew.duesGenHint")}</p>
+      <p className="text-xs text-muted">{t("crew.duesGenHint")}</p>
 
       {/* 상태 칩 + 모두 펼치기 */}
       {charges.length > 0 && (
@@ -385,7 +385,7 @@ export function CrewDuesMatrix({
                       </span>
                       {head.tier_name && (
                         <span
-                          className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${tierBadgeClass(head.tier_color)}`}
+                          className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${tierBadgeClass(head.tier_color)}`}
                         >
                           {head.tier_name}
                         </span>
@@ -403,7 +403,7 @@ export function CrewDuesMatrix({
                       {won(memberTotal)}
                     </span>
                     <span
-                      className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                      className={`rounded-md px-2 py-0.5 text-xs font-bold ${
                         memberUnpaid > 0
                           ? "bg-danger-bg text-danger"
                           : allWaived
@@ -498,7 +498,7 @@ export function CrewDuesMatrix({
                             })
                           }
                           disabled={busy != null || locked}
-                          className="rounded-md bg-accent px-2.5 py-1 text-[11px] font-bold text-background hover:brightness-110 disabled:opacity-40"
+                          className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
                         >
                           {t("crew.duesConfirm")}
                         </button>

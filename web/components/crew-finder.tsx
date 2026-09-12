@@ -130,7 +130,7 @@ export function CrewFinder({ crews }: { crews: CrewDirectoryRow[] }) {
                           {c.name}
                         </span>
                         <span
-                          className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${JOIN_TONE[c.join_policy] ?? JOIN_TONE.invite}`}
+                          className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${JOIN_TONE[c.join_policy] ?? JOIN_TONE.invite}`}
                         >
                           {t(POLICY_KEY[c.join_policy])}
                         </span>

@@ -340,7 +340,7 @@ export function SessionNewForm({
           </span>
         </p>
         <div className="flex items-center gap-4">
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
           <button
             onClick={handleSave}
             disabled={pending || totalMs === 0}

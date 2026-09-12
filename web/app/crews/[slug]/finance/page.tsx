@@ -310,7 +310,7 @@ export default async function CrewFinancePage({
             </p>
           </div>
           <div className="ml-auto flex items-center gap-3 max-md:ml-0 max-md:w-full">
-            <span className="text-[11px] text-muted [word-break:keep-all]">
+            <span className="text-xs text-muted [word-break:keep-all]">
               {t("crew.finBankNote")}
             </span>
             {isStaff && (
@@ -421,7 +421,7 @@ export default async function CrewFinancePage({
                             </span>
                             <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
                               {r.method && (
-                                <span className="rounded-md bg-line px-1.5 py-0.5 text-[11px] font-bold text-foreground/75">
+                                <span className="rounded-md bg-line px-1.5 py-0.5 text-xs font-bold text-foreground/75">
                                   {t(`crew.finMethod.${r.method}` as DictKey)}
                                 </span>
                               )}
@@ -440,7 +440,7 @@ export default async function CrewFinancePage({
                                 />
                               ) : (
                                 <span
-                                  className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
+                                  className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${
                                     r.settled_on
                                       ? "bg-success-bg text-success"
                                       : "bg-label-bg text-label"

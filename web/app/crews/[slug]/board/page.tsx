@@ -79,7 +79,7 @@ export default async function CrewBoardPage({
                 href={`/crews/${slug}/board/${n.id}`}
                 className="flex items-center gap-2.5 px-5 py-3 transition-colors hover:bg-accent/5"
               >
-                <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[11px] font-extrabold text-background">
+                <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-background">
                   {t("crew.cat.notice")}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[15px] font-bold">

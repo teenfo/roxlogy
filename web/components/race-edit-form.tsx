@@ -145,7 +145,7 @@ export function RaceEditForm({
           />
         </label>
       </div>
-      {err && <p className="mt-2 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-sm text-red-400">{err}</p>}
       <div className="mt-4 flex justify-end gap-2">
         <button
           type="button"

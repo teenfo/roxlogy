@@ -178,7 +178,7 @@ export function PftForm({
           <div className="mt-2 grid gap-2 sm:grid-cols-3">
             {PFT_STATIONS.map((st, i) => (
               <label key={st.key} className="block">
-                <span className="flex items-center gap-1.5 text-[11px] text-muted">
+                <span className="flex items-center gap-1.5 text-xs text-muted">
                   <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-line text-[10px] font-bold">
                     {i + 1}
                   </span>
@@ -236,7 +236,7 @@ export function PftForm({
               />
             </label>
           </div>
-          <p className="mt-1.5 text-[11px] text-muted">{t("pft.ageHint")}</p>
+          <p className="mt-1.5 text-xs text-muted">{t("pft.ageHint")}</p>
 
           <label className={label}>{t("pft.fNote")}</label>
           <textarea
@@ -256,7 +256,7 @@ export function PftForm({
               />
               <span>
                 {t("pft.fScaled")}
-                <span className="mt-0.5 block text-[11px] text-muted">
+                <span className="mt-0.5 block text-xs text-muted">
                   {t("pft.fScaledHint")}
                 </span>
               </span>
@@ -281,7 +281,7 @@ export function PftForm({
             preview ? "border-line-accent bg-highlight" : "border-line bg-card"
           }`}
         >
-          <p className="text-[11px] font-extrabold tracking-[0.08em] text-muted">
+          <p className="text-xs font-extrabold tracking-[0.08em] text-muted">
             {t("pft.previewBadge")}
           </p>
           <p
@@ -306,16 +306,16 @@ export function PftForm({
               )}
             </p>
           )}
-          <p className="tabular mt-2 text-[11px] text-muted">
+          <p className="tabular mt-2 text-xs text-muted">
             {ageNum != null && ageNum >= 45 ? t("pft.o45") : t("pft.u45")} ·{" "}
             {t("pft.badge.gold")} &lt;{formatMs(cuts.gold)} ·{" "}
             {t("pft.badge.silver")} &lt;{formatMs(cuts.silver)}
           </p>
           {ageNum == null && (
-            <p className="mt-1 text-[11px] text-muted">{t("pft.noAgeHint")}</p>
+            <p className="mt-1 text-xs text-muted">{t("pft.noAgeHint")}</p>
           )}
 
-          {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+          {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
 
           <button
             type="submit"
@@ -323,12 +323,12 @@ export function PftForm({
             className={`mt-4 h-11 w-full rounded-lg text-[15px] font-extrabold ${
               canSave
                 ? "bg-accent text-background hover:brightness-110"
-                : "cursor-not-allowed bg-[#2a2a2a] text-[#666]"
+                : "cursor-not-allowed bg-[#2a2a2a] text-muted-2"
             } disabled:opacity-60`}
           >
             {busy ? t("common.saving") : t("common.save")}
           </button>
-          <p className="mt-2 text-center text-[11px] text-muted">
+          <p className="mt-2 text-center text-xs text-muted">
             {totalMs == null
               ? t("pft.hintNeedTotal")
               : tooShort

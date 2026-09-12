@@ -290,7 +290,7 @@ export function CrewDuesLinksManage({
             </button>
           ))}
         </div>
-        {err && <p className="text-xs text-red-400">{err}</p>}
+        {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
         <div>
           <button
             type="submit"

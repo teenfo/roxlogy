@@ -205,7 +205,7 @@ export default async function ProgramDetailPage({
             initialActive={isEnrolled}
             totalDays={totalDays}
           />
-          <div className="flex flex-wrap items-center gap-3 text-xs text-[#777] max-md:justify-between">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-2 max-md:justify-between">
             {!isOwner && (
               <CloneProgramButton programId={program.id} title={program.title} />
             )}
@@ -277,7 +277,7 @@ export default async function ProgramDetailPage({
                   <span className="text-[15px] font-extrabold">
                     {t("programs.dayN", { n: d.day_index })}
                   </span>
-                  {dt && <span className="text-xs text-[#777]">{dt}</span>}
+                  {dt && <span className="text-xs text-muted-2">{dt}</span>}
                   {d.focus && (
                     <span className="min-w-0 flex-1 truncate text-sm">{d.focus}</span>
                   )}
@@ -314,7 +314,7 @@ export default async function ProgramDetailPage({
                                   key={it.id}
                                   className="flex flex-wrap items-center gap-2.5 border-b border-[#161616] px-3.5 py-2 last:border-b-0"
                                 >
-                                  <span className="tabular w-6 shrink-0 text-right text-xs font-bold text-[#777]">
+                                  <span className="tabular w-6 shrink-0 text-right text-xs font-bold text-muted-2">
                                     {i + 1}
                                   </span>
                                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">
@@ -344,7 +344,7 @@ export default async function ProgramDetailPage({
                               ))}
                           </ul>
                         ) : (
-                          <p className="px-3.5 py-3 text-[13px] text-[#666]">
+                          <p className="px-3.5 py-3 text-[13px] text-muted-2">
                             {t("programs.noItems")}
                           </p>
                         )}
@@ -352,7 +352,7 @@ export default async function ProgramDetailPage({
                     ))}
                   </div>
                 ) : (
-                  <p className="px-4 py-3 text-[13px] text-[#777]">
+                  <p className="px-4 py-3 text-[13px] text-muted-2">
                     {t("programs.restDay")}
                   </p>
                 )}

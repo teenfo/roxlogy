@@ -114,7 +114,7 @@ export function CrewJoinButton({
               </button>
             ))}
         </div>
-        {err && <p className="text-xs text-red-400">{err}</p>}
+        {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
       </div>
     );
   }
@@ -129,7 +129,7 @@ export function CrewJoinButton({
       >
         {busy ? t("crew.joining") : t("crew.join")}
       </button>
-      {err && <p className="text-xs text-red-400">{err}</p>}
+      {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
     </div>
   );
 }

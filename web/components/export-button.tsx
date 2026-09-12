@@ -101,7 +101,7 @@ export function ExportButton({ kind }: { kind: Kind }) {
       >
         {busy ? t("common.saving") : t("common.exportCsv")}
       </button>
-      {err && <p className="text-xs text-red-400">{err}</p>}
+      {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
     </div>
   );
 }

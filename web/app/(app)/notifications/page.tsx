@@ -92,13 +92,13 @@ export default async function NotificationsPage() {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">{t("nav.notifications")}</h1>
         {unread > 0 && (
-          <span className="rounded-full bg-sunday px-2 py-0.5 text-[11px] font-bold text-background">
+          <span className="rounded-full bg-sunday px-2 py-0.5 text-xs font-bold text-background">
             {unread}
           </span>
         )}
       </div>
 
-      {error && <p className="mt-4 text-sm text-danger">{error.message}</p>}
+      {error && <p role="alert" className="mt-4 text-sm text-danger">{error.message}</p>}
 
       {!rows.length ? (
         <Card className="mt-6 px-4 py-12 text-center">

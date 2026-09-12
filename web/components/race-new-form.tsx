@@ -824,7 +824,7 @@ function ManualImport({
       >
         {t("raceNew.import.parseBtn")}
       </button>
-      {notice && <p className="mt-2 text-xs text-red-400">{notice}</p>}
+      {notice && <p role="status" className="mt-2 text-xs text-red-400">{notice}</p>}
     </section>
   );
 }

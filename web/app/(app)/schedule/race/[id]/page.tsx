@@ -177,7 +177,7 @@ export default async function RacePlanPage({
               {badges.map((b) => (
                 <span
                   key={b.label}
-                  className={`rounded-[5px] px-2 py-[3px] text-[11px] font-bold ${b.cls}`}
+                  className={`rounded-[5px] px-2 py-[3px] text-xs font-bold ${b.cls}`}
                 >
                   {b.label}
                 </span>
@@ -207,14 +207,14 @@ export default async function RacePlanPage({
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 max-md:col-span-2">
             <Link
               href={backHref}
-              className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-[#555]"
+              className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-line-strong"
             >
               ← {backLabel}
             </Link>
             {plan.race_event_id && (
               <Link
                 href={`/events/${plan.race_event_id}`}
-                className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-[#555]"
+                className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-line-strong"
               >
                 {t("race.officialEvent")}
               </Link>
@@ -356,7 +356,7 @@ export default async function RacePlanPage({
                     <span className="block truncate text-sm font-bold">
                       {m.display_name}
                     </span>
-                    <span className="block truncate text-[11px] text-muted">
+                    <span className="block truncate text-xs text-muted">
                       {m.crew_name}
                       {m.division
                         ? ` · ${dictLabel(t, `division.${m.division}`, m.division)}`

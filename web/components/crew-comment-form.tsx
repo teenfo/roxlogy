@@ -53,7 +53,7 @@ export function CrewCommentForm({ postId }: { postId: string }) {
         {t("crew.commentSubmit")}
       </button>
     </form>
-    {err && <p className="mt-1 text-xs text-red-400">{err}</p>}
+    {err && <p role="alert" className="mt-1 text-xs text-red-400">{err}</p>}
     </>
   );
 }

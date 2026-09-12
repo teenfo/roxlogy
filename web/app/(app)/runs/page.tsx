@@ -69,7 +69,7 @@ export default async function RunsPage() {
         </Link>
       </div>
 
-      {error && <p className="mt-4 text-sm text-red-400">{error.message}</p>}
+      {error && <p role="alert" className="mt-4 text-sm text-red-400">{error.message}</p>}
 
       {/* 1km 기준선 — 시뮬 저하율이 비교하는 값 */}
       <section className="mt-6 rounded-md bg-surface px-5 py-4">
@@ -145,7 +145,7 @@ export default async function RunsPage() {
                 <span className="font-mono text-sm text-muted">
                   {formatMs(r.duration_ms)}
                 </span>
-                <span className="rounded-full bg-background px-2 py-0.5 font-mono text-[11px] font-bold text-accent">
+                <span className="rounded-full bg-background px-2 py-0.5 font-mono text-xs font-bold text-accent">
                   {formatPace(r.pace_s_per_km)}
                   {t("run.paceUnit")}
                 </span>

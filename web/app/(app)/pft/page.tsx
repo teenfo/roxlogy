@@ -80,14 +80,14 @@ export default async function PftPage() {
         </div>
       </div>
 
-      {error && <p className="text-sm text-danger">{error.message}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error.message}</p>}
 
       {best ? (
         <section className="grid gap-3 lg:grid-cols-[1.3fr_1fr]">
           {/* MY BEST */}
           <Card highlight className="flex flex-col gap-3.5 px-6 py-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-extrabold tracking-[0.1em] text-accent">
+              <span className="text-xs font-extrabold tracking-[0.1em] text-accent">
                 MY BEST
               </span>
               <span className="text-xs text-[#8a7a2a]">
@@ -106,7 +106,7 @@ export default async function PftPage() {
                 {t(badgeDictKey(best.badge))}
               </span>
               {best.scaled && (
-                <span className="text-[11px] text-muted">{t("pft.scaledTag")}</span>
+                <span className="text-xs text-muted">{t("pft.scaledTag")}</span>
               )}
             </div>
 
@@ -137,7 +137,7 @@ export default async function PftPage() {
                   style={{ width: `${pctOf(cuts.gold)}%` }}
                 />
                 <span
-                  className="absolute inset-y-0 bg-[#555]"
+                  className="absolute inset-y-0 bg-muted-3"
                   style={{
                     left: `${pctOf(cuts.gold)}%`,
                     width: `${pctOf(cuts.silver) - pctOf(cuts.gold)}%`,
@@ -183,7 +183,7 @@ export default async function PftPage() {
               {rows.slice(0, 4).map((r) => (
                 <li key={r.id} className="flex items-center gap-2.5 py-2.5">
                   <span
-                    className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${badgeClass(r.badge)}`}
+                    className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${badgeClass(r.badge)}`}
                   >
                     {t(badgeDictKey(r.badge))}
                   </span>
@@ -204,7 +204,7 @@ export default async function PftPage() {
                       {formatMs(r.total_ms)}
                     </span>
                     <span
-                      className={`tabular block text-[11px] ${r.id === best.id ? "text-accent" : "text-muted"}`}
+                      className={`tabular block text-xs ${r.id === best.id ? "text-accent" : "text-muted"}`}
                     >
                       {r.id === best.id
                         ? t("pft.bestTitle")
@@ -249,17 +249,17 @@ export default async function PftPage() {
                       {formatMs(r.total_ms)}
                     </span>
                     <span
-                      className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${badgeClass(r.badge)}`}
+                      className={`rounded-md px-2 py-0.5 text-xs font-bold ${badgeClass(r.badge)}`}
                     >
                       {t(badgeDictKey(r.badge))}
                     </span>
                     {r.scaled && (
-                      <span className="text-[11px] text-muted">
+                      <span className="text-xs text-muted">
                         {t("pft.scaledTag")}
                       </span>
                     )}
                     {!r.shared && (
-                      <span className="text-[11px] text-muted">
+                      <span className="text-xs text-muted">
                         {t("pft.privateTag")}
                       </span>
                     )}
@@ -330,7 +330,7 @@ export default async function PftPage() {
                 {t(st.amount)}
               </p>
               {t(st.detail) && (
-                <p className="mt-0.5 text-[11px] leading-snug text-muted">
+                <p className="mt-0.5 text-xs leading-snug text-muted">
                   {t(st.detail)}
                 </p>
               )}

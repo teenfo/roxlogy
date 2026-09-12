@@ -93,7 +93,7 @@ export function ExerciseDrills({
             rows={3}
             className="rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
           />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"
             disabled={pending || !title.trim()}

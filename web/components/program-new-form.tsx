@@ -114,7 +114,7 @@ export function ProgramNewForm() {
       <h1 className="mt-3 text-[28px] font-extrabold leading-tight">
         {t("programs.newTitle")}
       </h1>
-      <p className="mt-1 text-xs text-[#777]">{t("programs.step1")}</p>
+      <p className="mt-1 text-xs text-muted-2">{t("programs.step1")}</p>
 
       <div className="mt-5 grid gap-3.5 md:grid-cols-[1fr_280px]">
         {/* 폼 */}
@@ -128,7 +128,7 @@ export function ProgramNewForm() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t("programs.titlePh")}
               maxLength={80}
-              className="h-11 rounded-lg border border-line-strong bg-page px-3 text-base font-semibold outline-none placeholder:font-normal placeholder:text-[#555] focus:border-accent"
+              className="h-11 rounded-lg border border-line-strong bg-page px-3 text-base font-semibold outline-none placeholder:font-normal placeholder:text-muted-3 focus:border-accent"
             />
           </label>
 
@@ -140,7 +140,7 @@ export function ProgramNewForm() {
               rows={3}
               placeholder={t("programs.descPh")}
               maxLength={400}
-              className="resize-y rounded-lg border border-line-strong bg-page px-3 py-2.5 text-sm outline-none placeholder:text-[#555] focus:border-accent"
+              className="resize-y rounded-lg border border-line-strong bg-page px-3 py-2.5 text-sm outline-none placeholder:text-muted-3 focus:border-accent"
             />
           </label>
 
@@ -204,7 +204,7 @@ export function ProgramNewForm() {
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-baseline gap-2">
               <span className={label}>{t("programs.fldPattern")}</span>
-              <span className="text-xs text-[#666]">
+              <span className="text-xs text-muted-2">
                 {t("programs.patternHint")}
               </span>
             </div>
@@ -226,7 +226,7 @@ export function ProgramNewForm() {
                     {dowLabel(tag, d)}
                     <span
                       className={`text-[10px] font-semibold ${
-                        on ? "text-background/70" : "text-[#666]"
+                        on ? "text-background/70" : "text-muted-2"
                       }`}
                     >
                       {on ? t("programs.dowOn") : t("programs.dowOff")}
@@ -269,7 +269,7 @@ export function ProgramNewForm() {
             </span>
           </button>
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
           <div className="flex flex-col gap-2">
             <button
@@ -279,22 +279,22 @@ export function ProgramNewForm() {
               className={`flex h-[46px] items-center justify-center rounded-lg text-sm font-extrabold transition ${
                 valid && !pending
                   ? "bg-accent text-background hover:brightness-110"
-                  : "cursor-not-allowed bg-[#2a2a2a] text-[#666]"
+                  : "cursor-not-allowed bg-[#2a2a2a] text-muted-2"
               }`}
             >
               {pending ? t("common.saving") : t("programs.createNext")}
             </button>
-            <p className="text-center text-xs text-[#777]">{hint}</p>
+            <p className="text-center text-xs text-muted-2">{hint}</p>
           </div>
         </div>
 
         {/* 미리보기 */}
         <aside className="flex h-fit flex-col gap-2.5 rounded-[14px] border border-line bg-card p-[18px] md:sticky md:top-5">
-          <p className="text-[11px] font-extrabold tracking-[0.1em] text-muted">
+          <p className="text-xs font-extrabold tracking-[0.1em] text-muted">
             {t("programs.preview")}
           </p>
           <p
-            className={`text-[17px] font-extrabold ${title.trim() ? "" : "text-[#555]"}`}
+            className={`text-[17px] font-extrabold ${title.trim() ? "" : "text-muted-3"}`}
           >
             {title.trim() || t("programs.untitled")}
           </p>
@@ -307,7 +307,7 @@ export function ProgramNewForm() {
               {t("programs.perWeek", { n: perWeek })}
             </span>
           </p>
-          <p className="mt-1 border-t border-line pt-2.5 text-xs text-[#777]">
+          <p className="mt-1 border-t border-line pt-2.5 text-xs text-muted-2">
             {t("programs.totalDaysHint", { n: totalDays })}
           </p>
         </aside>

@@ -12,6 +12,7 @@ export type NavChild = {
   href: string;
   label: DictKey;
   desc: DictKey;
+  /** 아이콘 이름 — components/nav-icon.tsx 의 SVG 세트 */
   icon: string;
 };
 
@@ -19,37 +20,37 @@ export type NavItem = {
   key: string;
   href: string;
   label: DictKey;
-  /** 모바일 하단 탭바 아이콘 */
+  /** 아이콘 이름 — components/nav-icon.tsx 의 SVG 세트 */
   icon: string;
   children?: NavChild[];
 };
 
 export const NAV: NavItem[] = [
-  { key: "sessions", href: "/sessions", label: "nav.sessions", icon: "▶" },
+  { key: "sessions", href: "/sessions", label: "nav.sessions", icon: "play" },
   {
     key: "training",
     href: "/programs",
     label: "nav.grpTraining",
-    icon: "≡",
+    icon: "list",
     children: [
       {
         href: "/programs",
         label: "nav.programs",
         desc: "nav.d.programs",
-        icon: "≡",
+        icon: "list",
       },
-      { href: "/runs", label: "nav.runs", desc: "nav.d.runs", icon: "→" },
+      { href: "/runs", label: "nav.runs", desc: "nav.d.runs", icon: "run" },
       {
         href: "/schedule",
         label: "nav.schedule",
         desc: "nav.d.schedule",
-        icon: "◷",
+        icon: "clock",
       },
       {
         href: "/exercises",
         label: "nav.exercises",
         desc: "nav.d.exercises",
-        icon: "◇",
+        icon: "diamond",
       },
     ],
   },
@@ -57,33 +58,33 @@ export const NAV: NavItem[] = [
     key: "race",
     href: "/races",
     label: "nav.grpRace",
-    icon: "⚑",
+    icon: "flag",
     children: [
-      { href: "/races", label: "nav.races", desc: "nav.d.races", icon: "⚑" },
-      { href: "/pft", label: "nav.pft", desc: "nav.d.pft", icon: "◎" },
+      { href: "/races", label: "nav.races", desc: "nav.d.races", icon: "flag" },
+      { href: "/pft", label: "nav.pft", desc: "nav.d.pft", icon: "target" },
       {
         href: "/events",
         label: "nav.events",
         desc: "nav.d.events",
-        icon: "◷",
+        icon: "clock",
       },
       {
         href: "/predict",
         label: "nav.predict",
         desc: "nav.d.predict",
-        icon: "◔",
+        icon: "gauge",
       },
-      { href: "/goals", label: "nav.goals", desc: "nav.d.goals", icon: "◈" },
+      { href: "/goals", label: "nav.goals", desc: "nav.d.goals", icon: "goal" },
       {
         href: "/leaderboard",
         label: "nav.leaderboard",
         desc: "nav.d.leaderboard",
-        icon: "≣",
+        icon: "rank",
       },
     ],
   },
-  { key: "crews", href: "/crews", label: "nav.crews", icon: "∞" },
-  { key: "feed", href: "/feed", label: "nav.feed", icon: "◫" },
+  { key: "crews", href: "/crews", label: "nav.crews", icon: "crews" },
+  { key: "feed", href: "/feed", label: "nav.feed", icon: "feed" },
 ];
 
 /**
@@ -91,9 +92,9 @@ export const NAV: NavItem[] = [
  * NAV 를 그대로 쓰면 모든 탭이 /login 리다이렉트로 끝나 막다른 길이 된다.
  */
 export const PUBLIC_NAV: NavItem[] = [
-  { key: "crews", href: "/crews", label: "nav.crews", icon: "∞" },
-  { key: "events", href: "/events", label: "nav.events", icon: "◷" },
-  { key: "predict", href: "/predict", label: "nav.predict", icon: "◔" },
+  { key: "crews", href: "/crews", label: "nav.crews", icon: "crews" },
+  { key: "events", href: "/events", label: "nav.events", icon: "clock" },
+  { key: "predict", href: "/predict", label: "nav.predict", icon: "gauge" },
 ];
 
 /** 현재 경로가 어느 1차 메뉴에 속하는가 */

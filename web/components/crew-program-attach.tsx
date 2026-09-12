@@ -150,7 +150,7 @@ export function CrewProgramAttach({
           {t("crew.progAttachBtn")}
         </button>
       </form>
-      {err && <p className="text-xs text-red-400">{err}</p>}
+      {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
       <p className="text-xs text-muted">{t("crew.progAttachDesc")}</p>
     </div>
   );

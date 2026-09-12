@@ -149,7 +149,7 @@ export function CrewPostForm({
         <span className="text-xs text-muted">{t("crew.fullOnlyPostHint")}</span>
       </label>
 
-      {err && <p className="text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="text-sm text-red-400">{err}</p>}
 
       <div className="flex justify-end">
         <button

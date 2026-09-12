@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
+import { NavIcon } from "@/components/nav-icon";
 import { NAV, PUBLIC_NAV, activeNavKey, type NavItem } from "@/lib/nav";
 
 /**
@@ -155,7 +156,7 @@ export function GlobalNav({
               aria-label={t("nav.search")}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-line-mid bg-control text-muted transition-colors hover:text-foreground lg:h-9 lg:w-auto lg:px-4"
             >
-              <span aria-hidden>⌕</span>
+              <NavIcon name="search" className="h-4 w-4" />
               <span className="ml-2 hidden text-[13px] lg:inline">
                 {t("nav.searchPh")}
               </span>
@@ -169,7 +170,7 @@ export function GlobalNav({
                 aria-label={t("nav.notifications")}
                 className="relative flex h-9 w-9 items-center justify-center rounded-full border border-line-mid bg-control text-muted transition-colors hover:text-foreground"
               >
-                <span aria-hidden>◔</span>
+                <NavIcon name="bell" className="h-4 w-4" />
                 {unread > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--nav)] bg-sunday" />
                 )}
@@ -240,7 +241,7 @@ export function GlobalNav({
                 className="rounded-xl bg-card p-3.5 transition-colors hover:bg-card-hover"
               >
                 <span aria-hidden className="text-base text-accent">
-                  {c.icon}
+                  <NavIcon name={c.icon} className="h-4 w-4" />
                 </span>
                 <p className="mt-1 text-[15px] font-bold">{t(c.label)}</p>
                 <p className="mt-0.5 text-xs text-muted">{t(c.desc)}</p>

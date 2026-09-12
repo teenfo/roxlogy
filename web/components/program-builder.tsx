@@ -510,7 +510,7 @@ export function ProgramBuilder({
             type="button"
             onClick={() => copyWeek(week)}
             disabled={busy}
-            className="shrink-0 text-xs text-[#777] hover:text-foreground disabled:opacity-40"
+            className="shrink-0 text-xs text-muted-2 hover:text-foreground disabled:opacity-40"
           >
             {t("programs.copyWeek")} →
           </button>
@@ -563,7 +563,7 @@ export function ProgramBuilder({
           type="button"
           onClick={() => addDay(false)}
           disabled={busy}
-          className="flex h-12 items-center justify-center rounded-[14px] border border-dashed border-line text-sm font-semibold text-[#777] transition-colors hover:border-muted hover:text-foreground disabled:opacity-50"
+          className="flex h-12 items-center justify-center rounded-[14px] border border-dashed border-line text-sm font-semibold text-muted-2 transition-colors hover:border-muted hover:text-foreground disabled:opacity-50"
         >
           + {t("programs.addRest")}
         </button>
@@ -587,7 +587,7 @@ export function ProgramBuilder({
               }}
             />
           </span>
-          <span className="tabular shrink-0 text-xs text-[#777]">
+          <span className="tabular shrink-0 text-xs text-muted-2">
             {t("programs.fillLabel", { n: filledDays, m: plannedDays })}
           </span>
           <span className="ml-auto flex shrink-0 items-center gap-3">
@@ -603,7 +603,7 @@ export function ProgramBuilder({
             {previewHref && (
               <Link
                 href={previewHref}
-                className="flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-[#555]"
+                className="flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-line-strong"
               >
                 {t("programs.previewBtn")}
               </Link>
@@ -693,7 +693,7 @@ function DayCard({
           {t("programs.dayN", { n: day.day_index })}
         </span>
         {(dayDate || dow) && (
-          <span className="text-xs text-[#777]">{dayDate ?? dow}</span>
+          <span className="text-xs text-muted-2">{dayDate ?? dow}</span>
         )}
         <input
           value={focusText}
@@ -742,7 +742,7 @@ function DayCard({
       {/* 본문 */}
       {isRest ? (
         <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-          <span className="text-[13px] text-[#777]">{t("programs.restDay")}</span>
+          <span className="text-[13px] text-muted-2">{t("programs.restDay")}</span>
           <AddWorkoutButton
             busy={busy}
             compact
@@ -803,7 +803,7 @@ function AddWorkoutButton({
         disabled={busy}
         className={
           compact
-            ? "ml-auto flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold transition-colors hover:border-[#555] disabled:opacity-50"
+            ? "ml-auto flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold transition-colors hover:border-line-strong disabled:opacity-50"
             : "flex h-9 items-center justify-center rounded-lg border border-dashed border-line-strong text-[13px] font-semibold text-muted transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
         }
       >
@@ -824,7 +824,7 @@ function AddWorkoutButton({
             onAdd(ty, autofill);
             setOpen(false);
           }}
-          className="flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-control px-3 text-xs font-bold transition-colors hover:border-[#555] disabled:opacity-50"
+          className="flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-control px-3 text-xs font-bold transition-colors hover:border-line-strong disabled:opacity-50"
         >
           <span className={`h-1.5 w-1.5 rounded-full ${wodTypeDot(ty)}`} />
           {t(`programs.type.${ty}` as DictKey)}
@@ -899,7 +899,7 @@ function WorkoutCard({
               type="button"
               disabled={busy}
               onClick={() => onSetType(ty)}
-              className={`flex h-6 items-center rounded-full px-2.5 text-[11px] font-bold transition-colors ${
+              className={`flex h-6 items-center rounded-full px-2.5 text-xs font-bold transition-colors ${
                 w.type === ty
                   ? "bg-accent text-background"
                   : "text-muted hover:text-foreground"
@@ -910,7 +910,7 @@ function WorkoutCard({
           ))}
         </span>
         {mins > 0 && (
-          <span className="tabular shrink-0 text-xs text-[#777]">
+          <span className="tabular shrink-0 text-xs text-muted-2">
             {t("programs.aboutMin", { n: mins })}
           </span>
         )}
@@ -933,7 +933,7 @@ function WorkoutCard({
               key={it.id}
               className="flex flex-wrap items-center gap-2.5 border-b border-[#161616] px-3.5 py-2 transition-colors last:border-b-0 hover:bg-[#111]"
             >
-              <span className="tabular w-6 shrink-0 text-right text-xs font-bold text-[#777]">
+              <span className="tabular w-6 shrink-0 text-right text-xs font-bold text-muted-2">
                 {i + 1}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">
@@ -990,7 +990,7 @@ function WorkoutCard({
           ))}
         </ul>
       ) : (
-        <p className="px-3.5 py-3 text-[13px] text-[#666]">{t("programs.noItems")}</p>
+        <p className="px-3.5 py-3 text-[13px] text-muted-2">{t("programs.noItems")}</p>
       )}
 
       <ExercisePicker
@@ -1095,7 +1095,7 @@ function ExercisePicker({
               }
             }}
             placeholder={t("programs.searchEx")}
-            className="h-[38px] w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none placeholder:text-[#555] focus:border-accent"
+            className="h-[38px] w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none placeholder:text-muted-3 focus:border-accent"
           />
           {draft.open && (
             <div className="absolute inset-x-0 top-[42px] z-20 max-h-80 overflow-y-auto rounded-[10px] border border-[#333] bg-[#1a1a1a] shadow-[0_16px_40px_rgba(0,0,0,.6)]">
@@ -1119,7 +1119,7 @@ function ExercisePicker({
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">
                     {exName(ex)}
                   </span>
-                  <span className="shrink-0 text-[11px] text-[#777]">
+                  <span className="shrink-0 text-xs text-muted-2">
                     {targetFieldsFor(ex)
                       .slice(0, 2)
                       .map((f) => t(`programs.tgt.${f}` as DictKey))

@@ -100,14 +100,14 @@ export default async function CrewDirectoryPage() {
                         </span>
                         {isStaffRole(c.role) ? (
                           <span
-                            className={`rounded-md px-2 py-0.5 text-[11px] font-extrabold ${crewRoleBadgeClass(c.role)}`}
+                            className={`rounded-md px-2 py-0.5 text-xs font-extrabold ${crewRoleBadgeClass(c.role)}`}
                           >
                             {t(crewRoleDictKey(c.role))}
                           </span>
                         ) : (
                           c.tier && (
                             <span
-                              className={`rounded-md px-2 py-0.5 text-[11px] font-extrabold ${tierBadgeClass(c.tier_color)}`}
+                              className={`rounded-md px-2 py-0.5 text-xs font-extrabold ${tierBadgeClass(c.tier_color)}`}
                             >
                               {c.tier}
                             </span>

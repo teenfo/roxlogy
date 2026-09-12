@@ -95,8 +95,8 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      {err && <p className="text-sm text-red-400">{err}</p>}
-      {notice && <p className="text-sm text-accent">{notice}</p>}
+      {err && <p role="alert" className="text-sm text-red-400">{err}</p>}
+      {notice && <p role="status" className="text-sm text-accent">{notice}</p>}
       {items.map((r) => (
         <div key={r.id} className="rounded-md bg-surface px-4 py-2.5">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -113,7 +113,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
             {r.waitingItems > 0 && (
               <span
                 title={t("admin.exReqWaitingHint")}
-                className="shrink-0 rounded-md border border-line-mid bg-background px-1.5 py-0.5 text-[11px] font-bold tabular"
+                className="shrink-0 rounded-md border border-line-mid bg-background px-1.5 py-0.5 text-xs font-bold tabular"
               >
                 {t("admin.exReqWaiting", { n: r.waitingItems, p: r.waitingPrograms })}
               </span>
@@ -171,7 +171,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
                   ))}
                 </div>
               )}
-              <p className="text-[11px] text-muted">{t("admin.exReqLinkHint")}</p>
+              <p className="text-xs text-muted">{t("admin.exReqLinkHint")}</p>
             </div>
           )}
         </div>

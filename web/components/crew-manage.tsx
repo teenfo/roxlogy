@@ -340,7 +340,7 @@ export function CrewImageUpload({
         <p className="mt-1.5 text-xs text-muted">
           {t(kind === "logo" ? "crew.logoHint" : "crew.coverHint")}
         </p>
-        {err && <p className="mt-1 text-xs text-red-400">{err}</p>}
+        {err && <p role="alert" className="mt-1 text-xs text-red-400">{err}</p>}
       </div>
     </div>
   );
@@ -464,7 +464,7 @@ export function CrewMemberManage({
 
   return (
     <div>
-      {err && <p className="mb-3 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mb-3 text-sm text-red-400">{err}</p>}
 
       <input
         value={query}
@@ -484,7 +484,7 @@ export function CrewMemberManage({
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-sm">{m.display_name}</span>
                   {m.email && (
-                    <span className="truncate text-[11px] text-muted">{m.email}</span>
+                    <span className="truncate text-xs text-muted">{m.email}</span>
                   )}
                 </span>
                 <span className="flex gap-2">
@@ -556,7 +556,7 @@ export function CrewMemberManage({
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-sm">{m.display_name}</span>
                 {m.email && (
-                  <span className="truncate text-[11px] text-muted">{m.email}</span>
+                  <span className="truncate text-xs text-muted">{m.email}</span>
                 )}
               </span>
               {isStaffRole(m.role) ? (
@@ -581,7 +581,7 @@ export function CrewMemberManage({
               {/* 출석 = 유료 모임 / 무료 포함 전체 */}
               {m.attend_count > 0 && (
                 <span
-                  className="shrink-0 font-mono text-[11px] text-muted"
+                  className="shrink-0 font-mono text-xs text-muted"
                   title={t("crew.attendColHint")}
                 >
                   <span className="text-accent">{m.attend_paid_count}</span>
@@ -679,7 +679,7 @@ export function CrewDeleteButton({ crewId }: { crewId: string }) {
 
   return (
     <div>
-      {err && <p className="mb-2 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mb-2 text-sm text-red-400">{err}</p>}
       <button
         onClick={del}
         disabled={busy}

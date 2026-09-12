@@ -157,11 +157,11 @@ export function McpConnect({
           <h3 className="text-[15px] font-extrabold">{t("mcp.title")}</h3>
           {/* 배지는 실제 상태를 말한다 — 예전엔 항상 "읽기 전용"이라 거짓이었다 */}
           {write === true ? (
-            <span className="rounded-[5px] border border-line-accent bg-highlight px-2 py-[3px] text-[11px] font-bold text-accent">
+            <span className="rounded-[5px] border border-line-accent bg-highlight px-2 py-[3px] text-xs font-bold text-accent">
               {t("mcp.writeOn")}
             </span>
           ) : write === false ? (
-            <span className="rounded-[5px] bg-label-bg px-2 py-[3px] text-[11px] font-bold text-label">
+            <span className="rounded-[5px] bg-label-bg px-2 py-[3px] text-xs font-bold text-label">
               {t("mcp.readOnly")}
             </span>
           ) : null}
@@ -294,7 +294,7 @@ export function McpConnect({
             <li>{t("mcp.writeActionsMine")}</li>
             <li>{t("mcp.writeActionsStaff")}</li>
           </ul>
-          <p className="mt-2 text-[11px] leading-relaxed text-muted">
+          <p className="mt-2 text-xs leading-relaxed text-muted">
             {t("mcp.writeNote")}
           </p>
           {loadErr && (

@@ -279,7 +279,7 @@ export default async function CrewSchedulePage({
                               {r.title}
                             </span>
                             {isNext && (
-                              <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-extrabold text-background">
+                              <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-background">
                                 {t("crew.nextMeetup")}
                               </span>
                             )}

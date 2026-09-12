@@ -35,7 +35,7 @@ export function LandingCrewTicker({ crews }: { crews: TickerCrew[] }) {
         href={`/crews/${c.slug}`}
         aria-hidden={clone || undefined}
         tabIndex={clone ? -1 : undefined}
-        className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-line-mid bg-card px-3.5 py-3 transition-colors duration-100 hover:border-[#555] hover:bg-card-hover"
+        className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-line-mid bg-card px-3.5 py-3 transition-colors duration-100 hover:border-line-strong hover:bg-card-hover"
       >
         {c.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -62,7 +62,7 @@ export function LandingCrewTicker({ crews }: { crews: TickerCrew[] }) {
             {t("landing.crewMembers", { n: c.memberCount })}
           </span>
           <span
-            className={`flex items-center justify-end gap-1 text-[11px] ${
+            className={`flex items-center justify-end gap-1 text-xs ${
               c.daysAgo === 0 ? "text-success" : "text-muted"
             }`}
           >
@@ -103,7 +103,7 @@ export function LandingCrewTicker({ crews }: { crews: TickerCrew[] }) {
           />
         </>
       )}
-      <span className="absolute right-0 top-2.5 z-[3] flex items-center gap-1.5 text-[11px] font-bold tracking-[0.06em] text-[#8a7a2a]">
+      <span className="absolute right-0 top-2.5 z-[3] flex items-center gap-1.5 text-xs font-bold tracking-[0.06em] text-[#8a7a2a]">
         <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />
         {t("landing.activeCrews")}
       </span>

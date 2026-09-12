@@ -34,7 +34,7 @@ export function Badge({
   const base = outline ? "border border-line-accent text-accent" : TONE[tone];
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold leading-none ${base} ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold leading-none ${base} ${className}`}
     >
       {children}
     </span>

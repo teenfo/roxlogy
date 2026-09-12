@@ -51,7 +51,7 @@ export function CrewLedgerSettle({
         onClick={() => set(null)}
         disabled={busy}
         title={t("crew.finUnsettleHint")}
-        className="rounded-md bg-success-bg px-1.5 py-0.5 text-[11px] font-bold text-success disabled:opacity-40"
+        className="rounded-md bg-success-bg px-1.5 py-0.5 text-xs font-bold text-success disabled:opacity-40"
       >
         {label}
       </button>
@@ -63,7 +63,7 @@ export function CrewLedgerSettle({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-label-bg px-1.5 py-0.5 text-[11px] font-bold text-label transition-colors hover:bg-accent hover:text-background"
+        className="rounded-md bg-label-bg px-1.5 py-0.5 text-xs font-bold text-label transition-colors hover:bg-accent hover:text-background"
       >
         {t("crew.finUnsettledBadge")}
       </button>
@@ -76,20 +76,20 @@ export function CrewLedgerSettle({
         type="date"
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        className="h-7 rounded-md border border-line-strong bg-page px-1.5 text-[11px] outline-none focus:border-accent"
+        className="h-7 rounded-md border border-line-strong bg-page px-1.5 text-xs outline-none focus:border-accent"
       />
       <button
         type="button"
         onClick={() => set(date || entryDate)}
         disabled={busy}
-        className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-extrabold text-background disabled:opacity-40"
+        className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-background disabled:opacity-40"
       >
         {t("crew.finSettle")}
       </button>
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="text-[11px] text-muted hover:text-foreground"
+        className="text-xs text-muted hover:text-foreground"
       >
         {t("common.cancel")}
       </button>
@@ -161,7 +161,7 @@ export function CrewLedgerSettleMonth({
       >
         {t("crew.finSettleAll", { n: count })}
       </button>
-      {err && <span className="text-[11px] text-danger">{err}</span>}
+      {err && <span className="text-xs text-danger">{err}</span>}
     </span>
   );
 }

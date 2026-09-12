@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Dialog } from "@/components/ui/dialog";
 
 const input =
   "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
@@ -157,17 +158,15 @@ export function CrewLedgerForm({
           + {t("crew.finAdd")}
         </button>
       )}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
-          onClick={() => setOpen(false)}
-        >
-          {/* my-auto — 공간이 남으면 세로 중앙, 폼이 화면보다 길면 위에 붙어
-              스크롤된다. items-center 로 하면 긴 폼의 윗부분이 잘린다. */}
-          <div
-            className="my-auto w-full max-w-lg text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        label={t(editing ? "crew.finEdit" : "crew.finAdd")}
+        closeLabel={t("common.cancel")}
+        panelClassName="max-w-lg"
+      >
+        {open && (
+          <div>
             <form
               onSubmit={save}
               className="flex flex-col gap-2 rounded-md bg-surface p-4"
@@ -176,7 +175,7 @@ export function CrewLedgerForm({
                 {t(editing ? "crew.finEdit" : "crew.finAdd")}
               </p>
               {fromDues && (
-                <p className="text-[11px] text-muted">{t("crew.finDuesLocked")}</p>
+                <p className="text-xs text-muted">{t("crew.finDuesLocked")}</p>
               )}
               <div className="flex flex-wrap gap-2">
                 <select
@@ -251,7 +250,7 @@ export function CrewLedgerForm({
                 </label>
               </div>
               {kind === "income" && method === "cash" && (
-                <p className="text-[11px] text-muted">
+                <p className="text-xs text-muted">
                   {t("crew.finCashInHint")}
                 </p>
               )}
@@ -262,7 +261,7 @@ export function CrewLedgerForm({
                 onChange={(e) => setMemo(e.target.value)}
                 maxLength={500}
               />
-              {err && <p className="text-xs text-red-400">{err}</p>}
+              {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -281,8 +280,8 @@ export function CrewLedgerForm({
               </div>
             </form>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
     </>
   );
 }

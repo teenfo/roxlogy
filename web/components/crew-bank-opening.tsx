@@ -59,7 +59,7 @@ export function CrewBankOpening({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-8 shrink-0 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-[#555]"
+        className="flex h-8 shrink-0 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-line-strong"
       >
         {t("crew.finOpeningEdit")}
       </button>
@@ -71,7 +71,7 @@ export function CrewBankOpening({
       onSubmit={save}
       className="flex flex-wrap items-end gap-2 rounded-lg border border-line bg-page px-3 py-2.5"
     >
-      <label className="flex flex-col gap-1 text-[11px] text-muted">
+      <label className="flex flex-col gap-1 text-xs text-muted">
         {t("crew.finOpening")}
         <input
           value={amount}
@@ -80,7 +80,7 @@ export function CrewBankOpening({
           className="tabular h-9 w-32 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-accent"
         />
       </label>
-      <label className="flex flex-col gap-1 text-[11px] text-muted">
+      <label className="flex flex-col gap-1 text-xs text-muted">
         {t("crew.finOpeningOn")}
         <input
           type="date"

@@ -206,7 +206,7 @@ export default async function ProgramsPage() {
       {running ? (
         <section className="grid items-center gap-5 rounded-2xl border border-line-accent bg-highlight px-6 py-5 max-md:grid-cols-1 max-md:px-4 md:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex min-w-0 flex-col gap-3">
-            <p className="flex flex-wrap items-center gap-x-2 text-[11px] font-extrabold tracking-[0.1em] text-accent">
+            <p className="flex flex-wrap items-center gap-x-2 text-xs font-extrabold tracking-[0.1em] text-accent">
               {t("programs.enrolled")}
               <span className="font-semibold tracking-normal text-[#8a7a2a]">
                 {dateLabel(running.startDate)}
@@ -221,7 +221,7 @@ export default async function ProgramsPage() {
             </Link>
             <p className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-foreground/80">
               {running.level && (
-                <span className="rounded-md bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent-dim">
+                <span className="rounded-md bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent-dim">
                   {dictLabel(t, `predict.level.${running.level}`, running.level)}
                 </span>
               )}

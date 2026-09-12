@@ -42,7 +42,7 @@ export async function AiInsight({
   return (
     <section className="mt-6 rounded-2xl border border-line-strong border-l-[3px] border-l-accent bg-card px-5 py-4">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-accent">
+        <h2 className="text-xs font-extrabold uppercase tracking-[0.08em] text-accent">
           {title}
         </h2>
         {kind === "weekly" && (

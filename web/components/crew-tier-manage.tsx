@@ -132,14 +132,14 @@ export function CrewTierManage({
   return (
     <div>
       <p className="text-xs text-muted">{t("crew.tierDesc")}</p>
-      {err && <p className="mt-2 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-sm text-red-400">{err}</p>}
 
       <ul className="mt-3 flex flex-col gap-1.5">
         {active.map((x) => (
           <li key={x.id} className="rounded-md bg-surface px-4 py-3">
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${tierBadgeClass(x.color)}`}
+                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${tierBadgeClass(x.color)}`}
               >
                 {x.name}
               </span>

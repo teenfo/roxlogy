@@ -204,7 +204,7 @@ export default async function CrewEventPage({
                 {badges.map((b) => (
                   <span
                     key={b.label}
-                    className={`rounded-[5px] px-2 py-[3px] text-[11px] font-bold ${b.cls}`}
+                    className={`rounded-[5px] px-2 py-[3px] text-xs font-bold ${b.cls}`}
                   >
                     {b.label}
                   </span>
@@ -236,7 +236,7 @@ export default async function CrewEventPage({
             {/* 목록으로 — 상단에 따로 두는 것보다 액션들과 한 줄에 있는 편이 찾기 쉽다 */}
             <Link
               href={`/crews/${slug}/schedule`}
-              className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-[#555]"
+              className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-line-strong"
             >
               ← {t("crew.schedTab")}
             </Link>
@@ -436,7 +436,7 @@ export default async function CrewEventPage({
                       >
                         {c.author_name}
                       </Link>
-                      <span className="text-[11px] text-muted">
+                      <span className="text-xs text-muted">
                         {formatDate(c.created_at, tag, tz)}
                       </span>
                     </p>

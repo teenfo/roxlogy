@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NavIcon } from "@/components/nav-icon";
 import { notFound } from "next/navigation";
 import { getCrew, getCrewBoard } from "@/lib/crew";
 import { createClient } from "@/lib/supabase/server";
@@ -63,10 +64,10 @@ export default async function CrewHomePage({
   // 정보 카드 — 위치·운영시간·문의 (아이콘 + 라벨 + 값)
   const info: { icon: string; label: string; value: string }[] = [];
   if (crew.location)
-    info.push({ icon: "◎", label: t("crew.location"), value: crew.location });
+    info.push({ icon: "target", label: t("crew.location"), value: crew.location });
   if (links.hours_weekday || links.hours_weekend)
     info.push({
-      icon: "◷",
+      icon: "clock",
       label: t("crew.hours"),
       value: [links.hours_weekday, links.hours_weekend].filter(Boolean).join(" · "),
     });
@@ -102,7 +103,7 @@ export default async function CrewHomePage({
         <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
           {(crew.description || tags.length > 0) && (
             <Card highlight className="px-6 py-5">
-              <p className="text-[11px] font-extrabold tracking-[0.1em] text-accent">
+              <p className="text-xs font-extrabold tracking-[0.1em] text-accent">
                 {t("crew.aboutLabel")}
               </p>
               {crew.description && (
@@ -135,7 +136,7 @@ export default async function CrewHomePage({
                     aria-hidden
                     className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-line text-muted"
                   >
-                    {row.icon}
+                    {row.icon === "@" ? "@" : <NavIcon name={row.icon} className="h-4 w-4" />}
                   </span>
                   <div className="min-w-0">
                     <p className="text-xs text-muted">{row.label}</p>
@@ -161,7 +162,7 @@ export default async function CrewHomePage({
             >
               <span className="flex items-center gap-2 text-xs text-muted">
                 {l.label}
-                <span className="ml-auto text-[11px]">↗</span>
+                <span className="ml-auto text-xs">↗</span>
               </span>
               <span className="truncate text-[15px] font-bold text-accent">
                 {l.href.replace(/^https?:\/\//, "")}

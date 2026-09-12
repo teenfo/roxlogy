@@ -55,7 +55,7 @@ export function CrewUnpaidCard({
       >
         {won(amount)}
       </p>
-      <p className="mt-0.5 text-[11px] text-muted">{sub}</p>
+      <p className="mt-0.5 text-xs text-muted">{sub}</p>
     </>
   );
 
@@ -71,7 +71,7 @@ export function CrewUnpaidCard({
         className="rounded-md bg-surface px-4 py-3 text-left ring-accent/40 hover:ring-1"
       >
         {tile}
-        <span className="mt-1 block text-[11px] text-accent">
+        <span className="mt-1 block text-xs text-accent">
           {t("crew.unpaidOpen")}
         </span>
       </button>
@@ -91,7 +91,7 @@ export function CrewUnpaidCard({
               {won(amount)}
             </span>
           </div>
-          <p className="mt-1 text-[11px] text-muted">{t("crew.unpaidHint")}</p>
+          <p className="mt-1 text-xs text-muted">{t("crew.unpaidHint")}</p>
 
           <ul className="mt-3 flex flex-col gap-2">
             {[...byMember.entries()].map(([uid, list]) => {
@@ -110,7 +110,7 @@ export function CrewUnpaidCard({
                     {list.map((c) => (
                       <li
                         key={c.charge_id}
-                        className="flex items-baseline gap-2 text-[11px] text-muted"
+                        className="flex items-baseline gap-2 text-xs text-muted"
                       >
                         <span className="shrink-0 font-mono">{c.period}</span>
                         <span className="min-w-0 flex-1 truncate">{c.label}</span>

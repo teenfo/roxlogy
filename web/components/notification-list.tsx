@@ -196,7 +196,7 @@ export function NotificationList({ rows }: { rows: NotifRow[] }) {
         </span>
       </div>
 
-      {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+      {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
 
       {!shown.length ? (
         <Card className="mt-4 px-4 py-12 text-center">

@@ -149,7 +149,7 @@ export function RacePartnerBox({
                 {p.name}
               </Link>
               <span
-                className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${tone[p.status]}`}
+                className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${tone[p.status]}`}
               >
                 {t(
                   p.status === "accepted"
@@ -196,12 +196,12 @@ export function RacePartnerBox({
               type="button"
               onClick={search}
               disabled={busy || !q.trim()}
-              className="flex h-10 shrink-0 items-center rounded-lg border border-line-strong bg-control px-4 text-[13px] font-semibold transition-colors hover:border-[#555] disabled:opacity-40"
+              className="flex h-10 shrink-0 items-center rounded-lg border border-line-strong bg-control px-4 text-[13px] font-semibold transition-colors hover:border-line-strong disabled:opacity-40"
             >
               {busy ? "…" : t("raceNew.import.searchBtn")}
             </button>
           </div>
-          <p className="text-[11px] text-muted [word-break:keep-all]">
+          <p className="text-xs text-muted [word-break:keep-all]">
             {t("race.partnerSearchHint")}
           </p>
 
@@ -223,7 +223,7 @@ export function RacePartnerBox({
                       <span className="block truncate text-[13px] font-bold">
                         {h.display_name}
                       </span>
-                      <span className="block truncate text-[11px] text-muted">
+                      <span className="block truncate text-xs text-muted">
                         {t(
                           h.source === "crew"
                             ? "race.srcCrew"
@@ -249,7 +249,7 @@ export function RacePartnerBox({
         </>
       )}
 
-      {err && <p className="text-xs text-danger">{err}</p>}
+      {err && <p role="alert" className="text-xs text-danger">{err}</p>}
     </div>
   );
 }

@@ -155,7 +155,7 @@ export function CrewCreateForm() {
         {t("crew.fPublic")}
       </label>
 
-      {err && <p className="mt-3 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
 
       <button
         type="submit"

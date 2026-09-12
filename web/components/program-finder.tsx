@@ -136,7 +136,7 @@ export function ProgramFinder({
           <li>
             <Link
               href="/programs/new"
-              className="flex h-full min-h-[120px] flex-col items-center justify-center gap-1 rounded-[14px] border border-dashed border-line-strong text-center transition-colors hover:border-[#555]"
+              className="flex h-full min-h-[120px] flex-col items-center justify-center gap-1 rounded-[14px] border border-dashed border-line-strong text-center transition-colors hover:border-line-strong"
             >
               <span aria-hidden className="text-[22px] text-muted">
                 +

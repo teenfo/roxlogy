@@ -153,7 +153,7 @@ export default async function WorkoutPage({
             <div className="flex min-w-0 flex-col gap-2.5">
               <p className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`rounded-[5px] px-2 py-[3px] text-[11px] font-bold ${wodTypeChip(w.type)}`}
+                  className={`rounded-[5px] px-2 py-[3px] text-xs font-bold ${wodTypeChip(w.type)}`}
                 >
                   {dictLabel(t, `programs.type.${w.type}`, w.type)}
                 </span>

@@ -269,7 +269,7 @@ export function WorkoutChecklist({
                 <button
                   type="button"
                   onClick={() => setOpenId(isOpen ? null : it.id)}
-                  className="flex h-9 shrink-0 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-[#555] max-md:col-start-2 max-md:justify-self-end"
+                  className="flex h-9 shrink-0 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-line-strong max-md:col-start-2 max-md:justify-self-end"
                 >
                   {isOpen
                     ? t("workouts.collapse")
@@ -294,7 +294,7 @@ export function WorkoutChecklist({
         })}
       </ul>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
       {/* 완료 바 — 남은 종목 / 전부 체크 / 완료됨 세 상태 */}
       <div

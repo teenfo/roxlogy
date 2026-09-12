@@ -17,7 +17,7 @@ export async function generateMetadata() {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="bg-surface px-4 py-2.5">
-      <p className="text-[11px] text-muted">{label}</p>
+      <p className="text-xs text-muted">{label}</p>
       <p className="mt-0.5 break-all text-sm">{children}</p>
     </div>
   );
@@ -94,7 +94,7 @@ export default async function AdminUserDetailPage({
           </Row>
           <Row label={t("admin.mcpToken")}>
             {u.has_mcp_token ? t("admin.tokenIssued") : t("admin.tokenNone")}
-            <span className="ml-2 text-[11px] text-muted">
+            <span className="ml-2 text-xs text-muted">
               {t("admin.tokenHidden")}
             </span>
           </Row>
@@ -141,7 +141,7 @@ export default async function AdminUserDetailPage({
                 >
                   {c.name}
                 </Link>
-                <span className="text-[11px] text-muted">
+                <span className="text-xs text-muted">
                   {dictLabel(t as never, `crew.role.${c.role}`, c.role)}
                   {c.tier ? ` · ${c.tier}` : ""}
                 </span>

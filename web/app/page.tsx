@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { NavIcon } from "@/components/nav-icon";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCrewDirectory } from "@/lib/crew";
@@ -19,7 +20,7 @@ const sec = (s: number) => formatMs(s * 1000);
 const ctaPrimary =
   "flex h-[52px] items-center justify-center rounded-[10px] bg-accent px-7 text-base font-extrabold text-background transition hover:brightness-110";
 const ctaGhost =
-  "flex h-[52px] items-center justify-center rounded-[10px] border border-line-strong px-7 text-[15px] font-semibold transition-colors hover:border-[#555]";
+  "flex h-[52px] items-center justify-center rounded-[10px] border border-line-strong px-7 text-[15px] font-semibold transition-colors hover:border-line-strong";
 
 /**
  * 첫 화면.
@@ -104,7 +105,7 @@ export default async function Landing({
             {/* 모바일은 자리가 빠듯해 시작하기 하나만 남긴다 */}
             <Link
               href="/login"
-              className="hidden h-9 items-center rounded-lg border border-line-strong px-4 text-[13px] font-semibold transition-colors hover:border-[#555] md:flex"
+              className="hidden h-9 items-center rounded-lg border border-line-strong px-4 text-[13px] font-semibold transition-colors hover:border-line-strong md:flex"
             >
               {t("common.login")}
             </Link>
@@ -166,10 +167,10 @@ export default async function Landing({
           {/* 분석 카드 — 전부 가짜 수치 */}
           <div className="flex flex-col gap-[18px] rounded-[18px] border border-line-mid bg-card p-[22px] shadow-[0_30px_80px_rgba(0,0,0,.6)]">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-[5px] bg-accent/15 px-[7px] py-[3px] text-[11px] font-bold text-accent-dim">
+              <span className="rounded-[5px] bg-accent/15 px-[7px] py-[3px] text-xs font-bold text-accent-dim">
                 {t("landing.demoRace")}
               </span>
-              <span className="rounded-[5px] bg-label-bg px-[7px] py-[3px] text-[11px] font-bold tracking-[0.04em] text-label">
+              <span className="rounded-[5px] bg-label-bg px-[7px] py-[3px] text-xs font-bold tracking-[0.04em] text-label">
                 {demo.division}
               </span>
               <span className="ml-auto rounded-[5px] bg-label-bg px-[7px] py-[3px] text-[10px] font-bold text-label">
@@ -223,7 +224,7 @@ export default async function Landing({
 
             {/* AI 코칭 */}
             <div className="rounded-[10px] border border-line-strong border-l-[3px] border-l-accent bg-page px-3.5 py-3">
-              <p className="text-[11px] font-extrabold tracking-[0.08em] text-accent">
+              <p className="text-xs font-extrabold tracking-[0.08em] text-accent">
                 {t("landing.aiLabel")}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-foreground/85 [word-break:keep-all]">
@@ -253,7 +254,7 @@ export default async function Landing({
                 color: [CHART_COLORS.run, "var(--accent-dim)", "var(--success)"][n - 1],
               }}
             >
-              {["▶", "◔", "⚑"][n - 1]}
+              <NavIcon name={["play", "gauge", "flag"][n - 1]} className="h-5 w-5" />
             </span>
             <h2 className="text-lg font-extrabold">
               {t(`landing.feature${n}.title`)}

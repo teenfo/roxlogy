@@ -241,13 +241,13 @@ export default async function EventDetailPage({
                     </div>
                     <div className="mt-2 grid grid-cols-3 gap-3 text-center">
                       <div>
-                        <p className="text-[11px] text-muted">{t("events.median")}</p>
+                        <p className="text-xs text-muted">{t("events.median")}</p>
                         <p className="font-mono text-sm font-bold">
                           {formatMs(d.medianMs)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[11px] text-muted">
+                        <p className="text-xs text-muted">
                           {t("events.midRange")}
                         </p>
                         <p className="font-mono text-sm">
@@ -255,7 +255,7 @@ export default async function EventDetailPage({
                         </p>
                       </div>
                       <div>
-                        <p className="text-[11px] text-muted">{t("events.top10")}</p>
+                        <p className="text-xs text-muted">{t("events.top10")}</p>
                         <p className="font-mono text-sm text-track">
                           {formatMs(d.p10Ms)}
                         </p>
@@ -273,7 +273,7 @@ export default async function EventDetailPage({
                 );
               })}
             </div>
-            <p className="mt-2 text-[11px] text-muted">{t("events.statsNote")}</p>
+            <p className="mt-2 text-xs text-muted">{t("events.statsNote")}</p>
           </section>
         ) : (
           <p className="mt-8 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">

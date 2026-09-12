@@ -131,7 +131,7 @@ export function HyroxLinkForm({
             <h3 className="text-[15px] font-extrabold">
               {t("hyroxLink.title")}
             </h3>
-            <span className="flex items-center gap-1.5 rounded-[5px] bg-success-bg px-2 py-[3px] text-[11px] font-bold text-success">
+            <span className="flex items-center gap-1.5 rounded-[5px] bg-success-bg px-2 py-[3px] text-xs font-bold text-success">
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />
               {t("hyroxLink.linkedBadge")}
             </span>
@@ -174,7 +174,7 @@ export function HyroxLinkForm({
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-[15px] font-extrabold">{t("hyroxLink.title")}</h3>
-          <span className="rounded-[5px] bg-label-bg px-2 py-[3px] text-[11px] font-bold text-label">
+          <span className="rounded-[5px] bg-label-bg px-2 py-[3px] text-xs font-bold text-label">
             {t("hyroxLink.notLinked")}
           </span>
         </div>
@@ -204,7 +204,7 @@ export function HyroxLinkForm({
         </button>
       </div>
 
-      {err && <p className="text-xs text-danger">{err}</p>}
+      {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       {hits && hits.length === 0 && (
         <p className="text-xs text-muted">{t("hyroxLink.noHits")}</p>
       )}

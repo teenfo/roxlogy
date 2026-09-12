@@ -232,7 +232,7 @@ export function ProfileForm({
               className="w-full min-w-0 bg-transparent px-2 text-sm text-foreground outline-none"
             />
           </span>
-          <span className="text-[11px] text-muted/80">
+          <span className="text-xs text-muted/80">
             {t("profile.instagramHint")}
           </span>
         </label>

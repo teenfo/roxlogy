@@ -100,7 +100,7 @@ export default async function CrewPostPage({
                   >
                     {c.author_name}
                   </Link>
-                  <span className="text-[11px] text-muted">
+                  <span className="text-xs text-muted">
                     {formatDate(c.created_at, tag, tz)}
                   </span>
                   {!!user && (c.author_id === user.id || isStaff) && (

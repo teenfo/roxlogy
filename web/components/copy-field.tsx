@@ -32,7 +32,7 @@ export function CopyField({ label, value }: { label: string; value: string }) {
       <span className="flex w-full items-center gap-2">
         <span className="text-xs text-muted">{label}</span>
         <span
-          className={`ml-auto text-[11px] font-bold ${copied ? "text-success" : "text-muted"}`}
+          className={`ml-auto text-xs font-bold ${copied ? "text-success" : "text-muted"}`}
         >
           {copied ? `${t("common.copied")} ✓` : t("common.copy")}
         </span>

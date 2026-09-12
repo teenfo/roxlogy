@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Dialog } from "@/components/ui/dialog";
 import { enrollErrText } from "@/lib/enroll-error";
 
 /** 로컬 기준 오늘 날짜 (YYYY-MM-DD) */
@@ -108,7 +109,7 @@ export function ProgramEnrollButton({
             {t("programs.stop")}
           </button>
         </div>
-        {err && <p className="text-xs text-red-400">{err}</p>}
+        {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
       </div>
     );
   }
@@ -128,15 +129,16 @@ export function ProgramEnrollButton({
         {t("programs.start")}
       </button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-lg bg-surface p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        variant="center"
+        label={t("programs.enrollTitle")}
+        closeLabel={t("common.cancel")}
+        panelClassName="max-w-sm rounded-lg bg-surface p-5 shadow-xl"
+      >
+        {open && (
+          <div>
             <h2 className="text-lg font-semibold">{t("programs.enrollTitle")}</h2>
             <p className="mt-1 text-xs text-muted">{t("programs.enrollDesc")}</p>
 
@@ -196,7 +198,7 @@ export function ProgramEnrollButton({
               )}
             </p>
 
-            {err && <p className="mt-3 text-sm text-red-400">{err}</p>}
+            {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
 
             <div className="mt-5 flex justify-end gap-2">
               <button
@@ -214,8 +216,8 @@ export function ProgramEnrollButton({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
     </>
   );
 }

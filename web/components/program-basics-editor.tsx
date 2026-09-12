@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Dialog } from "@/components/ui/dialog";
 
 const LEVELS = ["beginner", "intermediate", "advanced", "elite"] as const;
 
@@ -64,19 +65,21 @@ export function ProgramBasicsEditor({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="self-start text-xs text-[#777] hover:text-foreground"
+        className="self-start text-xs text-muted-2 hover:text-foreground"
       >
         {t("programs.editBasics")}
       </button>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
-          onClick={() => setOpen(false)}
-        >
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        label={t("programs.editBasics")}
+        closeLabel={t("common.cancel")}
+        panelClassName="max-w-lg"
+      >
+        {open && (
           <form
             onSubmit={save}
-            onClick={(e) => e.stopPropagation()}
-            className="my-auto flex w-full max-w-lg flex-col gap-3 rounded-[14px] border border-line bg-card p-5 text-left"
+            className="flex w-full flex-col gap-3 rounded-[14px] border border-line bg-card p-5 text-left"
           >
             <p className="text-sm font-bold">{t("programs.editBasics")}</p>
             <input
@@ -95,7 +98,7 @@ export function ProgramBasicsEditor({
               placeholder={t("programs.descPh")}
             />
             <div className="flex flex-wrap gap-2">
-              <label className="flex flex-col gap-1 text-[11px] text-muted">
+              <label className="flex flex-col gap-1 text-xs text-muted">
                 {t("programs.fldWeeks")}
                 <input
                   value={weeks}
@@ -104,7 +107,7 @@ export function ProgramBasicsEditor({
                   className={`${field} tabular w-24`}
                 />
               </label>
-              <label className="flex flex-col gap-1 text-[11px] text-muted">
+              <label className="flex flex-col gap-1 text-xs text-muted">
                 {t("programs.fldLevel")}
                 <select
                   value={level}
@@ -128,7 +131,7 @@ export function ProgramBasicsEditor({
               />
               {t("programs.fldPublic")}
             </label>
-            {err && <p className="text-xs text-danger">{err}</p>}
+            {err && <p role="alert" className="text-xs text-danger">{err}</p>}
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -146,8 +149,8 @@ export function ProgramBasicsEditor({
               </button>
             </div>
           </form>
-        </div>
-      )}
+        )}
+      </Dialog>
     </>
   );
 }

@@ -413,7 +413,7 @@ export default async function SessionsPage({
                 >
                   {/* 날짜 블록 */}
                   <span className="border-r border-line-mid pr-3.5 text-center">
-                    <span className="block text-[11px] font-semibold text-muted">
+                    <span className="block text-xs font-semibold text-muted">
                       {d.getFullYear()}
                     </span>
                     <span
@@ -432,33 +432,33 @@ export default async function SessionsPage({
                           : formatDate(sess.started_at, tag, tz)}
                       </span>
                       {isRace ? (
-                        <span className="shrink-0 rounded-md bg-[#2a2500] px-2 py-0.5 text-[11px] font-bold text-accent-dim">
+                        <span className="shrink-0 rounded-md bg-[#2a2500] px-2 py-0.5 text-xs font-bold text-accent-dim">
                           {t("sessions.race")}
                         </span>
                       ) : erg ? (
-                        <span className="shrink-0 rounded-md bg-info-bg px-2 py-0.5 text-[11px] font-bold text-info">
+                        <span className="shrink-0 rounded-md bg-info-bg px-2 py-0.5 text-xs font-bold text-info">
                           ⚡ {ergLabel(erg)}
                         </span>
                       ) : (
-                        <span className="shrink-0 rounded-md bg-label-bg px-2 py-0.5 text-[11px] font-bold text-label">
+                        <span className="shrink-0 rounded-md bg-label-bg px-2 py-0.5 text-xs font-bold text-label">
                           {t("sessions.typeSim")}
                         </span>
                       )}
                       {isPb && (
-                        <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[11px] font-extrabold text-background">
+                        <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-background">
                           PB
                         </span>
                       )}
                     </span>
                     <span className="mt-1 flex flex-wrap items-center gap-x-3 text-[13px] text-muted">
                       {divLabel && (
-                        <span className="rounded bg-label-bg px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-label">
+                        <span className="rounded bg-label-bg px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-label">
                           {divLabel}
                         </span>
                       )}
                       {isRace && race?.season && <span>{race.season}</span>}
                       <span className="flex items-center gap-1">
-                        <span aria-hidden className="text-[11px]">
+                        <span aria-hidden className="text-xs">
                           {srcIcon[sess.source_device] ?? "▯"}
                         </span>
                         {t(`source.${sess.source_device}` as Parameters<typeof t>[0])}

@@ -126,7 +126,7 @@ export const btnPrimary =
   "flex h-10 shrink-0 items-center justify-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background transition hover:brightness-110 disabled:opacity-40";
 
 export const btnGhost =
-  "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:border-[#555] disabled:opacity-40";
+  "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:border-line-strong disabled:opacity-40";
 
 export const btnAccentGhost =
   "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-accent bg-highlight px-3.5 text-[13px] font-bold text-accent transition hover:brightness-125 disabled:opacity-40";

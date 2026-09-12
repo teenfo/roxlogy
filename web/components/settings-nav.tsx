@@ -93,7 +93,7 @@ export function SettingsNav({
         <div className="mt-2">
           <LocaleSwitcher compact />
         </div>
-        <p className="mt-2 text-[11px] text-muted/80">
+        <p className="mt-2 text-xs text-muted/80">
           {t("profile.languageDesc")}
         </p>
       </div>

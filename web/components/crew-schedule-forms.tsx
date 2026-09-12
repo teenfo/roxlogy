@@ -5,6 +5,7 @@ import { DIVISIONS } from "@/lib/divisions";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Dialog } from "@/components/ui/dialog";
 import { dictLabel } from "@/lib/dict-label";
 import { duesErrText } from "@/lib/dues-error";
 import { formatMs as fmtMs } from "@/lib/format";
@@ -219,7 +220,7 @@ export function CrewMeetupForm({
           <span className="text-muted">{t("crew.feeExemptHint")}</span>
         </label>
       )}
-      {err && <p className="text-xs text-red-400">{err}</p>}
+      {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
       <div className="flex gap-2">
         <button
           type="submit"
@@ -311,7 +312,7 @@ export function RacePlanEditor({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-9 items-center rounded-lg border border-line-strong bg-control px-4 text-[13px] font-semibold transition-colors hover:border-[#555]"
+        className="flex h-9 items-center rounded-lg border border-line-strong bg-control px-4 text-[13px] font-semibold transition-colors hover:border-line-strong"
       >
         {t("common.edit")}
       </button>
@@ -323,19 +324,17 @@ export function RacePlanEditor({
       >
         {t("common.delete")}
       </button>
-      {err && <p className="w-full text-xs text-danger">{err}</p>}
+      {err && <p role="alert" className="w-full text-xs text-danger">{err}</p>}
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
-          onClick={() => setOpen(false)}
-        >
-          {/* my-auto — 공간이 남으면 세로 중앙, 폼이 화면보다 길면 위에 붙어
-              스크롤된다. items-center 로 하면 긴 폼의 윗부분이 잘린다. */}
-          <div
-            className="my-auto w-full max-w-lg text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        label={t("crew.racePlanAdd")}
+        closeLabel={t("common.cancel")}
+        panelClassName="max-w-lg"
+      >
+        {open && (
+          <div>
             <form
               onSubmit={save}
               className="flex w-full flex-col gap-2 rounded-md bg-surface p-4"
@@ -384,7 +383,7 @@ export function RacePlanEditor({
                 placeholder={t("crew.racePlanNotePh")}
                 maxLength={80}
               />
-              {err && <p className="text-xs text-danger">{err}</p>}
+              {err && <p role="alert" className="text-xs text-danger">{err}</p>}
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -403,8 +402,8 @@ export function RacePlanEditor({
               </div>
             </form>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
     </>
   );
 }
@@ -619,18 +618,16 @@ export function RacePlanForm({
           + {t("crew.racePlanAdd")}
         </button>
       )}
-      {showTrigger && open && (
-        /* 등록 폼은 입력이 여러 줄이라 툴바 칸에서는 눌린다 — 오버레이로 띄운다 */
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
-          onClick={() => setOpen(false)}
-        >
-          {/* my-auto — 공간이 남으면 세로 중앙, 폼이 화면보다 길면 위에 붙어
-              스크롤된다. items-center 로 하면 긴 폼의 윗부분이 잘린다. */}
-          <div
-            className="my-auto w-full max-w-lg text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
+      {/* 등록 폼은 입력이 여러 줄이라 툴바 칸에서는 눌린다 — 오버레이로 띄운다 */}
+      <Dialog
+        open={showTrigger && open}
+        onClose={() => setOpen(false)}
+        label={t("crew.racePlanAdd")}
+        closeLabel={t("common.cancel")}
+        panelClassName="max-w-lg"
+      >
+        {showTrigger && open && (
+          <div>
         <form onSubmit={save} className="flex w-full flex-col gap-2 rounded-md bg-surface p-4">
           <p className="text-sm font-semibold">{t("crew.racePlanAdd")}</p>
           {/* 공식 대회 검색 — 자유 입력처럼 보이면 검색 기능을 아무도 못 찾는다.
@@ -715,7 +712,7 @@ export function RacePlanForm({
             placeholder={t("crew.racePlanNotePh")}
             maxLength={80}
           />
-          {err && <p className="text-xs text-red-400">{err}</p>}
+          {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
           <div className="flex gap-2">
             <button
               type="submit"
@@ -734,8 +731,8 @@ export function RacePlanForm({
           </div>
         </form>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
       {showList && myPlans.length > 0 && (
         <ul
           className={`grid gap-2.5 ${
@@ -791,7 +788,7 @@ export function RacePlanForm({
                     placeholder={t("crew.racePlanNotePh")}
                     maxLength={80}
                   />
-                  {err && <p className="text-xs text-red-400">{err}</p>}
+                  {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
                   <div className="flex gap-2">
                     <button
                       type="submit"
@@ -857,7 +854,7 @@ export function RacePlanForm({
                   ) : (
                     <a
                       href={planHref(p.id)}
-                      className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                      className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${
                         p.my_status === "pending"
                           ? "bg-accent text-background"
                           : "bg-line text-muted"
@@ -893,7 +890,7 @@ export function RacePlanForm({
                     {p.partners.map((pt) => (
                       <span
                         key={pt.user_id}
-                        className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
+                        className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${
                           pt.status === "accepted"
                             ? "bg-success-bg text-success"
                             : pt.status === "declined"
@@ -925,7 +922,7 @@ export function RacePlanForm({
                 ) : (
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-[10px] border border-line bg-page px-3 py-2.5">
                     <span className="shrink-0">
-                      <span className="block text-[11px] text-muted">
+                      <span className="block text-xs text-muted">
                         {t("race.goalTitle")}
                       </span>
                       <span className="tabular block text-lg font-extrabold text-accent">
@@ -1034,7 +1031,7 @@ export function CrewRsvpButtons({
                   ? waitlisted && v === "going"
                     ? "bg-accent/25 text-accent ring-1 ring-accent/50"
                     : activeCls[v]
-                  : "border border-line-mid bg-control text-foreground/75 hover:border-[#555] hover:text-foreground"
+                  : "border border-line-mid bg-control text-foreground/75 hover:border-line-strong hover:text-foreground"
               }`}
             >
               {on && v === "going" && !waitlisted ? `✓ ${label}` : label}
@@ -1045,7 +1042,7 @@ export function CrewRsvpButtons({
       {waitlisted && (
         <p className="mt-2 text-xs text-accent">{t("crew.waitlistNote")}</p>
       )}
-      {err && <p className="mt-2 text-xs text-danger">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-xs text-danger">{err}</p>}
     </div>
   );
 }
@@ -1085,7 +1082,7 @@ export function CrewEventMoreMenu({
         aria-label={label}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-line-strong bg-control text-muted transition-colors hover:border-[#555] hover:text-foreground"
+        className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-line-strong bg-control text-muted transition-colors hover:border-line-strong hover:text-foreground"
       >
         ⋯
       </button>
@@ -1142,21 +1139,15 @@ export function CrewEventStaffActions({
         {children}
       </CrewEventMoreMenu>
 
-      {edit && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-10"
-          onClick={() => setEdit(false)}
-        >
-          {/* my-auto — 공간이 남으면 세로 중앙, 폼이 화면보다 길면 위에 붙어
-              스크롤된다. items-center 로 하면 긴 폼의 윗부분이 잘린다. */}
-          <div
-            className="my-auto w-full max-w-lg text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <CrewMeetupForm event={event} open onOpenChange={setEdit} />
-          </div>
-        </div>
-      )}
+      <Dialog
+        open={edit}
+        onClose={() => setEdit(false)}
+        label={t("common.edit")}
+        closeLabel={t("common.cancel")}
+        panelClassName="max-w-lg"
+      >
+        {edit && <CrewMeetupForm event={event} open onOpenChange={setEdit} />}
+      </Dialog>
     </>
   );
 }
@@ -1221,7 +1212,7 @@ export function CrewEventCommentForm({
           {t("crew.commentSubmit")}
         </button>
       </form>
-      {err && <p className="mt-1 text-xs text-danger">{err}</p>}
+      {err && <p role="alert" className="mt-1 text-xs text-danger">{err}</p>}
     </>
   );
 }
@@ -1258,7 +1249,7 @@ export function CrewMeetupCancel({ eventId, slug }: { eventId: string; slug: str
       >
         {t("crew.meetupCancel")}
       </button>
-      {err && <span className="px-3 text-[11px] text-danger">{err}</span>}
+      {err && <span className="px-3 text-xs text-danger">{err}</span>}
     </>
   );
 }
@@ -1328,11 +1319,11 @@ export function CrewEventInstaCopy({ eventId }: { eventId: string }) {
         type="button"
         onClick={copy}
         disabled={busy}
-        className="flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-[#555] disabled:opacity-40"
+        className="flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-line-strong disabled:opacity-40"
       >
         {t("crew.instaCopy")}
       </button>
-      {note && <span className="text-[11px] text-muted">{note}</span>}
+      {note && <span className="text-xs text-muted">{note}</span>}
     </span>
   );
 }
@@ -1491,7 +1482,7 @@ export function CrewAttendanceCheck({
       >
         {label}
         <span
-          className={`tabular rounded-full px-1.5 text-[11px] font-bold ${
+          className={`tabular rounded-full px-1.5 text-xs font-bold ${
             on ? "bg-[#6b5a00] text-accent" : "bg-line text-muted"
           }`}
         >
@@ -1621,7 +1612,7 @@ export function CrewAttendanceCheck({
                       r.charge_id &&
                       r.charge_amount != null &&
                       (r.charge_status === "waived" ? (
-                        <span className="rounded-md bg-label-bg px-2 py-1 text-[11px] font-bold text-label">
+                        <span className="rounded-md bg-label-bg px-2 py-1 text-xs font-bold text-label">
                           {t("crew.duesWaived")}
                         </span>
                       ) : (
@@ -1631,7 +1622,7 @@ export function CrewAttendanceCheck({
                           onClick={() =>
                             settle(r.charge_id!, r.charge_status === "confirmed")
                           }
-                          className={`tabular rounded-md px-2 py-1 text-[11px] font-bold disabled:opacity-50 ${
+                          className={`tabular rounded-md px-2 py-1 text-xs font-bold disabled:opacity-50 ${
                             r.charge_status === "confirmed"
                               ? "bg-info-bg text-info"
                               : "bg-page text-accent ring-1 ring-line-accent"
@@ -1833,7 +1824,7 @@ export function CrewEventShare({ url, title }: { url: string; title: string }) {
     <button
       type="button"
       onClick={share}
-      className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-[#555]"
+      className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-line-strong"
     >
       {done ? t("crew.shareCopied") : t("crew.shareLink")}
     </button>
@@ -1879,7 +1870,7 @@ export function CrewEventClose({
       >
         {closed ? t("crew.reopen") : t("crew.close")}
       </button>
-      {err && <span className="px-3 text-[11px] text-danger">{err}</span>}
+      {err && <span className="px-3 text-xs text-danger">{err}</span>}
     </>
   );
 }
@@ -1952,7 +1943,7 @@ export function CrewRsvpToggle({
     <span className="flex flex-col items-end gap-1">
       {answered && (
         <span
-          className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+          className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${
             myStatus === "declined"
               ? "bg-danger-bg text-danger"
               : "bg-accent-dim/20 text-accent-dim"

@@ -232,7 +232,7 @@ export default async function SchedulePage({
             {t("schedule.title")}
           </h1>
           <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[15px] text-muted">
-            <span className="rounded-md border border-line-accent bg-highlight px-2 py-[3px] text-[11px] font-extrabold tracking-[0.08em] text-accent">
+            <span className="rounded-md border border-line-accent bg-highlight px-2 py-[3px] text-xs font-extrabold tracking-[0.08em] text-accent">
               PROGRAM
             </span>
             <Link
@@ -262,7 +262,7 @@ export default async function SchedulePage({
         <div className="flex shrink-0 items-center gap-2 max-md:w-full">
           <Link
             href="/programs"
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold transition-colors hover:border-[#555] max-md:flex-1 max-md:justify-center"
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold transition-colors hover:border-line-strong max-md:flex-1 max-md:justify-center"
           >
             {t("schedule.changeProgram")}
           </Link>
@@ -350,12 +350,12 @@ export default async function SchedulePage({
                   ? "border-accent bg-highlight px-5 py-[18px] max-md:px-4"
                   : rest
                     ? "border-line-soft px-5 py-3.5 opacity-55 max-md:px-4"
-                    : "border-line bg-card px-5 py-3.5 hover:border-[#555] max-md:px-4"
+                    : "border-line bg-card px-5 py-3.5 hover:border-line-strong max-md:px-4"
               }`}
             >
               {/* 날짜 블록 */}
               <div className="border-r border-line-mid pr-3 text-center">
-                <p className={`text-[11px] font-bold ${weekdayCls(d.date)}`}>
+                <p className={`text-xs font-bold ${weekdayCls(d.date)}`}>
                   {d.date.toLocaleDateString(tag, {
                     weekday: "short",
                     timeZone: tz,
@@ -390,7 +390,7 @@ export default async function SchedulePage({
                       : (d.day?.focus ?? templates[0].title)}
                   </span>
                   {d.dayIndex > 0 && (
-                    <span className="shrink-0 text-[11px] font-semibold text-muted">
+                    <span className="shrink-0 text-xs font-semibold text-muted">
                       {t("programs.dayN", { n: d.dayIndex })}
                     </span>
                   )}

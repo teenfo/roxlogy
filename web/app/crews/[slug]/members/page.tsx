@@ -108,14 +108,14 @@ export default async function CrewMembersPage({
               <span>
                 {isStaffRole(m.role) ? (
                   <span
-                    className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-bold ${crewRoleBadgeClass(m.role)}`}
+                    className={`inline-flex rounded-md px-2 py-0.5 text-xs font-bold ${crewRoleBadgeClass(m.role)}`}
                   >
                     {t(crewRoleDictKey(m.role))}
                   </span>
                 ) : (
                   m.tier_name && (
                     <span
-                      className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-bold ${tierBadgeClass(m.tier_color)}`}
+                      className={`inline-flex rounded-md px-2 py-0.5 text-xs font-bold ${tierBadgeClass(m.tier_color)}`}
                     >
                       {m.tier_name}
                     </span>

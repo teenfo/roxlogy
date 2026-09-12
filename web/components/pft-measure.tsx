@@ -253,7 +253,7 @@ export function PftMeasure({
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div>
             <p
-              className={`text-[11px] font-extrabold tracking-[0.08em] ${running ? "text-accent" : "text-muted"}`}
+              className={`text-xs font-extrabold tracking-[0.08em] ${running ? "text-accent" : "text-muted"}`}
             >
               {phase}
             </p>
@@ -430,13 +430,13 @@ export function PftMeasure({
                         : fmtClock(ms)}
                   </span>
                   {isCurrent && pbMs != null && (
-                    <span className="tabular block text-[11px] text-muted">
+                    <span className="tabular block text-xs text-muted">
                       PB {formatMs(pbMs)}
                     </span>
                   )}
                   {finished && delta != null && (
                     <span
-                      className={`tabular block text-[11px] ${delta > 0 ? "text-muted" : "text-success"}`}
+                      className={`tabular block text-xs ${delta > 0 ? "text-muted" : "text-success"}`}
                     >
                       PB {delta >= 0 ? "+" : "−"}
                       {formatMs(Math.abs(delta))}
@@ -457,7 +457,7 @@ export function PftMeasure({
                     {t("pft.mDone")} ✓
                   </button>
                 ) : (
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-line-strong text-xs text-[#555]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-line-strong text-xs text-muted-3">
                     {i + 1}
                   </span>
                 )}
@@ -472,7 +472,7 @@ export function PftMeasure({
         <section className="rounded-2xl border border-line-accent bg-highlight px-6 py-5">
           <div className="grid gap-6 sm:grid-cols-[auto_minmax(0,1fr)]">
             <div>
-              <p className="text-[11px] font-extrabold tracking-[0.08em] text-accent">
+              <p className="text-xs font-extrabold tracking-[0.08em] text-accent">
                 FINISHED
               </p>
               <p className="tabular mt-1 flex flex-wrap items-center gap-3 text-[48px] font-extrabold leading-none text-accent">
@@ -500,7 +500,7 @@ export function PftMeasure({
                 </p>
               )}
               {defaultAge == null && (
-                <p className="mt-1 text-[11px] text-muted">{t("pft.noAgeHint")}</p>
+                <p className="mt-1 text-xs text-muted">{t("pft.noAgeHint")}</p>
               )}
             </div>
 
@@ -524,7 +524,7 @@ export function PftMeasure({
               </div>
               <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
                 {PFT_STATIONS.map((st, i) => (
-                  <li key={st.key} className="flex items-center gap-1 text-[11px]">
+                  <li key={st.key} className="flex items-center gap-1 text-xs">
                     <span
                       aria-hidden
                       className="h-2 w-2 rounded-sm"
@@ -567,7 +567,7 @@ export function PftMeasure({
             </label>
           </div>
 
-          {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+          {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
@@ -576,7 +576,7 @@ export function PftMeasure({
               disabled={busy || tooShort}
               className={`h-11 rounded-lg px-6 text-[15px] font-extrabold ${
                 tooShort
-                  ? "cursor-not-allowed bg-[#2a2a2a] text-[#666]"
+                  ? "cursor-not-allowed bg-[#2a2a2a] text-muted-2"
                   : "bg-accent text-background hover:brightness-110"
               } disabled:opacity-60`}
             >

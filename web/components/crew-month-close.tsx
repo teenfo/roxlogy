@@ -82,7 +82,7 @@ export function CrewMonthClose({
           type="button"
           onClick={closedOn ? reopen : close}
           disabled={busy}
-          className="flex h-9 shrink-0 items-center rounded-[10px] border border-line-strong bg-control px-3 text-sm font-semibold transition-colors hover:border-[#555] disabled:opacity-40"
+          className="flex h-9 shrink-0 items-center rounded-[10px] border border-line-strong bg-control px-3 text-sm font-semibold transition-colors hover:border-line-strong disabled:opacity-40"
         >
           {busy ? "…" : closedOn ? t("crew.finReopen") : t("crew.finClose")}
         </button>

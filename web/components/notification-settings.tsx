@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { NavIcon } from "@/components/nav-icon";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { roxNative } from "@/lib/native";
@@ -220,7 +221,7 @@ export function NotificationSettings() {
             pushOn ? "bg-success-bg text-success" : "bg-line text-muted"
           }`}
         >
-          ◔
+          <NavIcon name="bell" className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold">{pushOn ? onLabel : offLabel}</p>

@@ -201,7 +201,7 @@ export default async function PftLeaderboardPage({
 
                   <span className="hidden sm:block">
                     <span
-                      className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-bold ${badgeClass(r.badge)}`}
+                      className={`inline-flex rounded-md px-2 py-0.5 text-xs font-bold ${badgeClass(r.badge)}`}
                     >
                       {t(badgeDictKey(r.badge))}
                     </span>

@@ -255,7 +255,7 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
         onChange={(e) => set("hyrox_athlete_name", e.target.value)}
         maxLength={80}
       />
-      <p className="mt-1 text-[11px] text-muted">{t("admin.fAthleteNameHint")}</p>
+      <p className="mt-1 text-xs text-muted">{t("admin.fAthleteNameHint")}</p>
 
       <label className="mt-4 block text-xs text-muted">{t("profile.instagram")}</label>
       <input
@@ -293,8 +293,8 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
         </label>
       </div>
 
-      {err && <p className="mt-3 text-sm text-red-400">{err}</p>}
-      {msg && <p className="mt-3 text-sm text-muted">{msg}</p>}
+      {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
+      {msg && <p role="alert" className="mt-3 text-sm text-muted">{msg}</p>}
 
       <button
         type="submit"

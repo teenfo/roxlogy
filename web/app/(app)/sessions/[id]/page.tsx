@@ -396,20 +396,20 @@ export default async function SessionDetailPage({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             {race ? (
-              <span className="rounded-md bg-[#2a2500] px-2 py-0.5 text-[11px] font-bold text-accent-dim">
+              <span className="rounded-md bg-[#2a2500] px-2 py-0.5 text-xs font-bold text-accent-dim">
                 {t("sessions.race")}
               </span>
             ) : isErg ? (
-              <span className="rounded-md bg-info-bg px-2 py-0.5 text-[11px] font-bold text-info">
+              <span className="rounded-md bg-info-bg px-2 py-0.5 text-xs font-bold text-info">
                 ⚡ {t("sessions.ergDedicated")}
               </span>
             ) : (
-              <span className="rounded-md bg-label-bg px-2 py-0.5 text-[11px] font-bold text-label">
+              <span className="rounded-md bg-label-bg px-2 py-0.5 text-xs font-bold text-label">
                 {t("sessions.typeSim")}
               </span>
             )}
             {(race?.division ?? session.division) && (
-              <span className="rounded bg-label-bg px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-label">
+              <span className="rounded bg-label-bg px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-label">
                 {t(
                   `division.${race?.division ?? session.division}` as Parameters<typeof t>[0],
                 )}
@@ -683,7 +683,7 @@ export default async function SessionDetailPage({
                     {t("run.degSlower", { pct: degradation.degradation_pct })}
                   </span>
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${gradeClass(degradation.grade)}`}
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${gradeClass(degradation.grade)}`}
                   >
                     {t(gradeDictKey(degradation.grade))}
                   </span>

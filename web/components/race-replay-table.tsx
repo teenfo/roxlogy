@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
+import { Dialog } from "@/components/ui/dialog";
 import { formatMs } from "@/lib/format";
 
 /**
@@ -302,17 +303,16 @@ export function RaceReplayTable({
       <p className="mt-2 text-xs text-muted">{t("races.replayNote")}</p>
       <p className="mt-1 text-xs text-muted">{t("races.replayClickNote")}</p>
 
-      {sel && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setSel(null)}
-        >
-          <div
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-lg bg-surface p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
+      <Dialog
+        open={!!sel}
+        onClose={() => setSel(null)}
+        variant="center"
+        label={sel?.label ?? ""}
+        closeLabel={t("common.cancel")}
+        panelClassName="max-w-sm rounded-lg bg-surface p-5 shadow-xl"
+      >
+        {sel && (
+          <div>
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="text-base font-bold">{sel.label}</h3>
               <span className="font-mono text-lg font-bold text-accent">
@@ -334,7 +334,7 @@ export function RaceReplayTable({
                   )}
                 </p>
                 <SegmentCurve place={sel.place} field={fieldSize} myMs={sel.ms} />
-                <p className="mt-1 text-[11px] text-muted">
+                <p className="mt-1 text-xs text-muted">
                   {t("races.segDistNote", {
                     field: fieldSize.toLocaleString(tag),
                   })}
@@ -375,8 +375,8 @@ export function RaceReplayTable({
               {t("common.close")}
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
     </div>
   );
 }
