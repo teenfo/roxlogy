@@ -113,12 +113,14 @@ export function Dialog({
       : variant === "center"
         ? "fixed inset-0 z-50 flex items-center justify-center p-4"
         : "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-10";
+  // position 유틸은 변형마다 다르다. 공통으로 relative 를 덧붙이면 Tailwind 출력 순서상
+  // .relative 가 .absolute 를 이겨서 바텀시트가 화면 위로 올라간다(2026-09-12 실제 버그).
   const panel =
     variant === "sheet"
       ? "absolute inset-x-0 bottom-0 outline-none"
       : variant === "center"
-        ? "max-h-[calc(100dvh-2rem)] w-full overflow-y-auto outline-none"
-        : "my-auto w-full text-left outline-none";
+        ? "relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto outline-none"
+        : "relative my-auto w-full text-left outline-none";
 
   return createPortal(
     <div className={overlay} onKeyDown={onKeyDown}>
@@ -136,7 +138,7 @@ export function Dialog({
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className={`relative ${panel} ${panelClassName}`}
+        className={`${panel} ${panelClassName}`}
       >
         {children}
       </div>

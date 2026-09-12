@@ -87,8 +87,7 @@ export default async function DashboardPage() {
            program_days ( day_index, focus,
              workout_templates ( id, title, type ) ) )`,
       )
-      .eq("active", true)
-      .maybeSingle(),
+      .eq("active", true),
   ]);
 
   const all = sessions ?? [];
@@ -165,15 +164,18 @@ export default async function DashboardPage() {
       }[];
     } | null;
   };
-  const enroll = (enrollment ?? null) as unknown as EnrollProgram | null;
-  let today: {
+  // 진행 중 프로그램은 여러 개일 수 있다(096) — maybeSingle 은 2건부터 에러를 낸다
+  const enrolls = (enrollment ?? []) as unknown as EnrollProgram[];
+  type TodayPlan = {
     programId: string;
     programTitle: string;
     dayNumber: number;
     focus: string | null;
     workouts: { id: string; title: string; type: string }[];
-  } | null = null;
-  if (enroll?.programs) {
+  };
+  const todayPlans: TodayPlan[] = [];
+  for (const enroll of enrolls) {
+    if (!enroll.programs) continue;
     const start = new Date(enroll.start_date + "T00:00:00");
     // 서버는 UTC — 사용자 시간대(폴백 KST) 기준 오늘로 일차를 계산한다
     const nowMid = todayMidnightIn(tz);
@@ -193,18 +195,19 @@ export default async function DashboardPage() {
       const day = enroll.programs.program_days.find(
         (d) => d.day_index === dayNumber,
       );
-      today = {
+      todayPlans.push({
         programId: enroll.programs.id,
         programTitle: enroll.programs.title,
         dayNumber,
         focus: day?.focus ?? null,
         workouts: day?.workout_templates ?? [],
-      };
+      });
     }
   }
-  const todayDone =
-    !!today?.workouts.length &&
-    today.workouts.some((w) => all.some((s) => s.template_id === w.id));
+  // 오늘 할 것이 있는 프로그램을 위로
+  todayPlans.sort((a, b) => b.workouts.length - a.workouts.length);
+  const planDone = (p: TodayPlan) =>
+    p.workouts.length > 0 && p.workouts.some((w) => all.some((s) => s.template_id === w.id));
 
   const now = new Date();
   const monday = new Date(now);
@@ -376,8 +379,10 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {today && (
-        <section className="mt-6">
+      {todayPlans.map((today) => {
+        const todayDone = planDone(today);
+        return (
+        <section key={today.programId} className="mt-6">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="flex items-center gap-2 text-lg font-semibold">
               {t("dash.todayTitle")}
@@ -430,7 +435,8 @@ export default async function DashboardPage() {
             )}
           </div>
         </section>
-      )}
+        );
+      })}
 
       {/* 크루 일정 — 다가오는 14일 (모임·대회·프로그램) */}
       {crewAgenda.map(({ crew, rows }) => (

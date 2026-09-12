@@ -1100,6 +1100,7 @@ const ko: Record<DictKey, string> = {
   "schedule.startToday": "오늘 훈련 시작",
   "schedule.startShort": "시작",
   "schedule.changeProgram": "프로그램 변경",
+  "schedule.nPrograms": "프로그램 {n}개 진행 중",
   "schedule.goThisWeek": "이번 주로",
   "schedule.weekOfN": "{w}주차 / {total}주 · {d}일차",
   "schedule.outOfProgram": "이번 주는 프로그램 기간이 아니에요",

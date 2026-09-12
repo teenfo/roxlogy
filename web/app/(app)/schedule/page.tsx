@@ -52,6 +52,7 @@ export default async function SchedulePage({
   const { t, tag, tz } = await getT();
   const user = await getCachedUser();
 
+  // 진행 중 프로그램은 여러 개일 수 있다(096) — maybeSingle 은 2건부터 에러를 낸다
   const { data: enrollment } = await supabase
     .from("program_enrollments")
     .select(
@@ -60,10 +61,11 @@ export default async function SchedulePage({
          program_days ( day_index, focus,
            workout_templates ( id, title, type ) ) )`,
     )
-    .eq("active", true)
-    .maybeSingle();
+    .eq("active", true);
 
-  const enroll = (enrollment ?? null) as unknown as EnrollProgram | null;
+  const enrolls = ((enrollment ?? []) as unknown as EnrollProgram[]).filter(
+    (e) => e.programs,
+  );
 
   // 내 대회 일정 — 프로그램 등록 여부와 무관하다. 아래 조기 return 분기에도
   // 같이 렌더해야 프로그램 없는 사용자가 막다른 길에 빠지지 않는다.
@@ -86,7 +88,7 @@ export default async function SchedulePage({
     </section>
   );
 
-  if (!enroll?.programs) {
+  if (enrolls.length === 0) {
     return (
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-5">
         <h1 className="text-[30px] font-extrabold tracking-tight max-md:text-2xl">
@@ -108,13 +110,24 @@ export default async function SchedulePage({
     );
   }
 
-  const dayMap = new Map(
-    enroll.programs.program_days.map((d) => [d.day_index, d]),
-  );
+  // 프로그램마다 일차 계산에 필요한 값을 미리 뽑는다
+  const progs = enrolls.map((e) => {
+    const pr = e.programs!;
+    return {
+      id: pr.id,
+      title: pr.title,
+      weeks: pr.weeks,
+      dayMap: new Map(pr.program_days.map((d) => [d.day_index, d])),
+      cycleLen: pr.program_days.reduce((m, d) => Math.max(m, d.day_index), 0),
+      start: midnight(new Date(e.start_date + "T00:00:00")),
+      repeat: e.repeat,
+      endAt: e.end_date ? midnight(new Date(e.end_date + "T00:00:00")) : null,
+    };
+  });
 
-  // 완료 판정: 이 프로그램의 워크아웃 템플릿에 태깅된 내 세션
-  const allTemplateIds = enroll.programs.program_days.flatMap((d) =>
-    d.workout_templates.map((w) => w.id),
+  // 완료 판정: 진행 중인 모든 프로그램의 템플릿에 태깅된 내 세션
+  const allTemplateIds = enrolls.flatMap((e) =>
+    e.programs!.program_days.flatMap((d) => d.workout_templates.map((w) => w.id)),
   );
   const { data: doneRows } = allTemplateIds.length
     ? await supabase
@@ -156,17 +169,8 @@ export default async function SchedulePage({
     if (ids.length > 0 && ids.every((i) => completedItems.has(i)))
       wodDoneTemplates.add(tid);
 
-  const start = midnight(new Date(enroll.start_date + "T00:00:00"));
   // 서버는 UTC — 사용자 시간대(폴백 KST) 기준 오늘
   const today = midnight(todayMidnightIn(tz));
-  const cycleLen = enroll.programs.program_days.reduce(
-    (m, d) => Math.max(m, d.day_index),
-    0,
-  );
-  const repeat = enroll.repeat;
-  const endAt = enroll.end_date
-    ? midnight(new Date(enroll.end_date + "T00:00:00"))
-    : null;
 
   // 이번 주(월요일 시작) + weekOffset
   const base = midnight(new Date());
@@ -174,41 +178,56 @@ export default async function SchedulePage({
   const week7 = Array.from({ length: 7 }, (_, i) => {
     const date = midnight(new Date(base));
     date.setDate(base.getDate() + i);
-    const daysSince = Math.floor((date.getTime() - start.getTime()) / 86400000);
-    // 종료 판정: 등록 종료일 경과 또는 일차 > 길이 = 끝 (반복은 종료일까지 순환)
-    const pastEnd = endAt !== null && date.getTime() > endAt.getTime();
-    const raw = pastEnd ? -1 : (programDayNumber(daysSince, cycleLen, repeat) ?? -1);
-    const dayIndex = raw > cycleLen ? -1 : raw;
-    const day = dayIndex >= 1 ? (dayMap.get(dayIndex) ?? null) : null;
-    const doneSessionId = day
-      ? (day.workout_templates
-          .map((w) => doneByTemplate.get(w.id))
-          .find(Boolean) ?? null)
-      : null;
-    // WOD 완료(체크리스트) 또는 태깅된 세션이 있으면 완료로 본다
-    const wodDone = day
-      ? day.workout_templates.some((w) => wodDoneTemplates.has(w.id))
-      : false;
+    // 날짜 하나에 진행 중인 프로그램마다 한 블록씩 쌓인다
+    const plans = progs.flatMap((p) => {
+      const daysSince = Math.floor((date.getTime() - p.start.getTime()) / 86400000);
+      // 종료 판정: 등록 종료일 경과 또는 일차 > 길이 = 끝 (반복은 종료일까지 순환)
+      const pastEnd = p.endAt !== null && date.getTime() > p.endAt.getTime();
+      const raw = pastEnd
+        ? -1
+        : (programDayNumber(daysSince, p.cycleLen, p.repeat) ?? -1);
+      const dayIndex = raw > p.cycleLen ? -1 : raw;
+      if (dayIndex < 1) return [];
+      const day = p.dayMap.get(dayIndex) ?? null;
+      if (!day) return [];
+      const doneSessionId =
+        day.workout_templates.map((w) => doneByTemplate.get(w.id)).find(Boolean) ?? null;
+      // WOD 완료(체크리스트) 또는 태깅된 세션이 있으면 완료로 본다
+      const wodDone = day.workout_templates.some((w) => wodDoneTemplates.has(w.id));
+      return [
+        {
+          progId: p.id,
+          progTitle: p.title,
+          dayIndex,
+          day,
+          doneSessionId,
+          done: !!doneSessionId || wodDone,
+        },
+      ];
+    });
+    const withWork = plans.filter((pl) => pl.day.workout_templates.length > 0);
     return {
       date,
-      dayIndex,
+      plans,
+      withWork,
       isToday: date.getTime() === today.getTime(),
-      day,
-      doneSessionId,
-      done: !!doneSessionId || wodDone,
+      // 그날 할 일이 여러 프로그램에 걸쳐 있으면 전부 끝내야 완료다
+      done: withWork.length > 0 && withWork.every((pl) => pl.done),
     };
   });
 
   // 이번 주 달성률: 워크아웃이 있는 날 중 완료한 비율
-  const scheduled = week7.filter((d) => d.day?.workout_templates.length);
+  const scheduled = week7.filter((d) => d.withWork.length > 0);
   const doneCount = scheduled.filter((d) => d.done).length;
 
-  // 헤더 표시용 파생값
+  // 헤더 표시용 — 프로그램이 하나면 그 프로그램을, 여럿이면 개수를 보여 준다
   const todayCell = week7.find((d) => d.isToday) ?? null;
-  const todayFirst = todayCell?.day?.workout_templates[0] ?? null;
-  const weekNo = todayCell?.dayIndex
-    ? Math.floor((todayCell.dayIndex - 1) / 7) + 1
+  const solo = progs.length === 1 ? progs[0] : null;
+  const soloToday = solo
+    ? (todayCell?.plans.find((pl) => pl.progId === solo.id) ?? null)
     : null;
+  const weekNo = soloToday ? Math.floor((soloToday.dayIndex - 1) / 7) + 1 : null;
+  const todayFirst = todayCell?.withWork[0]?.day.workout_templates[0] ?? null;
   const weekRange = `${base.toLocaleDateString(tag, {
     month: "long",
     day: "numeric",
@@ -235,26 +254,34 @@ export default async function SchedulePage({
             <span className="rounded-md border border-line-accent bg-highlight px-2 py-[3px] text-xs font-extrabold tracking-[0.08em] text-accent">
               PROGRAM
             </span>
-            <Link
-              href={`/programs/${enroll.programs.id}`}
-              className="font-semibold text-accent hover:underline"
-            >
-              {enroll.programs.title}
-            </Link>
-            {todayCell?.dayIndex && todayCell.dayIndex > 0 && (
-              <span className="tabular">
-                ·{" "}
-                {enroll.programs.weeks
-                  ? t("schedule.weekOfN", {
-                      w: weekNo ?? 1,
-                      total: enroll.programs.weeks,
-                      d: todayCell.dayIndex,
-                    })
-                  : t("programs.weekDay", {
-                      w: weekNo ?? 1,
-                      d: todayCell.dayIndex,
-                    })}
-              </span>
+            {solo ? (
+              <>
+                <Link
+                  href={`/programs/${solo.id}`}
+                  className="font-semibold text-accent hover:underline"
+                >
+                  {solo.title}
+                </Link>
+                {soloToday && (
+                  <span className="tabular">
+                    ·{" "}
+                    {solo.weeks
+                      ? t("schedule.weekOfN", {
+                          w: weekNo ?? 1,
+                          total: solo.weeks,
+                          d: soloToday.dayIndex,
+                        })
+                      : t("programs.weekDay", {
+                          w: weekNo ?? 1,
+                          d: soloToday.dayIndex,
+                        })}
+                  </span>
+                )}
+              </>
+            ) : (
+              <Link href="/programs" className="font-semibold text-accent hover:underline">
+                {t("schedule.nPrograms", { n: progs.length })}
+              </Link>
             )}
           </p>
         </div>
@@ -327,7 +354,7 @@ export default async function SchedulePage({
                     ? "bg-success"
                     : d.isToday
                       ? "bg-accent"
-                      : d.day?.workout_templates.length
+                      : d.withWork.length
                         ? "bg-[#2a2a2a]"
                         : "bg-line-soft"
                 }`}
@@ -337,12 +364,20 @@ export default async function SchedulePage({
         )}
       </div>
 
-      {/* 날짜 행 */}
+      {/* 날짜 행 — 진행 중인 프로그램마다 한 블록 */}
       <ul className="flex flex-col gap-2">
         {week7.map((d) => {
-          const templates = d.day?.workout_templates ?? [];
-          const rest = templates.length === 0;
-          const href = rest ? null : `/workouts/${templates[0].id}`;
+          const rest = d.withWork.length === 0;
+          // 그날 워크아웃이 딱 하나면 줄 전체를 링크로(기존 동작), 여럿이면 칩마다 링크
+          const only =
+            d.withWork.length === 1 && d.withWork[0].day.workout_templates.length === 1
+              ? d.withWork[0]
+              : null;
+          const onlyHref = only
+            ? only.doneSessionId
+              ? `/sessions/${only.doneSessionId}`
+              : `/workouts/${only.day.workout_templates[0].id}`
+            : null;
           const body = (
             <div
               className={`grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 rounded-[14px] border transition-colors max-md:grid-cols-[52px_minmax(0,1fr)] max-md:gap-3 ${
@@ -376,41 +411,48 @@ export default async function SchedulePage({
               </div>
 
               {/* 본문 */}
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <p className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`truncate ${
-                      rest
-                        ? "text-[15px] font-medium text-muted"
-                        : `${d.isToday ? "text-[19px]" : "text-base"} font-bold`
-                    }`}
-                  >
-                    {rest
-                      ? t("schedule.rest")
-                      : (d.day?.focus ?? templates[0].title)}
-                  </span>
-                  {d.dayIndex > 0 && (
-                    <span className="shrink-0 text-xs font-semibold text-muted">
-                      {t("programs.dayN", { n: d.dayIndex })}
-                    </span>
-                  )}
-                </p>
-                {templates.length > 0 && (
-                  <span className="flex flex-wrap gap-1.5">
-                    {templates.map((w) => (
-                      <span
-                        key={w.id}
-                        className={`flex h-[26px] items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold ${wodTypeChip(w.type)}`}
-                      >
-                        {w.title}
-                        {itemCount(w.id) > 0 && (
-                          <span className="tabular opacity-70">
-                            {itemCount(w.id)}
+              <div className="flex min-w-0 flex-col gap-2.5">
+                {rest ? (
+                  <p className="truncate text-[15px] font-medium text-muted">
+                    {t("schedule.rest")}
+                  </p>
+                ) : (
+                  d.withWork.map((pl) => (
+                    <div key={pl.progId} className="flex min-w-0 flex-col gap-1.5">
+                      <p className="flex flex-wrap items-center gap-2">
+                        {!solo && (
+                          <span className="shrink-0 rounded-md bg-line px-1.5 py-0.5 text-[11px] font-bold text-muted">
+                            {pl.progTitle}
                           </span>
                         )}
+                        <span
+                          className={`truncate ${d.isToday ? "text-[19px]" : "text-base"} font-bold`}
+                        >
+                          {pl.day.focus ?? pl.day.workout_templates[0].title}
+                        </span>
+                        <span className="shrink-0 text-xs font-semibold text-muted">
+                          {t("programs.dayN", { n: pl.dayIndex })}
+                        </span>
+                        {pl.done && (
+                          <span className="shrink-0 text-xs font-bold text-success">✓</span>
+                        )}
+                      </p>
+                      <span className="flex flex-wrap gap-1.5">
+                        {pl.day.workout_templates.map((w) => (
+                          <Link
+                            key={w.id}
+                            href={`/workouts/${w.id}`}
+                            className={`flex h-[26px] items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold ${wodTypeChip(w.type)}`}
+                          >
+                            {w.title}
+                            {itemCount(w.id) > 0 && (
+                              <span className="tabular opacity-70">{itemCount(w.id)}</span>
+                            )}
+                          </Link>
+                        ))}
                       </span>
-                    ))}
-                  </span>
+                    </div>
+                  ))
                 )}
               </div>
 
@@ -421,29 +463,17 @@ export default async function SchedulePage({
                     ✓
                   </span>
                 )}
-                {d.isToday && !rest ? (
+                {d.isToday && !rest && (
                   <span className="flex h-9 items-center rounded-lg bg-accent px-3.5 text-[13px] font-extrabold text-background">
                     {t("schedule.startShort")} →
                   </span>
-                ) : (
-                  !rest && (
-                    <span aria-hidden className="text-muted/60">
-                      ›
-                    </span>
-                  )
                 )}
               </div>
             </div>
           );
           return (
             <li key={d.date.toISOString()}>
-              {href ? (
-                <Link href={d.doneSessionId ? `/sessions/${d.doneSessionId}` : href}>
-                  {body}
-                </Link>
-              ) : (
-                body
-              )}
+              {onlyHref ? <Link href={onlyHref}>{body}</Link> : body}
             </li>
           );
         })}

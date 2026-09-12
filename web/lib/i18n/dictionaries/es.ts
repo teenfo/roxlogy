@@ -1102,6 +1102,7 @@ const es: Record<DictKey, string> = {
   "schedule.startToday": "Empezar hoy",
   "schedule.startShort": "Empezar",
   "schedule.changeProgram": "Cambiar programa",
+  "schedule.nPrograms": "{n} programas activos",
   "schedule.goThisWeek": "Esta semana",
   "schedule.weekOfN": "Semana {w} de {total} · día {d}",
   "schedule.outOfProgram": "Esta semana queda fuera del programa",

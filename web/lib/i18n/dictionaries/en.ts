@@ -1108,6 +1108,7 @@ const en = {
   "schedule.startToday": "Start today",
   "schedule.startShort": "Start",
   "schedule.changeProgram": "Change program",
+  "schedule.nPrograms": "{n} programs running",
   "schedule.goThisWeek": "This week",
   "schedule.weekOfN": "Week {w} of {total} · day {d}",
   "schedule.outOfProgram": "This week is outside the program",

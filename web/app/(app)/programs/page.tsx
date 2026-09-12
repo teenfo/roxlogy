@@ -68,8 +68,7 @@ export default async function ProgramsPage() {
       .select(
         "start_date, end_date, repeat, programs ( id, title, level, weeks )",
       )
-      .eq("active", true)
-      .maybeSingle(),
+      .eq("active", true),
   ]);
   const days = (dayRows ?? []) as unknown as DayRow[];
 
@@ -111,7 +110,9 @@ export default async function ProgramsPage() {
     }[]).map((r) => [r.program_id, r]),
   );
 
-  const enroll = enrollRow as unknown as ActiveEnroll | null;
+  // 진행 중 프로그램은 여러 개일 수 있다(096)
+  const enrolls = (enrollRow ?? []) as unknown as ActiveEnroll[];
+  const activeIds = new Set(enrolls.map((e) => e.programs?.id).filter(Boolean) as string[]);
 
   const card = (p: Program): ProgramCardData => {
     const s = stats.get(p.id);
@@ -123,7 +124,7 @@ export default async function ProgramsPage() {
       level: p.level,
       weeks: p.weeks,
       isPublic: p.is_public,
-      active: enroll?.programs?.id === p.id,
+      active: activeIds.has(p.id),
       workoutDays: s?.workoutDays ?? 0,
       types: s?.types ?? [],
       createdAt: p.created_at,
@@ -132,8 +133,8 @@ export default async function ProgramsPage() {
     };
   };
 
-  // 진행 중 카드 — 오늘 일차와 첫 템플릿
-  let running: {
+  // 진행 중 카드 — 프로그램마다 오늘 일차와 첫 템플릿
+  type Running = {
     id: string;
     title: string;
     level: string | null;
@@ -144,8 +145,10 @@ export default async function ProgramsPage() {
     weekNo: number | null;
     todayTemplate: { id: string; title: string } | null;
     workoutDays: number;
-  } | null = null;
-  if (enroll?.programs) {
+  };
+  const runningList: Running[] = [];
+  for (const enroll of enrolls) {
+    if (!enroll.programs) continue;
     const pid = enroll.programs.id;
     const pdays = days.filter((d) => d.program_id === pid);
     const cycleLen = pdays.reduce((m, d) => Math.max(m, d.day_index), 0);
@@ -162,7 +165,7 @@ export default async function ProgramsPage() {
     const todayDay = dayIndex
       ? (pdays.find((d) => d.day_index === dayIndex) ?? null)
       : null;
-    running = {
+    runningList.push({
       id: pid,
       title: enroll.programs.title,
       level: enroll.programs.level,
@@ -173,8 +176,10 @@ export default async function ProgramsPage() {
       weekNo: dayIndex ? Math.floor((dayIndex - 1) / 7) + 1 : null,
       todayTemplate: todayDay?.workout_templates[0] ?? null,
       workoutDays: stats.get(pid)?.workoutDays ?? 0,
-    };
+    });
   }
+  // 오늘 할 것이 있는 프로그램을 위로
+  runningList.sort((a, b) => Number(!!b.todayTemplate) - Number(!!a.todayTemplate));
 
   const dateLabel = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString(tag, {
@@ -203,8 +208,13 @@ export default async function ProgramsPage() {
       </div>
 
       {/* 진행 중 프로그램 */}
-      {running ? (
-        <section className="grid items-center gap-5 rounded-2xl border border-line-accent bg-highlight px-6 py-5 max-md:grid-cols-1 max-md:px-4 md:grid-cols-[minmax(0,1fr)_auto]">
+      {runningList.length > 0 ? (
+        <div className="flex flex-col gap-3">
+        {runningList.map((running) => (
+        <section
+          key={running.id}
+          className="grid items-center gap-5 rounded-2xl border border-line-accent bg-highlight px-6 py-5 max-md:grid-cols-1 max-md:px-4 md:grid-cols-[minmax(0,1fr)_auto]"
+        >
           <div className="flex min-w-0 flex-col gap-3">
             <p className="flex flex-wrap items-center gap-x-2 text-xs font-extrabold tracking-[0.1em] text-accent">
               {t("programs.enrolled")}
@@ -263,6 +273,8 @@ export default async function ProgramsPage() {
             </Link>
           </div>
         </section>
+        ))}
+        </div>
       ) : (
         <section className="rounded-2xl border border-dashed border-line-strong bg-card px-6 py-8 text-center">
           <p className="text-sm text-muted [word-break:keep-all]">

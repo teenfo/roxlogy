@@ -29,6 +29,7 @@
 - **분석**: **워커리스** (2026-07-26 확정 — hosub 워커 제거). 지표+AI 오케스트레이션은 Supabase Edge `analysis-dispatch`(pg_cron 1분), LLM 추론은 **hosub llm-gateway**(공개 URL·토큰 인증·잡 영속화) → **Mac(Ollama)**. 프롬프트는 이 레포 소유, 모델 정책은 게이트웨이 roles.yaml. docs/AI_WORKER_SETUP.md.
 
 ## 데이터 모델 핵심 규칙
+- **개인 프로그램은 여러 개를 동시에 진행할 수 있다** (2026-09-12, 마이그레이션 096). 유니크 제약은 `(user_id, program_id) where active` — 같은 프로그램만 두 번 켜지 못한다. 새 프로그램을 시작해도 기존 것은 끄지 않는다. 그래서 `program_enrollments` 를 `.maybeSingle()` 로 읽으면 2건부터 에러가 난다 — 반드시 목록으로 읽을 것.
 - 세션·세그먼트 `id`는 **클라이언트(워치)가 생성한 UUID**. 충돌 키: `sessions(id)` / `session_segments(session_id, seq)` / `erg_samples(segment_id)` — **멱등 업서트** (재전송 안전).
 - **Source of Truth = 서버(Supabase).** 세션 흐름: 워치 생성 → 폰 경유 → 서버 최종 저장.
 - 충돌 정책 = **Last-Write-Wins** (**`client_updated_at`** 기준 — 서버 `updated_at`은 수신 시각이라 판정에 쓰지 않음. 업서트에 `where excluded.client_updated_at > ...` 가드 필수).

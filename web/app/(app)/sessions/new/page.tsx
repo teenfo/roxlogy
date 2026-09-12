@@ -27,7 +27,8 @@ export default async function SessionNewPage() {
   const supabase = await createClient();
   const { tz } = await getT();
 
-  // 활성 프로그램의 오늘 워크아웃 → 세션에 연결(태깅)할 수 있게 전달
+  // 진행 중인 모든 프로그램의 오늘 워크아웃 → 세션에 연결(태깅)할 수 있게 전달.
+  // 활성 프로그램은 여러 개일 수 있다(096) — maybeSingle 은 2건부터 에러를 낸다.
   const { data: enrollment } = await supabase
     .from("program_enrollments")
     .select(
@@ -35,15 +36,16 @@ export default async function SessionNewPage() {
        programs (
          program_days ( day_index, workout_templates ( id, title ) ) )`,
     )
-    .eq("active", true)
-    .maybeSingle();
+    .eq("active", true);
 
-  const enroll = (enrollment ?? null) as unknown as EnrollProgram | null;
-  let todayWorkouts: TodayWorkout[] = [];
-  if (enroll?.programs) {
+  const enrolls = (enrollment ?? []) as unknown as EnrollProgram[];
+  // 서버는 UTC — 사용자 시간대(폴백 KST) 기준 오늘로 일차를 계산한다
+  const nowMid = todayMidnightIn(tz);
+  const seen = new Set<string>();
+  const todayWorkouts: TodayWorkout[] = [];
+  for (const enroll of enrolls) {
+    if (!enroll.programs) continue;
     const start = new Date(enroll.start_date + "T00:00:00");
-    // 서버는 UTC — 사용자 시간대(폴백 KST) 기준 오늘로 일차를 계산한다
-    const nowMid = todayMidnightIn(tz);
     const daysSince = Math.floor((nowMid.getTime() - start.getTime()) / 86400000);
     const cycleLen = enroll.programs.program_days.reduce(
       (m, d) => Math.max(m, d.day_index),
@@ -56,13 +58,12 @@ export default async function SessionNewPage() {
     const dayNumber = pastEnd
       ? -1
       : (programDayNumber(daysSince, cycleLen, enroll.repeat) ?? -1);
-    const day = enroll.programs.program_days.find(
-      (d) => d.day_index === dayNumber,
-    );
-    todayWorkouts = (day?.workout_templates ?? []).map((w) => ({
-      id: w.id,
-      title: w.title,
-    }));
+    const day = enroll.programs.program_days.find((d) => d.day_index === dayNumber);
+    for (const w of day?.workout_templates ?? []) {
+      if (seen.has(w.id)) continue;
+      seen.add(w.id);
+      todayWorkouts.push({ id: w.id, title: w.title });
+    }
   }
 
   return <SessionNewForm todayWorkouts={todayWorkouts} />;
