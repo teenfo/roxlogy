@@ -242,6 +242,38 @@ export function McpConnect({
           </div>
         )}
 
+        {/* 다른 클라이언트(ChatGPT·Codex 등) — 헤더를 못 쓰는 곳은 ?token= URL, 헤더 칸이 있으면
+            Authorization 값. 둘 다 토큰이 그대로 들어가므로 URL 을 공유·게시하면 안 된다 */}
+        {hasToken && (
+          <div className="rounded-[10px] border border-line-soft bg-inset p-3.5">
+            <p className="text-[13px] font-bold">{t("mcp.otherClients")}</p>
+            <p className="mt-1 text-xs text-muted">{t("mcp.otherClientsDesc")}</p>
+            <div className="mt-2.5 flex flex-col gap-2">
+              {(
+                [
+                  ["url", t("mcp.tokenUrl"), `${endpoint}?token=${token}`, `${endpoint}?token=${show ? token : "••••••••"}`],
+                  ["hdr", t("mcp.authHeader"), `Bearer ${token}`, `Authorization: Bearer ${show ? token : "••••••••"}`],
+                ] as const
+              ).map(([key, label, value, display]) => (
+                <div
+                  key={key}
+                  className="grid grid-cols-[110px_minmax(0,1fr)_auto] items-center gap-3 max-md:grid-cols-1 max-md:gap-1.5"
+                >
+                  <span className="text-[13px] text-muted">{label}</span>
+                  <code className={code}>{display}</code>
+                  <button
+                    type="button"
+                    onClick={() => copy(key, value)}
+                    className={`${btnGhost} max-md:self-end`}
+                  >
+                    {copied === key ? t("mcp.copied") : t("mcp.copy")}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 변경 허용 — 서버가 강제하는 유일한 범위 스위치. 켜면 무엇이 가능한지 그대로 적는다 */}
         <div className="rounded-[10px] border border-line-soft bg-inset p-3.5">
           <div className="flex items-start gap-3">
