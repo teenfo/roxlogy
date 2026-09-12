@@ -9,7 +9,10 @@ export type ExerciseRequest = {
   id: string;
   name_ko: string;
   name_en: string | null;
+  /** AI 요청이면 프로그램 제목, 사용자 요청이면 입력한 메모 */
   note: string | null;
+  /** "ai" = AI 프로그램 생성이 자동으로 남김, "user" = MCP·웹에서 사람이 요청 */
+  source: "ai" | "user";
   created_at: string;
   requester: string;
 };
@@ -65,11 +68,19 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
           key={r.id}
           className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-surface px-4 py-2.5"
         >
+          {r.source === "ai" && (
+            <span
+              title={t("admin.exReqAiHint")}
+              className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent"
+            >
+              {t("admin.exReqAi")}
+            </span>
+          )}
           <span className="text-sm font-semibold">{r.name_ko}</span>
           {r.name_en && <span className="text-xs text-muted">{r.name_en}</span>}
           {r.note && (
             <span className="min-w-0 flex-1 truncate text-xs text-muted">
-              {r.note}
+              {r.source === "ai" ? `${t("admin.exReqAiProgram")}: ${r.note}` : r.note}
             </span>
           )}
           <span className="ml-auto shrink-0 text-xs text-muted">

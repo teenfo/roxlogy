@@ -46,14 +46,20 @@ export default async function AdminContentPage({
   };
   const requests: ExerciseRequest[] = (
     (reqRows ?? []) as unknown as ReqRow[]
-  ).map((r) => ({
-    id: r.id,
-    name_ko: r.name_ko,
-    name_en: r.name_en,
-    note: r.note,
-    created_at: r.created_at,
-    requester: r.profiles?.display_name ?? "—",
-  }));
+  ).map((r) => {
+    // AI 프로그램 생성(ai_materialize_program, 마이그레이션 089)이 남긴 요청은 메모가
+    // 이 접두어로 시작한다 — 접두어 뒤에는 프로그램 제목이 붙는다.
+    const m = r.note?.match(/^AI 프로그램 생성에서 자동 요청(?: — (.*))?$/s);
+    return {
+      id: r.id,
+      name_ko: r.name_ko,
+      name_en: r.name_en,
+      note: m ? (m[1]?.trim() || null) : r.note,
+      source: m ? ("ai" as const) : ("user" as const),
+      created_at: r.created_at,
+      requester: r.profiles?.display_name ?? "—",
+    };
+  });
 
   const { data: programs } = await supabase
     .from("programs")
