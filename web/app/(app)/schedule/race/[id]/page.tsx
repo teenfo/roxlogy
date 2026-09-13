@@ -108,6 +108,8 @@ export default async function RacePlanPage({
   const startsAt = new Date(`${plan.race_date}T00:00:00`);
   const dpart = (opt: Intl.DateTimeFormatOptions) =>
     startsAt.toLocaleDateString(tag, opt);
+  // 한국어는 day:"numeric" 이 "13일" 을 준다 — 큰 숫자 칸에서 "일" 이 아래로 줄바꿈된다.
+  const dayOnly = dpart({ day: "numeric" }).replace(/\D/g, "") || dpart({ day: "numeric" });
   const when = startsAt.toLocaleDateString(tag, {
     year: "numeric",
     month: "long",
@@ -164,8 +166,8 @@ export default async function RacePlanPage({
             <span className="text-xs font-semibold text-muted">
               {dpart({ month: "short" })}
             </span>
-            <span className="tabular text-[40px] font-extrabold leading-none max-md:text-[32px]">
-              {dpart({ day: "numeric" })}
+            <span className="tabular whitespace-nowrap text-[40px] font-extrabold leading-none max-md:text-[32px]">
+              {dayOnly}
             </span>
             <span className="text-[13px] font-semibold text-muted">
               {dpart({ weekday: "short" })}

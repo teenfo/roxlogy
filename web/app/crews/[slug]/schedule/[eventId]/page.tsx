@@ -147,6 +147,9 @@ export default async function CrewEventPage({
   // 날짜 블록 — 월/일/요일을 모임 시간대(tz) 기준으로 쪼갠다
   const dpart = (opt: Intl.DateTimeFormatOptions) =>
     startsAt.toLocaleDateString(tag, { ...opt, timeZone: tz });
+  // 한국어는 day:"numeric" 이 "13일" 을 준다 — 큰 숫자 칸에서 "일" 이 아래로 줄바꿈된다.
+  // 월·요일이 위아래에 이미 있으니 날짜 칸은 숫자만 쓴다(다른 로케일은 원래 숫자만).
+  const dayOnly = dpart({ day: "numeric" }).replace(/\D/g, "") || dpart({ day: "numeric" });
   const started = startsAt <= new Date();
 
   // 무응답 = 크루원 중 어떤 응답도 하지 않은 사람. 음수가 되지 않게 막는다.
@@ -190,8 +193,8 @@ export default async function CrewEventPage({
             <span className="text-xs font-semibold text-muted">
               {dpart({ month: "short" })}
             </span>
-            <span className="tabular text-[40px] font-extrabold leading-none max-md:text-[32px]">
-              {dpart({ day: "numeric" })}
+            <span className="tabular whitespace-nowrap text-[40px] font-extrabold leading-none max-md:text-[32px]">
+              {dayOnly}
             </span>
             <span className="text-[13px] font-semibold text-muted">
               {dpart({ weekday: "short" })}
