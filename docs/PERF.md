@@ -103,7 +103,17 @@ Auth 왕복은 없다. §0 의 225ms 는 대부분 Next.js 함수 실행 자체�
 레거시 HS256 키가 `Previously used keys` 에 남아 있지만 성능과는 무관하다(위생 차원의
 정리 항목이고, 인증에 손대는 변경이라 사람 승인이 필요하다).
 
-## 6. 건드리지 말 것
+## 6. 결정 (2026-09-13)
+
+- **캐싱(작업 3)은 보류.** 로케일 경로 분리도, `cacheComponents` 전면 도입도 지금은
+  하지 않는다. 먼저 `prefetch={false}` 효과와 Speed Insights 실사용자 데이터를 보고
+  재판단한다 — 대시보드 프리페치가 29건에서 목표(10건 이하)로 줄었다면 체감이 크게
+  달라지고, 그러면 대형 리팩터가 필요 없을 수 있다.
+  **재판단 재료**: `/dashboard` 에서 `performance.getEntriesByType('resource')
+  .filter(e => e.name.includes('_rsc=')).length`, 그리고 Vercel → Speed Insights 의 TTFB/LCP.
+- **레거시 HS256 키는 그대로 둔다.** 성능과 무관하고, 지금 인증을 건드릴 이유가 없다.
+
+## 7. 건드리지 말 것
 
 - 함수 리전 `hnd1`(도쿄) — Supabase 가 `ap-northeast-1` 이라 서울로 옮기면 DB 왕복마다
   지연이 더 붙는다. 정본은 `web/vercel.json`
