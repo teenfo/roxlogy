@@ -106,8 +106,11 @@ function fitText(
 }
 
 /**
- * 카드 한 장을 그린다. photo 가 null 이면 검정 바탕에 기록만 올린다
- * (사진 없이도 쓸 수 있어야 한다 — 현장에서 사진을 안 찍은 경우).
+ * 카드 한 장을 그린다.
+ *
+ * photo 가 null 이면 **배경을 투명하게 둔다** — 스토리 배경이나 다른 이미지 위에
+ * 그대로 얹을 수 있어야 한다(2026-09-14 요청). 바탕을 칠하지 않으니 사진용 스크림도
+ * 걸지 않는다. PNG 로 저장하므로 알파가 그대로 남는다.
  */
 export function drawRecordCard(
   canvas: HTMLCanvasElement,
@@ -122,49 +125,45 @@ export function drawRecordCard(
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  ctx.fillStyle = BLACK;
-  ctx.fillRect(0, 0, w, h);
-  if (photo) drawCover(ctx, photo, w, h);
-
-  // 아래쪽 어둡게 — 사진이 밝아도 글자가 읽혀야 한다
-  const scrim = ctx.createLinearGradient(0, h * 0.32, 0, h);
-  scrim.addColorStop(0, "rgba(20,20,20,0)");
-  scrim.addColorStop(0.45, "rgba(20,20,20,0.72)");
-  scrim.addColorStop(1, "rgba(20,20,20,0.96)");
-  ctx.fillStyle = scrim;
-  ctx.fillRect(0, h * 0.32, w, h * 0.68);
-  // 상단도 살짝 — 워드마크 자리
-  const top = ctx.createLinearGradient(0, 0, 0, 220);
-  top.addColorStop(0, "rgba(20,20,20,0.55)");
-  top.addColorStop(1, "rgba(20,20,20,0)");
-  ctx.fillStyle = top;
-  ctx.fillRect(0, 0, w, 220);
+  ctx.clearRect(0, 0, w, h);
+  if (photo) {
+    drawCover(ctx, photo, w, h);
+    // 아래쪽 어둡게 — 사진이 밝아도 글자가 읽혀야 한다. 투명 배경에는 걸지 않는다:
+    // 검은 반투명이 남아 "투명"이 아니게 된다.
+    const scrim = ctx.createLinearGradient(0, h * 0.32, 0, h);
+    scrim.addColorStop(0, "rgba(20,20,20,0)");
+    scrim.addColorStop(0.45, "rgba(20,20,20,0.72)");
+    scrim.addColorStop(1, "rgba(20,20,20,0.96)");
+    ctx.fillStyle = scrim;
+    ctx.fillRect(0, h * 0.32, w, h * 0.68);
+  }
 
   const pad = 72;
   const inner = w - pad * 2;
 
-  // 워드마크 (좌상단)
-  let markRight = pad;
-  if (mark) {
-    const size = 56;
-    ctx.drawImage(mark, pad, pad - 4, size, size);
-    markRight = pad + size + 16;
-  }
-  ctx.fillStyle = CHALK;
-  ctx.font = font(30, 800);
-  ctx.textBaseline = "top";
-  ctx.fillText("ROXLOGY", markRight, pad + 10);
-
-  // 종류 (우상단)
-  ctx.font = font(24, 700);
-  ctx.fillStyle = YELLOW;
-  ctx.textAlign = "right";
-  ctx.fillText(data.kind.toUpperCase(), w - pad, pad + 14);
-  ctx.textAlign = "left";
+  // 글자에 옅은 그림자. 배경이 투명하면 카드가 어디에 얹힐지 알 수 없고(밝은 배경 위면
+  // Chalk 글자가 사라진다), 사진도 밝은 부분이 있다. 윤곽만 잡아 주는 정도로 둔다.
+  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur = 14;
+  ctx.shadowOffsetY = 2;
 
   // ── 아래에서 위로 쌓는다 ───────────────────────────────────────────────
   let y = h - pad;
   ctx.textBaseline = "bottom";
+
+  // 워드마크 — 맨 아래. 기록을 먼저 읽히게 두고 브랜드는 받침으로 깐다.
+  {
+    const size = 40;
+    let x = pad;
+    if (mark) {
+      ctx.drawImage(mark, x, y - size, size, size);
+      x += size + 14;
+    }
+    ctx.fillStyle = CHALK;
+    ctx.font = font(26, 800);
+    ctx.fillText("ROXLOGY", x, y - Math.round(size * 0.18));
+    y -= size + 26;
+  }
 
   // 보조 지표
   if (data.stats?.length) {
@@ -201,6 +200,8 @@ export function drawRecordCard(
       const rowTop = y - 84;
       row.forEach((s, i) => {
         const x = pad + i * (cw + gap);
+        const shadow = ctx.shadowColor;
+        ctx.shadowColor = "transparent";
         ctx.fillStyle = "rgba(244,244,242,0.10)";
         roundRect(ctx, x, rowTop, cw, 84, 14);
         ctx.fill();
@@ -209,6 +210,7 @@ export function drawRecordCard(
           roundRect(ctx, x, rowTop, cw, 6, 3);
           ctx.fill();
         }
+        ctx.shadowColor = shadow;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.fillStyle = MUTED;
@@ -270,11 +272,18 @@ export function drawRecordCard(
     y -= 44;
   }
 
-  // 이름
-  const ns = fitText(ctx, data.athlete, inner, 64, 800);
+  // 이름 + 종목(이름 옆)
+  const kind = data.kind.toUpperCase();
+  ctx.font = font(26, 800);
+  const kindWidth = ctx.measureText(kind).width;
+  const ns = fitText(ctx, data.athlete, inner - kindWidth - 18, 64, 800);
   ctx.font = font(ns, 800);
   ctx.fillStyle = CHALK;
   ctx.fillText(data.athlete, pad, y);
+  const nameWidth = ctx.measureText(data.athlete).width;
+  ctx.font = font(26, 800);
+  ctx.fillStyle = YELLOW;
+  ctx.fillText(kind, pad + nameWidth + 18, y - Math.round(ns * 0.08));
 }
 
 /** 카드에 그려지는 모든 글자 — document.fonts.load() 에 넘겨 필요한 서브셋만 받는다 */

@@ -200,7 +200,17 @@ export function RecordCardButton({
               width={w}
               height={h}
               aria-label={t("card.previewAlt")}
-              className="h-auto w-full max-w-[280px] rounded"
+              className="h-auto w-full max-w-[280px] self-start rounded"
+              // 사진이 없으면 배경이 투명하다 — 체커보드로 그 사실을 보여 준다
+              style={
+                photo
+                  ? undefined
+                  : {
+                      backgroundImage:
+                        "repeating-conic-gradient(#2b2b2b 0% 25%, #1b1b1b 0% 50%)",
+                      backgroundSize: "18px 18px",
+                    }
+              }
             />
           </div>
 
@@ -209,7 +219,9 @@ export function RecordCardButton({
               {err}
             </p>
           )}
-          <p className="text-[11px] text-muted">{t("card.privacyNote")}</p>
+          <p className="text-[11px] text-muted">
+            {photo ? t("card.privacyNote") : t("card.transparentNote")}
+          </p>
 
           <div className="flex gap-2">
             <button
