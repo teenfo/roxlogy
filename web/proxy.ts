@@ -136,8 +136,16 @@ export async function proxy(request: NextRequest) {
 
 // 인증 판정이 필요한 문서 요청에만 실행한다. api·auth 콜백 라우트는 자체적으로
 // 세션을 검증하므로 여기서 한 번 더 왕복하지 않는다(요청당 왕복 1회 절감).
+//
+// `events$`·`download$` 는 **세션을 전혀 읽지 않는** 페이지라 미들웨어를 태울 이유가
+// 없다(요청당 getClaims() 한 번을 통째로 아낀다). `$` 로 정확히 그 경로만 뺀다 —
+// `/events/[id]` 는 로그인 사용자에게 참가 상태를 보여 주므로 계속 태워야 한다.
+//
+// 나머지 공개 경로(`/`, `/crews`, `/predict`, `/board/*`)를 빼지 않는 이유: 미들웨어가
+// 만료된 액세스 토큰을 갱신해 응답 쿠키에 실어 준다. 서버 컴포넌트는 쿠키를 쓸 수 없어
+// 여기서 빼면 토큰이 만료된 로그인 사용자가 그 페이지에서 비로그인으로 보인다.
 export const config = {
   matcher: [
-    "/((?!api|auth|_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|txt)$).*)",
+    "/((?!api|auth|events$|download$|_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|txt)$).*)",
   ],
 };
