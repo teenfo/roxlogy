@@ -57,7 +57,7 @@ export default async function EventDetailPage({
   if (!ev) notFound();
 
   // 라이브 상세 (토큰 미설정/미개최 대회면 null) + 내 목표 + 같이 나가는 크루원
-  const [live, goal, { data: mateRows }] = await Promise.all([
+  const [live, goal, { data: mateRows }, { data: myPlanRow }] = await Promise.all([
     getEventLiveDetail(ev),
     user
       ? (async () => {
@@ -90,20 +90,21 @@ export default async function EventDetailPage({
     user
       ? supabase.rpc("race_event_crewmates", { p_event: id })
       : Promise.resolve({ data: [] as Crewmate[] }),
+    // 이 대회로 등록해 둔 내 대회일정 — 있으면 그 상세로 건너갈 수 있게 한다.
+    // 위 셋과 서로 의존하지 않으므로 같은 블록에서 함께 기다린다(왕복 1회 절약).
+    user
+      ? supabase
+          .from("race_plans")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("race_event_id", id)
+          .order("race_date")
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   const mates = (mateRows ?? []) as Crewmate[];
 
-  // 이 대회로 등록해 둔 내 대회일정 — 있으면 그 상세로 건너갈 수 있게 한다
-  const { data: myPlanRow } = user
-    ? await supabase
-        .from("race_plans")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("race_event_id", id)
-        .order("race_date")
-        .limit(1)
-        .maybeSingle()
-    : { data: null };
   const myPlanId = (myPlanRow as { id: string } | null)?.id ?? null;
 
   const dateRange = ev.start_date

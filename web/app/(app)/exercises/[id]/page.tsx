@@ -34,23 +34,29 @@ export default async function ExerciseDetailPage({
   const supabase = await createClient();
   const { t, tag, locale, tz } = await getT();
 
-  const { data: ex } = await supabase
-    .from("exercises")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data: ex }, user] = await Promise.all([
+    supabase.from("exercises").select("*").eq("id", id).maybeSingle(),
+    getCachedUser(),
+  ]);
   if (!ex) notFound();
 
-  // 이 운동에 대한 내 세션 스플릿 추이 — shared 세션 세그먼트는 RLS 로
-  // 전체 공개(피드용)라 본인 필터가 필수다
-  const user = await getCachedUser();
-  const { data: segRows } = await supabase
-    .from("session_segments")
-    .select("split_time_ms, sessions!inner ( user_id, started_at, deleted_at )")
-    .eq("exercise_id", id)
-    .not("split_time_ms", "is", null)
-    .eq("sessions.user_id", user!.id)
-    .is("sessions.deleted_at", null);
+  // 스플릿 추이와 도움 훈련은 서로 의존하지 않는다 — 순차로 두면 도쿄 왕복이 2회다.
+  // 스플릿: shared 세션 세그먼트는 RLS 로 전체 공개(피드용)라 본인 필터가 필수다
+  const [{ data: segRows }, { data: drillRows }] = await Promise.all([
+    supabase
+      .from("session_segments")
+      .select("split_time_ms, sessions!inner ( user_id, started_at, deleted_at )")
+      .eq("exercise_id", id)
+      .not("split_time_ms", "is", null)
+      .eq("sessions.user_id", user!.id)
+      .is("sessions.deleted_at", null),
+    // 이 운동에 대해 내가 직접 추가한 도움 훈련 (RLS: 본인 것만)
+    supabase
+      .from("exercise_drills")
+      .select("id, title, body")
+      .eq("exercise_id", id)
+      .order("created_at", { ascending: true }),
+  ]);
   type SegRow = {
     split_time_ms: number;
     sessions: { started_at: string } | null;
@@ -72,12 +78,6 @@ export default async function ExerciseDetailPage({
     : null;
   const latest = splits.length ? splits[splits.length - 1].split_time_ms : null;
 
-  // 이 운동에 대해 내가 직접 추가한 도움 훈련 (RLS: 본인 것만)
-  const { data: drillRows } = await supabase
-    .from("exercise_drills")
-    .select("id, title, body")
-    .eq("exercise_id", id)
-    .order("created_at", { ascending: true });
   const drills = (drillRows ?? []) as Drill[];
 
   const muscles: string[] = Array.isArray(ex.muscles) ? ex.muscles : [];

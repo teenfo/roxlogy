@@ -196,17 +196,38 @@ export default async function SessionDetailPage({
     segments.every((s) => s.kind === "station") &&
     segments.some((s) => s.machine_type);
 
-  let ergRaws: ErgRawRow[] = [];
-  if (isErg) {
-    const { data: raws } = await supabase
-      .from("erg_samples")
-      .select("segment_id, samples, strokes")
-      .in(
-        "segment_id",
-        segments.map((s) => s.id),
-      );
-    ergRaws = (raws ?? []) as ErgRawRow[];
-  }
+  // erg raw · 개인 최고 · 러닝 저하율은 서로 의존하지 않는다. 조건은 각각 다르지만
+  // 순차로 두면 해당되는 개수만큼 도쿄 왕복이 늘어난다 — 한 번에 기다린다.
+  const needsPb = isOwner;
+  const needsDeg = isOwner && !isErg && runLaps.length >= 2;
+  const [rawsRes, pbRes, degRes] = await Promise.all([
+    isErg
+      ? supabase
+          .from("erg_samples")
+          .select("segment_id, samples, strokes")
+          .in(
+            "segment_id",
+            segments.map((s) => s.id),
+          )
+      : Promise.resolve({ data: null }),
+    // 개인 최고(대회) — 히어로의 "PB 대비". 본인 세션에서만 의미가 있다.
+    needsPb
+      ? supabase
+          .from("sessions")
+          .select("total_time_ms, race_results!inner ( event )")
+          .eq("user_id", session.user_id)
+          .is("deleted_at", null)
+          .not("total_time_ms", "is", null)
+          .order("total_time_ms", { ascending: true })
+          .limit(1)
+      : Promise.resolve({ data: null }),
+    // 러닝 저하율 — 시뮬 랩이 순수 1km 페이스보다 얼마나 느린가.
+    // 본인 세션에서만 계산한다: 기준선은 내 러닝 기록이고 RLS 로 남에겐 안 보인다.
+    needsDeg
+      ? supabase.rpc("session_run_degradation", { p_session: id })
+      : Promise.resolve({ data: null }),
+  ]);
+  const ergRaws = (rawsRes.data ?? []) as ErgRawRow[];
   const ergSamplesAll = ergRaws.flatMap((r) => r.samples ?? []);
   const ergStrokesAll = ergRaws.flatMap((r) => r.strokes ?? []);
 
@@ -216,19 +237,8 @@ export default async function SessionDetailPage({
     | null
     | undefined;
 
-  // 개인 최고(대회) — 히어로의 "PB 대비". 본인 세션에서만 의미가 있다.
-  let pbMs: number | null = null;
-  if (isOwner) {
-    const { data: pbRows } = await supabase
-      .from("sessions")
-      .select("total_time_ms, race_results!inner ( event )")
-      .eq("user_id", session.user_id)
-      .is("deleted_at", null)
-      .not("total_time_ms", "is", null)
-      .order("total_time_ms", { ascending: true })
-      .limit(1);
-    pbMs = (pbRows ?? [])[0]?.total_time_ms ?? null;
-  }
+  const pbMs: number | null =
+    ((pbRes.data ?? []) as { total_time_ms: number }[])[0]?.total_time_ms ?? null;
   const pbGap =
     pbMs != null && session.total_time_ms != null
       ? session.total_time_ms - pbMs
@@ -239,15 +249,7 @@ export default async function SessionDetailPage({
     return `${d >= 0 ? "+" : "−"}${Math.floor(a / 60)}:${String(a % 60).padStart(2, "0")}`;
   };
 
-  // 러닝 저하율 — 시뮬 랩이 순수 1km 페이스보다 얼마나 느린가.
-  // 본인 세션에서만 계산한다: 기준선은 내 러닝 기록이고 RLS 로 남에겐 안 보인다.
-  let degradation: Degradation | null = null;
-  if (isOwner && !isErg && runLaps.length >= 2) {
-    const { data: deg } = await supabase.rpc("session_run_degradation", {
-      p_session: id,
-    });
-    degradation = (deg ?? null) as Degradation | null;
-  }
+  const degradation = (degRes.data ?? null) as Degradation | null;
 
   // 필드 분포 곡선 — 풀 시뮬(런8+스테이션8, 30분↑) + 본인 세션일 때만.
   // 소유자 프로필(성별·출생연도)로 동체급·동연령 실측 분포에 위치를 찍는다.
