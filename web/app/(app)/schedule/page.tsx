@@ -11,7 +11,7 @@ import {
   todayISOIn,
   todayMidnightIn,
 } from "@/lib/format";
-import { wodTypeChip } from "@/lib/wod-type";
+import { ScheduleWeek, type WeekDay } from "@/components/schedule-week";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -239,9 +239,29 @@ export default async function SchedulePage({
   })}`;
   const itemCount = (templateId: string) =>
     itemsByTemplate.get(templateId)?.length ?? 0;
-  const weekdayCls = (d: Date) =>
-    d.getDay() === 0 ? "text-sunday" : d.getDay() === 6 ? "text-info" : "text-muted";
 
+  // 표시용으로 납작하게 — 날짜 계산은 서버에서 끝내고 컴포넌트는 그리기만 한다
+  const weekRows: WeekDay[] = week7.map((d) => ({
+    iso: d.date.toISOString(),
+    weekday: d.date.toLocaleDateString(tag, { weekday: "short", timeZone: tz }),
+    dayOfMonth: d.date.getDate(),
+    dow: d.date.getDay(),
+    isToday: d.isToday,
+    plans: d.plans.map((pl) => ({
+      progId: pl.progId,
+      progTitle: pl.progTitle,
+      dayIndex: pl.dayIndex,
+      focus: pl.day.focus,
+      workouts: pl.day.workout_templates.map((w) => ({
+        id: w.id,
+        title: w.title,
+        type: w.type,
+        items: itemCount(w.id),
+      })),
+      doneSessionId: pl.doneSessionId,
+      done: pl.done,
+    })),
+  }));
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-5">
       {/* 헤더 — 프로그램과 현재 위치를 한 줄로 */}
@@ -365,119 +385,7 @@ export default async function SchedulePage({
       </div>
 
       {/* 날짜 행 — 진행 중인 프로그램마다 한 블록 */}
-      <ul className="flex flex-col gap-2">
-        {week7.map((d) => {
-          const rest = d.withWork.length === 0;
-          // 그날 워크아웃이 딱 하나면 줄 전체를 링크로(기존 동작), 여럿이면 칩마다 링크
-          const only =
-            d.withWork.length === 1 && d.withWork[0].day.workout_templates.length === 1
-              ? d.withWork[0]
-              : null;
-          const onlyHref = only
-            ? only.doneSessionId
-              ? `/sessions/${only.doneSessionId}`
-              : `/workouts/${only.day.workout_templates[0].id}`
-            : null;
-          const body = (
-            <div
-              className={`grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 rounded-[14px] border transition-colors max-md:grid-cols-[52px_minmax(0,1fr)] max-md:gap-3 ${
-                d.isToday
-                  ? "border-accent bg-highlight px-5 py-[18px] max-md:px-4"
-                  : rest
-                    ? "border-line-soft px-5 py-3.5 opacity-55 max-md:px-4"
-                    : "border-line bg-card px-5 py-3.5 hover:border-line-strong max-md:px-4"
-              }`}
-            >
-              {/* 날짜 블록 */}
-              <div className="border-r border-line-mid pr-3 text-center">
-                <p className={`text-xs font-bold ${weekdayCls(d.date)}`}>
-                  {d.date.toLocaleDateString(tag, {
-                    weekday: "short",
-                    timeZone: tz,
-                  })}
-                </p>
-                <p
-                  className={`tabular text-2xl font-extrabold leading-tight ${
-                    d.isToday ? "text-accent" : rest ? "text-muted" : ""
-                  }`}
-                >
-                  {d.date.getDate()}
-                </p>
-                {d.isToday && (
-                  <span className="mt-0.5 inline-block rounded-full bg-accent px-1.5 text-[10px] font-extrabold text-background">
-                    {t("schedule.today")}
-                  </span>
-                )}
-              </div>
-
-              {/* 본문 */}
-              <div className="flex min-w-0 flex-col gap-2.5">
-                {rest ? (
-                  <p className="truncate text-[15px] font-medium text-muted">
-                    {t("schedule.rest")}
-                  </p>
-                ) : (
-                  d.withWork.map((pl) => (
-                    <div key={pl.progId} className="flex min-w-0 flex-col gap-1.5">
-                      <p className="flex flex-wrap items-center gap-2">
-                        {!solo && (
-                          <span className="shrink-0 rounded-md bg-line px-1.5 py-0.5 text-[11px] font-bold text-muted">
-                            {pl.progTitle}
-                          </span>
-                        )}
-                        <span
-                          className={`truncate ${d.isToday ? "text-[19px]" : "text-base"} font-bold`}
-                        >
-                          {pl.day.focus ?? pl.day.workout_templates[0].title}
-                        </span>
-                        <span className="shrink-0 text-xs font-semibold text-muted">
-                          {t("programs.dayN", { n: pl.dayIndex })}
-                        </span>
-                        {pl.done && (
-                          <span className="shrink-0 text-xs font-bold text-success">✓</span>
-                        )}
-                      </p>
-                      <span className="flex flex-wrap gap-1.5">
-                        {pl.day.workout_templates.map((w) => (
-                          <Link
-                            key={w.id}
-                            href={`/workouts/${w.id}`}
-                            className={`flex h-[26px] items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold ${wodTypeChip(w.type)}`}
-                          >
-                            {w.title}
-                            {itemCount(w.id) > 0 && (
-                              <span className="tabular opacity-70">{itemCount(w.id)}</span>
-                            )}
-                          </Link>
-                        ))}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* 우측 */}
-              <div className="flex shrink-0 items-center gap-2.5 max-md:col-span-2 max-md:justify-end">
-                {d.done && (
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success-bg text-sm font-extrabold text-success">
-                    ✓
-                  </span>
-                )}
-                {d.isToday && !rest && (
-                  <span className="flex h-9 items-center rounded-lg bg-accent px-3.5 text-[13px] font-extrabold text-background">
-                    {t("schedule.startShort")} →
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-          return (
-            <li key={d.date.toISOString()}>
-              {onlyHref ? <Link href={onlyHref}>{body}</Link> : body}
-            </li>
-          );
-        })}
-      </ul>
+      <ScheduleWeek week={weekRows} solo={!!solo} />
 
       {racePlanSection}
     </main>
