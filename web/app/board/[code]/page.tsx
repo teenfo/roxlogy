@@ -4,8 +4,6 @@ import { PftRaceBoard } from "@/components/pft-race-board";
 import { PftBoardTopBar } from "@/components/pft-board-topbar";
 import type { BoardData } from "@/lib/pft-race";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const supabase = await createClient();

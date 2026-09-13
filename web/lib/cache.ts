@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 
 /**
@@ -21,17 +22,16 @@ function anonClient() {
 }
 
 /** 공개 대회 일정. */
-export const getRaceEvents = unstable_cache(
-  async () => {
-    const { data } = await anonClient()
-      .from("race_events")
-      .select("*")
-      .order("start_date", { ascending: true, nullsFirst: false });
-    return data ?? [];
-  },
-  ["race-events-all"],
-  { revalidate: 3600, tags: ["race_events"] },
-);
+export async function getRaceEvents() {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("race_events");
+  const { data } = await anonClient()
+    .from("race_events")
+    .select("*")
+    .order("start_date", { ascending: true, nullsFirst: false });
+  return data ?? [];
+}
 
 /** 백분위 분포 (배치로만 갱신). */
 export const getRaceBenchmarks = unstable_cache(

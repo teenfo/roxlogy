@@ -1,12 +1,14 @@
 import { getRaceEvents } from "@/lib/cache";
-import { getT } from "@/lib/i18n";
+import { makeT } from "@/lib/i18n";
+import { DEFAULT_LOCALE, LOCALE_TAG } from "@/lib/i18n/config";
 import { eventDateNote, eventPlace } from "@/lib/event-display";
 import { CrewHeader } from "@/components/crew-header";
 import { todayISOIn } from "@/lib/format";
 import { RowLink } from "@/components/row-link";
+import { Suspense } from "react";
 
 export async function generateMetadata() {
-  const { t } = await getT();
+  const t = makeT(DEFAULT_LOCALE);
   return { title: t("meta.events"), description: t("events.desc") };
 }
 
@@ -45,7 +47,11 @@ export default async function EventsPage({
   searchParams: Promise<{ q?: string; region?: string }>;
 }) {
   const { q, region } = await searchParams;
-  const { t, tag, locale, tz } = await getT();
+  // 스파이크: 공개 페이지는 쿠키를 읽지 않는다 — 누구에게나 같은 HTML 이라 캐시 가능
+  const t = makeT(DEFAULT_LOCALE);
+  const locale = DEFAULT_LOCALE;
+  const tag = LOCALE_TAG[DEFAULT_LOCALE];
+  const tz = "Asia/Seoul";
 
   // 공개 대회 일정은 전역 캐시(1시간) — 검색·지역 필터는 메모리에서 처리
   const all = await getRaceEvents();
@@ -74,7 +80,9 @@ export default async function EventsPage({
       {/* 공용 헤더 — 로그인돼 있으면 아바타·알림, 아니면 로그인 버튼.
           예전엔 여기서 헤더를 직접 그리며 /login 을 고정해 두어 로그인 상태에서도
           로그인 버튼이 보였다(상세 페이지는 이미 CrewHeader 를 쓰고 있었다). */}
-      <CrewHeader loginNext="/events" />
+      <Suspense fallback={<div className="h-14" />}>
+        <CrewHeader loginNext="/events" />
+      </Suspense>
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         <h1 className="text-3xl font-black tracking-tight">{t("events.title")}</h1>

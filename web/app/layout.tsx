@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { getDict, getT } from "@/lib/i18n";
+import { getDict } from "@/lib/i18n";
+import { Suspense } from "react";
+import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { I18nProvider } from "@/components/i18n-provider";
 import { TzSync } from "@/components/tz-sync";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -24,18 +26,19 @@ export const viewport: Viewport = {
   themeColor: "#141414",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { locale } = await getT();
+  // 스파이크: 쿠키를 읽지 않는다 — 정적 셸이 만들어지는지 보기 위해
+  const locale = DEFAULT_LOCALE;
   return (
     <html lang={locale} className="h-full scroll-smooth antialiased">
       <body className="min-h-full flex flex-col">
         <I18nProvider locale={locale} dict={getDict(locale)}>
           <TzSync />
-          {children}
+          <Suspense>{children}</Suspense>
           {/* 실사용자 지표(LCP/TTFB/INP) 수집 — 개선 전후를 숫자로 비교하기 위해 */}
           <SpeedInsights />
         </I18nProvider>
