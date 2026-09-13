@@ -907,6 +907,8 @@ const en = {
   "crew.unpaidOpen": "View details →",
   "crew.unpaidTitle": "Outstanding dues",
   "crew.unpaidHint": "All unpaid and awaiting-confirmation charges, any period. Confirmed and waived are excluded.",
+  "crew.unpaidMonthHint": "Outstanding and awaiting-confirmation charges for {period}. Confirmed and waived ones are excluded.",
+  "crew.unpaidFilterHere": "Show outstanding in the list below →",
   "crew.unpaidGoFinance": "Handle in finance →",
   "crew.statUnpaid": "Outstanding",
   "crew.statWaived": "waived {amount}",

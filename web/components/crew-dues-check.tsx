@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { Avatar, Card, Chip } from "@/components/ui/crew-ui";
+import { Dialog } from "@/components/ui/dialog";
 import { tierBadgeClass } from "@/lib/crew-role";
 import { duesErrText } from "@/lib/dues-error";
 
@@ -175,6 +176,9 @@ export function CrewDuesMatrix({
   const [filter, setFilter] = useState<"all" | "unpaid" | "settled" | "waived">(
     "all",
   );
+  /** 미납 요약 카드를 누르면 뜨는 내역. 관리 탭의 "미납 회비" 타일과 같은 동작이지만
+   *  이쪽은 **이 달** 청구만 본다 — 두 숫자가 다를 수 있어 모달에도 달을 적는다. */
+  const [unpaidOpen, setUnpaidOpen] = useState(false);
   const toggle = (uid: string) =>
     setOpen((p) => {
       const n = new Set(p);
@@ -256,22 +260,103 @@ export function CrewDuesMatrix({
     filter === "all" ? true : list.some((c) => statusOf(c) === filter),
   );
 
+  /** 이 달 미납(확인 대기 포함) 청구를 회원별로 묶는다 */
+  const unpaidByMember = [...byMember.entries()]
+    .map(([uid, list]) => ({
+      uid,
+      name: list[0].display_name,
+      rows: list.filter((c) => c.status === "pending" || c.status === "reported"),
+    }))
+    .filter((m) => m.rows.length > 0);
+
   return (
     <div className="flex flex-col gap-3">
+      <Dialog
+        open={unpaidOpen}
+        onClose={() => setUnpaidOpen(false)}
+        label={t("crew.unpaidTitle")}
+        closeLabel={t("common.close")}
+        variant="center"
+        panelClassName="max-w-lg rounded-2xl border border-line bg-card text-foreground"
+      >
+        <div className="px-5 py-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="text-sm font-bold">{t("crew.unpaidTitle")}</h3>
+            <span className="tabular text-sm font-bold text-danger">{won(unpaid)}</span>
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            {t("crew.unpaidMonthHint", { period: periodLabel })}
+          </p>
+
+          <ul className="mt-3 flex max-h-[55vh] flex-col gap-2 overflow-y-auto">
+            {unpaidByMember.map((m) => (
+              <li key={m.uid} className="rounded-xl bg-inset px-3 py-2.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-sm font-semibold">{m.name}</span>
+                  <span className="tabular shrink-0 text-xs text-accent">
+                    {won(m.rows.reduce((a, c) => a + c.amount, 0))}
+                  </span>
+                </div>
+                <ul className="mt-1 flex flex-col gap-0.5">
+                  {m.rows.map((c) => (
+                    <li key={c.charge_id} className="flex items-baseline gap-2 text-xs text-muted">
+                      <span className="min-w-0 flex-1 truncate">{c.label}</span>
+                      {c.status === "reported" && (
+                        <span className="shrink-0 text-accent">{t("crew.duesReported")}</span>
+                      )}
+                      <span className="tabular shrink-0">{won(c.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            {/* 확정·면제 버튼은 아래 목록에 있다 — 거기로 데려다준다 */}
+            <button
+              type="button"
+              onClick={() => {
+                setFilter("unpaid");
+                setUnpaidOpen(false);
+              }}
+              className="text-xs text-accent hover:underline"
+            >
+              {t("crew.unpaidFilterHere")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setUnpaidOpen(false)}
+              className="rounded-lg bg-control px-4 py-1.5 text-xs font-semibold"
+            >
+              {t("common.close")}
+            </button>
+          </div>
+        </div>
+      </Dialog>
+
       {/* 요약 3카드 + 대사 버튼 */}
       <div className="grid gap-2.5 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
         <Card className="px-4 py-3">
           <p className="text-xs text-muted">{t("crew.duesPaidLabel")}</p>
           <p className="tabular mt-1 text-xl font-extrabold">{won(paid)}</p>
         </Card>
-        <Card className="px-4 py-3">
-          <p className="text-xs text-muted">{t("crew.duesUnpaidLabel")}</p>
-          <p
-            className={`tabular mt-1 text-xl font-extrabold ${unpaid > 0 ? "text-danger" : "text-success"}`}
+        {unpaid > 0 ? (
+          <button
+            type="button"
+            onClick={() => setUnpaidOpen(true)}
+            className="rounded-2xl border border-line bg-card px-4 py-3 text-left ring-accent/40 hover:ring-1"
           >
-            {won(unpaid)}
-          </p>
-        </Card>
+            <p className="text-xs text-muted">{t("crew.duesUnpaidLabel")}</p>
+            <p className="tabular mt-1 text-xl font-extrabold text-danger">{won(unpaid)}</p>
+            <span className="mt-0.5 block text-xs text-accent">{t("crew.unpaidOpen")}</span>
+          </button>
+        ) : (
+          <Card className="px-4 py-3">
+            <p className="text-xs text-muted">{t("crew.duesUnpaidLabel")}</p>
+            <p className="tabular mt-1 text-xl font-extrabold text-success">{won(unpaid)}</p>
+          </Card>
+        )}
         <Card className="px-4 py-3">
           <p className="text-xs text-muted">{t("crew.duesWaivedLabel")}</p>
           <p className="tabular mt-1 text-xl font-extrabold text-muted">

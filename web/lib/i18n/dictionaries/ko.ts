@@ -905,6 +905,8 @@ const ko: Record<DictKey, string> = {
   "crew.unpaidOpen": "내역 보기 →",
   "crew.unpaidTitle": "미납 내역",
   "crew.unpaidHint": "기간 전체의 미납·확인 대기 청구입니다. 확정·면제된 건은 빠집니다.",
+  "crew.unpaidMonthHint": "{period} 미납·확인 대기 청구입니다. 확정·면제된 건은 빠집니다.",
+  "crew.unpaidFilterHere": "아래 목록에서 미납만 보기 →",
   "crew.unpaidGoFinance": "회계에서 처리하기 →",
   "crew.statUnpaid": "미납 회비",
   "crew.statWaived": "면제 {amount}",

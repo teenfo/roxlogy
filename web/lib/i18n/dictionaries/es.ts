@@ -905,6 +905,8 @@ const es: Record<DictKey, string> = {
   "crew.unpaidOpen": "Ver detalle →",
   "crew.unpaidTitle": "Cuotas pendientes",
   "crew.unpaidHint": "Todos los cargos pendientes o por confirmar, de cualquier periodo. No incluye confirmados ni eximidos.",
+  "crew.unpaidMonthHint": "Cargos pendientes y por confirmar de {period}. Se excluyen los confirmados y exonerados.",
+  "crew.unpaidFilterHere": "Ver pendientes en la lista de abajo →",
   "crew.unpaidGoFinance": "Gestionar en finanzas →",
   "crew.statUnpaid": "Pendiente",
   "crew.statWaived": "eximido {amount}",
