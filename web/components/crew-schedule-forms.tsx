@@ -18,7 +18,7 @@ import {
 } from "@/lib/crew-role";
 
 const input =
-  "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+  "w-full min-w-0 rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 
 /** 모임 등록 — 스태프 전용. crew_events RLS(is_crew_staff)가 권한을 강제한다. */
 export type MeetupEditable = {
@@ -134,110 +134,116 @@ export function CrewMeetupForm({
     router.refresh();
   }
 
-  if (!open) {
-    // 제어형이면 트리거는 부모(⋯ 메뉴)가 그린다
-    if (controlled) return null;
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
-      >
-        {editing ? t("common.edit") : `+ ${t("crew.meetupAdd")}`}
-      </button>
-    );
-  }
+  const heading = editing ? t("crew.meetupEdit") : t("crew.meetupAdd");
   return (
-    <form onSubmit={save} className="flex w-full flex-col gap-2 rounded-md bg-surface p-4">
-      <p className="text-sm font-semibold">
-        {editing ? t("crew.meetupEdit") : t("crew.meetupAdd")}
-      </p>
-      <input
-        className={input}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder={t("crew.meetupTitlePh")}
-        maxLength={80}
-      />
-      <input
-        type="datetime-local"
-        className={input}
-        value={when}
-        onChange={(e) => setWhen(e.target.value)}
-      />
-      <input
-        className={input}
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        placeholder={t("crew.meetupLocationPh")}
-        maxLength={80}
-      />
-      <textarea
-        className={`${input} min-h-16`}
-        value={desc}
-        onChange={(e) => setDesc(e.target.value)}
-        placeholder={t("crew.meetupDescPh")}
-        maxLength={1000}
-      />
-      <input
-        className={input}
-        value={capacity}
-        onChange={(e) => setCapacity(e.target.value)}
-        placeholder={t("crew.meetupCapacityPh")}
-        inputMode="numeric"
-        maxLength={4}
-      />
-      {!editing && (
-        <label className="flex cursor-pointer items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={membersOnly}
-            onChange={(e) => setMembersOnly(e.target.checked)}
-            className="h-4 w-4 accent-accent"
-          />
-          <span>{t("crew.fullOnly")}</span>
-          <span className="text-muted">{t("crew.fullOnlyMeetupHint")}</span>
-        </label>
-      )}
-      <label className="flex cursor-pointer items-center gap-2 text-xs">
-        <input
-          type="checkbox"
-          checked={commentsAllowed}
-          onChange={(e) => setCommentsAllowed(e.target.checked)}
-          className="h-4 w-4 accent-accent"
-        />
-        <span>{t("crew.allowComments")}</span>
-      </label>
-      {!editing && (
-        <label className="flex cursor-pointer items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={feeExempt}
-            onChange={(e) => setFeeExempt(e.target.checked)}
-            className="h-4 w-4 accent-accent"
-          />
-          <span>{t("crew.feeExempt")}</span>
-          <span className="text-muted">{t("crew.feeExemptHint")}</span>
-        </label>
-      )}
-      {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={busy || !title.trim() || !when}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
-        >
-          {editing ? t("common.save") : t("crew.meetupCreate")}
-        </button>
+    <>
+      {/* 제어형이면 트리거는 부모(⋯ 메뉴)가 그린다 */}
+      {!controlled && (
         <button
           type="button"
-          onClick={() => setOpen(false)}
-          className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
+          onClick={() => setOpen(true)}
+          className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
         >
-          {t("common.cancel")}
+          {editing ? t("common.edit") : `+ ${t("crew.meetupAdd")}`}
         </button>
-      </div>
-    </form>
+      )}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        label={heading}
+        closeLabel={t("common.cancel")}
+        panelClassName="max-w-lg"
+      >
+        <form onSubmit={save} className="flex w-full flex-col gap-2 rounded-md bg-surface p-4">
+          <p className="text-sm font-semibold">{heading}</p>
+          <input
+            className={input}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t("crew.meetupTitlePh")}
+            maxLength={80}
+          />
+          <input
+            type="datetime-local"
+            className={input}
+            value={when}
+            onChange={(e) => setWhen(e.target.value)}
+          />
+          <input
+            className={input}
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder={t("crew.meetupLocationPh")}
+            maxLength={80}
+          />
+          <textarea
+            className={`${input} min-h-16`}
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder={t("crew.meetupDescPh")}
+            maxLength={1000}
+          />
+          <input
+            className={input}
+            value={capacity}
+            onChange={(e) => setCapacity(e.target.value)}
+            placeholder={t("crew.meetupCapacityPh")}
+            inputMode="numeric"
+            maxLength={4}
+          />
+          {!editing && (
+            <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+              <input
+                type="checkbox"
+                checked={membersOnly}
+                onChange={(e) => setMembersOnly(e.target.checked)}
+                className="h-4 w-4 accent-accent"
+              />
+              <span>{t("crew.fullOnly")}</span>
+              <span className="text-muted">{t("crew.fullOnlyMeetupHint")}</span>
+            </label>
+          )}
+          <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+            <input
+              type="checkbox"
+              checked={commentsAllowed}
+              onChange={(e) => setCommentsAllowed(e.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
+            <span>{t("crew.allowComments")}</span>
+          </label>
+          {!editing && (
+            <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+              <input
+                type="checkbox"
+                checked={feeExempt}
+                onChange={(e) => setFeeExempt(e.target.checked)}
+                className="h-4 w-4 accent-accent"
+              />
+              <span>{t("crew.feeExempt")}</span>
+              <span className="text-muted">{t("crew.feeExemptHint")}</span>
+            </label>
+          )}
+          {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={busy || !title.trim() || !when}
+              className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+            >
+              {editing ? t("common.save") : t("crew.meetupCreate")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
+            >
+              {t("common.cancel")}
+            </button>
+          </div>
+        </form>
+      </Dialog>
+    </>
   );
 }
 
@@ -1829,7 +1835,7 @@ export function CrewEventFeeToggle({
 
   return (
     <span className="flex flex-wrap items-center gap-3">
-      <label className="flex cursor-pointer items-center gap-2 text-xs">
+      <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
         <input
           type="checkbox"
           checked={membersOnly}
@@ -1839,7 +1845,7 @@ export function CrewEventFeeToggle({
         />
         <span>{t("crew.fullOnly")}</span>
       </label>
-      <label className="flex cursor-pointer items-center gap-2 text-xs">
+      <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
         <input
           type="checkbox"
           checked={feeExempt}
