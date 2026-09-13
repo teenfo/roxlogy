@@ -292,7 +292,7 @@ const es: Record<DictKey, string> = {
   "pft.race.noRunning": "Nadie está midiendo ahora",
   "pft.race.noFinished": "Aún no hay finalizados",
   "pft.race.moreRunning": "+{n} más en marcha",
-  "pft.race.badgeRule": "Insignias (menores de 45) · Oro < {gold} · Plata < {silver} · 45+ suma 2 min",
+  "pft.race.badgeRule": "Insignias (menores de 45) · Oro < {gold} · Plata < {silver} · Bronce {silver}+ · 45+ suma 2 min",
   "pft.race.allResults": "Todos los resultados →",
   "pft.race.newTag": "NUEVO",
   "pft.race.meTag": "YO",

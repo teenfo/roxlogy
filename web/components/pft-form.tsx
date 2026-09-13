@@ -9,6 +9,7 @@ import {
   PFT_STATIONS,
   badgeClass,
   badgeDictKey,
+  badgeScale,
   cutoffsFor,
   pftBadge,
   toNextBadge,
@@ -311,8 +312,7 @@ export function PftForm({
           )}
           <p className="tabular mt-2 text-xs text-muted">
             {ageNum != null && ageNum >= 45 ? t("pft.o45") : t("pft.u45")} ·{" "}
-            {t("pft.badge.gold")} &lt;{formatMs(cuts.gold)} ·{" "}
-            {t("pft.badge.silver")} &lt;{formatMs(cuts.silver)}
+            {badgeScale(t, cuts, formatMs)}
           </p>
           {ageNum == null && (
             <p className="mt-1 text-xs text-muted">{t("pft.noAgeHint")}</p>

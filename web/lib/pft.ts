@@ -78,7 +78,24 @@ export function badgeText(badge: string): string {
       : "text-[#c98150]";
 }
 
-/** 나이 기준 컷오프 — "골드 <22:00 · 실버 <26:00" 안내에 쓴다 */
+/**
+ * "골드 <22:00 · 실버 <26:00 · 브론즈 26:00 이상" — 세 등급을 다 적는다.
+ * 골드·실버만 적어 두면 "둘 다 못 넘으면 뭐가 되나"가 화면 어디에도 안 나온다
+ * (2026-09-14 피드백). 브론즈는 실버 컷오프 이상 전부다(scaled 도 브론즈).
+ */
+export function badgeScale(
+  t: (key: DictKey) => string,
+  cuts: { gold: number; silver: number },
+  fmt: (ms: number) => string,
+): string {
+  return [
+    `${t("pft.badge.gold")} <${fmt(cuts.gold)}`,
+    `${t("pft.badge.silver")} <${fmt(cuts.silver)}`,
+    `${t("pft.badge.bronze")} ${fmt(cuts.silver)}+`,
+  ].join(" · ");
+}
+
+/** 나이 기준 컷오프 — badgeScale 안내에 쓴다 */
 export function cutoffsFor(age: number | null | undefined) {
   return age != null && age >= 45 ? PFT_CUTOFFS.over45 : PFT_CUTOFFS.under45;
 }

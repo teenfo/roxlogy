@@ -8,6 +8,7 @@ import {
   PFT_STATIONS,
   badgeClass,
   badgeDictKey,
+  badgeScale,
   cutoffsFor,
   toNextBadge,
   type PftResult,
@@ -269,8 +270,7 @@ export default async function PftPage() {
                   )}
                 </span>
                 <span className="tabular ml-auto text-muted">
-                  {t("pft.badge.gold")} &lt;{formatMs(cuts.gold)} ·{" "}
-                  {t("pft.badge.silver")} &lt;{formatMs(cuts.silver)}
+                  {badgeScale(t, cuts, formatMs)}
                 </span>
               </div>
               <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-[#2a2500]">
@@ -456,8 +456,7 @@ export default async function PftPage() {
           <h2 className="text-[15px] font-extrabold">{t("pft.rulesTitle")}</h2>
           <span className="text-xs text-muted">{t("pft.noRest")}</span>
           <span className="tabular ml-auto text-xs text-muted">
-            {t("pft.badge.gold")} &lt;{formatMs(cuts.gold)} ·{" "}
-            {t("pft.badge.silver")} &lt;{formatMs(cuts.silver)}
+            {badgeScale(t, cuts, formatMs)}
           </span>
         </div>
         <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">

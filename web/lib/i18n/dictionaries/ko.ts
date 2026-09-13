@@ -292,7 +292,7 @@ const ko: Record<DictKey, string> = {
   "pft.race.noRunning": "측정 중인 선수가 없어요",
   "pft.race.noFinished": "아직 완주자가 없어요",
   "pft.race.moreRunning": "+{n}명 측정 중",
-  "pft.race.badgeRule": "배지 기준(45세 미만) · 골드 < {gold} · 실버 < {silver} · 45세 이상은 +2분",
+  "pft.race.badgeRule": "배지 기준(45세 미만) · 골드 < {gold} · 실버 < {silver} · 브론즈 {silver} 이상 · 45세 이상은 +2분",
   "pft.race.allResults": "전체 결과 →",
   "pft.race.newTag": "NEW",
   "pft.race.meTag": "ME",

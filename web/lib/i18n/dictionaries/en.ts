@@ -293,7 +293,7 @@ const en = {
   "pft.race.noRunning": "No one is timing right now",
   "pft.race.noFinished": "No finishers yet",
   "pft.race.moreRunning": "+{n} more timing",
-  "pft.race.badgeRule": "Badges (under 45) · Gold < {gold} · Silver < {silver} · 45+ gets +2 min",
+  "pft.race.badgeRule": "Badges (under 45) · Gold < {gold} · Silver < {silver} · Bronze {silver}+ · 45+ gets +2 min",
   "pft.race.allResults": "All results →",
   "pft.race.newTag": "NEW",
   "pft.race.meTag": "ME",
