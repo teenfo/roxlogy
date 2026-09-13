@@ -1285,6 +1285,12 @@ const en = {
   "card.transparentNote": "With no photo the background stays transparent — the PNG drops straight onto your own background.",
   "card.themeDark": "Light text",
   "card.themeLight": "Dark text",
+  "card.fitCover": "Fill",
+  "card.fitContain": "Fit",
+  "card.zoom": "Zoom",
+  "card.reset": "Reset",
+  "card.dragHint": "Drag the preview to choose what stays in frame. The photo is not uploaded or stored.",
+  "card.fitHint": "The whole photo is kept — the rest is filled with a blurred copy. The photo is not uploaded or stored.",
 
   // 레이스 등록
   "raceNew.title": "Register official race result",

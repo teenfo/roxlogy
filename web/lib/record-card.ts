@@ -17,6 +17,37 @@ export type CardRatio = "9:16" | "1:1";
  *  투명 배경 카드는 어디에 얹힐지 알 수 없어서 두 벌이 필요하다(2026-09-14). */
 export type CardTheme = "dark" | "light";
 
+/**
+ * 사진을 칸에 넣는 방식.
+ * - "cover": 꽉 채우고 넘치는 만큼 잘라낸다. 어디를 남길지는 place 로 정한다.
+ * - "fit": 사진을 통째로 넣고(잘림 없음) 남는 자리는 같은 사진을 크게 흐린 것으로 채운다.
+ *   9:16 카드에 가로 사진을 넣으면 cover 로는 가로 폭의 1/3 만 남아서, 가로 사진은
+ *   이쪽이 기본이다 (2026-09-14).
+ */
+export type CardFit = "cover" | "fit";
+
+export type PhotoPlacement = {
+  fit: CardFit;
+  /** cover 확대율 — 1 이면 딱 채우는 크기 */
+  zoom: number;
+  /** 잘려 나가는 폭 대비 -1~1. 0 이 가운데 */
+  offsetX: number;
+  offsetY: number;
+};
+
+export const DEFAULT_PLACEMENT: PhotoPlacement = {
+  fit: "cover",
+  zoom: 1,
+  offsetX: 0,
+  offsetY: 0,
+};
+
+/** 사진이 칸보다 가로로 넓으면 잘라내기보다 통째로 넣는 편이 낫다 */
+export function suggestFit(photoW: number, photoH: number, ratio: CardRatio): CardFit {
+  const { w, h } = CARD_SIZE[ratio];
+  return photoW / photoH > (w / h) * 1.1 ? "fit" : "cover";
+}
+
 export const CARD_SIZE: Record<CardRatio, { w: number; h: number }> = {
   "9:16": { w: 1080, h: 1920 },
   "1:1": { w: 1080, h: 1080 },
@@ -101,17 +132,61 @@ function font(size: number, weight: number | string = 400): string {
   return `${weight} ${size}px ${STACK}`;
 }
 
-/** 사진을 칸에 꽉 채워 그린다(잘라내기 — 늘리지 않는다) */
+type Img = CanvasImageSource & { width: number; height: number };
+
+/** 사진을 칸에 꽉 채워 그린다(잘라내기 — 늘리지 않는다).
+ *  place 의 offset 은 "잘려 나가는 폭의 몇 %를 어느 쪽으로 밀지"다. */
 function drawCover(
   ctx: CanvasRenderingContext2D,
-  img: CanvasImageSource & { width: number; height: number },
+  img: Img,
   w: number,
   h: number,
+  place: PhotoPlacement = DEFAULT_PLACEMENT,
 ) {
-  const scale = Math.max(w / img.width, h / img.height);
+  const zoom = Math.max(1, Math.min(3, place.zoom || 1));
+  const scale = Math.max(w / img.width, h / img.height) * zoom;
   const dw = img.width * scale;
   const dh = img.height * scale;
-  ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+  const clamp = (v: number) => Math.max(-1, Math.min(1, v || 0));
+  const x = (w - dw) / 2 + (clamp(place.offsetX) * (dw - w)) / 2;
+  const y = (h - dh) / 2 + (clamp(place.offsetY) * (dh - h)) / 2;
+  ctx.drawImage(img, x, y, dw, dh);
+}
+
+/** 캔버스 필터(블러) 를 쓸 수 있는지. 사파리 구버전은 무시한다 */
+function canBlur(ctx: CanvasRenderingContext2D): boolean {
+  const before = ctx.filter;
+  ctx.filter = "blur(2px)";
+  const ok = ctx.filter !== "none" && ctx.filter !== before;
+  ctx.filter = before;
+  return ok;
+}
+
+/**
+ * 사진을 통째로 넣고(contain) 남는 자리는 같은 사진의 흐린 확대본으로 채운다.
+ * 기록 블록이 아래를 덮으므로 사진은 위쪽 band 안에서 가운데 정렬한다.
+ */
+function drawFit(
+  ctx: CanvasRenderingContext2D,
+  img: Img,
+  w: number,
+  h: number,
+  bandBottom: number,
+  scrimRgb: string,
+) {
+  // 배경 — 크게 키워 흐리게. 블러가 안 되면 조금 더 어둡게만 깐다.
+  const blur = canBlur(ctx);
+  if (blur) ctx.filter = `blur(${Math.round(w / 22)}px)`;
+  drawCover(ctx, img, w, h, { fit: "cover", zoom: 1.25, offsetX: 0, offsetY: 0 });
+  if (blur) ctx.filter = "none";
+  ctx.fillStyle = `rgba(${scrimRgb},${blur ? 0.3 : 0.55})`;
+  ctx.fillRect(0, 0, w, h);
+
+  // 사진 원본 — 한 변도 자르지 않는다
+  const scale = Math.min(w / img.width, bandBottom / img.height);
+  const dw = img.width * scale;
+  const dh = img.height * scale;
+  ctx.drawImage(img, (w - dw) / 2, (bandBottom - dh) / 2, dw, dh);
 }
 
 function roundRect(
@@ -157,6 +232,7 @@ export function drawRecordCard(
   photo: (CanvasImageSource & { width: number; height: number }) | null,
   mark: CanvasImageSource | null,
   theme: CardTheme = "dark",
+  place: PhotoPlacement = DEFAULT_PLACEMENT,
 ) {
   const pal = PALETTE[theme];
   const { w, h } = CARD_SIZE[ratio];
@@ -167,7 +243,12 @@ export function drawRecordCard(
 
   ctx.clearRect(0, 0, w, h);
   if (photo) {
-    drawCover(ctx, photo, w, h);
+    if (place.fit === "fit") {
+      // 기록 블록이 차지하는 아래쪽을 빼고 그 위에서 가운데 정렬한다
+      drawFit(ctx, photo, w, h, h * (ratio === "9:16" ? 0.64 : 0.52), pal.scrim);
+    } else {
+      drawCover(ctx, photo, w, h, place);
+    }
     // 아래쪽 어둡게 — 사진이 밝아도 글자가 읽혀야 한다. 투명 배경에는 걸지 않는다:
     // 검은 반투명이 남아 "투명"이 아니게 된다.
     const scrim = ctx.createLinearGradient(0, h * 0.32, 0, h);

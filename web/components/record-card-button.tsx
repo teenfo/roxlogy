@@ -8,9 +8,12 @@ import {
   CARD_WEIGHTS,
   cardFileName,
   cardText,
+  DEFAULT_PLACEMENT,
   drawRecordCard,
+  suggestFit,
   type CardRatio,
   type CardTheme,
+  type PhotoPlacement,
   type RecordCardData,
 } from "@/lib/record-card";
 
@@ -37,6 +40,7 @@ export function RecordCardButton({
   const [ratio, setRatio] = useState<CardRatio>("9:16");
   const [theme, setTheme] = useState<CardTheme>("dark");
   const [photo, setPhoto] = useState<ImageBitmap | null>(null);
+  const [place, setPlace] = useState<PhotoPlacement>(DEFAULT_PLACEMENT);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -53,8 +57,8 @@ export function RecordCardButton({
   const redraw = useCallback(() => {
     const c = canvasRef.current;
     if (!c) return;
-    drawRecordCard(c, data, ratio, photo, mark, theme);
-  }, [data, ratio, photo, mark, theme]);
+    drawRecordCard(c, data, ratio, photo, mark, theme, place);
+  }, [data, ratio, photo, mark, theme, place]);
 
   // 먼저 한 번 그리고(시스템 글꼴), 필요한 글꼴 조각을 받은 뒤 다시 그린다.
   // 캔버스 텍스트는 unicode-range 서브셋 로딩을 스스로 유발하지 못해서, 카드에 들어갈
@@ -85,6 +89,7 @@ export function RecordCardButton({
       p?.close?.();
       return null;
     });
+    setPlace(DEFAULT_PLACEMENT);
     setErr(null);
   }
 
@@ -97,6 +102,8 @@ export function RecordCardButton({
         p?.close?.();
         return bmp;
       });
+      // 가로 사진은 cover 로 넣으면 폭의 3분의 1만 남는다 — 통째로 넣는 쪽에서 시작한다
+      setPlace({ ...DEFAULT_PLACEMENT, fit: suggestFit(bmp.width, bmp.height, ratio) });
     } catch {
       setErr(t("card.readFail"));
     }
@@ -125,6 +132,34 @@ export function RecordCardButton({
   }
 
   const { w, h } = CARD_SIZE[ratio];
+  // 꽉 채운 사진만 움직일 게 있다. 맞추기는 통째로 들어가 있어 끌 이유가 없다.
+  const canDrag = !!photo && place.fit === "cover";
+  const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  function onDragStart(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (!canDrag) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { x: e.clientX, y: e.clientY, ox: place.offsetX, oy: place.offsetY };
+  }
+  function onDragMove(e: React.PointerEvent<HTMLCanvasElement>) {
+    const d = dragRef.current;
+    if (!d) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    // 미리보기 한 변을 끝까지 끌면 오프셋이 -1~1 을 다 훑는다
+    const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+    setPlace((p) => ({
+      ...p,
+      offsetX: clamp(d.ox - ((e.clientX - d.x) / r.width) * 2),
+      offsetY: clamp(d.oy - ((e.clientY - d.y) / r.height) * 2),
+    }));
+  }
+  function onDragEnd(e: React.PointerEvent<HTMLCanvasElement>) {
+    dragRef.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  }
+
   const chip =
     "rounded-full px-3 py-1 text-xs font-bold transition-colors disabled:opacity-40";
 
@@ -166,12 +201,13 @@ export function RecordCardButton({
             {photo && (
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
                   setPhoto((p) => {
                     p?.close?.();
                     return null;
-                  })
-                }
+                  });
+                  setPlace(DEFAULT_PLACEMENT);
+                }}
                 className={`${chip} bg-background text-muted hover:text-foreground`}
               >
                 {t("card.removePhoto")}
@@ -196,8 +232,8 @@ export function RecordCardButton({
             </span>
           </div>
 
-          {/* 글자 밝기 — 밝은 배경·사진에 얹을 거면 라이트 */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {/* 글자 밝기 — 밝은 배경·사진에 얹을 거면 라이트 */}
             {(["dark", "light"] as const).map((k) => (
               <button
                 key={k}
@@ -213,6 +249,28 @@ export function RecordCardButton({
                 {t(k === "dark" ? "card.themeDark" : "card.themeLight")}
               </button>
             ))}
+            {/* 사진 넣는 방식 — 맞추기는 한 변도 자르지 않는다 */}
+            {photo && (
+              <span className="ml-auto flex gap-1.5">
+                {(["cover", "fit"] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() =>
+                      setPlace((p) => ({ ...DEFAULT_PLACEMENT, fit: f, zoom: p.zoom }))
+                    }
+                    aria-pressed={place.fit === f}
+                    className={`${chip} ${
+                      place.fit === f
+                        ? "bg-accent text-background"
+                        : "bg-background text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {t(f === "cover" ? "card.fitCover" : "card.fitContain")}
+                  </button>
+                ))}
+              </span>
+            )}
           </div>
 
           <div className="flex justify-center rounded-md bg-background p-3">
@@ -221,7 +279,13 @@ export function RecordCardButton({
               width={w}
               height={h}
               aria-label={t("card.previewAlt")}
-              className="h-auto w-full max-w-[280px] self-start rounded"
+              onPointerDown={onDragStart}
+              onPointerMove={onDragMove}
+              onPointerUp={onDragEnd}
+              onPointerCancel={onDragEnd}
+              className={`h-auto w-full max-w-[280px] self-start rounded ${
+                canDrag ? "cursor-move touch-none" : ""
+              }`}
               // 사진이 없으면 배경이 투명하다 — 체커보드로 그 사실을 보여 준다
               style={
                 photo
@@ -237,13 +301,40 @@ export function RecordCardButton({
             />
           </div>
 
+          {canDrag && (
+            <label className="flex items-center gap-3 text-[11px] text-muted">
+              {t("card.zoom")}
+              <input
+                type="range"
+                min={100}
+                max={250}
+                step={5}
+                value={Math.round(place.zoom * 100)}
+                onChange={(e) =>
+                  setPlace((p) => ({ ...p, zoom: Number(e.target.value) / 100 }))
+                }
+                className="h-1 flex-1 accent-accent"
+              />
+              <button
+                type="button"
+                onClick={() => setPlace((p) => ({ ...p, zoom: 1, offsetX: 0, offsetY: 0 }))}
+                className="text-muted hover:text-foreground"
+              >
+                {t("card.reset")}
+              </button>
+            </label>
+          )}
           {err && (
             <p role="alert" className="text-xs text-red-400">
               {err}
             </p>
           )}
           <p className="text-[11px] text-muted">
-            {photo ? t("card.privacyNote") : t("card.transparentNote")}
+            {!photo
+              ? t("card.transparentNote")
+              : canDrag
+                ? t("card.dragHint")
+                : t("card.fitHint")}
           </p>
 
           <div className="flex gap-2">

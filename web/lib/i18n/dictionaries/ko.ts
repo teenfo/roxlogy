@@ -1274,6 +1274,12 @@ const ko: Record<DictKey, string> = {
   "card.transparentNote": "사진 없이 저장하면 배경이 투명한 PNG 로 나옵니다 — 스토리 배경 위에 그대로 얹을 수 있습니다.",
   "card.themeDark": "밝은 글자",
   "card.themeLight": "어두운 글자",
+  "card.fitCover": "채우기",
+  "card.fitContain": "맞추기",
+  "card.zoom": "확대",
+  "card.reset": "되돌리기",
+  "card.dragHint": "미리보기를 끌어 보일 부분을 고르세요. 사진은 업로드하거나 저장하지 않습니다.",
+  "card.fitHint": "사진 전체가 들어가고 남는 자리는 흐린 사본으로 채웁니다. 사진은 업로드하거나 저장하지 않습니다.",
 
   "raceNew.title": "공식 레이스 결과 등록",
   "raceNew.desc": "공식 결과 페이지에서 본인 기록을 확인한 뒤 그대로 옮겨 적으세요.",

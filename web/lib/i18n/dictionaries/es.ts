@@ -1278,6 +1278,12 @@ const es: Record<DictKey, string> = {
   "card.transparentNote": "Sin foto el fondo queda transparente: el PNG se superpone tal cual a tu propio fondo.",
   "card.themeDark": "Texto claro",
   "card.themeLight": "Texto oscuro",
+  "card.fitCover": "Llenar",
+  "card.fitContain": "Ajustar",
+  "card.zoom": "Zoom",
+  "card.reset": "Restablecer",
+  "card.dragHint": "Arrastra la vista previa para elegir qué se ve. La foto no se sube ni se guarda.",
+  "card.fitHint": "La foto entra completa y el resto se rellena con una copia desenfocada. La foto no se sube ni se guarda.",
 
   "raceNew.title": "Registrar resultado oficial",
   "raceNew.desc": "Consulta tu marca en la página oficial de resultados y cópiala aquí.",
