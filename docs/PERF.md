@@ -18,10 +18,12 @@
 
 **이 225ms 를 없애는 방법은 함수를 부르지 않는 것뿐이다.** 그런데 §1 때문에 막혀 있다.
 
-## 1. 왜 모든 라우트가 동적(`ƒ`)인가 — 구조적이다
+## 1. 왜 모든 라우트가 동적(`ƒ`)이었나 — 그리고 어떻게 풀었나
+
+**(해결됨 — 아래 "해결됨" 절 참조. 원인 분석은 기록으로 남긴다.)**
 
 빌드 출력에서 80여 개 라우트가 전부 `ƒ` 이고 정적인 것은
-`/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest` 셋뿐이다.
+`/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest` 셋뿐이었다.
 
 **원인은 파일 하나가 아니다. 쿠키 기반 i18n 이다.**
 
@@ -41,16 +43,20 @@ before static: /manifest.webmanifest, /robots.txt, /sitemap.xml
 after  static: /manifest.webmanifest, /robots.txt, /sitemap.xml   ← 변화 없음
 ```
 
-### 그래서 정적화·CDN 캐싱은 i18n 구조를 바꾸지 않으면 불가능하다
+### 해결됨 — 로케일을 Suspense 안으로 옮겼다 (2026-09-13)
 
-`<html lang={locale}>` 이 쿠키에 달려 있어서 `<Suspense>` 로도 못 미룬다.
-선택지는 둘뿐이고 **둘 다 URL 또는 렌더 방식이 바뀌는 큰 결정**이다:
+한동안 "i18n 구조를 통째로 바꾸지 않으면 불가능"으로 판단했으나, 세 번째 길이 있었다.
 
-1. **로케일 경로 분리** (`/ko/...`, `/en/...`) — Next 의 정석. URL 이 전부 바뀐다.
-   sitemap·robots·공유 링크·안드로이드 WebView 시작 URL 이 모두 영향을 받는다
-2. **기본 로케일로 정적 렌더 + 클라이언트 전환** — SEO 와 최초 렌더 언어가 틀어진다
+`<html lang>` 만 셸에서 기본 로케일로 내보내고, **로케일 해석을 `<Suspense>` 안의
+서버 컴포넌트(`components/locale-boundary.tsx`)로 내린다.** 거기서는 쿠키를 읽어도
+셸이 정적으로 남고, 서버·클라이언트가 처음부터 같은 사전을 본다.
 
-어느 쪽도 "성능 작업" 범위에서 혼자 결정할 일이 아니다. 착수 전 합의가 필요하다.
+각 페이지의 `getT()` 는 그대로다 — 서버 렌더 텍스트는 계속 사용자 언어로 나온다.
+URL 도 바뀌지 않는다. 로케일 경로 분리(`/ko`, `/en`)는 **하지 않았고, 필요도 없어졌다.**
+
+> ⚠️ 처음에는 셸에서 기본 사전을 주고 브라우저에서 바꾸게 했는데, 셸이 먼저
+> 하이드레이션돼 언어를 바꾼 뒤 스트리밍된 본문이 옛 언어 HTML 로 하이드레이션되면서
+> 텍스트가 어긋났다(React #418, 프로덕션 빌드에서만 재현). 위 구조가 그 수정이다.
 
 ## 2. 적용된 것 (2026-09-13)
 
@@ -60,16 +66,22 @@ after  static: /manifest.webmanifest, /robots.txt, /sitemap.xml   ← 변화 없
 | `e8fb015` | `/events`(목록)·`/download` 를 미들웨어 matcher 에서 제외 |
 | `855e300` | 목록 화면 행 링크에 `prefetch={false}` |
 | `c3f3c1d` | 마이그레이션 098 — 중복 인덱스 제거, RLS `(select auth.uid())` 래핑 |
+| `00269fd` | 독립 조회를 `Promise.all` 로 (왕복 4회 절감) |
+| `64ad0b0` | `loading.tsx` 14개 — 섹션 경계마다 스트리밍 셸 |
+| `61274cb` | **cacheComponents(PPR) 도입 — 동적 80개 → Partial Prerender 69개** |
+| `998ec73` | 보드 전체화면 버튼 + 로케일 경계(하이드레이션 수정) |
 
 ## 3. 하지 않은 것과 이유
 
-- **공개 페이지 `revalidate` 캐싱** — §1 때문에 불가능하다. 라우트가 동적인 한
-  `export const revalidate` 는 효과가 없다
+- **공개 페이지를 완전 정적(`○`)으로** — 아직이다. PPR 로 셸은 엣지에서 나가지만 본문은
+  여전히 스트리밍된다. 완전 정적이 되려면 그 페이지에서 `getT()`·세션 읽기·
+  `unstable_cache`·`new Date()` 를 모두 걷어야 한다(§4 참조)
 - **미들웨어 matcher 대폭 축소** — `/`, `/crews`, `/predict`, `/board/*` 는 뺄 수 없다.
   미들웨어가 만료된 액세스 토큰을 갱신해 응답 쿠키에 실어 주는데, 서버 컴포넌트는
   쿠키를 쓸 수 없어서 빼면 토큰이 만료된 로그인 사용자가 비로그인으로 보인다.
   세션을 아예 읽지 않는 `/events`·`/download` 만 뺐다
-- **PPR / `cacheComponents`** — §4 참조. 켤 수는 있지만 앱 전체 리팩터가 전제다
+- **로케일 경로 분리(`/ko`, `/en`)** — 필요 없어졌다. §1 의 방법으로 URL 을 그대로 두고
+  같은 목적을 달성했다
 - **FK 인덱스 누락·미사용 인덱스** — 실제 쿼리 패턴이 보인 뒤에 판단한다
 
 ## 4. PPR(`cacheComponents`)을 실제로 켜 본 결과
@@ -139,12 +151,10 @@ onMouseEnter·onTouchStart 의 early return). 이건 확인됐고 `RowLink` 로 
 
 ## 6. 결정 (2026-09-13)
 
-- **캐싱(작업 3)은 보류.** 로케일 경로 분리도, `cacheComponents` 전면 도입도 지금은
-  하지 않는다. 먼저 `prefetch={false}` 효과와 Speed Insights 실사용자 데이터를 보고
-  재판단한다 — 대시보드 프리페치가 29건에서 목표(10건 이하)로 줄었다면 체감이 크게
-  달라지고, 그러면 대형 리팩터가 필요 없을 수 있다.
-  **재판단 재료**: `/dashboard` 에서 `performance.getEntriesByType('resource')
-  .filter(e => e.name.includes('_rsc=')).length`, 그리고 Vercel → Speed Insights 의 TTFB/LCP.
+- **PPR 도입 완료(2026-09-13).** 보류를 풀고 `cacheComponents` 를 켰다. 로케일 경로
+  분리는 하지 않았고 필요도 없다(§1).
+  **남은 확인**: `/dashboard` 프리페치 재측정(§5.6 의 0건 문제)과
+  Vercel → Speed Insights 의 TTFB/LCP p75. 숫자가 나오면 §5.5 표를 갱신할 것.
 - **레거시 HS256 키는 그대로 둔다.** 성능과 무관하고, 지금 인증을 건드릴 이유가 없다.
 
 ## 7. 새 기능을 개발할 때 (체크리스트)

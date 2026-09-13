@@ -75,11 +75,12 @@ garmin/                  # 가민 Connect IQ(Monkey C) 시뮬 레코더 (두 링
 - 비밀값: `.env`는 커밋 금지 (`.env.example`만 커밋)
 
 ## 성능 (새 기능 개발 시 — 상세는 `docs/PERF.md` §7)
-모든 라우트가 동적이라(쿠키 기반 i18n, 구조적) **요청 하나가 도쿄 함수를 깨우고 함수 실행 바닥값이 약 225ms 다.** 응답 시간은 그 안에서 도는 Supabase 왕복 횟수가 정한다.
+PPR(`cacheComponents`) 도입으로 **정적 셸은 엣지에서 즉시** 나가지만(2026-09-13), 본문은 여전히 도쿄 함수가 만든다 — **함수 실행 바닥값이 약 225ms** 이고 응답 시간은 그 안에서 도는 Supabase 왕복 횟수가 정한다.
 - **독립적인 조회는 `Promise.all`.** 순차 `await` 하나가 왕복 하나다. `(app)` 페이지는 미들웨어+레이아웃으로 이미 왕복을 쓰고 시작한다
 - 목록에서 행마다 조회하지 말 것(N+1) — id 를 모아 `.in()` 한 번으로
 - **목록의 행 링크는 `<Link>` 가 아니라 `RowLink`**(`components/row-link.tsx`). 행 20개면 프리페치 20건이 전부 함수 호출이다. **`prefetch={false}` 를 직접 쓰지 말 것** — Next 16 에서는 hover·touch 프리페치까지 꺼진다
 - 새 라우트에는 `loading.tsx` 를 같이 만든다. `(app)` 에 폴더를 추가하면 `web/proxy.ts` 의 `PROTECTED_PREFIXES` 에도 추가
+- **루트 레이아웃에서 쿠키·세션을 읽지 말 것** — 정적 셸이 깨진다. 요청 단위 값이 필요하면 `<Suspense>` 안(예: `components/locale-boundary.tsx`)에서 읽는다
 - RLS 정책의 `auth.uid()`·`is_admin()` 은 `(select ...)` 로 감쌀 것. 인덱스는 만들기 전에 같은 게 있는지 확인 (이름만 다른 중복이 실제로 있었다)
 
 ## 하지 말 것 (Do NOT)
