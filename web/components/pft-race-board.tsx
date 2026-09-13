@@ -129,7 +129,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
       <div className="flex w-full flex-1 flex-col gap-5 px-4 py-4 md:px-7 md:py-6">
       {/* 1. 레이스 종합 카드 */}
       <section className="flex flex-wrap items-center gap-6 rounded-2xl border border-line-mid bg-card px-5 py-5 md:px-[26px]">
-        <div className="flex min-w-0 flex-1 flex-col gap-2 md:min-w-[320px]">
+        <div className="flex min-w-0 flex-col gap-2 md:min-w-[280px]">
           <p className="flex items-center gap-2.5 text-xs font-extrabold tracking-[0.14em] text-accent">
             {t("pft.race.board")}
             {data.race.crew && <span className="text-[#8a7a2a]">{data.race.crew}</span>}
@@ -150,6 +150,27 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             <span>{dateLine}</span>
           </div>
         </div>
+
+        {/* 종목 카드 — 제목과 지표 사이 빈 자리를 채운다. 순서·이름·수행 목표만 담고
+            규격(경사·중량 등)은 참가자 본인 화면이 맡는다 — 보드 상단에 넣을 자리가 없다.
+            배경색은 아래 스플릿 바와 같은 색이라 "지금 노란 구간"이 눈으로 이어진다. */}
+        <ol className="grid min-w-[240px] flex-1 grid-cols-3 gap-1.5 lg:grid-cols-6">
+          {PFT_STATIONS.map((st, i) => (
+            <li
+              key={st.key}
+              className="flex min-w-0 flex-col justify-center rounded-lg px-2.5 py-1.5 text-[#141414]"
+              style={{ background: PFT_COLORS[st.key] }}
+              title={t(st.detail as DictKey) || undefined}
+            >
+              <p className="truncate text-[10px] font-bold tracking-[0.04em] opacity-70">
+                {i + 1}. {stationLabel(i)}
+              </p>
+              <p className="tabular truncate text-[15px] font-extrabold leading-[1.2]">
+                {t(st.amount as DictKey)}
+              </p>
+            </li>
+          ))}
+        </ol>
 
         <div className="flex flex-wrap items-center gap-3.5">
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4" role="status">
@@ -194,26 +215,6 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           )}
         </div>
 
-        {/* 종목 카드 — 순서·색·수행 목표를 한 줄에. 색은 아래 스플릿 바와 같은 색이라
-            "지금 노란 구간" 처럼 눈으로 이어진다. 규격은 현장에서 실제로 묻는 값이라 같이 둔다. */}
-        <ol className="grid w-full basis-full grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-          {PFT_STATIONS.map((st, i) => {
-            const detail = t(st.detail as DictKey);
-            return (
-              <li
-                key={st.key}
-                className="flex min-w-0 flex-col rounded-xl px-3 py-2 text-[#141414]"
-                style={{ background: PFT_COLORS[st.key] }}
-              >
-                <p className="truncate text-[11px] font-bold tracking-[0.06em] opacity-70">
-                  {i + 1}. {stationLabel(i)}
-                </p>
-                <p className="tabular text-[19px] font-extrabold leading-[1.15]">{t(st.amount as DictKey)}</p>
-                {detail && <p className="mt-0.5 text-[10px] font-semibold leading-[1.25] opacity-70">{detail}</p>}
-              </li>
-            );
-          })}
-        </ol>
       </section>
 
       {/* 2. 하단 그리드 — 참가자(2/12) · 측정 중 · 완주 */}
