@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { PftRacePick, type JoinableRace } from "@/components/pft-race-pick";
+import { ProfileRequired, missingForRace } from "@/components/profile-required";
+import { getCachedUser } from "@/lib/supabase/auth";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -13,8 +15,14 @@ export default async function PftRaceJoinPage() {
   const { t, tag, tz } = await getT();
   const supabase = await createClient();
   // supabase-js 는 실패해도 throw 하지 않는다 — 빈 목록으로 보이면 "레이스가 없다"로 읽힌다
-  const { data, error } = await supabase.rpc("pft_race_joinable");
+  const user = await getCachedUser();
+  const [{ data, error }, { data: me }] = await Promise.all([
+    supabase.rpc("pft_race_joinable"),
+    supabase.from("profiles").select("birth_year, gender").eq("id", user!.id).maybeSingle(),
+  ]);
   const races = (Array.isArray(data) ? (data as JoinableRace[]) : []) ?? [];
+  // 배지·순위가 나이·성별로 갈린다 — 비어 있으면 참가를 막고 프로필로 보낸다
+  const missing = missingForRace(me as { birth_year: number | null; gender: string | null } | null);
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
@@ -30,7 +38,8 @@ export default async function PftRaceJoinPage() {
           {t("pft.race.listError")}
         </p>
       )}
-      <PftRacePick races={races} locale={tag} tz={tz} />
+      <ProfileRequired missing={missing} />
+      <PftRacePick races={races} locale={tag} tz={tz} blocked={missing.length > 0} />
     </main>
   );
 }

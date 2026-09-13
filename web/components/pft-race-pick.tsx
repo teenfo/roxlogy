@@ -30,10 +30,13 @@ export function PftRacePick({
   races,
   locale = "en-US",
   tz,
+  blocked = false,
 }: {
   races: JoinableRace[];
   locale?: string;
   tz?: string;
+  /** 프로필 필수값(출생연도·성별)이 비어 참가를 막아야 하는가 — 안내는 위에서 따로 띄운다 */
+  blocked?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -95,7 +98,7 @@ export function PftRacePick({
                 <button
                   type="button"
                   onClick={() => joinByCode(r.code)}
-                  disabled={busy !== null}
+                  disabled={busy !== null || (blocked && !r.joined)}
                   className={`h-10 shrink-0 rounded-lg px-5 text-sm font-extrabold disabled:opacity-40 ${
                     r.joined
                       ? "border border-line-strong bg-control text-foreground hover:border-muted/60"
@@ -143,7 +146,7 @@ export function PftRacePick({
           </label>
           <button
             type="submit"
-            disabled={busy !== null || code.length !== 6}
+            disabled={busy !== null || blocked || code.length !== 6}
             className="h-11 rounded-lg border border-line-strong bg-control text-sm font-extrabold hover:border-muted/60 disabled:opacity-40"
           >
             {t("pft.race.join")}

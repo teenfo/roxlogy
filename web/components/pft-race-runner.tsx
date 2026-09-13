@@ -26,6 +26,7 @@ export function PftRaceRunner({
   canManage,
   defaultAge,
   best = null,
+  joinBlocked = false,
 }: {
   race: RaceInfo;
   initialEntry: MyEntry | null;
@@ -33,6 +34,8 @@ export function PftRaceRunner({
   canManage: boolean;
   defaultAge: number | null;
   best?: PftBest | null;
+  /** 프로필 필수값(출생연도·성별)이 비어 참가를 막아야 하는가 — 안내는 페이지가 띄운다 */
+  joinBlocked?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -75,6 +78,7 @@ export function PftRaceRunner({
   const splits = [...serverSplits, ...local.pending];
   const running = joined && local.startedLocal != null && !finished && !!entry?.started_at;
   const done = splits.length >= PFT_STATIONS.length;
+  const quit = !!entry?.dnf_at && !finished;
   const closed = status === "closed";
   // 코드는 "아직 참가하지 않은 사람"에게만 필요하다 — 이미 참가했으면 다시 보여 주지 않는다.
   // (운영진은 불러 줘야 하므로 계속 보인다. 코드 없는 레이스는 아무에게도 보이지 않는다.)
@@ -282,6 +286,14 @@ export function PftRaceRunner({
     router.refresh();
   };
 
+  /** 자가 중도포기 — 현장에서 그만둘 때. 서버가 출발 전·완주자·종료된 레이스를 막는다. */
+  const setMyDnf = async (on: boolean) => {
+    if (on && !window.confirm(t("pft.race.dnfSelfConfirm"))) return;
+    const j = (await call("pft_race_dnf", { p_race: race.id, p_on: on })) as MyEntry | null;
+    if (!j?.entry_id) return;
+    setEntry(j);
+  };
+
   const boardUrl = `${typeof window === "undefined" ? "" : window.location.origin}/board/${race.code}`;
   const copyBoard = async () => {
     try {
@@ -299,7 +311,7 @@ export function PftRaceRunner({
     <PftMeasureView
       title={race.title}
       description={!joined ? t("pft.race.joinDesc") : running && !done ? t("pft.race.partnerHint") : undefined}
-      startedAt={startedAt}
+      startedAt={quit ? null : startedAt}
       splits={splits}
       now={now}
       scaled={scaled}
@@ -344,6 +356,26 @@ export function PftRaceRunner({
       }
       beforeClock={
         <>
+          {/* 중도포기 — 출발했고 아직 완주하지 않은 사람만. 눌러도 기록은 지우지 않는다 */}
+          {joined && (running || quit) && !closed && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMyDnf(!quit)}
+                disabled={busy}
+                className={`h-10 rounded-lg border px-3.5 text-sm font-semibold disabled:opacity-40 ${
+                  quit
+                    ? "border-line-strong bg-control hover:border-muted/60"
+                    : "border-danger-line-strong bg-control text-danger hover:brightness-125"
+                }`}
+              >
+                {quit ? t("pft.race.dnfUndo") : t("pft.race.dnfMark")}
+              </button>
+              {quit && (
+                <span className="text-sm font-bold text-muted">{t("pft.race.dnfSelfNote")}</span>
+              )}
+            </div>
+          )}
           {notice && (
             <p role="status" className="text-sm text-success">
               {notice}
@@ -358,7 +390,7 @@ export function PftRaceRunner({
                 <button
                   type="button"
                   onClick={join}
-                  disabled={busy || closed}
+                  disabled={busy || closed || joinBlocked}
                   className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-black text-background hover:brightness-110 disabled:opacity-40"
                 >
                   {t("pft.race.join")}

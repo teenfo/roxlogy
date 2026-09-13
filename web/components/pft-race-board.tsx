@@ -85,6 +85,10 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   const running = rows.filter((r) => r.state === "running");
   const finished = rows.filter((r) => r.state === "finished");
   const waiting = rows.filter((r) => r.state === "waiting");
+  // 중도포기 + (종료된 레이스에서) 완주하지 못한 사람
+  const dnfRows = rows.filter(
+    (r) => r.state === "dnf" || (data.race.status === "closed" && r.state !== "finished"),
+  );
   const leader = finished[0] ?? null;
   const closed = data.race.status === "closed";
   // 이미 참가한 사람에게는 코드를 다시 묻지 않는다 — 코드 블록 대신 내 측정 화면으로 안내
@@ -152,8 +156,9 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4" role="status">
             <Stat label={t("pft.race.stats.total")} value={String(rows.length)} />
             <Stat
+              // 종료되면 "측정 중"이 아니라 미완주 수를 보여 준다 — 하단 명단과 같은 값이어야 한다
               label={closed ? t("pft.race.dnf") : t("pft.race.stats.running")}
-              value={String(running.length)}
+              value={String(closed ? dnfRows.length : running.length)}
               tone={closed ? undefined : "accent"}
             />
             <Stat label={t("pft.race.stats.finished")} value={String(finished.length)} tone="success" />
@@ -251,6 +256,58 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           </div>
         </section>
 
+        {closed ? (
+          /* 종료 — 측정 중·리더보드 대신 배지별 세로 열. 순위는 완주 순위를 그대로 쓴다.
+             현장 TV 에서 마무리 화면의 관심사는 "누가 어느 배지를 받았나" 하나다. */
+          <section className="flex flex-col overflow-hidden rounded-2xl border border-line bg-card xl:col-span-2">
+            <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+              <p className="flex items-center gap-2.5 text-[17px] font-extrabold">
+                {t("pft.race.finishedBoard")}
+                <span className={`${pill} bg-success-bg text-success`}>{finished.length}</span>
+              </p>
+              <span className="hidden text-xs text-[#777] md:inline">{t("pft.race.badgeNote")}</span>
+            </header>
+            <div className="grid flex-1 gap-4 p-4 md:grid-cols-3">
+              {(["gold", "silver", "bronze"] as const).map((b) => {
+                const rowsOf = finished.filter((r) => (r.badge ?? "bronze") === b);
+                return (
+                  <div key={b} className="flex flex-col gap-2">
+                    <p className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-extrabold ${badgeClass(b)}`}>
+                      {t(badgeDictKey(b))}
+                      <span className="tabular text-xs opacity-80">{rowsOf.length}</span>
+                    </p>
+                    {rowsOf.length === 0 ? (
+                      <p className="rounded-lg border border-dashed border-[#2a2a2a] px-3 py-5 text-center text-[13px] text-muted">
+                        —
+                      </p>
+                    ) : (
+                      rowsOf.map((r) => (
+                        <div
+                          key={r.entry_id}
+                          className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg bg-inset px-3 py-2.5"
+                        >
+                          <span className="tabular text-sm font-extrabold text-muted">{r.rank}</span>
+                          <span className="flex min-w-0 items-center gap-2">
+                            <Avatar name={r.name} size={26} />
+                            <span className="min-w-0 truncate text-[15px] font-bold">{r.name}</span>
+                          </span>
+                          <span className="tabular text-base font-extrabold">{formatMs(r.total_ms ?? 0)}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {dnfRows.length > 0 && (
+              <p className="border-t border-line px-5 py-3 text-[13px] text-muted">
+                <span className="font-bold">{t("pft.race.dnf")}</span>{" "}
+                {dnfRows.map((r) => r.name).join(", ")}
+              </p>
+            )}
+          </section>
+        ) : (
+          <>
         {/* 2-1. 측정 중 */}
         <section className="flex flex-col overflow-hidden rounded-2xl border border-line bg-card">
           <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
@@ -414,6 +471,8 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             ) : null}
           </footer>
         </section>
+          </>
+        )}
       </div>
 
       {isClient && offline && (

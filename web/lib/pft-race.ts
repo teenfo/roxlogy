@@ -28,6 +28,8 @@ export type RaceEntry = {
   badge: string | null;
   /** 출발 조. null = 미배정 (마이그레이션 100) */
   wave: number | null;
+  /** 중도포기 시각. null = 포기 아님 (마이그레이션 101) */
+  dnf_at: string | null;
 };
 
 export type BoardData = { race: RaceInfo; server_now: string; entries: RaceEntry[] };
@@ -42,10 +44,11 @@ export type MyEntry = {
   total_ms: number | null;
   scaled: boolean;
   result_id: string | null;
+  dnf_at: string | null;
   status: RaceStatus;
 };
 
-export type EntryState = "waiting" | "running" | "finished";
+export type EntryState = "waiting" | "running" | "finished" | "dnf";
 
 /** 조별 묶음 — 배정된 조를 번호순으로, 미배정(null)은 맨 뒤에.
  *  조 안의 순서는 넘겨받은 순서(참가 순서)를 그대로 둔다: 스태프 화면은 카드가 움직이면
@@ -75,8 +78,12 @@ export function hasWaves(rows: { wave: number | null }[]): boolean {
   return rows.some((r) => r.wave != null);
 }
 
-export function entryState(e: Pick<RaceEntry, "started_at" | "finished_at">): EntryState {
+export function entryState(
+  e: Pick<RaceEntry, "started_at" | "finished_at"> & { dnf_at?: string | null },
+): EntryState {
   if (e.finished_at) return "finished";
+  // 중도포기는 출발한 뒤에만 붙는다(서버가 강제). 완주가 먼저다 — 완주했다면 기록이 이긴다.
+  if (e.dnf_at) return "dnf";
   if (e.started_at) return "running";
   return "waiting";
 }
@@ -109,7 +116,8 @@ export function rankEntries(entries: RaceEntry[], nowMs: number): RankedEntry[] 
       current: state === "running" ? Math.min(e.splits.length, 5) : null,
     };
   });
-  const order: Record<EntryState, number> = { finished: 0, running: 1, waiting: 2 };
+  // 중도포기는 대기보다 뒤 — 더 볼 일이 없는 줄이다
+  const order: Record<EntryState, number> = { finished: 0, running: 1, waiting: 2, dnf: 3 };
   rows.sort((a, b) => {
     if (order[a.state] !== order[b.state]) return order[a.state] - order[b.state];
     if (a.state === "finished") return (a.total_ms ?? 0) - (b.total_ms ?? 0);

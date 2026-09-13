@@ -282,6 +282,18 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
 
   const startWave = () => startEntries(selected);
 
+  /** 중도포기 표시·해제. 서버가 출발 전·완주자·종료된 레이스를 막는다. */
+  const setDnf = async (e: RaceEntry, on: boolean) => {
+    if (on && !window.confirm(t("pft.race.dnfConfirm", { name: e.name }))) return;
+    const j = (await call("pft_race_staff_dnf", {
+      p_race: raceId,
+      p_entry: e.entry_id,
+      p_on: on,
+    })) as { entry_id?: string; error?: string } | null;
+    if (!j?.entry_id) return;
+    await refetchNow();
+  };
+
   /** 선택한 사람을 조에 넣는다(wave=null 이면 배정 해제). 이미 출발한 사람은 서버가 건너뛴다. */
   const assignWave = async (wave: number | null) => {
     if (!selected.length) return;
@@ -362,6 +374,16 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   // 아직 출발하지 않은 사람만 조로 묶는다 — 출발한 사람은 조를 바꿀 수 없다(서버도 막는다)
   const waveGroups = groupByWave(waiting);
   const grouped = hasWaves(waiting);
+  // 선택이 어느 조와 정확히 일치하는지 — 그 조 버튼을 눌린 상태로 보여 준다
+  const picked =
+    selected.length > 0
+      ? (waveGroups.find(
+          (g) =>
+            g.wave != null &&
+            g.rows.length === selected.length &&
+            g.rows.every((e) => selected.includes(e.entry_id)),
+        )?.wave ?? null)
+      : null;
   const stationLabel = (i: number) => t(PFT_STATIONS[i].label as DictKey);
 
   return (
@@ -505,14 +527,24 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       <button
                         key={g.wave}
                         type="button"
-                        onClick={() => startEntries(g.rows.map((e) => e.entry_id))}
+                        // 누르면 **선택만** 한다 — 출발은 아래 큰 버튼으로. 한 번 더 확인하고
+                        // 내보내야 오출발이 나지 않는다(2026-09-13 운영 피드백).
+                        onClick={() => setSelected(g.rows.map((e) => e.entry_id))}
                         disabled={busy || closed}
-                        className="flex h-14 items-center justify-between gap-3 rounded-xl border border-line-accent bg-highlight px-4 text-left font-extrabold text-accent transition hover:brightness-125 disabled:opacity-40"
+                        className={`flex h-14 items-center justify-between gap-3 rounded-xl border px-4 text-left font-extrabold transition disabled:opacity-40 ${
+                          picked === g.wave
+                            ? "border-accent bg-accent text-background"
+                            : "border-line-accent bg-highlight text-accent hover:brightness-125"
+                        }`}
                       >
                         <span className="text-base">
-                          {t("pft.race.waveStartGroup", { wave: g.wave!, n: g.rows.length })}
+                          {t("pft.race.waveSelectGroup", { wave: g.wave!, n: g.rows.length })}
                         </span>
-                        <span className="min-w-0 truncate text-xs font-semibold text-muted">
+                        <span
+                          className={`min-w-0 truncate text-xs font-semibold ${
+                            picked === g.wave ? "text-background/70" : "text-muted"
+                          }`}
+                        >
                           {g.rows.map((e) => e.name).join(", ")}
                         </span>
                       </button>
@@ -632,9 +664,10 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
               const splits = [...e.splits, ...mine];
               const current = splits.length;
               const done = state === "finished" || current >= PFT_STATIONS.length;
-              // 종료된 레이스에서 완주하지 못한 사람은 미완주(DNF) — 경과가 계속 흐르면 안 된다
-              const dnf = closed && state !== "finished";
-              const elapsed = e.started_at && !closed ? Math.max(0, now - Date.parse(e.started_at)) : 0;
+              // 명시적 중도포기(101) 또는 종료된 레이스의 미완주 — 어느 쪽이든 경과가 흐르면 안 된다
+              const quit = state === "dnf";
+              const dnf = quit || (closed && state !== "finished");
+              const elapsed = e.started_at && !closed && !quit ? Math.max(0, now - Date.parse(e.started_at)) : 0;
               const total = e.total_ms ?? (done ? splits[splits.length - 1] : null);
               return (
                 <li
@@ -748,7 +781,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         ↶ {t(state === "finished" ? "pft.race.undoFinish" : "pft.mUndo")}
                       </button>
                     )}
-                    {state === "running" && (
+                    {(state === "running" || quit) && (
                       <button
                         type="button"
                         onClick={() => reset(e)}
@@ -756,6 +789,21 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-danger-line-strong hover:text-danger disabled:opacity-40"
                       >
                         {t("pft.mReset")}
+                      </button>
+                    )}
+                    {/* 중도포기 — 출발한 사람만. 누르면 시계가 멈추고 보드에서도 빠진다 */}
+                    {(state === "running" || quit) && (
+                      <button
+                        type="button"
+                        onClick={() => setDnf(e, !quit)}
+                        disabled={busy || closed}
+                        className={`h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40 ${
+                          quit
+                            ? "border-line-strong bg-control hover:border-muted/60"
+                            : "border-danger-line-strong bg-control text-danger hover:brightness-125"
+                        }`}
+                      >
+                        {quit ? t("pft.race.dnfUndo") : t("pft.race.dnfMark")}
                       </button>
                     )}
                     <button
