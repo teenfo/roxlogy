@@ -21,7 +21,11 @@ import {
   CrewDuesLinksManage,
   type DuesLink,
 } from "@/components/crew-dues-links";
-import { CrewTierManage, type CrewTier } from "@/components/crew-tier-manage";
+import {
+  CrewTierFees,
+  CrewTierManage,
+  type CrewTier,
+} from "@/components/crew-tier-manage";
 import { Card, Chip } from "@/components/ui/crew-ui";
 import {
   CrewUnpaidCard,
@@ -171,7 +175,6 @@ export default async function CrewManagePage({
     title: a.programs?.title ?? "—",
   }));
 
-  const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
   const tabLabel: Record<Tab, string> = {
     info: t("crew.tabInfo"),
     members: t("crew.tabMembers"),
@@ -360,35 +363,14 @@ export default async function CrewManagePage({
           <section>
             <h2 className="text-base font-extrabold">{t("crew.duesFeeTitle")}</h2>
             <p className="mt-1 text-xs text-muted">{t("crew.duesFeeDesc")}</p>
-            <ul className="mt-3 flex flex-col gap-1.5">
-              {tiers
-                .filter((x) => !x.archived_at)
-                .map((x) => (
-                  <li
-                    key={x.id}
-                    className="flex flex-wrap items-center gap-3 rounded-md bg-surface px-4 py-2.5"
-                  >
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${tierBadgeClass(
-                        x.color,
-                      )}`}
-                    >
-                      {x.name}
-                    </span>
-                    <span className="ml-auto font-mono text-xs text-muted">
-                      {t("crew.tierMonthly")}{" "}
-                      {x.monthly_fee == null ? "—" : won(x.monthly_fee)} ·{" "}
-                      {t("crew.tierSession")}{" "}
-                      {x.session_fee == null ? "—" : won(x.session_fee)}
-                    </span>
-                  </li>
-                ))}
-            </ul>
+            <div className="mt-3 max-w-2xl">
+              <CrewTierFees crewId={crew.id} tiers={tiers} />
+            </div>
             <Link
               href={`/crews/${slug}/manage?tab=tiers`}
               className="mt-3 inline-block text-xs text-accent hover:underline"
             >
-              {t("crew.duesFeeEdit")}
+              {t("crew.tierGoTiers")}
             </Link>
           </section>
 

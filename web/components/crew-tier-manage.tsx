@@ -27,7 +27,9 @@ function toFee(v: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** 회원 등급 관리 — 운영진 전용. 등급이 곧 요금표라, 월회비·회차비를 여기서 정한다.
+/** 회원 등급 관리 — 운영진 전용. **여기서는 등급만 다룬다**: 이름·색·정회원 권한·기본
+ *  등급·삭제. 등급이 요금표를 겸하지만 금액은 회비 탭(CrewTierFees)에서 정한다 —
+ *  회비 설정이 두 탭에 흩어져 있어 어디서 고치는지 헷갈렸다(2026-09-14 피드백).
  *  삭제는 쓰는 사람이 있으면 보관 처리된다(delete_crew_tier RPC 가 판단). */
 export function CrewTierManage({
   crewId,
@@ -44,8 +46,6 @@ export function CrewTierManage({
   const [name, setName] = useState("");
   const [color, setColor] = useState<TierColor>("gray");
   const [isFull, setIsFull] = useState(false);
-  const [monthly, setMonthly] = useState("");
-  const [session, setSession] = useState("");
 
   async function run(key: string, fn: () => PromiseLike<{ error: unknown }>) {
     setBusy(key);
@@ -69,14 +69,11 @@ export function CrewTierManage({
         name: name.trim(),
         color,
         is_full_member: isFull,
-        monthly_fee: toFee(monthly),
-        session_fee: toFee(session),
+        // 금액은 비워 두고 만든다 — 요금은 회비 탭에서 정한다
         sort_order: (tiers.at(-1)?.sort_order ?? 0) + 1,
       }),
     );
     setName("");
-    setMonthly("");
-    setSession("");
     setIsFull(false);
     setColor("gray");
     setAdding(false);
@@ -127,7 +124,6 @@ export function CrewTierManage({
 
   const active = tiers.filter((x) => !x.archived_at);
   const archived = tiers.filter((x) => x.archived_at);
-  const fee = (n: number | null) => (n == null ? "—" : `₩${n.toLocaleString("ko-KR")}`);
 
   return (
     <div>
@@ -151,10 +147,6 @@ export function CrewTierManage({
               {x.is_full_member && (
                 <span className="text-[10px] text-muted">{t("crew.tierFull")}</span>
               )}
-              <span className="ml-auto font-mono text-xs text-muted">
-                {t("crew.tierMonthly")} {fee(x.monthly_fee)} · {t("crew.tierSession")}{" "}
-                {fee(x.session_fee)}
-              </span>
             </div>
 
             <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
@@ -181,26 +173,6 @@ export function CrewTierManage({
                 />
                 {t("crew.tierFull")}
               </label>
-              <input
-                className="w-24 rounded-md border border-muted/30 bg-background px-2 py-1 text-xs"
-                defaultValue={x.monthly_fee ?? ""}
-                placeholder={t("crew.tierMonthly")}
-                inputMode="numeric"
-                onBlur={(e) => {
-                  const v = toFee(e.target.value);
-                  if (v !== x.monthly_fee) patch(x.id, { monthly_fee: v });
-                }}
-              />
-              <input
-                className="w-24 rounded-md border border-muted/30 bg-background px-2 py-1 text-xs"
-                defaultValue={x.session_fee ?? ""}
-                placeholder={t("crew.tierSession")}
-                inputMode="numeric"
-                onBlur={(e) => {
-                  const v = toFee(e.target.value);
-                  if (v !== x.session_fee) patch(x.id, { session_fee: v });
-                }}
-              />
               {!x.is_default && (
                 <button
                   type="button"
@@ -264,20 +236,6 @@ export function CrewTierManage({
               />
               {t("crew.tierFull")}
             </label>
-            <input
-              className="w-24 rounded-md border border-muted/30 bg-background px-2 py-1 text-xs"
-              value={monthly}
-              onChange={(e) => setMonthly(e.target.value)}
-              placeholder={t("crew.tierMonthly")}
-              inputMode="numeric"
-            />
-            <input
-              className="w-24 rounded-md border border-muted/30 bg-background px-2 py-1 text-xs"
-              value={session}
-              onChange={(e) => setSession(e.target.value)}
-              placeholder={t("crew.tierSession")}
-              inputMode="numeric"
-            />
           </div>
           <div className="mt-3 flex gap-2">
             <button
@@ -305,6 +263,114 @@ export function CrewTierManage({
           + {t("crew.tierAdd")}
         </button>
       )}
+    </div>
+  );
+}
+
+/** 등급별 요금 — 회비 탭. 등급이 곧 요금표라 등급마다 월회비·회차비를 여기서 정한다.
+ *  등급의 이름·색·권한은 등급 탭이 맡는다 — 두 화면이 같은 행을 고치던 것을 갈랐다
+ *  (2026-09-14 피드백).
+ *
+ *  칸을 벗어날 때(onBlur) 저장한다. 숫자를 지우면 null 이 되어 "요금 없음"이고,
+ *  월회비가 없는 등급은 일괄 청구에서 빠진다. */
+export function CrewTierFees({
+  crewId,
+  tiers,
+}: {
+  crewId: string;
+  tiers: CrewTier[];
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+
+  async function patch(id: string, values: Record<string, unknown>) {
+    setBusy(id);
+    setErr(null);
+    const { error } = await createClient()
+      .from("crew_member_tiers")
+      .update(values)
+      .eq("id", id)
+      .eq("crew_id", crewId);
+    setBusy(null);
+    if (error) return setErr(duesErrText(t, error.message));
+    setSaved(id);
+    window.setTimeout(() => setSaved((p) => (p === id ? null : p)), 1500);
+    router.refresh();
+  }
+
+  const active = tiers.filter((x) => !x.archived_at);
+  const feeInput =
+    "w-28 rounded-md border border-muted/30 bg-background px-2 py-1.5 text-right text-sm tabular outline-none focus:border-accent disabled:opacity-50";
+
+  if (!active.length) {
+    return <p className="text-xs text-muted">{t("crew.tierFeeNone")}</p>;
+  }
+
+  return (
+    <div>
+      {err && (
+        <p role="alert" className="mb-2 text-sm text-red-400">
+          {err}
+        </p>
+      )}
+      <ul className="flex flex-col gap-1.5">
+        {active.map((x) => (
+          <li
+            key={x.id}
+            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-surface px-4 py-3"
+          >
+            <span
+              className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${tierBadgeClass(x.color)}`}
+            >
+              {x.name}
+            </span>
+            {x.is_default && (
+              <span className="text-[10px] font-semibold text-accent">
+                {t("crew.tierDefault")}
+              </span>
+            )}
+            {saved === x.id && (
+              <span className="text-[10px] font-semibold text-success">
+                {t("common.saved")}
+              </span>
+            )}
+            <span className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2">
+              <label className="flex items-center gap-1.5 text-xs text-muted">
+                {t("crew.tierMonthly")}
+                <input
+                  className={feeInput}
+                  defaultValue={x.monthly_fee ?? ""}
+                  placeholder="—"
+                  inputMode="numeric"
+                  disabled={busy != null}
+                  onBlur={(e) => {
+                    const v = toFee(e.target.value);
+                    if (v !== x.monthly_fee) void patch(x.id, { monthly_fee: v });
+                  }}
+                />
+              </label>
+              <label className="flex items-center gap-1.5 text-xs text-muted">
+                {t("crew.tierSession")}
+                <input
+                  className={feeInput}
+                  defaultValue={x.session_fee ?? ""}
+                  placeholder="—"
+                  inputMode="numeric"
+                  disabled={busy != null}
+                  onBlur={(e) => {
+                    const v = toFee(e.target.value);
+                    if (v !== x.session_fee) void patch(x.id, { session_fee: v });
+                  }}
+                />
+              </label>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-muted">{t("crew.tierFeeHint")}</p>
     </div>
   );
 }
