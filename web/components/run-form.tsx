@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { formatMs, parseTimeToMs, todayISOIn } from "@/lib/format";
+import { formatMs, formatTimeInput, parseTimeToMs, todayISOIn } from "@/lib/format";
 import {
   RUN_KINDS,
   RUN_SURFACES,
@@ -176,7 +176,7 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
           <input
             id="run-duration"
             value={duration}
-            onChange={(e) => setDuration(e.target.value)}
+            onChange={(e) => setDuration(formatTimeInput(e.target.value))}
             placeholder="25:00"
             className={input}
             required

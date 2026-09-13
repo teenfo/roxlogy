@@ -132,6 +132,24 @@ export function programDayNumber(
   return (daysSince % cycleLen) + 1;
 }
 
+/**
+ * 시간 입력칸의 자동 정리 — 숫자만 받아 오른쪽부터 mm:ss / h:mm:ss 로 끼워 넣는다.
+ *
+ * 모바일 숫자 키패드에는 ':' 가 없다(삼성·구글 기본 키보드 모두). inputMode="numeric"
+ * 을 준 시간 칸은 그래서 아예 입력이 불가능했다 (2026-09-14 운영 피드백).
+ * 스톱워치 입력과 같은 방식으로, 친 숫자를 뒤에서부터 초·분·시로 민다:
+ * "3" → "3", "2431" → "24:31", "10230" → "1:02:30".
+ * 이미 ':' 가 들어 있는 값(저장된 기록을 불러온 경우)도 같은 결과로 안정적이다.
+ */
+export function formatTimeInput(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 6);
+  if (d.length <= 2) return d;
+  const ss = d.slice(-2);
+  const rest = d.slice(0, -2);
+  if (rest.length <= 2) return `${rest}:${ss}`;
+  return `${rest.slice(0, -2)}:${rest.slice(-2)}:${ss}`;
+}
+
 /** "mm:ss" / "h:mm:ss" → ms. 잘못된 입력이면 null */
 export function parseTimeToMs(input: string): number | null {
   const t = input.trim();

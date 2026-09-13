@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { formatMs, parseTimeToMs } from "@/lib/format";
+import { formatMs, formatTimeInput, parseTimeToMs } from "@/lib/format";
 import {
   PFT_STATIONS,
   badgeClass,
@@ -134,7 +134,7 @@ export function PftForm({
               <input
                 className={`${input} tabular mt-1 h-[42px] text-lg font-bold`}
                 value={total}
-                onChange={(e) => setTotal(e.target.value)}
+                onChange={(e) => setTotal(formatTimeInput(e.target.value))}
                 placeholder="mm:ss"
                 inputMode="numeric"
                 required
@@ -188,7 +188,10 @@ export function PftForm({
                   className={`${input} tabular mt-1`}
                   value={splits[st.key] ?? ""}
                   onChange={(e) =>
-                    setSplits((p) => ({ ...p, [st.key]: e.target.value }))
+                    setSplits((p) => ({
+                      ...p,
+                      [st.key]: formatTimeInput(e.target.value),
+                    }))
                   }
                   placeholder="4:30"
                   inputMode="numeric"

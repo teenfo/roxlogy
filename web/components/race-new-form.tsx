@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { formatMs, parseTimeToMs } from "@/lib/format";
+import { formatMs, formatTimeInput, parseTimeToMs } from "@/lib/format";
 import { RUN_EXERCISE_ID, STATIONS } from "@/lib/hyrox";
 import { buildSearchUrl, type Season } from "@/lib/hyrox-results";
 import {
@@ -618,7 +618,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                 {t("raceNew.total")}
                 <input
                   value={totalText}
-                  onChange={(e) => setTotalText(e.target.value)}
+                  onChange={(e) => setTotalText(formatTimeInput(e.target.value))}
                   placeholder="1:24:30"
                   inputMode="numeric"
                   className={`${inputCls} font-mono`}
@@ -628,7 +628,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                 {t("raceNew.runTotal")}
                 <input
                   value={runTotalText}
-                  onChange={(e) => setRunTotalText(e.target.value)}
+                  onChange={(e) => setRunTotalText(formatTimeInput(e.target.value))}
                   placeholder="38:20"
                   inputMode="numeric"
                   className={`${inputCls} font-mono`}

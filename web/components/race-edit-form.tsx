@@ -5,7 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { DIVISIONS } from "@/lib/divisions";
-import { formatMs, parseTimeToMs } from "@/lib/format";
+import { formatMs, formatTimeInput, parseTimeToMs } from "@/lib/format";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 /** 레이스 결과의 기본 정보 수정 — 대회명·날짜·디비전·총기록·BIB.
@@ -129,7 +129,7 @@ export function RaceEditForm({
           {t("raceEdit.total")}
           <input
             value={eTotal}
-            onChange={(e) => setETotal(e.target.value)}
+            onChange={(e) => setETotal(formatTimeInput(e.target.value))}
             placeholder="1:23:45"
             className={`${field} font-mono`}
           />

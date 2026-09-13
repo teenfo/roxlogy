@@ -407,6 +407,10 @@ export default async function PftPage() {
                     )}
                     <span className="ml-auto flex items-center gap-3 text-xs text-muted">
                       {formatDateShortYear(r.tested_on, tag, tz)}
+                      <RecordCardButton
+                        data={cardFor(r)}
+                        className="hover:text-accent"
+                      />
                       <Link
                         href={`/pft/${r.id}/edit`}
                         className="hover:text-accent"

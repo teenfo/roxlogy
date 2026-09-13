@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { parseTimeToMs } from "@/lib/format";
+import { formatTimeInput, parseTimeToMs } from "@/lib/format";
 
 /** "mm:ss" 텍스트 입력 → ms 콜백. 빈 값은 null */
 export function TimeInput({
@@ -25,7 +25,11 @@ export function TimeInput({
       inputMode="numeric"
       value={value}
       placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value, parseTimeToMs(e.target.value))}
+      onChange={(e) => {
+        // 모바일 숫자 키패드에는 ':' 가 없다 — 친 숫자를 mm:ss 로 끼워 넣는다
+        const v = formatTimeInput(e.target.value);
+        onChange(v, parseTimeToMs(v));
+      }}
       onBlur={() => setTouched(true)}
       className={`w-20 rounded-md border bg-background px-2 py-1.5 text-right font-mono text-sm outline-none focus:border-accent ${
         invalid ? "border-red-400" : "border-muted/30"

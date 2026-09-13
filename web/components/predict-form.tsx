@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { formatMs, parseTimeToMs } from "@/lib/format";
+import { formatMs, formatTimeInput, parseTimeToMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { DIVISIONS } from "@/lib/divisions";
 import {
@@ -350,7 +350,7 @@ export function PredictForm({
           {t("predict.target")}
           <input
             value={targetText}
-            onChange={(e) => setTargetText(e.target.value)}
+            onChange={(e) => setTargetText(formatTimeInput(e.target.value))}
             inputMode="numeric"
             className="w-36 rounded-md border border-muted/30 bg-surface px-3 py-2.5 font-mono text-lg text-foreground outline-none focus:border-accent"
           />
@@ -694,7 +694,7 @@ export function PredictForm({
                     </span>
                     <input
                       value={eff.stations[s.key] ?? ""}
-                      onChange={(e) => setStation(s.key, e.target.value)}
+                      onChange={(e) => setStation(s.key, formatTimeInput(e.target.value))}
                       inputMode="numeric"
                       className={inputCls}
                     />
@@ -711,7 +711,7 @@ export function PredictForm({
                   </span>
                   <input
                     value={eff.runPace}
-                    onChange={(e) => setField("runPace", e.target.value)}
+                    onChange={(e) => setField("runPace", formatTimeInput(e.target.value))}
                     inputMode="numeric"
                     className={inputCls}
                   />
@@ -722,7 +722,7 @@ export function PredictForm({
                   </span>
                   <input
                     value={eff.rox}
-                    onChange={(e) => setField("rox", e.target.value)}
+                    onChange={(e) => setField("rox", formatTimeInput(e.target.value))}
                     inputMode="numeric"
                     className={inputCls}
                   />
