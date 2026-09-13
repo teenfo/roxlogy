@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
+import { Dialog } from "@/components/ui/dialog";
 
 export type UnpaidCharge = {
   charge_id: string;
@@ -18,7 +19,11 @@ const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 
 /** 미납 회비 타일 — 누르면 내역을 모달로 연다.
  *  기간 무관 전체 미납이라 회계 탭(월별 보드)에서는 한 번에 볼 수 없다.
- *  native <dialog> 를 써서 포커스 가둠·ESC 닫기를 브라우저에 맡긴다. */
+ *
+ *  예전엔 native <dialog>.showModal() 을 썼는데 화면 좌상단에 붙어 떴다 —
+ *  브라우저가 dialog 를 가운데 두는 건 `margin: auto` 인데 Tailwind preflight 가
+ *  모든 요소의 margin 을 0 으로 지워 버리기 때문이다(2026-09-14). 다른 모달과 같은
+ *  공용 Dialog 로 바꿔 가운데 정렬·포커스 가둠·ESC·배경 스크롤 잠금을 한 곳에서 얻는다. */
 export function CrewUnpaidCard({
   amount,
   count,
@@ -33,7 +38,7 @@ export function CrewUnpaidCard({
   financeHref: string;
 }) {
   const { t } = useI18n();
-  const ref = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState(false);
 
   const sub =
     t("crew.statUnpaidSub", { n: count }) +
@@ -67,7 +72,7 @@ export function CrewUnpaidCard({
     <>
       <button
         type="button"
-        onClick={() => ref.current?.showModal()}
+        onClick={() => setOpen(true)}
         className="rounded-md bg-surface px-4 py-3 text-left ring-accent/40 hover:ring-1"
       >
         {tile}
@@ -76,15 +81,15 @@ export function CrewUnpaidCard({
         </span>
       </button>
 
-      <dialog
-        ref={ref}
-        onClick={(e) => {
-          // 바깥(백드롭) 클릭으로 닫기
-          if (e.target === ref.current) ref.current?.close();
-        }}
-        className="w-[min(32rem,92vw)] rounded-md bg-surface p-0 text-foreground backdrop:bg-background/70"
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        label={t("crew.unpaidTitle")}
+        closeLabel={t("common.close")}
+        variant="center"
+        panelClassName="max-w-lg rounded-md bg-surface text-foreground"
       >
-        <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+        <div className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="text-sm font-bold">{t("crew.unpaidTitle")}</h3>
             <span className="font-mono text-sm font-bold text-red-400">
@@ -137,14 +142,14 @@ export function CrewUnpaidCard({
             </a>
             <button
               type="button"
-              onClick={() => ref.current?.close()}
+              onClick={() => setOpen(false)}
               className="rounded-md bg-background px-4 py-1.5 text-xs font-semibold"
             >
               {t("common.close")}
             </button>
           </div>
         </div>
-      </dialog>
+      </Dialog>
     </>
   );
 }
