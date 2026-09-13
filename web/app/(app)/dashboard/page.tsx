@@ -419,6 +419,7 @@ export default async function DashboardPage() {
                   >
                     {/* 가장 자주 쓰는 진입점 — 체크리스트로 바로 가게 한다 */}
                     <Link
+                      prefetch={false}
                       href={`/workouts/${w.id}`}
                       className="text-sm hover:text-accent"
                     >
@@ -470,6 +471,7 @@ export default async function DashboardPage() {
               return (
                 <li key={`${r.kind}-${r.on_date}-${i}`}>
                   <Link
+                    prefetch={false}
                     href={`/crews/${crew.slug}/schedule`}
                     className="flex min-w-0 items-center gap-2 rounded-md bg-surface px-3 py-2.5 hover:bg-surface/70"
                   >
@@ -549,6 +551,7 @@ export default async function DashboardPage() {
             {recent.map((s) => (
               <li key={s.id}>
                 <Link
+                  prefetch={false}
                   href={`/sessions/${s.id}`}
                   className="flex items-center justify-between rounded-md bg-surface px-4 py-3 hover:bg-surface/70"
                 >

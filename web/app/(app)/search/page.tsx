@@ -81,6 +81,7 @@ export default async function SearchPage({
           <Card className="divide-y divide-line overflow-hidden">
             {crews.map((c) => (
               <Link
+                prefetch={false}
                 key={c.slug}
                 href={`/crews/${c.slug}`}
                 className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-card-hover"
@@ -109,6 +110,7 @@ export default async function SearchPage({
           <Card className="divide-y divide-line overflow-hidden">
             {events.map((e) => (
               <Link
+                prefetch={false}
                 key={e.id}
                 href={`/events/${e.id}`}
                 className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-card-hover"

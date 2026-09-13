@@ -126,6 +126,7 @@ export default async function EventsPage({
                       <div>
                         <p className="text-sm font-semibold">
                           <Link
+                            prefetch={false}
                             href={`/events/${e.id}`}
                             className="hover:text-accent hover:underline"
                           >
@@ -167,6 +168,7 @@ export default async function EventsPage({
                             </a>
                           )}
                           <Link
+                            prefetch={false}
                             href={`/predict?event=${encodeURIComponent(e.name)}${
                               e.start_date ? `&date=${e.start_date}` : ""
                             }`}
@@ -195,6 +197,7 @@ export default async function EventsPage({
                     >
                       <span className="text-sm">
                         <Link
+                          prefetch={false}
                           href={`/events/${e.id}`}
                           className="hover:text-accent hover:underline"
                         >

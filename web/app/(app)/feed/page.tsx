@@ -70,6 +70,7 @@ export default async function FeedPage({
             >
               <div className="flex flex-col gap-0.5">
                 <Link
+                  prefetch={false}
                   href={`/u/${r.author_id}`}
                   className="text-sm font-semibold hover:text-accent"
                 >
@@ -80,6 +81,7 @@ export default async function FeedPage({
                 </span>
               </div>
               <Link
+                prefetch={false}
                 href={`/sessions/${r.session_id}`}
                 className="font-mono text-lg font-semibold text-accent hover:underline"
               >

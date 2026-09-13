@@ -124,7 +124,7 @@ export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean })
                             {chip}
                           </span>
                         ) : (
-                          <Link key={w.id} href={`/workouts/${w.id}`} className={cls}>
+                          <Link key={w.id} href={`/workouts/${w.id}`} className={cls} prefetch={false}>
                             {chip}
                           </Link>
                         );
@@ -151,7 +151,13 @@ export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean })
           </div>
         );
 
-        return <li key={d.iso}>{onlyHref ? <Link href={onlyHref}>{body}</Link> : body}</li>;
+        return <li key={d.iso}>{onlyHref ? (
+          <Link href={onlyHref} prefetch={false}>
+            {body}
+          </Link>
+        ) : (
+          body
+        )}</li>;
       })}
     </ul>
   );

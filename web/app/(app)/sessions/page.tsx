@@ -404,6 +404,7 @@ export default async function SessionsPage({
             return (
               <li key={sess.id}>
                 <Link
+                  prefetch={false}
                   href={`/sessions/${sess.id}`}
                   className={`grid grid-cols-[68px_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border px-4 py-3.5 transition-colors max-sm:grid-cols-[68px_minmax(0,1fr)] ${
                     isPb

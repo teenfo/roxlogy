@@ -57,6 +57,7 @@ export default async function MembersPage({
             >
               <div className="min-w-0">
                 <Link
+                  prefetch={false}
                   href={`/u/${m.id}`}
                   className="text-sm font-semibold hover:text-accent"
                 >

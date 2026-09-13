@@ -100,6 +100,7 @@ export default async function PublicProfilePage({
             {shared.map((s) => (
               <li key={s.id}>
                 <Link
+                  prefetch={false}
                   href={`/sessions/${s.id}`}
                   className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
                 >

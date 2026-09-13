@@ -79,6 +79,7 @@ export default async function CrewDirectoryPage() {
               {mine.map((c) => (
                 <li key={c.slug}>
                   <Link
+                    prefetch={false}
                     href={`/crews/${c.slug}`}
                     className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 rounded-2xl border border-line-accent bg-highlight px-6 py-5 transition-colors hover:border-[#8a7a2a] max-sm:grid-cols-[auto_minmax(0,1fr)]"
                   >
