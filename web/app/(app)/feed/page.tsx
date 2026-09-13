@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
+import { RowLink } from "@/components/row-link";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -69,24 +70,22 @@ export default async function FeedPage({
               className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5"
             >
               <div className="flex flex-col gap-0.5">
-                <Link
-                  prefetch={false}
+                <RowLink
                   href={`/u/${r.author_id}`}
                   className="text-sm font-semibold hover:text-accent"
                 >
                   {r.author_name}
-                </Link>
+                </RowLink>
                 <span className="text-xs text-muted">
                   {formatDate(r.started_at, tag, tz)}
                 </span>
               </div>
-              <Link
-                prefetch={false}
+              <RowLink
                 href={`/sessions/${r.session_id}`}
                 className="font-mono text-lg font-semibold text-accent hover:underline"
               >
                 {formatMs(r.total_time_ms)}
-              </Link>
+              </RowLink>
             </li>
           ))}
         </ul>

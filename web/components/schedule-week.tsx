@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useI18n } from "@/components/i18n-provider";
 import { wodTypeChip } from "@/lib/wod-type";
+import { RowLink } from "@/components/row-link";
 
 /** 하루에 걸린 한 프로그램의 계획 */
 export type DayPlan = {
@@ -124,9 +124,9 @@ export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean })
                             {chip}
                           </span>
                         ) : (
-                          <Link key={w.id} href={`/workouts/${w.id}`} className={cls} prefetch={false}>
+                          <RowLink key={w.id} href={`/workouts/${w.id}`} className={cls}>
                             {chip}
-                          </Link>
+                          </RowLink>
                         );
                       })}
                     </span>
@@ -152,9 +152,9 @@ export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean })
         );
 
         return <li key={d.iso}>{onlyHref ? (
-          <Link href={onlyHref} prefetch={false}>
+          <RowLink href={onlyHref}>
             {body}
-          </Link>
+          </RowLink>
         ) : (
           body
         )}</li>;

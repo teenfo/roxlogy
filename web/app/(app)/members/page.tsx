@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { FollowButton } from "@/components/follow-button";
+import { RowLink } from "@/components/row-link";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -56,13 +56,12 @@ export default async function MembersPage({
               className="flex items-center justify-between gap-3 rounded-md bg-surface px-4 py-3"
             >
               <div className="min-w-0">
-                <Link
-                  prefetch={false}
+                <RowLink
                   href={`/u/${m.id}`}
                   className="text-sm font-semibold hover:text-accent"
                 >
                   {m.display_name}
-                </Link>
+                </RowLink>
                 <p className="mt-0.5 text-xs text-muted">
                   {t("members.followers", { n: m.follower_count })}
                   {m.shared_count > 0

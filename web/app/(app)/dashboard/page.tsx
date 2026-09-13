@@ -16,6 +16,7 @@ import { CorrelationLine, TrendBars } from "@/components/charts";
 import { RehearsalReport } from "@/components/rehearsal-report";
 import { PercentileBar } from "@/components/percentile-bar";
 import { percentileOf, type Benchmark } from "@/lib/percentile";
+import { RowLink } from "@/components/row-link";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -418,13 +419,12 @@ export default async function DashboardPage() {
                     className="flex items-center justify-between rounded-md bg-background px-3 py-2.5"
                   >
                     {/* 가장 자주 쓰는 진입점 — 체크리스트로 바로 가게 한다 */}
-                    <Link
-                      prefetch={false}
+                    <RowLink
                       href={`/workouts/${w.id}`}
                       className="text-sm hover:text-accent"
                     >
                       {w.title}
-                    </Link>
+                    </RowLink>
                     <span className="text-xs text-muted">
                       {t(`programs.type.${w.type}` as Parameters<typeof t>[0])}
                     </span>
@@ -470,8 +470,7 @@ export default async function DashboardPage() {
               }[r.kind];
               return (
                 <li key={`${r.kind}-${r.on_date}-${i}`}>
-                  <Link
-                    prefetch={false}
+                  <RowLink
                     href={`/crews/${crew.slug}/schedule`}
                     className="flex min-w-0 items-center gap-2 rounded-md bg-surface px-3 py-2.5 hover:bg-surface/70"
                   >
@@ -502,7 +501,7 @@ export default async function DashboardPage() {
                         )}
                       </span>
                     )}
-                  </Link>
+                  </RowLink>
                 </li>
               );
             })}
@@ -550,8 +549,7 @@ export default async function DashboardPage() {
           <ul className="mt-4 flex flex-col gap-2">
             {recent.map((s) => (
               <li key={s.id}>
-                <Link
-                  prefetch={false}
+                <RowLink
                   href={`/sessions/${s.id}`}
                   className="flex items-center justify-between rounded-md bg-surface px-4 py-3 hover:bg-surface/70"
                 >
@@ -564,7 +562,7 @@ export default async function DashboardPage() {
                       {formatMs(s.total_time_ms)}
                     </span>
                   </span>
-                </Link>
+                </RowLink>
               </li>
             ))}
           </ul>

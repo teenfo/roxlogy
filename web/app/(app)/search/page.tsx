@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
 import { Avatar, Card } from "@/components/ui/crew-ui";
 import { SearchBox } from "@/components/search-box";
+import { RowLink } from "@/components/row-link";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -80,8 +80,7 @@ export default async function SearchPage({
           <p className="mb-2 text-xs font-bold text-muted">{t("nav.crews")}</p>
           <Card className="divide-y divide-line overflow-hidden">
             {crews.map((c) => (
-              <Link
-                prefetch={false}
+              <RowLink
                 key={c.slug}
                 href={`/crews/${c.slug}`}
                 className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-card-hover"
@@ -98,7 +97,7 @@ export default async function SearchPage({
                 <span className="tabular shrink-0 text-[13px] text-muted">
                   {c.member_count}
                 </span>
-              </Link>
+              </RowLink>
             ))}
           </Card>
         </section>
@@ -109,8 +108,7 @@ export default async function SearchPage({
           <p className="mb-2 text-xs font-bold text-muted">{t("nav.events")}</p>
           <Card className="divide-y divide-line overflow-hidden">
             {events.map((e) => (
-              <Link
-                prefetch={false}
+              <RowLink
                 key={e.id}
                 href={`/events/${e.id}`}
                 className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-card-hover"
@@ -128,7 +126,7 @@ export default async function SearchPage({
                 <span className="tabular shrink-0 text-[13px] text-muted">
                   {formatDateShort(e.start_date, tag, tz)}
                 </span>
-              </Link>
+              </RowLink>
             ))}
           </Card>
         </section>

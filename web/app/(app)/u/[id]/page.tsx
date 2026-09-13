@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatMs } from "@/lib/format";
 import { FollowButton } from "@/components/follow-button";
+import { RowLink } from "@/components/row-link";
 
 type PublicProfile = {
   display_name: string | null;
@@ -99,8 +99,7 @@ export default async function PublicProfilePage({
           <ul className="mt-3 flex flex-col gap-2">
             {shared.map((s) => (
               <li key={s.id}>
-                <Link
-                  prefetch={false}
+                <RowLink
                   href={`/sessions/${s.id}`}
                   className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
                 >
@@ -108,7 +107,7 @@ export default async function PublicProfilePage({
                   <span className="font-mono text-lg font-semibold text-accent">
                     {formatMs(s.total_time_ms)}
                   </span>
-                </Link>
+                </RowLink>
               </li>
             ))}
           </ul>

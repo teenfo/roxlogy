@@ -6,6 +6,7 @@ import { CrewHeader } from "@/components/crew-header";
 import { CrewFinder } from "@/components/crew-finder";
 import { Avatar, AvatarStack, Card } from "@/components/ui/crew-ui";
 import { crewRoleBadgeClass, crewRoleDictKey, isStaffRole, tierBadgeClass } from "@/lib/crew-role";
+import { RowLink } from "@/components/row-link";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -78,8 +79,7 @@ export default async function CrewDirectoryPage() {
             <ul className="flex flex-col gap-3">
               {mine.map((c) => (
                 <li key={c.slug}>
-                  <Link
-                    prefetch={false}
+                  <RowLink
                     href={`/crews/${c.slug}`}
                     className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 rounded-2xl border border-line-accent bg-highlight px-6 py-5 transition-colors hover:border-[#8a7a2a] max-sm:grid-cols-[auto_minmax(0,1fr)]"
                   >
@@ -156,7 +156,7 @@ export default async function CrewDirectoryPage() {
                         {t("crew.goCrewPage")} →
                       </span>
                     </div>
-                  </Link>
+                  </RowLink>
                 </li>
               ))}
             </ul>

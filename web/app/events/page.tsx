@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { getRaceEvents } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
 import { eventDateNote, eventPlace } from "@/lib/event-display";
 import { CrewHeader } from "@/components/crew-header";
 import { todayISOIn } from "@/lib/format";
+import { RowLink } from "@/components/row-link";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -125,13 +125,12 @@ export default async function EventsPage({
                     >
                       <div>
                         <p className="text-sm font-semibold">
-                          <Link
-                            prefetch={false}
+                          <RowLink
                             href={`/events/${e.id}`}
                             className="hover:text-accent hover:underline"
                           >
                             {e.name}
-                          </Link>
+                          </RowLink>
                           {e.country_code === "KR" && (
                             <span className="ml-2 rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent">
                               {t("events.koreaBadge")}
@@ -167,15 +166,14 @@ export default async function EventsPage({
                               {t("events.official")}
                             </a>
                           )}
-                          <Link
-                            prefetch={false}
+                          <RowLink
                             href={`/predict?event=${encodeURIComponent(e.name)}${
                               e.start_date ? `&date=${e.start_date}` : ""
                             }`}
                             className="rounded-md border border-accent/50 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/10"
                           >
                             {t("events.setGoal")}
-                          </Link>
+                          </RowLink>
                         </div>
                       </div>
                     </li>
@@ -196,13 +194,12 @@ export default async function EventsPage({
                       className="flex items-center justify-between rounded-md bg-surface/60 px-4 py-3 text-muted"
                     >
                       <span className="text-sm">
-                        <Link
-                          prefetch={false}
+                        <RowLink
                           href={`/events/${e.id}`}
                           className="hover:text-accent hover:underline"
                         >
                           {e.name}
-                        </Link>{" "}
+                        </RowLink>{" "}
                         — {e.city}, {e.country}
                       </span>
                       <span className="text-xs">

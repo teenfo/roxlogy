@@ -5,6 +5,7 @@ import { getT } from "@/lib/i18n";
 import { formatDate, formatMs, todayISOIn } from "@/lib/format";
 import { Card, Chip } from "@/components/ui/crew-ui";
 import { ExportButton } from "@/components/export-button";
+import { RowLink } from "@/components/row-link";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -403,8 +404,7 @@ export default async function SessionsPage({
 
             return (
               <li key={sess.id}>
-                <Link
-                  prefetch={false}
+                <RowLink
                   href={`/sessions/${sess.id}`}
                   className={`grid grid-cols-[68px_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border px-4 py-3.5 transition-colors max-sm:grid-cols-[68px_minmax(0,1fr)] ${
                     isPb
@@ -493,7 +493,7 @@ export default async function SessionsPage({
                           : ""}
                     </span>
                   </span>
-                </Link>
+                </RowLink>
               </li>
             );
           })}
