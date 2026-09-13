@@ -4,6 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import {
+  WorkoutSetEditor,
+  setsSummary,
+  type ItemSet,
+  type SetRow,
+} from "@/components/workout-sets";
+import type { WorkoutTarget } from "@/lib/target";
 
 export type ChecklistItem = {
   id: string;
@@ -11,6 +18,8 @@ export type ChecklistItem = {
   exerciseId: string | null;
   /** 처방 배지들 — 서버에서 targetParts 로 조립해 전달 */
   targetParts: string[];
+  /** 처방 원본 — 세트 표가 어떤 칸을 보여 줄지 정한다 */
+  target: WorkoutTarget | null;
 };
 
 export type ItemLog = {
@@ -24,10 +33,13 @@ export type Completion = ItemLog & { itemId: string };
 export function WorkoutChecklist({
   items,
   initialCompletions,
+  initialSets,
   hero,
 }: {
   items: ChecklistItem[];
   initialCompletions: Completion[];
+  /** 세트별 수행 기록 (workout_item_sets) */
+  initialSets: ItemSet[];
   /** 히어로 상단부 — 진행 바가 이 상태를 쓰므로 한 카드로 붙여 그린다 */
   hero?: React.ReactNode;
 }) {
@@ -43,6 +55,25 @@ export function WorkoutChecklist({
       ]),
     ),
   );
+  // 종목별 세트 행 — 저장 전 편집 상태도 여기 담는다
+  const [setsByItem, setSetsByItem] = useState<Map<string, SetRow[]>>(() => {
+    const m = new Map<string, SetRow[]>();
+    for (const s of initialSets) {
+      const arr = m.get(s.itemId) ?? [];
+      arr.push({
+        id: s.id,
+        setNo: s.setNo,
+        reps: s.reps,
+        weightKg: s.weightKg,
+        distanceM: s.distanceM,
+        durationS: s.durationS,
+      });
+      m.set(s.itemId, arr);
+    }
+    for (const arr of m.values()) arr.sort((a, b) => a.setNo - b.setNo);
+    return m;
+  });
+  const [draft, setDraft] = useState<SetRow[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,29 +123,75 @@ export function WorkoutChecklist({
     }
   }
 
-  // 수행 무게/횟수/메모 저장 — 값 입력은 곧 완료를 의미하므로 완료 처리도 함께
-  async function saveLog(id: string, log: ItemLog) {
+  // 세트 편집 열기 — 기록이 없으면 처방 세트 수만큼 빈 줄을 깔아 준다
+  function openEditor(it: ChecklistItem) {
+    const saved = setsByItem.get(it.id) ?? [];
+    if (saved.length > 0) setDraft(saved.map((r) => ({ ...r })));
+    else {
+      const n = Math.min(Math.max(it.target?.sets ?? 1, 1), 20);
+      setDraft(
+        Array.from({ length: n }, (_, i) => ({
+          id: null,
+          setNo: i + 1,
+          reps: null,
+          weightKg: null,
+          distanceM: null,
+          durationS: null,
+        })),
+      );
+    }
+    setOpenId(it.id);
+  }
+
+  // 세트 저장 — 값이 하나도 없는 줄은 저장하지 않고, 지운 줄은 서버에서도 지운다
+  async function saveSets(id: string) {
     setPending(true);
     setError(null);
     const supabase = createClient();
-    const { error: err } = await supabase
-      .from("workout_item_completions")
-      .upsert(
-        {
-          item_id: id,
-          weight_kg: log.weightKg,
-          reps: log.reps,
-          note: log.note,
-        },
-        { onConflict: "user_id,item_id" },
-      );
-    setPending(false);
-    if (err) {
+    const filled = draft
+      .filter(
+        (r) =>
+          r.reps != null || r.weightKg != null || r.distanceM != null || r.durationS != null,
+      )
+      .map((r, i) => ({ ...r, setNo: i + 1 }));
+
+    // 먼저 이 종목의 기존 세트를 지우고 다시 넣는다 — 세트 번호가 밀릴 수 있어
+    // 부분 갱신보다 통째로 맞추는 편이 어긋나지 않는다(행 수가 최대 50줄이라 가볍다).
+    const { error: delErr } = await supabase
+      .from("workout_item_sets")
+      .delete()
+      .eq("item_id", id);
+    if (delErr) {
+      setPending(false);
       setError(t("workouts.saveErr"));
       return;
     }
-    setLogs((m) => new Map(m).set(id, log));
-    setDone((d) => new Set(d).add(id));
+    if (filled.length > 0) {
+      const { error: insErr } = await supabase.from("workout_item_sets").insert(
+        filled.map((r) => ({
+          item_id: id,
+          set_no: r.setNo,
+          reps: r.reps,
+          weight_kg: r.weightKg,
+          distance_m: r.distanceM,
+          duration_s: r.durationS,
+        })),
+      );
+      if (insErr) {
+        setPending(false);
+        setError(t("workouts.saveErr"));
+        return;
+      }
+    }
+    setPending(false);
+    setSetsByItem((m) => {
+      const n = new Map(m);
+      if (filled.length > 0) n.set(id, filled);
+      else n.delete(id);
+      return n;
+    });
+    // 세트를 적으면 그 종목은 수행한 것(서버 트리거도 같은 규칙)
+    if (filled.length > 0) setDone((d) => new Set(d).add(id));
     setOpenId(null);
   }
 
@@ -192,7 +269,9 @@ export function WorkoutChecklist({
       <ul className="flex flex-col gap-2">
         {items.map((it, i) => {
           const isDone = done.has(it.id);
-          const log = logs.get(it.id);
+          const rows = setsByItem.get(it.id) ?? [];
+          const legacy = logs.get(it.id);
+          const summary = rows.length ? setsSummary(rows, t) : legacy ? logSummary(legacy) : "";
           const isOpen = openId === it.id;
           return (
             <li
@@ -259,21 +338,19 @@ export function WorkoutChecklist({
                     </span>
                   )}
 
-                  {log && logSummary(log) && !isOpen && (
-                    <p className="tabular truncate text-[13px] text-success">
-                      {logSummary(log)}
-                    </p>
+                  {summary && !isOpen && (
+                    <p className="tabular truncate text-[13px] text-success">{summary}</p>
                   )}
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => setOpenId(isOpen ? null : it.id)}
+                  onClick={() => (isOpen ? setOpenId(null) : openEditor(it))}
                   className="flex h-9 shrink-0 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-line-strong max-md:col-start-2 max-md:justify-self-end"
                 >
                   {isOpen
                     ? t("workouts.collapse")
-                    : log
+                    : rows.length || legacy
                       ? `✓ ${t("workouts.logged")}`
                       : t("workouts.log")}
                 </button>
@@ -281,10 +358,12 @@ export function WorkoutChecklist({
 
               {isOpen && (
                 <div className="border-t border-line bg-inset px-[18px] py-4 pl-[76px] max-md:px-4 max-md:pl-4">
-                  <LogEditor
-                    initial={log ?? { weightKg: null, reps: null, note: null }}
+                  <WorkoutSetEditor
+                    rows={draft}
+                    target={it.target}
                     pending={pending}
-                    onSave={(l) => saveLog(it.id, l)}
+                    onChange={setDraft}
+                    onSave={() => saveSets(it.id)}
                     onCancel={() => setOpenId(null)}
                   />
                 </div>
@@ -341,93 +420,4 @@ function logSummary(log: ItemLog): string {
   if (log.reps != null) parts.push(`× ${log.reps}`);
   if (log.note) parts.push(log.note);
   return parts.join(" · ");
-}
-
-function LogEditor({
-  initial,
-  pending,
-  onSave,
-  onCancel,
-}: {
-  initial: ItemLog;
-  pending: boolean;
-  onSave: (log: ItemLog) => void;
-  onCancel: () => void;
-}) {
-  const { t } = useI18n();
-  const [weight, setWeight] = useState(
-    initial.weightKg != null ? String(initial.weightKg) : "",
-  );
-  const [reps, setReps] = useState(
-    initial.reps != null ? String(initial.reps) : "",
-  );
-  const [note, setNote] = useState(initial.note ?? "");
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const w = weight.trim() === "" ? null : Number(weight);
-    const r = reps.trim() === "" ? null : Number(reps);
-    onSave({
-      weightKg: w != null && Number.isFinite(w) ? w : null,
-      reps: r != null && Number.isFinite(r) ? Math.round(r) : null,
-      note: note.trim() || null,
-    });
-  }
-
-  return (
-    <form onSubmit={submit} className="mt-2 grid gap-2 pl-9">
-      <div className="flex gap-2">
-        <label className="min-w-0 flex-1 text-xs text-muted">
-          {t("workouts.weightKg")}
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.5"
-            min="0"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            className="mt-1 w-full rounded-md border border-muted/30 bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-accent"
-          />
-        </label>
-        <label className="min-w-0 flex-1 text-xs text-muted">
-          {t("workouts.reps")}
-          <input
-            type="number"
-            inputMode="numeric"
-            step="1"
-            min="0"
-            value={reps}
-            onChange={(e) => setReps(e.target.value)}
-            className="mt-1 w-full rounded-md border border-muted/30 bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-accent"
-          />
-        </label>
-      </div>
-      <label className="text-xs text-muted">
-        {t("workouts.logNote")}
-        <input
-          type="text"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder={t("workouts.logNotePh")}
-          className="mt-1 w-full rounded-md border border-muted/30 bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-accent"
-        />
-      </label>
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-accent px-4 py-1.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
-        >
-          {pending ? t("workouts.saving") : t("workouts.saveLog")}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md px-3 py-1.5 text-sm text-muted hover:text-foreground"
-        >
-          {t("common.cancel")}
-        </button>
-      </div>
-    </form>
-  );
 }

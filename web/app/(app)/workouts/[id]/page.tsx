@@ -6,6 +6,7 @@ import {
   WorkoutChecklist,
   type ChecklistItem,
 } from "@/components/workout-checklist";
+import type { ItemSet } from "@/components/workout-sets";
 import { targetParts, type WorkoutTarget } from "@/lib/target";
 import { dictLabel } from "@/lib/dict-label";
 import { wodTypeChip } from "@/lib/wod-type";
@@ -38,6 +39,16 @@ type CompRow = {
   weight_kg: number | null;
   reps: number | null;
   note: string | null;
+};
+
+type SetDbRow = {
+  id: string;
+  item_id: string;
+  set_no: number;
+  reps: number | null;
+  weight_kg: number | null;
+  distance_m: number | null;
+  duration_s: number | null;
 };
 
 export default async function WorkoutPage({
@@ -95,6 +106,26 @@ export default async function WorkoutPage({
     note: r.note,
   }));
 
+  // 세트별 수행 기록 (RLS: 본인 것만 조회됨)
+  const { data: setRows, error: setErr } = itemIds.length
+    ? await supabase
+        .from("workout_item_sets")
+        .select("id, item_id, set_no, reps, weight_kg, distance_m, duration_s")
+        .in("item_id", itemIds)
+        .order("set_no")
+    : { data: [] as SetDbRow[], error: null };
+  // 조회가 실패했는데 "기록 없음"으로 보이면 사용자가 덮어써 잃는다 — 시끄럽게 실패시킨다
+  if (setErr) throw new Error(setErr.message);
+  const initialSets: ItemSet[] = ((setRows ?? []) as SetDbRow[]).map((r) => ({
+    id: r.id,
+    itemId: r.item_id,
+    setNo: r.set_no,
+    reps: r.reps,
+    weightKg: r.weight_kg,
+    distanceM: r.distance_m,
+    durationS: r.duration_s,
+  }));
+
   const checklist: ChecklistItem[] = items.map((it) => {
     const exRaw = it.exercises as unknown;
     const ex = (Array.isArray(exRaw) ? exRaw[0] : exRaw) as
@@ -111,6 +142,7 @@ export default async function WorkoutPage({
           : "—",
       exerciseId: ex?.id ?? null,
       targetParts: targetParts(it.target, locale),
+      target: it.target ?? null,
     };
   });
 
@@ -148,6 +180,7 @@ export default async function WorkoutPage({
       <WorkoutChecklist
         items={checklist}
         initialCompletions={completions}
+        initialSets={initialSets}
         hero={
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-5 px-6 py-[22px] max-md:grid-cols-1 max-md:px-4">
             <div className="flex min-w-0 flex-col gap-2.5">
