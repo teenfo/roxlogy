@@ -162,18 +162,19 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
         {/* 종목 카드 — 제목과 지표 사이 빈 자리를 채운다. 순서·이름·수행 목표만 담고
             규격(경사·중량 등)은 참가자 본인 화면이 맡는다 — 보드 상단에 넣을 자리가 없다.
             배경색은 아래 스플릿 바와 같은 색이라 "지금 노란 구간"이 눈으로 이어진다. */}
-        <ol className="grid min-w-[240px] flex-1 grid-cols-3 gap-1.5 lg:grid-cols-6">
+        <ol className="grid min-w-[240px] flex-1 grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
           {PFT_STATIONS.map((st, i) => (
             <li
               key={st.key}
-              className="flex min-w-0 flex-col justify-center rounded-lg px-2.5 py-1.5 text-[#141414]"
+              // 지표 카드(Stat)와 같은 치수 — 상단이 한 줄로 읽히려면 높이가 맞아야 한다
+              className="min-w-0 rounded-xl border border-black/10 px-4 py-3 text-center text-[#141414]"
               style={{ background: PFT_COLORS[st.key] }}
               title={t(st.detail as DictKey) || undefined}
             >
-              <p className="truncate text-[10px] font-bold tracking-[0.04em] opacity-70">
+              <p className="truncate text-[11px] font-bold tracking-[0.06em] opacity-70">
                 {i + 1}. {stationLabel(i)}
               </p>
-              <p className="tabular truncate text-[15px] font-extrabold leading-[1.2]">
+              <p className="tabular mt-1 truncate text-[28px] font-extrabold leading-[1.1]">
                 {t(st.amount as DictKey)}
               </p>
             </li>
