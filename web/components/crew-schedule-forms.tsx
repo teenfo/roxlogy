@@ -1330,6 +1330,9 @@ export function CrewEventInstaCopy({ eventId }: { eventId: string }) {
 
 export type GoingEntry = { name: string; tier: string | null; color: string | null };
 
+/** 참석 명단 카드의 탭. 출석(실제로 온 사람) + 응답별 명단 네 가지. */
+type RsvpTab = "attend" | "going" | "maybe" | "declined" | "none";
+
 /**
  * 참석 명단 · 출석 체크 통합 카드 (2026-09 핸드오프).
  *
@@ -1368,9 +1371,7 @@ export function CrewAttendanceCheck({
   const [err, setErr] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   // 모임이 시작했으면 출석 체크가, 아니면 참석 명단이 볼 일이다.
-  const [tab, setTab] = useState<"attend" | "going">(
-    started ? "attend" : "going",
-  );
+  const [tab, setTab] = useState<RsvpTab>(started ? "attend" : "going");
 
   async function toggle(userId: string, present: boolean) {
     setBusy(userId);
@@ -1430,6 +1431,12 @@ export function CrewAttendanceCheck({
     else router.refresh();
   }
 
+  // 응답별 명단. crew_event_attendance 는 활성 크루원 **전원**을 rsvp 와 left join 해
+  // 주므로(무응답은 status 가 null) 미정·불참·무응답 명단이 추가 조회 없이 나온다.
+  const maybeRows = rows.filter((r) => r.rsvp_status === "maybe");
+  const declinedRows = rows.filter((r) => r.rsvp_status === "declined");
+  const noneRows = rows.filter((r) => !r.rsvp_status);
+
   const present = rows.filter((r) => r.checked_in);
   // 불참 = 참석하겠다고 해 놓고 출석 체크가 안 된 사람. 모임이 시작하기
   // 전에는 아직 안 온 것일 뿐이라 불참으로 세지 않는다.
@@ -1469,7 +1476,7 @@ export function CrewAttendanceCheck({
     return [t("crew.rsvpNone"), "text-muted"];
   };
 
-  const tabBtn = (key: "attend" | "going", label: string, count: number) => {
+  const tabBtn = (key: RsvpTab, label: string, count: number) => {
     const on = tab === key;
     return (
       <button
@@ -1499,10 +1506,13 @@ export function CrewAttendanceCheck({
     <div className="overflow-hidden rounded-[14px] border border-line bg-card">
       {/* 헤더 — 탭 + 운영진 설정 */}
       <div className="flex flex-wrap items-center gap-3 border-b border-line px-[22px] py-3 max-md:px-4">
-        <div className="flex items-center gap-1 rounded-full border border-line-mid bg-page p-[3px]">
-          {/* 크루원도 두 탭을 다 본다 — 출석 탭이 읽기 전용일 뿐이다 */}
+        <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-line-mid bg-page p-[3px]">
+          {/* 크루원도 탭을 다 본다 — 출석 탭이 읽기 전용일 뿐이다 */}
           {tabBtn("attend", t("crew.attendCheckTab"), present.length)}
-          {tabBtn("going", t("crew.goingList"), going.length)}
+          {tabBtn("going", t("crew.rsvpGoing"), going.length)}
+          {tabBtn("maybe", t("crew.rsvpMaybe"), maybeRows.length)}
+          {tabBtn("declined", t("crew.rsvpDeclined"), declinedRows.length)}
+          {tabBtn("none", t("crew.rsvpNone"), noneRows.length)}
         </div>
 
         {(settings || tab === "attend") && (
@@ -1535,13 +1545,20 @@ export function CrewAttendanceCheck({
       {/* 힌트 행 */}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-line-soft px-[22px] py-2.5 text-[13px] text-muted max-md:px-4">
         <span className="[word-break:keep-all]">
-          {feeExempt
-            ? t("crew.feeExemptNote")
+          {tab === "attend"
+            ? feeExempt
+              ? t("crew.feeExemptNote")
+              : t("crew.attendTabNote")
             : tab === "going"
               ? t("crew.goingListNote")
-              : t("crew.attendTabNote")}
+              : tab === "maybe"
+                ? t("crew.maybeListNote")
+                : tab === "declined"
+                  ? t("crew.declinedListNote")
+                  : t("crew.noneListNote")}
         </span>
-        {canEdit && (
+        {/* 출석 집계는 출석 탭에서만 — 응답 명단 탭에서는 다른 이야기다 */}
+        {canEdit && tab === "attend" && (
           <span className="tabular shrink-0">
             {t("crew.attendCounted", {
               n: present.length,
@@ -1666,6 +1683,52 @@ export function CrewAttendanceCheck({
                 ? t("crew.attendHideOthers")
                 : t("crew.attendShowOthers", { n: rest.length })}
             </button>
+          )}
+        </>
+      ) : tab !== "going" ? (
+        /* 미정 · 불참 · 무응답 명단 — 셋이 같은 모양이라 한 곳에서 그린다.
+           이름을 보여 주는 게 목적이다(개수만으로는 누구에게 물어볼지 모른다). */
+        <>
+          <ul className="grid sm:grid-cols-2">
+            {(tab === "maybe"
+              ? maybeRows
+              : tab === "declined"
+                ? declinedRows
+                : noneRows
+            ).map((r) => {
+              const [label, cls] = rsvpLabel(r.rsvp_status);
+              return (
+                <li key={r.user_id} className={rowCls}>
+                  <Avatar name={r.display_name} size={36} />
+                  <span className="min-w-0">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-[15px] font-bold">
+                        {r.display_name}
+                      </span>
+                      {isStaffRole(r.role) && (
+                        <span
+                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${crewRoleBadgeClass(r.role)}`}
+                        >
+                          {t(crewRoleDictKey(r.role))}
+                        </span>
+                      )}
+                    </span>
+                    <span className={`mt-0.5 block text-xs ${cls}`}>{label}</span>
+                  </span>
+                  <span />
+                </li>
+              );
+            })}
+          </ul>
+          {!(tab === "maybe"
+            ? maybeRows
+            : tab === "declined"
+              ? declinedRows
+              : noneRows
+          ).length && (
+            <p className="px-[22px] py-8 text-center text-[13px] text-muted max-md:px-4">
+              {t("crew.rsvpEmpty")}
+            </p>
           )}
         </>
       ) : (
