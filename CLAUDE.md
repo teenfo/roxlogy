@@ -31,6 +31,7 @@
 ## 데이터 모델 핵심 규칙
 - **개인 프로그램은 여러 개를 동시에 진행할 수 있다** (2026-09-12, 마이그레이션 096). 유니크 제약은 `(user_id, program_id) where active` — 같은 프로그램만 두 번 켜지 못한다. 새 프로그램을 시작해도 기존 것은 끄지 않는다. 그래서 `program_enrollments` 를 `.maybeSingle()` 로 읽으면 2건부터 에러가 난다 — 반드시 목록으로 읽을 것.
 - **크루 회원의 등급·권한·상태 변경은 `crew_member_changes` 에 자동으로 남는다** (2026-09-13, 마이그레이션 103). `crew_members` 의 AFTER 트리거가 쌓으므로 새 변경 경로(RPC·MCP·직접 update)를 만들어도 기록은 따라온다 — **RPC 안에 로그 insert 를 넣지 말 것**(중복된다). 한 번의 UPDATE 가 한 줄이고, 등급 이름은 스냅샷으로 박아 둔다(등급이 실삭제돼도 이력이 읽혀야 한다).
+- **PFT 6종목은 1000m 런 → 버피 브로드 점프 50 → 스테이셔너리 런지 100 → 1000m 런 → 핸드 릴리즈 푸시업 30 → 덤벨 스러스터 100** (공식 종목표, 2026-09-14 확인). `pft_results` 의 4·6번 컬럼 이름 `row_ms`·`wallball_ms` 는 **처음에 잘못 지은 옛 이름**이고 실제로는 "두 번째 런"·"덤벨 스러스터"다 — 순서가 고정이라 저장된 값은 유효하니 **컬럼 이름을 고치지 말 것**(RPC 반환 모양이 바뀐다). 표시 이름은 `web/lib/pft.ts` 의 `PFT_STATIONS` 한 곳에서만 정한다.
 - 세션·세그먼트 `id`는 **클라이언트(워치)가 생성한 UUID**. 충돌 키: `sessions(id)` / `session_segments(session_id, seq)` / `erg_samples(segment_id)` — **멱등 업서트** (재전송 안전).
 - **Source of Truth = 서버(Supabase).** 세션 흐름: 워치 생성 → 폰 경유 → 서버 최종 저장.
 - 충돌 정책 = **Last-Write-Wins** (**`client_updated_at`** 기준 — 서버 `updated_at`은 수신 시각이라 판정에 쓰지 않음. 업서트에 `where excluded.client_updated_at > ...` 가드 필수).

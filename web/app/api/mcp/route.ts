@@ -1118,16 +1118,20 @@ const handler = createMcpHandler(
       {
         title: "PFT 기록 추가",
         description:
-          "PFT 결과를 저장한다. total_ms 만 있으면 되고 구간 기록은 선택이다. 순서는 1000m 런 → 버피 브로드 점프 50 → 런지 100 → 1000m 로우 → 푸시업 30 → 월볼 100. 배지는 저장 시점의 나이·scaled 로 서버가 판정한다. 실행 전 기록 내용을 사용자에게 확인받아라.",
+          "PFT 결과를 저장한다. total_ms 만 있으면 되고 구간 기록은 선택이다. 순서는 " +
+          "1000m 런 → 버피 브로드 점프 50 → 스테이셔너리 런지 100 → 1000m 런 → " +
+          "핸드 릴리즈 푸시업 30 → 덤벨 스러스터 100. **구간 필드 이름 두 개는 옛 이름이다** — " +
+          "row_ms 가 4번째(두 번째 1000m 런), wallball_ms 가 6번째(덤벨 스러스터)다. " +
+          "배지는 저장 시점의 나이·scaled 로 서버가 판정한다. 실행 전 기록 내용을 사용자에게 확인받아라.",
         inputSchema: z.object({
           total_ms: z.number().int(),
           tested_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-          run_ms: z.number().int().optional(),
-          burpee_ms: z.number().int().optional(),
-          lunge_ms: z.number().int().optional(),
-          row_ms: z.number().int().optional(),
-          pushup_ms: z.number().int().optional(),
-          wallball_ms: z.number().int().optional(),
+          run_ms: z.number().int().optional().describe("1번째 — 1000m 런"),
+          burpee_ms: z.number().int().optional().describe("2번째 — 버피 브로드 점프 50"),
+          lunge_ms: z.number().int().optional().describe("3번째 — 스테이셔너리 런지 100"),
+          row_ms: z.number().int().optional().describe("4번째 — 두 번째 1000m 런 (필드 이름은 옛 이름)"),
+          pushup_ms: z.number().int().optional().describe("5번째 — 핸드 릴리즈 푸시업 30"),
+          wallball_ms: z.number().int().optional().describe("6번째 — 덤벨 스러스터 100 (필드 이름은 옛 이름)"),
           scaled: z.boolean().optional(),
           location: z.string().max(80).optional(),
         }),
