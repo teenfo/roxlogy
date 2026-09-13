@@ -136,6 +136,8 @@ const es: Record<DictKey, string> = {
   "pft.race.title": "Carrera PFT",
   "pft.race.board": "Tablero de carrera",
   "pft.race.liveTag": "En vivo",
+  "pft.race.fullscreen": "Pantalla completa",
+  "pft.race.exitFullscreen": "Salir de pantalla completa",
   "pft.race.create": "Crear carrera",
   "pft.race.createDesc": "Crea una carrera presencial y comparte el código. Cada atleta marca inicio y estaciones en su móvil; el tablero muestra posiciones y progreso en vivo.",
   "pft.race.fldTitle": "Nombre",

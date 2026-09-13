@@ -137,6 +137,8 @@ const en = {
   "pft.race.title": "PFT Race",
   "pft.race.board": "Race board",
   "pft.race.liveTag": "Live",
+  "pft.race.fullscreen": "Fullscreen",
+  "pft.race.exitFullscreen": "Exit fullscreen",
   "pft.race.create": "Create race",
   "pft.race.createDesc": "Create an on-site race and share its join code. Athletes tap start and each station on their own phone; the board streams rank and progress.",
   "pft.race.fldTitle": "Race name",

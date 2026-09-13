@@ -136,6 +136,8 @@ const ko: Record<DictKey, string> = {
   "pft.race.title": "PFT 레이스",
   "pft.race.board": "레이스 보드",
   "pft.race.liveTag": "실시간 중계",
+  "pft.race.fullscreen": "전체화면",
+  "pft.race.exitFullscreen": "전체화면 종료",
   "pft.race.create": "레이스 만들기",
   "pft.race.createDesc": "현장 측정용 레이스를 만들고 참가 코드를 공유하세요. 참가자는 각자 폰에서 시작·종목 완료를 찍고, 보드가 순위와 진행을 중계합니다.",
   "pft.race.fldTitle": "레이스 이름",
