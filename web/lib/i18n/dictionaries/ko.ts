@@ -1272,6 +1272,8 @@ const ko: Record<DictKey, string> = {
   "card.readFail": "이 이미지를 읽지 못했습니다. 다른 파일로 해 보세요.",
   "card.privacyNote": "사진은 이 기기 밖으로 나가지 않습니다 — 업로드하거나 저장하지 않습니다.",
   "card.transparentNote": "사진 없이 저장하면 배경이 투명한 PNG 로 나옵니다 — 스토리 배경 위에 그대로 얹을 수 있습니다.",
+  "card.themeDark": "밝은 글자",
+  "card.themeLight": "어두운 글자",
 
   "raceNew.title": "공식 레이스 결과 등록",
   "raceNew.desc": "공식 결과 페이지에서 본인 기록을 확인한 뒤 그대로 옮겨 적으세요.",

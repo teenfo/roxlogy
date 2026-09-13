@@ -1283,6 +1283,8 @@ const en = {
   "card.readFail": "Could not read that image. Try another file.",
   "card.privacyNote": "The photo never leaves your device — it is not uploaded or stored anywhere.",
   "card.transparentNote": "With no photo the background stays transparent — the PNG drops straight onto your own background.",
+  "card.themeDark": "Light text",
+  "card.themeLight": "Dark text",
 
   // 레이스 등록
   "raceNew.title": "Register official race result",

@@ -10,6 +10,7 @@ import {
   cardText,
   drawRecordCard,
   type CardRatio,
+  type CardTheme,
   type RecordCardData,
 } from "@/lib/record-card";
 
@@ -34,6 +35,7 @@ export function RecordCardButton({
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [ratio, setRatio] = useState<CardRatio>("9:16");
+  const [theme, setTheme] = useState<CardTheme>("dark");
   const [photo, setPhoto] = useState<ImageBitmap | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,8 +53,8 @@ export function RecordCardButton({
   const redraw = useCallback(() => {
     const c = canvasRef.current;
     if (!c) return;
-    drawRecordCard(c, data, ratio, photo, mark);
-  }, [data, ratio, photo, mark]);
+    drawRecordCard(c, data, ratio, photo, mark, theme);
+  }, [data, ratio, photo, mark, theme]);
 
   // 먼저 한 번 그리고(시스템 글꼴), 필요한 글꼴 조각을 받은 뒤 다시 그린다.
   // 캔버스 텍스트는 unicode-range 서브셋 로딩을 스스로 유발하지 못해서, 카드에 들어갈
@@ -194,6 +196,25 @@ export function RecordCardButton({
             </span>
           </div>
 
+          {/* 글자 밝기 — 밝은 배경·사진에 얹을 거면 라이트 */}
+          <div className="flex items-center gap-1.5">
+            {(["dark", "light"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setTheme(k)}
+                aria-pressed={theme === k}
+                className={`${chip} ${
+                  theme === k
+                    ? "bg-accent text-background"
+                    : "bg-background text-muted hover:text-foreground"
+                }`}
+              >
+                {t(k === "dark" ? "card.themeDark" : "card.themeLight")}
+              </button>
+            ))}
+          </div>
+
           <div className="flex justify-center rounded-md bg-background p-3">
             <canvas
               ref={canvasRef}
@@ -207,7 +228,9 @@ export function RecordCardButton({
                   ? undefined
                   : {
                       backgroundImage:
-                        "repeating-conic-gradient(#2b2b2b 0% 25%, #1b1b1b 0% 50%)",
+                        theme === "light"
+                          ? "repeating-conic-gradient(#e8e8e6 0% 25%, #cfcfcc 0% 50%)"
+                          : "repeating-conic-gradient(#2b2b2b 0% 25%, #1b1b1b 0% 50%)",
                       backgroundSize: "18px 18px",
                     }
               }

@@ -13,6 +13,10 @@
 
 export type CardRatio = "9:16" | "1:1";
 
+/** 밝은 배경에 얹을 거면 "light" — 글자를 어둡게 바꾸고 사진 스크림도 흰색으로 깐다.
+ *  투명 배경 카드는 어디에 얹힐지 알 수 없어서 두 벌이 필요하다(2026-09-14). */
+export type CardTheme = "dark" | "light";
+
 export const CARD_SIZE: Record<CardRatio, { w: number; h: number }> = {
   "9:16": { w: 1080, h: 1920 },
   "1:1": { w: 1080, h: 1080 },
@@ -47,7 +51,41 @@ export type RecordCardData = {
 const CHALK = "#F4F4F2";
 const BLACK = "#141414";
 const YELLOW = "#FFD500";
-const MUTED = "rgba(244,244,242,0.62)";
+
+type Palette = {
+  /** 본문 글자 */
+  ink: string;
+  /** 부제·구간 라벨 */
+  muted: string;
+  /** 강조 글자(종목·큰 기록 라벨). 라이트에서는 흰 바탕에 Race Yellow 가 읽히지 않아
+   *  앱이 이미 쓰고 있는 어두운 금색을 쓴다. */
+  accent: string;
+  /** 구간 칩 바탕 */
+  chip: string;
+  /** 글자 그림자 — 배경이 어떤 색일지 모르니 반대색으로 윤곽만 잡는다 */
+  shadow: string;
+  /** 사진 위 스크림의 바탕색 (r,g,b) */
+  scrim: string;
+};
+
+const PALETTE: Record<CardTheme, Palette> = {
+  dark: {
+    ink: CHALK,
+    muted: "rgba(244,244,242,0.62)",
+    accent: YELLOW,
+    chip: "rgba(244,244,242,0.10)",
+    shadow: "rgba(0,0,0,0.55)",
+    scrim: "20,20,20",
+  },
+  light: {
+    ink: BLACK,
+    muted: "rgba(20,20,20,0.58)",
+    accent: "#8a7a2a",
+    chip: "rgba(20,20,20,0.07)",
+    shadow: "rgba(255,255,255,0.7)",
+    scrim: "244,244,242",
+  },
+};
 
 const BADGE_TONE = {
   gold: { bg: "#FFD500", fg: BLACK },
@@ -118,7 +156,9 @@ export function drawRecordCard(
   ratio: CardRatio,
   photo: (CanvasImageSource & { width: number; height: number }) | null,
   mark: CanvasImageSource | null,
+  theme: CardTheme = "dark",
 ) {
+  const pal = PALETTE[theme];
   const { w, h } = CARD_SIZE[ratio];
   canvas.width = w;
   canvas.height = h;
@@ -131,9 +171,9 @@ export function drawRecordCard(
     // 아래쪽 어둡게 — 사진이 밝아도 글자가 읽혀야 한다. 투명 배경에는 걸지 않는다:
     // 검은 반투명이 남아 "투명"이 아니게 된다.
     const scrim = ctx.createLinearGradient(0, h * 0.32, 0, h);
-    scrim.addColorStop(0, "rgba(20,20,20,0)");
-    scrim.addColorStop(0.45, "rgba(20,20,20,0.72)");
-    scrim.addColorStop(1, "rgba(20,20,20,0.96)");
+    scrim.addColorStop(0, `rgba(${pal.scrim},0)`);
+    scrim.addColorStop(0.45, `rgba(${pal.scrim},0.72)`);
+    scrim.addColorStop(1, `rgba(${pal.scrim},0.96)`);
     ctx.fillStyle = scrim;
     ctx.fillRect(0, h * 0.32, w, h * 0.68);
   }
@@ -143,7 +183,7 @@ export function drawRecordCard(
 
   // 글자에 옅은 그림자. 배경이 투명하면 카드가 어디에 얹힐지 알 수 없고(밝은 배경 위면
   // Chalk 글자가 사라진다), 사진도 밝은 부분이 있다. 윤곽만 잡아 주는 정도로 둔다.
-  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowColor = pal.shadow;
   ctx.shadowBlur = 14;
   ctx.shadowOffsetY = 2;
 
@@ -159,7 +199,7 @@ export function drawRecordCard(
       ctx.drawImage(mark, x, y - size, size, size);
       x += size + 14;
     }
-    ctx.fillStyle = CHALK;
+    ctx.fillStyle = pal.ink;
     ctx.font = font(26, 800);
     ctx.fillText("ROXLOGY", x, y - Math.round(size * 0.18));
     y -= size + 26;
@@ -176,10 +216,10 @@ export function drawRecordCard(
       ctx.font = font(22, 500);
       const lw = ctx.measureText(s.label).width;
       if (x + vw + lw + 12 > w - pad) break;
-      ctx.fillStyle = MUTED;
+      ctx.fillStyle = pal.muted;
       ctx.font = font(22, 500);
       ctx.fillText(s.label, x, y);
-      ctx.fillStyle = CHALK;
+      ctx.fillStyle = pal.ink;
       ctx.font = font(26, 700);
       ctx.fillText(s.value, x + lw + 12, y);
       x += lw + vw + 12 + gap;
@@ -202,7 +242,7 @@ export function drawRecordCard(
         const x = pad + i * (cw + gap);
         const shadow = ctx.shadowColor;
         ctx.shadowColor = "transparent";
-        ctx.fillStyle = "rgba(244,244,242,0.10)";
+        ctx.fillStyle = pal.chip;
         roundRect(ctx, x, rowTop, cw, 84, 14);
         ctx.fill();
         if (s.color) {
@@ -213,11 +253,11 @@ export function drawRecordCard(
         ctx.shadowColor = shadow;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
-        ctx.fillStyle = MUTED;
+        ctx.fillStyle = pal.muted;
         const ls = fitText(ctx, s.label, cw - 16, 20, 600);
         ctx.font = font(ls, 600);
         ctx.fillText(s.label, x + cw / 2, rowTop + 18);
-        ctx.fillStyle = CHALK;
+        ctx.fillStyle = pal.ink;
         const vs = fitText(ctx, s.value, cw - 16, 30, 800);
         ctx.font = font(vs, 800);
         ctx.fillText(s.value, x + cw / 2, rowTop + 44);
@@ -233,7 +273,7 @@ export function drawRecordCard(
   ctx.textBaseline = "bottom";
   const mainSize = fitText(ctx, data.mainValue, inner - 220, 148, 800);
   ctx.font = font(mainSize, 800);
-  ctx.fillStyle = CHALK;
+  ctx.fillStyle = pal.ink;
   ctx.fillText(data.mainValue, pad, y);
   const mainWidth = ctx.measureText(data.mainValue).width;
 
@@ -259,7 +299,7 @@ export function drawRecordCard(
 
   // 라벨
   ctx.font = font(26, 600);
-  ctx.fillStyle = YELLOW;
+  ctx.fillStyle = pal.accent;
   ctx.fillText(data.mainLabel, pad, y);
   y -= 42;
 
@@ -267,7 +307,7 @@ export function drawRecordCard(
   if (data.subtitle) {
     const ss = fitText(ctx, data.subtitle, inner, 28, 500);
     ctx.font = font(ss, 500);
-    ctx.fillStyle = MUTED;
+    ctx.fillStyle = pal.muted;
     ctx.fillText(data.subtitle, pad, y);
     y -= 44;
   }
@@ -278,11 +318,11 @@ export function drawRecordCard(
   const kindWidth = ctx.measureText(kind).width;
   const ns = fitText(ctx, data.athlete, inner - kindWidth - 18, 64, 800);
   ctx.font = font(ns, 800);
-  ctx.fillStyle = CHALK;
+  ctx.fillStyle = pal.ink;
   ctx.fillText(data.athlete, pad, y);
   const nameWidth = ctx.measureText(data.athlete).width;
   ctx.font = font(26, 800);
-  ctx.fillStyle = YELLOW;
+  ctx.fillStyle = pal.accent;
   ctx.fillText(kind, pad + nameWidth + 18, y - Math.round(ns * 0.08));
 }
 

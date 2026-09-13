@@ -1276,6 +1276,8 @@ const es: Record<DictKey, string> = {
   "card.readFail": "No se pudo leer esa imagen. Prueba con otro archivo.",
   "card.privacyNote": "La foto nunca sale de tu dispositivo: no se sube ni se guarda en ningún sitio.",
   "card.transparentNote": "Sin foto el fondo queda transparente: el PNG se superpone tal cual a tu propio fondo.",
+  "card.themeDark": "Texto claro",
+  "card.themeLight": "Texto oscuro",
 
   "raceNew.title": "Registrar resultado oficial",
   "raceNew.desc": "Consulta tu marca en la página oficial de resultados y cópiala aquí.",
