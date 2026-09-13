@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { crewRoleBadgeClass, isStaffRole, tierBadgeClass } from "@/lib/crew-role";
+import { Dialog } from "@/components/ui/dialog";
 import type { CrewTier } from "@/components/crew-tier-manage";
 import { duesErrText } from "@/lib/dues-error";
 
@@ -590,6 +591,7 @@ export function CrewMemberManage({
               )}
             </span>
             <span className="flex flex-wrap items-center gap-2">
+              <MemberHistory slug={slug} userId={m.user_id} name={m.display_name} btn={btn} />
               {/* 등급 지정 — 운영진이면 누구나. 등급이 role(정회원/일반회원)까지 맞춘다. */}
               {m.role !== "owner" && (
                 <select
@@ -652,6 +654,153 @@ export function CrewMemberManage({
         </p>
       )}
     </div>
+  );
+}
+
+type ChangeRow = {
+  id: string;
+  changed_at: string;
+  kind: "join" | "change";
+  by_name: string;
+  old_tier_name: string | null;
+  new_tier_name: string | null;
+  old_role: string | null;
+  new_role: string | null;
+  old_status: string | null;
+  new_status: string | null;
+};
+
+/** 회원 한 명의 등급·권한·상태 변경 이력.
+ *  crew_members 트리거가 쌓고(마이그레이션 103) 운영진만 읽는다. 열 때 한 번 받아 온다 —
+ *  목록에 회원이 수십 명이라 미리 받아 두면 그만큼 왕복이 늘어난다. */
+function MemberHistory({
+  slug,
+  userId,
+  name,
+  btn,
+}: {
+  slug: string;
+  userId: string;
+  name: string;
+  btn: string;
+}) {
+  const { t, locale } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<ChangeRow[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function load() {
+    setOpen(true);
+    setErr(null);
+    setRows(null);
+    const { data, error } = await createClient().rpc("crew_member_changes_list", {
+      p_slug: slug,
+      p_user: userId,
+      p_limit: 100,
+    });
+    if (error) return setErr(error.message);
+    if (data && !Array.isArray(data)) {
+      return setErr(String((data as { error?: string }).error ?? "error"));
+    }
+    setRows((data ?? []) as ChangeRow[]);
+  }
+
+  const roleLabel = (r: string | null) =>
+    r === "owner"
+      ? t("crew.roleOwner")
+      : r === "coach"
+        ? t("crew.roleCoach")
+        : r === "associate"
+          ? t("crew.roleAssociate")
+          : r === "member"
+            ? t("crew.roleMember")
+            : "—";
+  const statusLabel = (v: string | null) =>
+    v === "pending"
+      ? t("crew.statusPending")
+      : v === "blocked"
+        ? t("crew.statusBlocked")
+        : v === "active"
+          ? t("crew.statusActive")
+          : "—";
+  const when = (iso: string) =>
+    new Date(iso).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
+
+  return (
+    <>
+      <button onClick={load} className={`${btn} bg-background text-muted`}>
+        {t("crew.memberHistory")}
+      </button>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        label={t("crew.memberHistoryTitle", { name })}
+        closeLabel={t("common.close")}
+        panelClassName="max-w-lg"
+      >
+        <div className="flex w-full flex-col gap-3 rounded-md bg-surface p-4">
+          <p className="text-sm font-semibold">{t("crew.memberHistoryTitle", { name })}</p>
+          {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+          {rows == null && !err && <p className="text-xs text-muted">…</p>}
+          {rows?.length === 0 && (
+            <p className="rounded-md bg-background px-3 py-6 text-center text-xs text-muted">
+              {t("crew.memberHistoryEmpty")}
+            </p>
+          )}
+          {!!rows?.length && (
+            <ol className="flex flex-col gap-2">
+              {rows.map((r) => {
+                const lines: string[] = [];
+                if (r.kind === "join") {
+                  lines.push(
+                    `${t("crew.memberHistoryJoin")}${r.new_tier_name ? ` · ${r.new_tier_name}` : ""}`,
+                  );
+                } else {
+                  if (r.old_tier_name !== r.new_tier_name) {
+                    lines.push(
+                      `${t("crew.memberHistoryTier")} ${r.old_tier_name ?? "—"} → ${r.new_tier_name ?? "—"}`,
+                    );
+                  }
+                  if (r.old_role !== r.new_role) {
+                    lines.push(
+                      `${t("crew.memberHistoryRole")} ${roleLabel(r.old_role)} → ${roleLabel(r.new_role)}`,
+                    );
+                  }
+                  if (r.old_status !== r.new_status) {
+                    lines.push(
+                      `${t("crew.memberHistoryStatus")} ${statusLabel(r.old_status)} → ${statusLabel(r.new_status)}`,
+                    );
+                  }
+                }
+                return (
+                  <li key={r.id} className="rounded-md bg-background px-3 py-2">
+                    {lines.map((l) => (
+                      <p key={l} className="text-sm">
+                        {l}
+                      </p>
+                    ))}
+                    <p className="mt-0.5 text-[11px] text-muted">
+                      {when(r.changed_at)} ·{" "}
+                      {r.by_name
+                        ? t("crew.memberHistoryBy", { name: r.by_name })
+                        : t("crew.memberHistoryAuto")}
+                    </p>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+          <p className="text-[11px] text-muted">{t("crew.memberHistoryNote")}</p>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="self-start rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
+          >
+            {t("common.close")}
+          </button>
+        </div>
+      </Dialog>
+    </>
   );
 }
 
