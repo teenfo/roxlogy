@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 /* Roxlogy 브랜드 팔레트 (docs/PLANNING.md §10.4) — 다크 단일 테마 */
 :root {

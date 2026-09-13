@@ -7,6 +7,18 @@ import type { NextConfig } from "next";
  */
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // 글꼴 조각은 내용이 고정이다(pretendard 1.3.9 를 그대로 옮긴 파일). 기본값이면
+  // 방문할 때마다 재검증 요청이 붙는데, 92개 조각에 그걸 물리면 낭비다.
+  async headers() {
+    return [
+      {
+        source: "/fonts/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -5,7 +5,9 @@ import { useI18n } from "@/components/i18n-provider";
 import { Dialog } from "@/components/ui/dialog";
 import {
   CARD_SIZE,
+  CARD_WEIGHTS,
   cardFileName,
+  cardText,
   drawRecordCard,
   type CardRatio,
   type RecordCardData,
@@ -52,9 +54,27 @@ export function RecordCardButton({
     drawRecordCard(c, data, ratio, photo, mark);
   }, [data, ratio, photo, mark]);
 
+  // 먼저 한 번 그리고(시스템 글꼴), 필요한 글꼴 조각을 받은 뒤 다시 그린다.
+  // 캔버스 텍스트는 unicode-range 서브셋 로딩을 스스로 유발하지 못해서, 카드에 들어갈
+  // 글자를 통째로 넘겨야 그 조각만 받아 온다. 실패해도 시스템 글꼴로 그려질 뿐이다.
   useEffect(() => {
-    if (open) redraw();
-  }, [open, redraw]);
+    if (!open) return;
+    redraw();
+    const fonts = typeof document !== "undefined" ? document.fonts : undefined;
+    if (!fonts) return;
+    let cancelled = false;
+    const text = cardText(data);
+    void Promise.all(
+      CARD_WEIGHTS.map((wt) =>
+        fonts.load(`${wt} 100px "Pretendard Variable"`, text).catch(() => []),
+      ),
+    ).then(() => {
+      if (!cancelled) redraw();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, redraw, data]);
 
   // 닫을 때 비트맵을 놓아준다 — 사진을 메모리에 붙들고 있지 않는다
   function close() {

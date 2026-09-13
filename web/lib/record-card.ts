@@ -5,9 +5,10 @@
  * File → createImageBitmap → canvas → toBlob → objectURL → <a download>.
  * 서버로도 Supabase Storage 로도 보내지 않으므로 네트워크 요청이 아예 없다.
  *
- * 글꼴은 앱과 같은 시스템 스택을 쓴다(자체 호스팅 웹폰트가 없다). 그래서 카드의
- * 글자는 그 기기의 화면에서 보던 그 글꼴로 나온다 — 기기마다 다를 수 있지만,
- * 사용자가 보고 있는 화면과는 항상 일치한다.
+ * 글꼴은 앱과 같은 Pretendard Variable(자체 호스팅, app/fonts.css)이다. 다만 캔버스
+ * 텍스트는 unicode-range 서브셋 로딩을 스스로 유발하지 못하므로, 그리기 전에
+ * cardText() 로 모은 문자열을 document.fonts.load() 에 넘겨 필요한 조각을 먼저
+ * 받아야 한다 — 안 그러면 첫 그림만 시스템 글꼴로 나온다.
  */
 
 export type CardRatio = "9:16" | "1:1";
@@ -54,7 +55,7 @@ const BADGE_TONE = {
   bronze: { bg: "#C98150", fg: BLACK },
 } as const;
 
-/** 앱 본문과 같은 스택 — globals.css 의 --font-sans 와 맞춘다 */
+/** 앱 본문과 같은 스택 — globals.css 의 body font-family 와 맞춘다 */
 const STACK =
   '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", Roboto, sans-serif';
 
@@ -275,6 +276,25 @@ export function drawRecordCard(
   ctx.fillStyle = CHALK;
   ctx.fillText(data.athlete, pad, y);
 }
+
+/** 카드에 그려지는 모든 글자 — document.fonts.load() 에 넘겨 필요한 서브셋만 받는다 */
+export function cardText(data: RecordCardData): string {
+  return [
+    "ROXLOGY",
+    data.kind.toUpperCase(),
+    data.athlete,
+    data.subtitle,
+    data.mainLabel,
+    data.mainValue,
+    data.badge?.text ?? "",
+    ...(data.splits ?? []).flatMap((s) => [s.label, s.value]),
+    ...(data.stats ?? []).flatMap((s) => [s.label, s.value]),
+    "—",
+  ].join(" ");
+}
+
+/** 카드가 쓰는 굵기 — 하나라도 빠지면 그 줄만 시스템 글꼴로 나온다 */
+export const CARD_WEIGHTS = [400, 500, 600, 700, 800] as const;
 
 /** 파일명 — 공백·경로 문자를 지운다 */
 export function cardFileName(data: RecordCardData, ratio: CardRatio): string {
