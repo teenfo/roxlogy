@@ -142,17 +142,11 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             {t("pft.race.board")}
             {data.race.crew && <span className="text-[#8a7a2a]">{data.race.crew}</span>}
           </p>
+          {/* 진행/종료 표시는 상단 바가 맡는다 — 여기에도 두면 한 화면에 두 번 뜬다 */}
           <div className="flex flex-wrap items-center gap-4">
             <h1 className="truncate text-[28px] font-extrabold leading-[1.1] tracking-[-0.02em] md:text-[40px]">
               {data.race.title}
             </h1>
-            <span
-              className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-extrabold ${
-                closed ? "bg-line text-muted" : "bg-success-bg text-success"
-              }`}
-            >
-              {closed ? t("pft.race.ended") : `● ${t("pft.race.open")}`}
-            </span>
           </div>
           <div className="flex flex-wrap items-center gap-x-[18px] gap-y-1.5 text-sm text-muted">
             <span>{dateLine}</span>
