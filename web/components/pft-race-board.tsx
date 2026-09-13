@@ -19,6 +19,7 @@ import {
   segmentMs,
   segmentProgress,
   type BoardData,
+  type RaceEntry,
   type RankedEntry,
 } from "@/lib/pft-race";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
@@ -103,9 +104,16 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   const joinedMe = meId != null && data.entries.some((e) => e.user_id === meId);
   const showCode = data.race.join_open && !closed && !joinedMe;
   const raceHref = `/pft/race/${data.race.code}`;
-  // 좌측 참가자 패널 — 조가 배정돼 있으면 조별로 묶는다(참가 순서는 조 안에서 유지)
-  const entryGroups = groupByWave(data.entries);
+  // 좌측 참가자 패널 — 조가 배정돼 있으면 조별로 묶는다(참가 순서는 조 안에서 유지).
+  // 중도포기(와 종료된 레이스의 미완주)는 조에서 빼서 맨 아래 따로 모은다 — 조 명단은
+  // "아직 뛰고 있거나 앞으로 출발할 사람"을 보는 자리다. 판정은 상단 지표·하단 명단과 같다.
+  const isOut = (e: RaceEntry) => {
+    const st = entryState(e);
+    return st === "dnf" || (closed && st !== "finished");
+  };
+  const entryGroups = groupByWave(data.entries.filter((e) => !isOut(e)));
   const grouped = hasWaves(data.entries);
+  const outEntries = data.entries.filter(isOut);
 
   // 리더보드 페이지 로테이션
   const pages = Math.max(1, Math.ceil(finished.length / PAGE_SIZE));
@@ -269,6 +277,21 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                 })}
               </div>
             ))}
+            {outEntries.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <p className="flex items-center gap-1.5 px-1 text-[11px] font-extrabold tracking-[0.06em] text-danger">
+                  {t("pft.race.dnf")}
+                  <span className="text-[#777]">{outEntries.length}</span>
+                </p>
+                {outEntries.map((e) => (
+                  <div key={e.entry_id} className="flex items-center gap-2 rounded-lg px-2 py-1.5">
+                    <Avatar name={e.name} size={22} />
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-muted">{e.name}</span>
+                    <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-danger" />
+                  </div>
+                ))}
+              </div>
+            )}
             {data.entries.length === 0 && (
               <p className="flex flex-1 items-center justify-center py-8 text-center text-[13px] text-muted">
                 {showCode ? t("pft.race.joinHint", { code: data.race.code }) : "—"}
