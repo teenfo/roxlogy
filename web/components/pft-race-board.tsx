@@ -148,17 +148,6 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           </div>
           <div className="flex flex-wrap items-center gap-x-[18px] gap-y-1.5 text-sm text-muted">
             <span>{dateLine}</span>
-            <span className="hidden text-[#444] md:inline" aria-hidden>
-              |
-            </span>
-            <span className="inline-flex flex-wrap gap-1.5" aria-hidden>
-              {PFT_STATIONS.map((st, i) => (
-                <span key={st.key} className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-[2px]" style={{ background: PFT_COLORS[st.key] }} />
-                  {stationLabel(i)}
-                </span>
-              ))}
-            </span>
           </div>
         </div>
 
@@ -204,6 +193,27 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             </div>
           )}
         </div>
+
+        {/* 종목 카드 — 순서·색·수행 목표를 한 줄에. 색은 아래 스플릿 바와 같은 색이라
+            "지금 노란 구간" 처럼 눈으로 이어진다. 규격은 현장에서 실제로 묻는 값이라 같이 둔다. */}
+        <ol className="grid w-full basis-full grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          {PFT_STATIONS.map((st, i) => {
+            const detail = t(st.detail as DictKey);
+            return (
+              <li
+                key={st.key}
+                className="flex min-w-0 flex-col rounded-xl px-3 py-2 text-[#141414]"
+                style={{ background: PFT_COLORS[st.key] }}
+              >
+                <p className="truncate text-[11px] font-bold tracking-[0.06em] opacity-70">
+                  {i + 1}. {stationLabel(i)}
+                </p>
+                <p className="tabular text-[19px] font-extrabold leading-[1.15]">{t(st.amount as DictKey)}</p>
+                {detail && <p className="mt-0.5 text-[10px] font-semibold leading-[1.25] opacity-70">{detail}</p>}
+              </li>
+            );
+          })}
+        </ol>
       </section>
 
       {/* 2. 하단 그리드 — 참가자(2/12) · 측정 중 · 완주 */}
