@@ -93,29 +93,28 @@ export default async function WorkoutPage({
 
   // 이 WOD의 아이템 중 내가 완료한 것 + 수행 기록 (RLS: 본인 것만 조회됨)
   const itemIds = items.map((it) => it.id);
-  const { data: compRows } = itemIds.length
-    ? await supabase
-        .from("workout_item_completions")
-        .select("item_id, weight_kg, reps, note")
-        .in("item_id", itemIds)
-    : { data: [] as CompRow[] };
+  // 완료 표시와 세트 기록은 서로를 기다릴 이유가 없다 — 순차로 두면 도쿄 왕복이 2회다
+  const [{ data: compRows }, { data: setRows, error: setErr }] = itemIds.length
+    ? await Promise.all([
+        supabase
+          .from("workout_item_completions")
+          .select("item_id, weight_kg, reps, note")
+          .in("item_id", itemIds),
+        supabase
+          .from("workout_item_sets")
+          .select("id, item_id, set_no, reps, weight_kg, distance_m, duration_s")
+          .in("item_id", itemIds)
+          .order("set_no"),
+      ])
+    : [{ data: [] as CompRow[] }, { data: [] as SetDbRow[], error: null }];
+  // 조회가 실패했는데 "기록 없음"으로 보이면 사용자가 덮어써 잃는다 — 시끄럽게 실패시킨다
+  if (setErr) throw new Error(setErr.message);
   const completions = ((compRows ?? []) as CompRow[]).map((r) => ({
     itemId: r.item_id,
     weightKg: r.weight_kg,
     reps: r.reps,
     note: r.note,
   }));
-
-  // 세트별 수행 기록 (RLS: 본인 것만 조회됨)
-  const { data: setRows, error: setErr } = itemIds.length
-    ? await supabase
-        .from("workout_item_sets")
-        .select("id, item_id, set_no, reps, weight_kg, distance_m, duration_s")
-        .in("item_id", itemIds)
-        .order("set_no")
-    : { data: [] as SetDbRow[], error: null };
-  // 조회가 실패했는데 "기록 없음"으로 보이면 사용자가 덮어써 잃는다 — 시끄럽게 실패시킨다
-  if (setErr) throw new Error(setErr.message);
   const initialSets: ItemSet[] = ((setRows ?? []) as SetDbRow[]).map((r) => ({
     id: r.id,
     itemId: r.item_id,
