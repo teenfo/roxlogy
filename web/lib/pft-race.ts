@@ -26,6 +26,8 @@ export type RaceEntry = {
   total_ms: number | null;
   scaled: boolean;
   badge: string | null;
+  /** 출발 조. null = 미배정 (마이그레이션 100) */
+  wave: number | null;
 };
 
 export type BoardData = { race: RaceInfo; server_now: string; entries: RaceEntry[] };
@@ -44,6 +46,34 @@ export type MyEntry = {
 };
 
 export type EntryState = "waiting" | "running" | "finished";
+
+/** 조별 묶음 — 배정된 조를 번호순으로, 미배정(null)은 맨 뒤에.
+ *  조 안의 순서는 넘겨받은 순서(참가 순서)를 그대로 둔다: 스태프 화면은 카드가 움직이면
+ *  누가 어디 있었는지 놓친다(2026-09-12). */
+export function groupByWave<T extends { wave: number | null }>(
+  rows: T[],
+): { wave: number | null; rows: T[] }[] {
+  const byWave = new Map<number | null, T[]>();
+  for (const r of rows) {
+    const k = r.wave ?? null;
+    const arr = byWave.get(k);
+    if (arr) arr.push(r);
+    else byWave.set(k, [r]);
+  }
+  return [...byWave.entries()]
+    .map(([wave, rs]) => ({ wave, rows: rs }))
+    .sort((a, b) => {
+      if (a.wave === b.wave) return 0;
+      if (a.wave === null) return 1;
+      if (b.wave === null) return -1;
+      return a.wave - b.wave;
+    });
+}
+
+/** 조가 하나라도 배정돼 있는가 — 배정 전에는 조별 UI 를 띄우지 않는다 */
+export function hasWaves(rows: { wave: number | null }[]): boolean {
+  return rows.some((r) => r.wave != null);
+}
 
 export function entryState(e: Pick<RaceEntry, "started_at" | "finished_at">): EntryState {
   if (e.finished_at) return "finished";

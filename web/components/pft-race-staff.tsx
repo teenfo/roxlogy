@@ -7,7 +7,16 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs } from "@/lib/format";
 import { PFT_COLORS, PFT_STATIONS } from "@/lib/pft";
-import { clockNow, entryState, fmtClock, type BoardData, type MyEntry, type RaceEntry } from "@/lib/pft-race";
+import {
+  clockNow,
+  entryState,
+  fmtClock,
+  groupByWave,
+  hasWaves,
+  type BoardData,
+  type MyEntry,
+  type RaceEntry,
+} from "@/lib/pft-race";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 /**
@@ -257,15 +266,37 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     await refetchNow();
   };
 
-  const startWave = async () => {
-    if (!selected.length) return;
-    const j = (await call("pft_race_staff_start", { p_race: raceId, p_entries: selected })) as
+  /** 주어진 엔트리들을 서버 now() 한 값으로 같이 출발시킨다. */
+  const startEntries = async (ids: string[]) => {
+    if (!ids.length) return;
+    const j = (await call("pft_race_staff_start", { p_race: raceId, p_entries: ids })) as
       | { ok?: boolean; started?: number; server_now?: string }
       | null;
     if (!j?.ok) return;
     if (j.server_now) offsetRef.current = Date.parse(j.server_now) - clockNow();
     setSelected([]);
     setNotice(t("pft.race.staffStarted", { n: j.started ?? 0 }));
+    window.setTimeout(() => setNotice(null), 2500);
+    await refetchNow();
+  };
+
+  const startWave = () => startEntries(selected);
+
+  /** 선택한 사람을 조에 넣는다(wave=null 이면 배정 해제). 이미 출발한 사람은 서버가 건너뛴다. */
+  const assignWave = async (wave: number | null) => {
+    if (!selected.length) return;
+    const j = (await call("pft_race_set_wave", {
+      p_race: raceId,
+      p_entries: selected,
+      p_wave: wave,
+    })) as { ok?: boolean; updated?: number } | null;
+    if (!j?.ok) return;
+    setSelected([]);
+    setNotice(
+      wave == null
+        ? t("pft.race.waveCleared", { n: j.updated ?? 0 })
+        : t("pft.race.waveAssigned", { n: j.updated ?? 0, wave }),
+    );
     window.setTimeout(() => setNotice(null), 2500);
     await refetchNow();
   };
@@ -328,6 +359,9 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   // 스태프가 누가 어디 있었는지를 놓친다. 상태는 색·라벨로만 나타낸다.
   const entries = data.entries;
   const waiting = entries.filter((e) => entryState(e) === "waiting");
+  // 아직 출발하지 않은 사람만 조로 묶는다 — 출발한 사람은 조를 바꿀 수 없다(서버도 막는다)
+  const waveGroups = groupByWave(waiting);
+  const grouped = hasWaves(waiting);
   const stationLabel = (i: number) => t(PFT_STATIONS[i].label as DictKey);
 
   return (
@@ -462,6 +496,30 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
             <p className="mt-3 text-sm text-muted">{t("pft.race.staffNoWaiting")}</p>
           ) : (
             <>
+              {/* 조별 출발 — 조가 하나라도 배정돼 있을 때만. 누르면 그 조의 대기자가 함께 출발한다 */}
+              {grouped && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {waveGroups
+                    .filter((g) => g.wave != null)
+                    .map((g) => (
+                      <button
+                        key={g.wave}
+                        type="button"
+                        onClick={() => startEntries(g.rows.map((e) => e.entry_id))}
+                        disabled={busy || closed}
+                        className="flex h-14 items-center justify-between gap-3 rounded-xl border border-line-accent bg-highlight px-4 text-left font-extrabold text-accent transition hover:brightness-125 disabled:opacity-40"
+                      >
+                        <span className="text-base">
+                          {t("pft.race.waveStartGroup", { wave: g.wave!, n: g.rows.length })}
+                        </span>
+                        <span className="min-w-0 truncate text-xs font-semibold text-muted">
+                          {g.rows.map((e) => e.name).join(", ")}
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              )}
+
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <button
                   type="button"
@@ -500,6 +558,11 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                           className="h-5 w-5 accent-accent"
                         />
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{e.name}</span>
+                        {e.wave != null && (
+                          <span className="shrink-0 rounded bg-highlight px-1.5 py-0.5 text-[10px] font-extrabold text-accent">
+                            {t("pft.race.waveN", { n: e.wave })}
+                          </span>
+                        )}
                         {e.scaled && (
                           <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
                             {t("pft.scaledTag")}
@@ -510,6 +573,35 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                   );
                 })}
               </ul>
+              {/* 선택 → 조 배정. 조를 먼저 짜 두고 순서대로 내보내기 위한 것 */}
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-xs font-semibold text-muted">
+                  {t("pft.race.waveAssignTo")}
+                </span>
+                {[1, 2, 3, 4, 5, 6].map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={() => assignWave(w)}
+                    disabled={busy || closed || !selected.length}
+                    className="tabular h-9 w-9 rounded-lg border border-line-strong bg-control text-sm font-extrabold disabled:opacity-40"
+                  >
+                    {w}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => assignWave(null)}
+                  disabled={busy || closed || !selected.length}
+                  className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold text-muted disabled:opacity-40"
+                >
+                  {t("pft.race.waveNone")}
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs text-muted [word-break:keep-all]">
+                {t("pft.race.waveHint")}
+              </p>
+
               <button
                 type="button"
                 onClick={startWave}

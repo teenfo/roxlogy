@@ -8,8 +8,11 @@ import { formatMs } from "@/lib/format";
 import { PFT_COLORS, PFT_CUTOFFS, PFT_STATIONS, badgeClass, badgeDictKey } from "@/lib/pft";
 import {
   avatarColor,
+  entryState,
   fmtClock,
   fmtWallClock,
+  groupByWave,
+  hasWaves,
   initialOf,
   rankEntries,
   segmentMs,
@@ -88,6 +91,9 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   const joinedMe = meId != null && data.entries.some((e) => e.user_id === meId);
   const showCode = data.race.join_open && !closed && !joinedMe;
   const raceHref = `/pft/race/${data.race.code}`;
+  // 좌측 참가자 패널 — 조가 배정돼 있으면 조별로 묶는다(참가 순서는 조 안에서 유지)
+  const entryGroups = groupByWave(data.entries);
+  const grouped = hasWaves(data.entries);
 
   // 리더보드 페이지 로테이션
   const pages = Math.max(1, Math.ceil(finished.length / PAGE_SIZE));
@@ -185,8 +191,66 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
         </div>
       </section>
 
-      {/* 2. 하단 그리드 */}
-      <div className="grid flex-1 gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      {/* 2. 하단 그리드 — 참가자(2/12) · 측정 중 · 완주 */}
+      <div className="grid flex-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,5.5fr)_minmax(0,4.5fr)]">
+        {/* 2-0. 참가자 — 조가 배정돼 있으면 조별로 묶어 보여 준다 */}
+        <section className="flex flex-col overflow-hidden rounded-2xl border border-line bg-card">
+          <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3.5">
+            <p className="flex items-center gap-2 text-[15px] font-extrabold">
+              {t("pft.race.waveEntrants")}
+              <span className={`${pill} bg-line text-muted`}>{data.entries.length}</span>
+            </p>
+          </header>
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+            {entryGroups.map((g) => (
+              <div key={g.wave ?? "none"} className="flex flex-col gap-1.5">
+                {grouped && (
+                  <p className="px-1 text-[11px] font-extrabold tracking-[0.06em] text-[#777]">
+                    {g.wave == null
+                      ? t("pft.race.waveNone")
+                      : t("pft.race.waveN", { n: g.wave })}
+                  </p>
+                )}
+                {g.rows.map((e) => {
+                  const st = entryState(e);
+                  return (
+                    <div
+                      key={e.entry_id}
+                      className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${
+                        st === "running" ? "bg-highlight" : st === "finished" ? "bg-inset" : ""
+                      }`}
+                    >
+                      <Avatar name={e.name} size={22} />
+                      <span
+                        className={`min-w-0 flex-1 truncate text-[13px] ${
+                          st === "waiting" ? "text-muted" : "font-semibold"
+                        }`}
+                      >
+                        {e.name}
+                      </span>
+                      <span
+                        aria-hidden
+                        className={`h-2 w-2 shrink-0 rounded-full ${
+                          st === "finished"
+                            ? "bg-success"
+                            : st === "running"
+                              ? "bg-accent"
+                              : "bg-[#444]"
+                        }`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+            {data.entries.length === 0 && (
+              <p className="flex flex-1 items-center justify-center py-8 text-center text-[13px] text-muted">
+                {showCode ? t("pft.race.joinHint", { code: data.race.code }) : "—"}
+              </p>
+            )}
+          </div>
+        </section>
+
         {/* 2-1. 측정 중 */}
         <section className="flex flex-col overflow-hidden rounded-2xl border border-line bg-card">
           <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
@@ -216,19 +280,10 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             {running.length > RUNNING_MAX && (
               <p className="text-center text-xs text-muted">{t("pft.race.moreRunning", { n: running.length - RUNNING_MAX })}</p>
             )}
-            {waiting.length > 0 && (
-              <div className="mt-auto flex flex-wrap items-center gap-3 rounded-[14px] border border-dashed border-[#333] px-[18px] py-3 text-[13px] text-muted">
-                <span className="font-bold text-[#c9c9c9]">{t("pft.race.waitingRow")}</span>
-                {waiting.slice(0, 6).map((w) => (
-                  <span key={w.entry_id} className="inline-flex items-center gap-1.5">
-                    <Avatar name={w.name} size={22} />
-                    {w.name}
-                  </span>
-                ))}
-                {waiting.length > 6 && <span>+{waiting.length - 6}</span>}
-                {showCode && (
-                  <span className="ml-auto text-[#777]">{t("pft.race.joinHint", { code: data.race.code })}</span>
-                )}
+            {/* 대기자 명단은 왼쪽 참가자 패널이 맡는다 — 여기서는 참가 안내만 */}
+            {showCode && waiting.length > 0 && (
+              <div className="mt-auto rounded-[14px] border border-dashed border-[#333] px-[18px] py-3 text-[13px] text-[#777]">
+                {t("pft.race.joinHint", { code: data.race.code })}
               </div>
             )}
           </div>
