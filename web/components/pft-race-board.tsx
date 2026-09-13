@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { PftBoardTopBar } from "@/components/pft-board-topbar";
 import { formatMs } from "@/lib/format";
 import { PFT_COLORS, PFT_CUTOFFS, PFT_STATIONS, badgeClass, badgeDictKey } from "@/lib/pft";
 import {
@@ -25,7 +26,8 @@ import type { DictKey } from "@/lib/i18n/dictionaries/en";
 /**
  * 공개 레이스 보드 — 현장 TV·프로젝터용(1920×1080 기준). 로그인 없이 코드로 연다.
  * 3분할: 상단 레이스 종합 / 하단 좌 "측정 중" 라이브 카드 / 하단 우 "완주 리더보드".
- * 갱신: Realtime(pft_race_entries 변경)을 "다시 읽으라는 신호"로 쓰고, 5초 폴링을 예비로 둔다.
+ * 갱신: Realtime(pft_race_entries·pft_races 변경)을 "다시 읽으라는 신호"로 쓰고, 5초 폴링을 예비로 둔다.
+ * 상단 바도 이 컴포넌트가 그린다 — 종료 여부가 서버 렌더 값이면 새로고침 전까지 LIVE 로 남는다.
  * 시계: 첫 응답의 server_now 로 오프셋을 재서 진행 중 참가자의 경과가 보드에서 흐른다.
  * 리더보드가 12행을 넘으면 스크롤 대신 8초마다 페이지를 넘긴다(현장 TV는 스크롤할 수 없다).
  */
@@ -68,6 +70,12 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pft_race_entries", filter: `race_id=eq.${raceId}` },
+        () => void refetch(),
+      )
+      // 종료(pft_race_set_status)는 레이스 행만 건드린다 — 엔트리 이벤트가 오지 않으므로 따로 듣는다
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pft_races", filter: `id=eq.${raceId}` },
         () => void refetch(),
       )
       .subscribe();
@@ -116,7 +124,9 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   const pill = "inline-flex h-[22px] items-center rounded-full px-2.5 text-xs font-extrabold";
 
   return (
-    <div className="flex w-full flex-1 flex-col gap-5 px-4 py-4 md:px-7 md:py-6">
+    <>
+      <PftBoardTopBar closed={closed} />
+      <div className="flex w-full flex-1 flex-col gap-5 px-4 py-4 md:px-7 md:py-6">
       {/* 1. 레이스 종합 카드 */}
       <section className="flex flex-wrap items-center gap-6 rounded-2xl border border-line-mid bg-card px-5 py-5 md:px-[26px]">
         <div className="flex min-w-0 flex-1 flex-col gap-2 md:min-w-[320px]">
@@ -267,7 +277,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               </p>
               <span className="hidden text-xs text-[#777] md:inline">{t("pft.race.badgeNote")}</span>
             </header>
-            <div className="grid flex-1 gap-4 p-4 md:grid-cols-3">
+            <div className="grid flex-1 gap-4 overflow-y-auto p-4 md:grid-cols-3">
               {(["gold", "silver", "bronze"] as const).map((b) => {
                 const rowsOf = finished.filter((r) => (r.badge ?? "bronze") === b);
                 return (
@@ -282,16 +292,16 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                       </p>
                     ) : (
                       rowsOf.map((r) => (
-                        <div
-                          key={r.entry_id}
-                          className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg bg-inset px-3 py-2.5"
-                        >
-                          <span className="tabular text-sm font-extrabold text-muted">{r.rank}</span>
-                          <span className="flex min-w-0 items-center gap-2">
-                            <Avatar name={r.name} size={26} />
-                            <span className="min-w-0 truncate text-[15px] font-bold">{r.name}</span>
-                          </span>
-                          <span className="tabular text-base font-extrabold">{formatMs(r.total_ms ?? 0)}</span>
+                        <div key={r.entry_id} className="flex flex-col gap-2 rounded-lg bg-inset px-3 py-2.5">
+                          <div className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2.5">
+                            <span className="tabular text-sm font-extrabold text-muted">{r.rank}</span>
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Avatar name={r.name} size={26} />
+                              <span className="min-w-0 truncate text-[15px] font-bold">{r.name}</span>
+                            </span>
+                            <span className="tabular text-base font-extrabold">{formatMs(r.total_ms ?? 0)}</span>
+                          </div>
+                          <SplitStrip splits={r.splits} stationLabel={stationLabel} />
                         </div>
                       ))
                     )}
@@ -480,7 +490,8 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           {t("pft.race.offline")}
         </p>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -522,6 +533,41 @@ function Avatar({ name, size }: { name: string; size: number }) {
     >
       {initialOf(name)}
     </span>
+  );
+}
+
+/** 완주 카드의 6구간 스플릿 — 종목 색 막대 + 구간 시간.
+ *  종목 이름은 쓰지 않는다: 배지 열은 한 칸이 좁고, 색·순서는 상단 범례가 이미 알려 준다. */
+function SplitStrip({
+  splits,
+  stationLabel,
+}: {
+  splits: number[];
+  stationLabel: (i: number) => string;
+}) {
+  return (
+    <div className="grid grid-cols-6 gap-1">
+      {PFT_STATIONS.map((st, i) => {
+        const ms = segmentMs(splits, i);
+        return (
+          <div key={st.key} className="flex flex-col gap-1" title={stationLabel(i)}>
+            <span
+              aria-hidden
+              className="h-[3px] rounded-full"
+              style={{ background: PFT_COLORS[st.key], opacity: ms == null ? 0.25 : 1 }}
+            />
+            <span
+              className={`tabular truncate text-center text-[11px] font-bold ${
+                ms == null ? "text-[#555]" : "text-[#c9c9c9]"
+              }`}
+            >
+              <span className="sr-only">{stationLabel(i)} </span>
+              {ms != null ? formatMs(ms) : "—"}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

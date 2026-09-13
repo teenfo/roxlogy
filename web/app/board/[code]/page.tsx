@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PftRaceBoard } from "@/components/pft-race-board";
-import { PftBoardTopBar } from "@/components/pft-board-topbar";
 import type { BoardData } from "@/lib/pft-race";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
@@ -25,7 +24,7 @@ export default async function BoardPage({ params }: { params: Promise<{ code: st
 
   return (
     <div className="flex min-h-dvh flex-col bg-page text-foreground">
-      <PftBoardTopBar closed={board.race.status === "closed"} />
+      {/* 상단 바는 보드 컴포넌트가 그린다 — 종료 표시가 Realtime 으로 같이 바뀌어야 한다 */}
       <PftRaceBoard initial={board} meId={auth.user?.id ?? null} />
     </div>
   );
