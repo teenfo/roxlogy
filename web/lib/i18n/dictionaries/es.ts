@@ -1266,6 +1266,15 @@ const es: Record<DictKey, string> = {
   "races.segDistNote":
     "Posición dentro del campo de {field} atletas, aproximada como curva normal según tu puesto de split.",
   "common.close": "Cerrar",
+  "card.open": "Tarjeta",
+  "card.title": "Descargar tarjeta de resultado",
+  "card.pickPhoto": "Elegir foto",
+  "card.changePhoto": "Cambiar foto",
+  "card.removePhoto": "Quitar foto",
+  "card.download": "Descargar PNG",
+  "card.previewAlt": "Vista previa de la tarjeta",
+  "card.readFail": "No se pudo leer esa imagen. Prueba con otro archivo.",
+  "card.privacyNote": "La foto nunca sale de tu dispositivo: no se sube ni se guarda en ningún sitio.",
 
   "raceNew.title": "Registrar resultado oficial",
   "raceNew.desc": "Consulta tu marca en la página oficial de resultados y cópiala aquí.",

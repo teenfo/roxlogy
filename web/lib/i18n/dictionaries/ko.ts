@@ -1262,6 +1262,15 @@ const ko: Record<DictKey, string> = {
   "races.segDistNote":
     "스플릿 순위를 정규분포로 근사한 필드({field}명) 내 위치입니다.",
   "common.close": "닫기",
+  "card.open": "기록지",
+  "card.title": "기록지 내려받기",
+  "card.pickPhoto": "사진 고르기",
+  "card.changePhoto": "사진 바꾸기",
+  "card.removePhoto": "사진 빼기",
+  "card.download": "PNG 내려받기",
+  "card.previewAlt": "기록지 미리보기",
+  "card.readFail": "이 이미지를 읽지 못했습니다. 다른 파일로 해 보세요.",
+  "card.privacyNote": "사진은 이 기기 밖으로 나가지 않습니다 — 업로드하거나 저장하지 않습니다.",
 
   "raceNew.title": "공식 레이스 결과 등록",
   "raceNew.desc": "공식 결과 페이지에서 본인 기록을 확인한 뒤 그대로 옮겨 적으세요.",

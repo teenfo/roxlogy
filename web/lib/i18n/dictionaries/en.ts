@@ -1273,6 +1273,15 @@ const en = {
   "races.segDistNote":
     "Position within the {field}-athlete field, approximated as a normal curve from your split rank.",
   "common.close": "Close",
+  "card.open": "Record card",
+  "card.title": "Download record card",
+  "card.pickPhoto": "Choose photo",
+  "card.changePhoto": "Change photo",
+  "card.removePhoto": "Remove photo",
+  "card.download": "Download PNG",
+  "card.previewAlt": "Record card preview",
+  "card.readFail": "Could not read that image. Try another file.",
+  "card.privacyNote": "The photo never leaves your device — it is not uploaded or stored anywhere.",
 
   // 레이스 등록
   "raceNew.title": "Register official race result",

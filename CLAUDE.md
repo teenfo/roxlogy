@@ -91,6 +91,7 @@ PPR(`cacheComponents`) 도입으로 **정적 셸은 엣지에서 즉시** 나가
 - **supabase 응답의 `error`를 무시하지 말 것** — supabase-js는 실패해도 throw하지 않고 `{error}`로 resolve한다. 확인 없이 성공 UI를 보이면 사용자가 데이터를 잃는다
 - **세션·레이스 등 "내 데이터" 조회에 `user_id` 필터를 빼먹지 말 것** — shared 세션은 RLS로 전체 공개(피드용)라 필터가 없으면 남의 기록이 섞인다
 - **"오늘" 판정에 `new Date()`/`current_date`(UTC)를 쓰지 말 것** — 웹은 `todayMidnightIn(tz)`, DB는 `app_today()`(KST)
+- **기록지(공유 카드)에 올린 사진을 서버·Storage 로 보내지 말 것** — 저장하지 않는 것이 사용자와의 약속이고 화면에도 그렇게 적혀 있다. 합성은 브라우저 canvas 에서만 한다(`lib/record-card.ts`, `components/record-card-button.tsx`).
 - RLS 없이 사용자 데이터 테이블을 만들지 말 것
 - "HYROX" 상표를 앱/패키지명에 직접 쓰지 말 것 (스토어 리젝 위험 — 네이밍 미확정)
 

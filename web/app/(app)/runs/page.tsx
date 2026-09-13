@@ -11,6 +11,8 @@ import {
   type Run,
 } from "@/lib/run";
 import { RunDeleteButton } from "@/components/run-form";
+import { RecordCardButton } from "@/components/record-card-button";
+import type { RecordCardData } from "@/lib/record-card";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -28,7 +30,7 @@ export default async function RunsPage() {
   const supabase = await createClient();
 
   // "내 기록" 이므로 user_id 필터 필수
-  const [{ data, error }, { data: baseline }] = await Promise.all([
+  const [{ data, error }, { data: baseline }, { data: profile }] = await Promise.all([
     supabase
       .from("runs")
       .select(
@@ -40,6 +42,7 @@ export default async function RunsPage() {
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.rpc("run_1k_baseline", { p_as_of: todayISOIn(tz) }),
+    supabase.from("profiles").select("display_name").eq("id", user!.id).maybeSingle(),
   ]);
 
   const rows = (data ?? []) as Run[];
@@ -53,6 +56,28 @@ export default async function RunsPage() {
   const totalM = recent.reduce((a, r) => a + r.distance_m, 0);
   const totalMs = recent.reduce((a, r) => a + r.duration_ms, 0);
   const avgPace = totalM > 0 ? totalMs / totalM : null;
+
+  const athlete = profile?.display_name?.trim() || "Athlete";
+  /** 기록지 — 사진은 브라우저에서만 합성한다(업로드하지 않음) */
+  const cardFor = (r: Run): RecordCardData => ({
+    kind: "RUN",
+    athlete,
+    subtitle: [
+      formatDateShortYear(r.ran_on, tag, tz),
+      `${t(kindLabel(r.kind))} · ${t(surfaceLabel(r.surface))}`,
+      r.incline_pct != null ? `${r.incline_pct}%` : null,
+      r.location || null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    mainLabel: formatDistance(r.distance_m),
+    mainValue: formatMs(r.duration_ms),
+    stats: [
+      { label: t("run.summaryPace"), value: `${formatPace(r.pace_s_per_km)}${t("run.paceUnit")}` },
+      ...(r.avg_hr != null ? [{ label: t("run.avgHr"), value: String(r.avg_hr) }] : []),
+      ...(r.rpe != null ? [{ label: "RPE", value: String(r.rpe) }] : []),
+    ],
+  });
 
   return (
     <main>
@@ -155,6 +180,7 @@ export default async function RunsPage() {
                 </span>
                 <span className="ml-auto flex items-center gap-3 text-xs text-muted">
                   {formatDateShortYear(r.ran_on, tag, tz)}
+                  <RecordCardButton data={cardFor(r)} className="hover:text-accent" />
                   <Link href={`/runs/${r.id}/edit`} className="hover:text-accent">
                     {t("common.edit")}
                   </Link>

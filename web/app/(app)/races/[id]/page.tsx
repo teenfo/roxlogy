@@ -6,6 +6,8 @@ import { getT } from "@/lib/i18n";
 import { formatDate, formatDateOnly, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
+import { RecordCardButton } from "@/components/record-card-button";
+import type { RecordCardData } from "@/lib/record-card";
 import { RaceEditForm } from "@/components/race-edit-form";
 import { PercentileBar } from "@/components/percentile-bar";
 import { RaceToSessionButton } from "@/components/race-to-session-button";
@@ -52,7 +54,7 @@ export default async function RaceDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, tag, tz } = await getT();
+  const { t, tag, tz, locale } = await getT();
 
   const { data: race } = await supabase
     .from("race_results")
@@ -64,7 +66,7 @@ export default async function RaceDetailPage({
   // 필드 대비 백분위 (공개 집계 분포 기준) — 성별은 본인 프로필에서
   const { data: profile } = await supabase
     .from("profiles")
-    .select("gender")
+    .select("gender, display_name")
     .maybeSingle();
   let percentile: number | null = null;
   if (race.division && race.total_time_ms != null) {
@@ -111,6 +113,40 @@ export default async function RaceDetailPage({
   }
 
   const hasStationSplits = Object.keys(splits.stations ?? {}).length > 0;
+
+  /** 기록지 — 사진은 브라우저에서만 합성한다(업로드하지 않음) */
+  const card: RecordCardData = {
+    kind: "RACE",
+    athlete: profile?.display_name?.trim() || "Athlete",
+    subtitle: [
+      race.event_date ? formatDateOnly(race.event_date, tag) : null,
+      race.division ? t(`division.${race.division}` as Parameters<typeof t>[0]) : null,
+      splits.bib ? `BIB ${splits.bib}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    mainLabel: t("compare.total"),
+    mainValue: formatMs(race.total_time_ms),
+    splits: hasStationSplits
+      ? STATIONS.map((st) => ({
+          label: locale === "ko" ? st.nameKo.split(" ")[0] : st.nameEn,
+          value: splits.stations?.[st.key] != null ? formatMs(splits.stations[st.key]) : "—",
+        }))
+      : undefined,
+    stats: [
+      ...(splits.run_total_ms != null
+        ? [{ label: t("kind.run"), value: formatMs(splits.run_total_ms) }]
+        : []),
+      ...(splits.rank_overall != null && splits.field_size != null
+        ? [
+            {
+              label: "RANK",
+              value: `${splits.rank_overall}/${splits.field_size}`,
+            },
+          ]
+        : []),
+    ],
+  };
   const hasAnySplits = hasStationSplits || (splits.runs?.length ?? 0) > 0;
 
   // 세그먼트 히스토리: 내 레이스들의 같은 세그먼트 기록 추이 (모달 그래프)
@@ -170,6 +206,7 @@ export default async function RaceDetailPage({
             totalMs={race.total_time_ms ?? null}
             bib={splits.bib ?? null}
           />
+          <RecordCardButton data={card} />
           <DeleteButton kind="race" id={race.id} redirectTo="/races" />
         </div>
       </div>

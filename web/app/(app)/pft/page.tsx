@@ -14,6 +14,8 @@ import {
 } from "@/lib/pft";
 import { Card } from "@/components/ui/crew-ui";
 import { PftDeleteButton } from "@/components/pft-form";
+import { RecordCardButton } from "@/components/record-card-button";
+import type { RecordCardData } from "@/lib/record-card";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -59,7 +61,7 @@ export default async function PftPage() {
       .eq("status", "active")
       .in("role", ["owner", "coach"])
       .limit(1),
-    supabase.from("profiles").select("is_admin").eq("id", user!.id).maybeSingle(),
+    supabase.from("profiles").select("is_admin, display_name").eq("id", user!.id).maybeSingle(),
   ]);
   type RaceRow = {
     joined_at: string;
@@ -78,6 +80,35 @@ export default async function PftPage() {
     (a, r) => (a == null || r.total_ms < a.total_ms ? r : a),
     null,
   );
+  const athlete = profile?.display_name?.trim() || "Athlete";
+  /** 기록지에 얹을 값 — 사진은 브라우저에서만 합성한다(업로드하지 않음) */
+  const cardFor = (r: PftResult): RecordCardData => ({
+    kind: "PFT",
+    athlete,
+    subtitle: [
+      formatDateShortYear(r.tested_on, tag, tz),
+      r.location || null,
+      r.scaled ? t("pft.scaledTag") : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    mainLabel: t("compare.total"),
+    mainValue: formatMs(r.total_ms),
+    badge: {
+      text: t(badgeDictKey(r.badge)),
+      tone: (r.badge === "gold" || r.badge === "silver" ? r.badge : "bronze") as
+        | "gold"
+        | "silver"
+        | "bronze",
+    },
+    splits: PFT_STATIONS.some((st) => r[st.col] != null)
+      ? PFT_STATIONS.map((st) => ({
+          label: t(st.label),
+          value: r[st.col] != null ? formatMs(r[st.col]) : "—",
+          color: PFT_COLORS[st.key],
+        }))
+      : undefined,
+  });
   const next = best ? toNextBadge(best.total_ms, best.age, best.scaled) : null;
 
   const cuts = cutoffsFor(best?.age ?? null);
@@ -201,6 +232,9 @@ export default async function PftPage() {
               <span className="text-xs text-[#8a7a2a]">
                 {formatDateShortYear(best.tested_on, tag, tz)}
                 {best.age != null && ` · ${t("pft.ageN", { n: best.age })}`}
+              </span>
+              <span className="ml-auto">
+                <RecordCardButton data={cardFor(best)} />
               </span>
             </div>
 

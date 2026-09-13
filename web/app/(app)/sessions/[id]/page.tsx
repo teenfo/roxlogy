@@ -31,6 +31,8 @@ import {
 import { CHART_COLORS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
 import { ShareToggle } from "@/components/share-toggle";
+import { RecordCardButton } from "@/components/record-card-button";
+import type { RecordCardData } from "@/lib/record-card";
 import { FollowButton } from "@/components/follow-button";
 
 const KIND_BADGE: Record<string, string> = {
@@ -124,6 +126,7 @@ export default async function SessionDetailPage({
     .from("sessions")
     .select(
       `id, user_id, shared, started_at, ended_at, total_time_ms, source_device, analysis_status, notes, rpe, division,
+       profiles ( display_name ),
        race_results ( event, event_date, season, division ),
        workout_templates ( id, title, program_days ( day_index, programs ( id, title ) ) ),
        session_metrics ( run_lap_deviation_ms, roxzone_total_ms, pacing_grade ),
@@ -236,6 +239,40 @@ export default async function SessionDetailPage({
     | { event: string | null; event_date: string | null; season: string | null; division: string | null }
     | null
     | undefined;
+
+  const profRaw = (session as { profiles?: unknown }).profiles;
+  const prof = (Array.isArray(profRaw) ? profRaw[0] : profRaw) as
+    | { display_name: string | null }
+    | null
+    | undefined;
+
+  /** 기록지 — 사진은 브라우저에서만 합성한다(업로드하지 않음) */
+  const card: RecordCardData = {
+    kind: race ? t("sessions.race") : t("sessions.typeSim"),
+    athlete: prof?.display_name?.trim() || "Athlete",
+    subtitle: [
+      race?.event || null,
+      formatDate(session.started_at, tag, tz),
+      race?.division ?? session.division
+        ? t(`division.${race?.division ?? session.division}` as Parameters<typeof t>[0])
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    mainLabel: t("compare.total"),
+    mainValue: formatMs(session.total_time_ms),
+    splits: segments
+      .filter((s2) => s2.kind === "station" && s2.split_time_ms != null)
+      .slice(0, 8)
+      .map((s2) => ({
+        label: exName(s2.exercises) ?? `${t("kind.station")} ${s2.seq}`,
+        value: formatMs(s2.split_time_ms),
+      })),
+    stats: [
+      { label: t("kind.run"), value: formatMs(share.runMs) },
+      { label: t("kind.roxzone"), value: formatMs(roxzoneMs) },
+    ],
+  };
 
   const pbMs: number | null =
     ((pbRes.data ?? []) as { total_time_ms: number }[])[0]?.total_time_ms ?? null;
@@ -386,6 +423,10 @@ export default async function SessionDetailPage({
             >
               {t("sessions.edit")}
             </Link>
+            <RecordCardButton
+              data={card}
+              className="flex h-8 items-center rounded-lg border border-line-strong px-3 font-semibold text-foreground/80 hover:border-muted/60"
+            />
             <DeleteButton kind="session" id={session.id} redirectTo="/sessions" />
           </div>
         ) : (
