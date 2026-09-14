@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { CrewLedgerDelete, CrewLedgerForm, type LedgerEntry } from "@/components/crew-ledger-form";
 import { CrewLedgerSettle } from "@/components/crew-ledger-settle";
-import { categoryBadgeClass, categoryDictKey } from "@/lib/ledger-category";
+import { categoryBadgeClass, categoryDictKey, isDuesCategory } from "@/lib/ledger-category";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 /** 러닝 잔액까지 붙인 장부 행 */
@@ -108,11 +108,18 @@ export function CrewLedgerTable({
       day: "numeric",
     });
 
-  /** 묶는 단위는 **회차 + 날짜**다. 회차 키만 보면 여러 날에 걸친 회차(월회비를
-   *  7일에 8명, 13일에 2명 확정한 경우)가 한 줄로 접히면서 7일 돈이 13일로 올라간다.
-   *  장부에서 날짜를 옮기는 건 그냥 틀린 값이다. */
-  const groupKey = (r: LedgerTableRow) =>
-    r.dues_group ? `${r.dues_group}|${r.entry_date}` : null;
+  /** 묶는 단위는 **분류 + 날짜**다.
+   *  - 분류로 묶는다: 장부를 읽을 때 궁금한 건 "그날 장소 대여로 얼마"지 영수증
+   *    한 장 한 장이 아니다. 회비도 월회비·회차비가 따로 분류라 섞이지 않는다.
+   *  - 날짜를 키에 넣는다: 분류만 보면 여러 날에 걸친 것(월회비를 6일에 8명,
+   *    13일에 2명 확정)이 한 줄로 접히면서 6일 돈이 13일로 올라간다. 장부에서
+   *    날짜를 옮기는 건 그냥 틀린 값이다.
+   *  분류가 비었지만 회차 키가 있는 옛 회비 행(마감된 달은 소급하지 않았다)은
+   *  회차 키로 묶어 준다 — 안 그러면 그 달만 낱개로 늘어진다. */
+  const groupKey = (r: LedgerTableRow) => {
+    const axis = r.category ?? r.dues_group;
+    return axis ? `${axis}|${r.entry_date}` : null;
+  };
   const groupCount = new Map<string, number>();
   for (const r of shown) {
     const k = groupKey(r);
@@ -147,10 +154,12 @@ export function CrewLedgerTable({
     for (const r of shown) items.push({ type: "row", row: r });
   }
 
-  /** 회차 제목 — 장부 제목이 "<청구 이름> — <회원 이름>" 이라 앞부분이 회차 이름이다 */
+  /** 묶음 제목은 분류 이름이다. 분류가 없는 옛 회비 행만 장부 제목에서 뽑는다
+   *  — 제목이 "<청구 이름> — <회원 이름>" 꼴이라 앞부분이 회차 이름이다. */
   const groupTitle = (g: Extract<Item, { type: "group" }>) => {
-    const [head] = g.rows[0].title.split(" — ");
-    return head || g.rows[0].title;
+    const head = g.rows[0];
+    if (head.category) return t(categoryDictKey(head.category));
+    return head.title.split(" — ")[0] || head.title;
   };
 
   const cols =
@@ -220,10 +229,24 @@ export function CrewLedgerTable({
             <span className="min-w-0">
               <span className="block truncate text-sm font-semibold">{groupTitle(it)}</span>
               <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#777]">
-                <span className="shrink-0 rounded bg-[#2a2500] px-1.5 py-0.5 text-[10px] font-bold text-[#e0c53a]">
-                  {t("crew.finBadgeDues")}
+                <span
+                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${categoryBadgeClass(
+                    it.rows[0].kind,
+                    it.rows[0].category ?? (it.rows[0].dues_group ? "dues_monthly" : null),
+                  )}`}
+                >
+                  {it.rows[0].kind === "income"
+                    ? t("crew.finKindIncome")
+                    : t("crew.finKindExpense")}
                 </span>
-                <span>{t("crew.finGroupOf", { n: it.rows.length })}</span>
+                <span>
+                  {t(
+                    isDuesCategory(it.rows[0].category) || it.rows[0].dues_group
+                      ? "crew.finGroupOf"
+                      : "crew.finGroupOfN",
+                    { n: it.rows.length },
+                  )}
+                </span>
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1.5 sm:contents">
@@ -231,8 +254,13 @@ export function CrewLedgerTable({
                   (회원 한 명씩 월회비→회차비 순으로 확정하면 실제로 그렇다) 한 줄에
                   걸어 둘 "이 시점의 잔액"이라는 게 없다. 낱개로 펴면 행마다 보인다. */}
               <span className="text-right sm:block">
-                <span className="tabular block text-sm font-bold text-success">
-                  +{won(it.amount)}
+                <span
+                  className={`tabular block text-sm font-bold ${
+                    it.rows[0].kind === "income" ? "text-success" : ""
+                  }`}
+                >
+                  {it.rows[0].kind === "income" ? "+" : "−"}
+                  {won(it.amount)}
                 </span>
                 <span className="block text-[11px] text-[#777]">{t("crew.finGroupNoBalance")}</span>
               </span>

@@ -8,7 +8,7 @@ import type { DictKey } from "@/lib/i18n/dictionaries/en";
  * 여기 목록을 늘리면 마이그레이션도 같이 늘려야 한다.
  */
 export const LEDGER_CATEGORIES = {
-  income: ["dues", "sponsor", "carryover"],
+  income: ["dues_monthly", "dues_session", "dues_other", "sponsor", "carryover"],
   expense: ["venue", "snack", "gear", "race", "other"],
 } as const;
 
@@ -30,8 +30,13 @@ export function categoryDictKey(category: string): DictKey {
  * 카테고리마다 다른 색을 주면 표가 알록달록해져 오히려 안 읽힌다.
  * 색으로 나누는 건 지출 구성 바 하나뿐이다.
  */
+/** 회비 분류(월회비·회차비·기타 회비)는 다 같은 딤 옐로다 */
+export function isDuesCategory(category: string | null | undefined): boolean {
+  return category != null && category.startsWith("dues");
+}
+
 export function categoryBadgeClass(kind: string, category: string | null): string {
-  if (category === "dues") return "bg-[#2a2500] text-[#e0c53a]";
+  if (isDuesCategory(category)) return "bg-[#2a2500] text-[#e0c53a]";
   return kind === "income" ? "bg-[#0c2a3a] text-[#7dd3fc]" : "bg-[#2a1a10] text-[#f4a261]";
 }
 
