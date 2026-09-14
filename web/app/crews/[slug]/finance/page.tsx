@@ -454,7 +454,7 @@ export default async function CrewFinancePage({
         <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finIncome")}</p>
           <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-info md:text-[26px]">
-            {won(monthIncome)}
+            +{won(monthIncome)}
           </p>
           <p className="mt-0.5 text-xs text-[#777]">
             {t("crew.finIncomeSub", { dues: won(duesIncome), other: won(otherIncome) })}
@@ -463,7 +463,7 @@ export default async function CrewFinancePage({
         <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finExpense")}</p>
           <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-danger md:text-[26px]">
-            {won(monthExpense)}
+            −{won(monthExpense)}
           </p>
           <p className="mt-0.5 text-xs text-[#777]">
             {t("crew.finEntryN", { n: entries.filter((r) => r.kind === "expense").length })}
