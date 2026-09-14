@@ -5,10 +5,12 @@ import { isFullMember } from "@/lib/crew-types";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { todayISOIn } from "@/lib/format";
+import { categoryDictKey } from "@/lib/ledger-category";
 import { CrewLedgerForm } from "@/components/crew-ledger-form";
 import { CrewDuesMatrix, type BoardCharge } from "@/components/crew-dues-check";
 import { CrewLedgerTable, type LedgerTableRow } from "@/components/crew-ledger-table";
 import { CrewFinanceExport } from "@/components/crew-finance-export";
+import { CrewExpenseMix } from "@/components/crew-expense-mix";
 import { Card } from "@/components/ui/crew-ui";
 import { CrewBankOpening } from "@/components/crew-bank-opening";
 import { CrewMonthClose } from "@/components/crew-month-close";
@@ -26,6 +28,8 @@ type LedgerRow = {
   method: string | null;
   /** 통장에 찍힌 날. 비어 있으면 아직 통장 미반영 */
   settled_on: string | null;
+  /** 거래 분류(영어 키) — 옛 행은 null */
+  category: string | null;
 };
 
 /** YYYY-MM → [1일, 말일] */
@@ -99,7 +103,7 @@ export default async function CrewFinancePage({
       supabase
         .from("crew_ledger")
         .select(
-          "id, entry_date, kind, amount, title, memo, source, method, settled_on",
+          "id, entry_date, kind, amount, title, memo, source, method, settled_on, category",
         )
         .eq("crew_id", crew.id)
         .gte("entry_date", from)
@@ -392,6 +396,7 @@ export default async function CrewFinancePage({
                 : [
                     t("crew.finColDate"),
                     t("crew.finKindAll"),
+                    t("crew.finCategory"),
                     t("crew.finColDesc"),
                     t("crew.finAmount"),
                     t("crew.finTotalBalance"),
@@ -410,6 +415,7 @@ export default async function CrewFinancePage({
                 : tableRows.map((r) => [
                     r.entry_date,
                     t(r.kind === "income" ? "crew.finKindIncome" : "crew.finKindExpense"),
+                    r.category ? t(categoryDictKey(r.category)) : "",
                     r.title,
                     r.kind === "income" ? r.amount : -r.amount,
                     r.balance,
@@ -534,6 +540,9 @@ export default async function CrewFinancePage({
           {todoCard && <div className="hidden min-[900px]:block">{todoCard}</div>}
           {view === "ledger" && isStaff && !closed && (
             <CrewLedgerForm crewId={crew.id} today={todayISOIn(tz)} trigger="inline" />
+          )}
+          {view === "ledger" && (
+            <CrewExpenseMix rows={entries} periodLabel={monthLabel} />
           )}
           {bankCard}
 

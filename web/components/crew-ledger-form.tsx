@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { Dialog } from "@/components/ui/dialog";
+import { LEDGER_CATEGORIES, categoryDictKey, isValidCategory } from "@/lib/ledger-category";
 
 const input =
   "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
@@ -29,6 +30,8 @@ export type LedgerEntry = {
   method: string | null;
   settled_on: string | null;
   source: string | null;
+  /** 거래 분류(영어 키) — 옛 행은 null */
+  category: string | null;
 };
 
 /**
@@ -66,6 +69,7 @@ export function CrewLedgerForm({
   const [title, setTitle] = useState(entry?.title ?? "");
   const [amount, setAmount] = useState(entry ? String(entry.amount) : "");
   const [memo, setMemo] = useState(entry?.memo ?? "");
+  const [category, setCategory] = useState(entry?.category ?? "");
   // 결제 수단·통장 반영일 — 통장과 대사하려면 이 둘이 있어야 한다.
   // 둘 다 선택이다: 예전처럼 금액만 적고 넘어갈 수 있어야 한다.
   const [method, setMethod] = useState(entry?.method ?? "");
@@ -81,6 +85,7 @@ export function CrewLedgerForm({
       setTitle(entry.title);
       setAmount(String(entry.amount));
       setMemo(entry.memo ?? "");
+      setCategory(entry.category ?? "");
       setMethod(entry.method ?? "");
       setSettledOn(entry.settled_on ?? "");
     }
@@ -106,6 +111,8 @@ export function CrewLedgerForm({
       memo: memo.trim() || null,
       method: method || null,
       settled_on: settledOn || null,
+      // 종류와 짝이 안 맞는 값은 DB 체크 제약에 걸린다 — 보내기 전에 떨군다
+      category: category && isValidCategory(kind, category) ? category : null,
     };
     const { error } = editing
       ? await supabase
@@ -134,6 +141,7 @@ export function CrewLedgerForm({
       setTitle("");
       setAmount("");
       setMemo("");
+      setCategory("");
       setMethod("");
       setSettledOn("");
     }
@@ -156,6 +164,8 @@ export function CrewLedgerForm({
             // 수입으로 바꾸면 "카드"는 목록에서 사라진다 — 남겨 두면
             // 화면에 없는 값이 저장된다
             if (!(METHODS[k] as readonly string[]).includes(method)) setMethod("");
+            // 수입↔지출을 오가면 분류 목록이 통째로 바뀐다 — 남겨 두면 저장 때 떨어진다
+            if (category && !isValidCategory(k, category)) setCategory("");
           }}
         >
           <option value="income">{t("crew.finKindIncome")}</option>
@@ -169,6 +179,22 @@ export function CrewLedgerForm({
           onChange={(e) => setDate(e.target.value)}
           required
         />
+      </div>
+      {/* 분류는 제 줄을 쓴다 — 종류·날짜와 한 줄에 두면 좁은 화면에서 몇 글자만 남는다 */}
+      <select
+        className={input}
+        aria-label={t("crew.finCategory")}
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
+      >
+        <option value="">{t("crew.finCatNone")}</option>
+        {LEDGER_CATEGORIES[kind].map((c) => (
+          <option key={c} value={c}>
+            {t(categoryDictKey(c))}
+          </option>
+        ))}
+      </select>
+      <div className="flex flex-wrap gap-2">
         <input
           type="text"
           inputMode="numeric"

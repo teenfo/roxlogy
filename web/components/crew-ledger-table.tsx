@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { CrewLedgerDelete, CrewLedgerForm, type LedgerEntry } from "@/components/crew-ledger-form";
 import { CrewLedgerSettle } from "@/components/crew-ledger-settle";
+import { categoryBadgeClass, categoryDictKey } from "@/lib/ledger-category";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 /** 러닝 잔액까지 붙인 장부 행 */
@@ -157,18 +158,19 @@ export function CrewLedgerTable({
               {r.source === "dues" ? t("crew.duesEntry", { detail: r.title }) : r.title}
             </span>
             <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#777]">
+              {/* 분류 배지 — 고른 값이 있으면 그걸, 없으면 회비/수입/지출로 떨어진다.
+                  회비 확정으로 생긴 행은 category 가 비어 있어도 회비다. */}
               <span
-                className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                  r.source === "dues"
-                    ? "bg-[#2a2500] text-[#e0c53a]"
-                    : r.kind === "income"
-                      ? "bg-info-bg text-info"
-                      : "bg-danger-bg text-danger"
-                }`}
+                className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${categoryBadgeClass(
+                  r.kind,
+                  r.category ?? (r.source === "dues" ? "dues" : null),
+                )}`}
               >
-                {r.source === "dues"
-                  ? t("crew.finBadgeDues")
-                  : t(r.kind === "income" ? "crew.finKindIncome" : "crew.finKindExpense")}
+                {r.category
+                  ? t(categoryDictKey(r.category))
+                  : r.source === "dues"
+                    ? t("crew.finBadgeDues")
+                    : t(r.kind === "income" ? "crew.finKindIncome" : "crew.finKindExpense")}
               </span>
               {r.method && (
                 <span className="shrink-0 rounded bg-line px-1.5 py-0.5 text-[10px] font-bold text-foreground/75">
