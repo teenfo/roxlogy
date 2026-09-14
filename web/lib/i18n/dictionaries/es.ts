@@ -650,6 +650,8 @@ const es: Record<DictKey, string> = {
   "crew.finCat.race": "Inscripción a carrera",
   "crew.finCat.other": "Otros",
   "crew.finExpenseMix": "Gastos de {period}",
+  "crew.finGroupDues": "Agrupar cuotas",
+  "crew.finGroupOf": "{n} socios · agregado automático",
   "crew.finTabLedger": "Libro",
   "crew.finTabDues": "Cuotas",
   "crew.finIncome": "Ingresos (mes)",

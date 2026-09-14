@@ -652,6 +652,8 @@ const en = {
   "crew.finCat.race": "Race entry",
   "crew.finCat.other": "Other",
   "crew.finExpenseMix": "{period} spending mix",
+  "crew.finGroupDues": "Group dues payments",
+  "crew.finGroupOf": "{n} members · auto-tallied",
   "crew.finTabLedger": "Ledger",
   "crew.finTabDues": "Dues",
   "crew.finIncome": "Income (month)",

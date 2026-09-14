@@ -31,6 +31,8 @@ type LedgerRow = {
   settled_on: string | null;
   /** 거래 분류(영어 키) — 옛 행은 null */
   category: string | null;
+  /** 회비 확정으로 생긴 행의 회차 키 (마이그레이션 108) */
+  dues_group: string | null;
 };
 
 /** YYYY-MM → [1일, 말일] */
@@ -104,7 +106,7 @@ export default async function CrewFinancePage({
       supabase
         .from("crew_ledger")
         .select(
-          "id, entry_date, kind, amount, title, memo, source, method, settled_on, category",
+          "id, entry_date, kind, amount, title, memo, source, method, settled_on, category, dues_group",
         )
         .eq("crew_id", crew.id)
         .gte("entry_date", from)

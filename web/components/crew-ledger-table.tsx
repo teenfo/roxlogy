@@ -11,6 +11,8 @@ import type { DictKey } from "@/lib/i18n/dictionaries/en";
 export type LedgerTableRow = LedgerEntry & {
   /** 이 거래까지 반영된 장부 잔액 — 서버가 전체 거래 기준으로 계산해 온다 */
   balance: number;
+  /** 회비 확정으로 생긴 행의 회차 키 (마이그레이션 108). 손으로 적은 거래는 null */
+  dues_group: string | null;
 };
 
 const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
@@ -78,6 +80,9 @@ export function CrewLedgerTable({
   const { t } = useI18n();
   const [kind, setKind] = useState<"all" | "income" | "expense">("all");
   const [query, setQuery] = useState("");
+  // 회비 입금 묶어 보기 — 21명 월회비를 한 번에 확정하면 장부에 21줄이 생기는데,
+  // 장부를 읽는 사람에게 그건 거래 21건이 아니라 "9월 월회비 21명" 한 건이다.
+  const [grouped, setGrouped] = useState(true);
 
   const q = query.trim().toLowerCase();
   const shown = rows.filter(
@@ -102,6 +107,62 @@ export function CrewLedgerTable({
       month: "numeric",
       day: "numeric",
     });
+
+  /** 회차 키별 행 수 — 두 줄 이상일 때만 묶는다(한 줄은 묶어도 달라지는 게 없다) */
+  const groupCount = new Map<string, number>();
+  for (const r of shown) {
+    if (r.dues_group) groupCount.set(r.dues_group, (groupCount.get(r.dues_group) ?? 0) + 1);
+  }
+  const hasGroups = [...groupCount.values()].some((n) => n > 1);
+
+  /** 표에 그릴 것 — 낱개 행이거나, 같은 회차를 접은 한 줄 */
+  type Item =
+    | { type: "row"; row: LedgerTableRow }
+    | {
+        type: "group";
+        key: string;
+        rows: LedgerTableRow[];
+        amount: number;
+        /** 접은 줄의 잔액은 그 회차의 가장 최근 행 기준 — 한 번에 확정한 건들이라
+         *  같은 날 연속으로 들어가 있어 그 값이 회차 전체를 반영한 잔액이다 */
+        balance: number;
+        date: string;
+      };
+  const items: Item[] = [];
+  if (grouped) {
+    const at = new Map<string, number>();
+    for (const r of shown) {
+      const key = r.dues_group;
+      if (!key || (groupCount.get(key) ?? 0) < 2) {
+        items.push({ type: "row", row: r });
+        continue;
+      }
+      const i = at.get(key);
+      if (i == null) {
+        at.set(key, items.length);
+        items.push({
+          type: "group",
+          key,
+          rows: [r],
+          amount: r.amount,
+          balance: r.balance,
+          date: r.entry_date,
+        });
+      } else {
+        const g = items[i] as Extract<Item, { type: "group" }>;
+        g.rows.push(r);
+        g.amount += r.amount;
+      }
+    }
+  } else {
+    for (const r of shown) items.push({ type: "row", row: r });
+  }
+
+  /** 회차 제목 — 장부 제목이 "<청구 이름> — <회원 이름>" 이라 앞부분이 회차 이름이다 */
+  const groupTitle = (g: Extract<Item, { type: "group" }>) => {
+    const [head] = g.rows[0].title.split(" — ");
+    return head || g.rows[0].title;
+  };
 
   const cols =
     "grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2.5 sm:grid-cols-[44px_minmax(0,1fr)_120px_28px] sm:gap-3";
@@ -128,6 +189,17 @@ export function CrewLedgerTable({
           {seg("income", t("crew.finKindIncome"), rows.filter((r) => r.kind === "income").length)}
           {seg("expense", t("crew.finKindExpense"), rows.filter((r) => r.kind === "expense").length)}
         </div>
+        {hasGroups && (
+          <label className="flex cursor-pointer items-center gap-1.5 text-[13px] text-muted hover:text-foreground">
+            <input
+              type="checkbox"
+              checked={grouped}
+              onChange={(e) => setGrouped(e.target.checked)}
+              className="h-4 w-4 cursor-pointer accent-accent"
+            />
+            {t("crew.finGroupDues")}
+          </label>
+        )}
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -146,58 +218,88 @@ export function CrewLedgerTable({
         <span />
       </div>
 
-      {shown.map((r) => (
-        <div key={r.id} className={`${cols} border-b border-[#1c1c1c] px-[18px] py-2.5 hover:bg-card-hover`}>
+      {items.map((it) =>
+        it.type === "group" ? (
+          <div
+            key={it.key}
+            className={`${cols} border-b border-[#1c1c1c] px-[18px] py-2.5 hover:bg-card-hover`}
+          >
+            <span className="flex shrink-0 items-baseline gap-1 sm:flex-col sm:gap-0">
+              <strong className="tabular text-sm font-extrabold">{day(it.date)}</strong>
+              <span className="text-xs text-[#666]">{weekday(it.date)}</span>
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">{groupTitle(it)}</span>
+              <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#777]">
+                <span className="shrink-0 rounded bg-[#2a2500] px-1.5 py-0.5 text-[10px] font-bold text-[#e0c53a]">
+                  {t("crew.finBadgeDues")}
+                </span>
+                <span>{t("crew.finGroupOf", { n: it.rows.length })}</span>
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1.5 sm:contents">
+              <span className="text-right sm:block">
+                <span className="tabular block text-sm font-bold text-success">
+                  +{won(it.amount)}
+                </span>
+                <span className="tabular block text-[11px] text-[#777]">{won(it.balance)}</span>
+              </span>
+              {/* 묶은 줄은 고칠 수 없다 — 개별 행을 고치려면 체크를 끈다 */}
+              <span className="hidden sm:block" />
+            </span>
+          </div>
+        ) : (
+        <div key={it.row.id} className={`${cols} border-b border-[#1c1c1c] px-[18px] py-2.5 hover:bg-card-hover`}>
           <span className="flex shrink-0 items-baseline gap-1 sm:flex-col sm:gap-0">
-            <strong className="tabular text-sm font-extrabold">{day(r.entry_date)}</strong>
-            <span className="text-xs text-[#666]">{weekday(r.entry_date)}</span>
+            <strong className="tabular text-sm font-extrabold">{day(it.row.entry_date)}</strong>
+            <span className="text-xs text-[#666]">{weekday(it.row.entry_date)}</span>
           </span>
 
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold">
-              {r.source === "dues" ? t("crew.duesEntry", { detail: r.title }) : r.title}
+              {it.row.source === "dues" ? t("crew.duesEntry", { detail: it.row.title }) : it.row.title}
             </span>
             <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#777]">
               {/* 분류 배지 — 고른 값이 있으면 그걸, 없으면 회비/수입/지출로 떨어진다.
                   회비 확정으로 생긴 행은 category 가 비어 있어도 회비다. */}
               <span
                 className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${categoryBadgeClass(
-                  r.kind,
-                  r.category ?? (r.source === "dues" ? "dues" : null),
+                  it.row.kind,
+                  it.row.category ?? (it.row.source === "dues" ? "dues" : null),
                 )}`}
               >
-                {r.category
-                  ? t(categoryDictKey(r.category))
-                  : r.source === "dues"
+                {it.row.category
+                  ? t(categoryDictKey(it.row.category))
+                  : it.row.source === "dues"
                     ? t("crew.finBadgeDues")
-                    : t(r.kind === "income" ? "crew.finKindIncome" : "crew.finKindExpense")}
+                    : t(it.row.kind === "income" ? "crew.finKindIncome" : "crew.finKindExpense")}
               </span>
-              {r.method && (
+              {it.row.method && (
                 <span className="shrink-0 rounded bg-line px-1.5 py-0.5 text-[10px] font-bold text-foreground/75">
-                  {t(`crew.finMethod.${r.method}` as DictKey)}
+                  {t(`crew.finMethod.${it.row.method}` as DictKey)}
                 </span>
               )}
               {isStaff ? (
                 <CrewLedgerSettle
-                  id={r.id}
-                  entryDate={r.entry_date}
-                  settledOn={r.settled_on}
+                  id={it.row.id}
+                  entryDate={it.row.entry_date}
+                  settledOn={it.row.settled_on}
                   label={
-                    r.settled_on ? t("crew.finSettledOn", { date: shortDate(r.settled_on) }) : null
+                    it.row.settled_on ? t("crew.finSettledOn", { date: shortDate(it.row.settled_on) }) : null
                   }
                 />
               ) : (
                 <span
                   className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                    r.settled_on ? "bg-success-bg text-success" : "bg-label-bg text-label"
+                    it.row.settled_on ? "bg-success-bg text-success" : "bg-label-bg text-label"
                   }`}
                 >
-                  {r.settled_on
-                    ? t("crew.finSettledOn", { date: shortDate(r.settled_on) })
+                  {it.row.settled_on
+                    ? t("crew.finSettledOn", { date: shortDate(it.row.settled_on) })
                     : t("crew.finUnsettledBadge")}
                 </span>
               )}
-              {r.memo && <span className="min-w-0 truncate">{r.memo}</span>}
+              {it.row.memo && <span className="min-w-0 truncate">{it.row.memo}</span>}
             </span>
           </span>
 
@@ -205,25 +307,26 @@ export function CrewLedgerTable({
             <span className="text-right sm:block">
               <span
                 className={`tabular block text-sm font-bold ${
-                  r.kind === "income" ? "text-success" : ""
+                  it.row.kind === "income" ? "text-success" : ""
                 }`}
               >
-                {r.kind === "income" ? "+" : "−"}
-                {won(r.amount)}
+                {it.row.kind === "income" ? "+" : "−"}
+                {won(it.row.amount)}
               </span>
-              <span className="tabular block text-[11px] text-[#777]">{won(r.balance)}</span>
+              <span className="tabular block text-[11px] text-[#777]">{won(it.row.balance)}</span>
             </span>
             {isStaff && !closed ? (
-              <RowMenu label={t("crew.finRowMenu", { title: r.title })}>
-                <CrewLedgerForm crewId={crewId} today={today} entry={r} trigger="menu" />
-                <CrewLedgerDelete id={r.id} variant="menu" />
+              <RowMenu label={t("crew.finRowMenu", { title: it.row.title })}>
+                <CrewLedgerForm crewId={crewId} today={today} entry={it.row} trigger="menu" />
+                <CrewLedgerDelete id={it.row.id} variant="menu" />
               </RowMenu>
             ) : (
               <span className="hidden sm:block" />
             )}
           </span>
         </div>
-      ))}
+        ),
+      )}
 
       {shown.length === 0 && (
         <p className="px-[18px] py-10 text-center text-[13px] text-[#666]">
