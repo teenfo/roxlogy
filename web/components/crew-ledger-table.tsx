@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { CrewLedgerDelete, CrewLedgerForm, type LedgerEntry } from "@/components/crew-ledger-form";
 import { CrewLedgerSettle } from "@/components/crew-ledger-settle";
+import { Dialog } from "@/components/ui/dialog";
 import { categoryBadgeClass, categoryDictKey, isDuesCategory } from "@/lib/ledger-category";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
@@ -83,6 +84,8 @@ export function CrewLedgerTable({
   // 회비 입금 묶어 보기 — 21명 월회비를 한 번에 확정하면 장부에 21줄이 생기는데,
   // 장부를 읽는 사람에게 그건 거래 21건이 아니라 "9월 월회비 21명" 한 건이다.
   const [grouped, setGrouped] = useState(true);
+  /** 세부 내역을 연 묶음의 키 — 접힌 줄을 누르면 안에 뭐가 들었는지 본다 */
+  const [openKey, setOpenKey] = useState<string | null>(null);
 
   const q = query.trim().toLowerCase();
   const shown = rows.filter(
@@ -102,6 +105,12 @@ export function CrewLedgerTable({
   const day = (iso: string) => Number(iso.slice(8, 10));
   const weekday = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString(locale, { weekday: "short" });
+  const fullDate = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString(locale, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   const shortDate = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString(locale, {
       month: "numeric",
@@ -162,6 +171,13 @@ export function CrewLedgerTable({
     return head.title.split(" — ")[0] || head.title;
   };
 
+  /** 모달에 띄울 묶음. 필터가 바뀌어 사라졌으면 null 이라 모달도 닫힌다. */
+  const openGroup = openKey
+    ? (items.find((i) => i.type === "group" && i.key === openKey) as
+        | Extract<Item, { type: "group" }>
+        | undefined)
+    : undefined;
+
   const cols =
     "grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2.5 sm:grid-cols-[44px_minmax(0,1fr)_120px_28px] sm:gap-3";
   const seg = (k: typeof kind, label: string, n: number) => (
@@ -181,6 +197,81 @@ export function CrewLedgerTable({
 
   return (
     <div className="overflow-hidden rounded-[14px] border border-line bg-card">
+      {/* 묶인 줄을 누르면 안에 든 거래를 그대로 펼쳐 보여 준다 — 체크를 끄지 않고도
+          누가·얼마를 확인할 수 있어야 한다. 고치는 건 여전히 낱개 보기에서 한다. */}
+      <Dialog
+        open={!!openGroup}
+        onClose={() => setOpenKey(null)}
+        label={openGroup ? groupTitle(openGroup) : ""}
+        closeLabel={t("common.close")}
+        variant="center"
+        panelClassName="max-w-lg rounded-2xl border border-line bg-card text-foreground"
+      >
+        {openGroup && (
+          <div className="px-5 py-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-[15px] font-extrabold">{groupTitle(openGroup)}</h3>
+              <span
+                className={`tabular text-sm font-bold ${
+                  openGroup.rows[0].kind === "income" ? "text-success" : ""
+                }`}
+              >
+                {openGroup.rows[0].kind === "income" ? "+" : "−"}
+                {won(openGroup.amount)}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-muted">
+              {fullDate(openGroup.date)} ·{" "}
+              {t(
+                isDuesCategory(openGroup.rows[0].category) || openGroup.rows[0].dues_group
+                  ? "crew.finGroupOf"
+                  : "crew.finGroupOfN",
+                { n: openGroup.rows.length },
+              )}
+            </p>
+
+            <ul className="mt-3 flex max-h-[55vh] flex-col gap-1.5 overflow-y-auto">
+              {openGroup.rows.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg bg-inset px-3 py-2"
+                >
+                  {/* 회비 행 제목은 "<청구 이름> — <회원 이름>" 이라 뒷부분이 사람이다.
+                      묶음 제목이 앞부분을 이미 말하고 있으니 여기선 뒤만 남긴다. */}
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">
+                    {r.title.includes(" — ") ? r.title.split(" — ").slice(1).join(" — ") : r.title}
+                  </span>
+                  <span
+                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                      r.settled_on ? "bg-success-bg text-success" : "bg-label-bg text-label"
+                    }`}
+                  >
+                    {r.settled_on
+                      ? t("crew.finSettledOn", { date: shortDate(r.settled_on) })
+                      : t("crew.finUnsettledBadge")}
+                  </span>
+                  <span className="tabular shrink-0 text-[13px] font-bold">{won(r.amount)}</span>
+                  {r.memo && (
+                    <span className="w-full truncate text-[11px] text-[#777]">{r.memo}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <span className="text-xs text-[#777]">{t("crew.finGroupEditHint")}</span>
+              <button
+                type="button"
+                onClick={() => setOpenKey(null)}
+                className="rounded-lg bg-control px-4 py-1.5 text-xs font-semibold"
+              >
+                {t("common.close")}
+              </button>
+            </div>
+          </div>
+        )}
+      </Dialog>
+
       <div className="flex flex-wrap items-center gap-2.5 border-b border-line px-[18px] py-3.5">
         <div className="flex flex-wrap gap-1 rounded-full border border-line-mid bg-page p-[3px]">
           {seg("all", t("crew.finKindAll"), rows.length)}
@@ -218,9 +309,12 @@ export function CrewLedgerTable({
 
       {items.map((it) =>
         it.type === "group" ? (
-          <div
+          <button
             key={it.key}
-            className={`${cols} border-b border-[#1c1c1c] px-[18px] py-2.5 hover:bg-card-hover`}
+            type="button"
+            onClick={() => setOpenKey(it.key)}
+            aria-label={t("crew.finGroupOpen", { title: groupTitle(it) })}
+            className={`${cols} w-full border-b border-[#1c1c1c] px-[18px] py-2.5 text-left hover:bg-card-hover`}
           >
             <span className="flex shrink-0 items-baseline gap-1 sm:flex-col sm:gap-0">
               <strong className="tabular text-sm font-extrabold">{day(it.date)}</strong>
@@ -264,10 +358,11 @@ export function CrewLedgerTable({
                 </span>
                 <span className="block text-[11px] text-[#777]">{t("crew.finGroupNoBalance")}</span>
               </span>
-              {/* 묶은 줄은 고칠 수 없다 — 개별 행을 고치려면 체크를 끈다 */}
-              <span className="hidden sm:block" />
+              <span aria-hidden className="hidden text-right text-[11px] text-[#666] sm:block">
+                ›
+              </span>
             </span>
-          </div>
+          </button>
         ) : (
         <div key={it.row.id} className={`${cols} border-b border-[#1c1c1c] px-[18px] py-2.5 hover:bg-card-hover`}>
           <span className="flex shrink-0 items-baseline gap-1 sm:flex-col sm:gap-0">

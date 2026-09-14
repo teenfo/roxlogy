@@ -655,6 +655,8 @@ const es: Record<DictKey, string> = {
   "crew.finGroupNoBalance": "abre para ver el saldo",
   "crew.finGroupDues": "Agrupar por categoría",
   "crew.finGroupOfN": "{n} apuntes · agregado automático",
+  "crew.finGroupOpen": "Ver el detalle de {title}",
+  "crew.finGroupEditHint": "Desactiva \"Agrupar por categoría\" para editar",
   "crew.finGroupOf": "{n} socios · agregado automático",
   "crew.finTabLedger": "Libro",
   "crew.finTabDues": "Cuotas",

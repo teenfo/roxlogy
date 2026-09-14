@@ -657,6 +657,8 @@ const en = {
   "crew.finGroupNoBalance": "expand for balance",
   "crew.finGroupDues": "Group same category",
   "crew.finGroupOfN": "{n} entries · auto-tallied",
+  "crew.finGroupOpen": "See what is in {title}",
+  "crew.finGroupEditHint": "Uncheck \"Group same category\" to edit",
   "crew.finGroupOf": "{n} members · auto-tallied",
   "crew.finTabLedger": "Ledger",
   "crew.finTabDues": "Dues",

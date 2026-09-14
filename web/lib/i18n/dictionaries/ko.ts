@@ -655,6 +655,8 @@ const ko: Record<DictKey, string> = {
   "crew.finGroupNoBalance": "잔액은 펴서 보기",
   "crew.finGroupDues": "같은 항목 묶어 보기",
   "crew.finGroupOfN": "{n}건 · 자동 집계",
+  "crew.finGroupOpen": "{title} 세부 내역 보기",
+  "crew.finGroupEditHint": "고치려면 \"같은 항목 묶어 보기\"를 끄세요",
   "crew.finGroupOf": "{n}명 · 자동 집계",
   "crew.finTabLedger": "장부",
   "crew.finTabDues": "회비 납부",
