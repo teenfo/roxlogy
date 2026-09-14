@@ -4,11 +4,11 @@ import { getCrew } from "@/lib/crew";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
+import { todayISOIn } from "@/lib/format";
 import { tierBarClass } from "@/lib/crew-role";
 
 import {
   CrewDeleteButton,
-  CrewImageUpload,
   CrewInfoForm,
   CrewMemberManage,
   type ManageMember,
@@ -94,7 +94,7 @@ export default async function CrewManagePage({
     ? (tabParam as Tab)
     : "info";
 
-  const [crew, user, { t }] = await Promise.all([
+  const [crew, user, { t, tz }] = await Promise.all([
     getCrew(slug),
     getCachedUser(),
     getT(),
@@ -137,12 +137,18 @@ export default async function CrewManagePage({
     tab === "programs"
       ? supabase
           .from("crew_program_enrollments")
-          .select("program_id, start_date, end_date, repeat, programs ( title )")
+          .select(
+            "program_id, start_date, end_date, repeat, programs ( title, level, weeks, program_days(count) )",
+          )
           .eq("crew_id", crew.id)
           .order("start_date")
       : Promise.resolve({ data: null }),
+    // 일차 수는 임베드 집계로 가져온다 — 프로그램마다 따로 세면 N+1 이다
     tab === "programs"
-      ? supabase.from("programs").select("id, title").order("created_at")
+      ? supabase
+          .from("programs")
+          .select("id, title, level, weeks, program_days(count)")
+          .order("created_at")
       : Promise.resolve({ data: null }),
     tab === "dues"
       ? supabase
@@ -169,12 +175,21 @@ export default async function CrewManagePage({
   }
   const stats = statRow as CrewStats | null;
 
+  /** program_days(count) 는 [{count: n}] 로 온다 */
+  type DayCount = { count: number }[] | null;
+  const dayCount = (v: DayCount) => v?.[0]?.count ?? 0;
+  type ProgramMeta = {
+    title: string;
+    level: string | null;
+    weeks: number | null;
+    program_days: DayCount;
+  };
   type AttachedRow = {
     program_id: string;
     start_date: string;
     end_date: string | null;
     repeat: boolean;
-    programs: { title: string } | null;
+    programs: ProgramMeta | null;
   };
   const attached: AttachedProgram[] = (
     (attachedRows ?? []) as unknown as AttachedRow[]
@@ -184,6 +199,18 @@ export default async function CrewManagePage({
     end_date: a.end_date,
     repeat: a.repeat === true,
     title: a.programs?.title ?? "—",
+    level: a.programs?.level ?? null,
+    weeks: a.programs?.weeks ?? null,
+    days: dayCount(a.programs?.program_days ?? null),
+  }));
+  const pickable: PickableProgram[] = (
+    (progRows ?? []) as unknown as (Omit<ProgramMeta, "title"> & { id: string; title: string })[]
+  ).map((p) => ({
+    id: p.id,
+    title: p.title,
+    level: p.level,
+    weeks: p.weeks,
+    days: dayCount(p.program_days),
   }));
 
   const tabLabel: Record<Tab, string> = {
@@ -213,43 +240,33 @@ export default async function CrewManagePage({
       {/* ---------------- 크루 정보 ---------------- */}
       {tab === "info" && (
         <>
-          <section>
-            <h2 className="text-base font-extrabold">{t("crew.logoTitle")}</h2>
-            <div className="mt-3">
-              <CrewImageUpload crewId={crew.id} url={row.logo_url} kind="logo" />
-            </div>
-          </section>
+          <CrewInfoForm
+            crew={row}
+            logoUrl={row.logo_url}
+            coverUrl={row.cover_url}
+            memberCount={crew.member_count}
+            postCount={crew.post_count}
+          />
 
-          <section>
-            <h2 className="text-base font-extrabold">{t("crew.coverTitle")}</h2>
-            <div className="mt-3">
-              <CrewImageUpload crewId={crew.id} url={row.cover_url} kind="cover" />
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-base font-extrabold">{t("crew.manageInfo")}</h2>
-            <div className="mt-3 max-w-lg">
-              <CrewInfoForm crew={row} />
-            </div>
-          </section>
-
+          {/* 위험 구역 — 리더만. 접어 둔다: 실수로 누를 자리에 두면 안 된다 */}
           {myRole === "owner" && (
-            <section className="rounded-2xl border border-danger-line bg-danger-card px-5 py-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-[15px] font-extrabold text-danger">
-                    {t("crew.dangerZone")}
-                  </h2>
-                  <p className="mt-1 text-[13px] text-muted">
-                    {t("crew.deleteCrewDesc")}
-                  </p>
-                </div>
-                <div className="ml-auto shrink-0">
-                  <CrewDeleteButton crewId={crew.id} />
-                </div>
+            <details className="overflow-hidden rounded-[14px] border border-danger-line">
+              <summary className="flex cursor-pointer list-none items-center gap-2 bg-danger-card px-[18px] py-3">
+                <span className="text-sm font-extrabold text-danger">
+                  {t("crew.dangerZone")}
+                </span>
+                <span className="text-xs text-muted">{t("crew.deleteCrew")}</span>
+                <span aria-hidden className="ml-auto text-xs text-muted">
+                  ▼
+                </span>
+              </summary>
+              <div className="flex flex-wrap items-center gap-3 px-[18px] py-3.5">
+                <p className="min-w-0 flex-1 text-[13px] text-muted">
+                  {t("crew.deleteCrewDesc")}
+                </p>
+                <CrewDeleteButton crewId={crew.id} />
               </div>
-            </section>
+            </details>
           )}
         </>
       )}
@@ -398,16 +415,12 @@ export default async function CrewManagePage({
 
       {/* ---------------- 프로그램 ---------------- */}
       {tab === "programs" && (
-        <section>
-          <h2 className="text-base font-extrabold">{t("crew.progAttach")}</h2>
-          <div className="mt-3">
-            <CrewProgramAttach
-              crewId={crew.id}
-              attached={attached}
-              programs={(progRows ?? []) as PickableProgram[]}
-            />
-          </div>
-        </section>
+        <CrewProgramAttach
+          crewId={crew.id}
+          attached={attached}
+          programs={pickable}
+          today={todayISOIn(tz)}
+        />
       )}
     </main>
   );

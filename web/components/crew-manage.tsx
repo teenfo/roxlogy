@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -10,14 +11,55 @@ import { Dialog } from "@/components/ui/dialog";
 import type { CrewTier } from "@/components/crew-tier-manage";
 import { duesErrText } from "@/lib/dues-error";
 
+/** 입력 한 칸 */
 const input =
-  "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
-const label = "mt-4 block text-xs text-muted";
+  "h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
+const area =
+  "w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-accent";
+const fieldLabel = "mb-1.5 block text-xs text-muted";
+const CARD = "rounded-[14px] border border-line bg-card";
+const CARD_HEAD = "border-b border-line px-[18px] py-3.5 text-[15px] font-extrabold";
 
-/** 크루 정보 수정 — 크루명·주소는 변경 불가(표시만). 스태프 전용.
- *  소개 화면에 노출되는 항목(운영시간·문의·공식 링크 = links JSONB)까지 전부 여기서 고친다. */
+/** 라벨 + 입력 한 묶음 */
+function Field({
+  label,
+  hint,
+  right,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  /** 글자 수 같은 우측 보조 표시 */
+  right?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block min-w-0">
+      <span className={`${fieldLabel} flex items-center justify-between gap-2`}>
+        <span className="min-w-0 truncate">{label}</span>
+        {right && <span className="shrink-0 text-[#666]">{right}</span>}
+      </span>
+      {children}
+      {hint && <span className="mt-1 block text-xs text-[#666]">{hint}</span>}
+    </label>
+  );
+}
+
+/**
+ * 크루 정보 수정 — 크루명·주소는 변경 불가(표시만). 스태프 전용.
+ * 소개 화면에 노출되는 항목(운영시간·문의·공식 링크 = links JSONB)까지 전부 여기서 고친다.
+ *
+ * 디자인 시안(2026-09): 14개 필드가 한 줄로 이어지던 폼을 다섯 장의 카드(브랜딩·기본
+ * 정보·활동 정보·크루원 전용·가입/공개)로 묶고, 우측에 **목록 카드 미리보기**를 붙여
+ * 고치는 즉시 `/crews` 에서 어떻게 보일지 알 수 있게 했다. 저장 바는 변경 개수를 센다.
+ * Supabase 업데이트는 그대로다 — links 는 통째로 갈아끼우지 않고 키를 보존해 덮어쓴다.
+ */
 export function CrewInfoForm({
   crew,
+  logoUrl,
+  coverUrl,
+  memberCount,
+  postCount,
 }: {
   crew: {
     id: string;
@@ -30,6 +72,10 @@ export function CrewInfoForm({
     join_policy: "open" | "approval" | "invite";
     is_public: boolean;
   };
+  logoUrl: string | null;
+  coverUrl: string | null;
+  memberCount: number;
+  postCount: number;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -51,19 +97,38 @@ export function CrewInfoForm({
 
   // 하단 저장 바가 "변경 사항 없음"을 정확히 말하려면 원본과 비교해야 한다.
   // 값 비교라 렌더 중 계산해도 안전하다(불순 함수 호출 없음).
-  const dirty =
-    tagline !== (crew.tagline ?? "") ||
-    description !== (crew.description ?? "") ||
-    location !== (crew.location ?? "") ||
-    hoursWeekday !== (links.hours_weekday ?? "") ||
-    hoursWeekend !== (links.hours_weekend ?? "") ||
-    phone !== (links.phone ?? "") ||
-    official !== (links.official ?? "") ||
-    photos !== (links.photos ?? "") ||
-    policy !== (links.policy ?? "") ||
-    bankAccount !== (links.bank_account ?? "") ||
-    joinPolicy !== crew.join_policy ||
-    isPublic !== crew.is_public;
+  const changed: boolean[] = [
+    tagline !== (crew.tagline ?? ""),
+    description !== (crew.description ?? ""),
+    location !== (crew.location ?? ""),
+    hoursWeekday !== (links.hours_weekday ?? ""),
+    hoursWeekend !== (links.hours_weekend ?? ""),
+    phone !== (links.phone ?? ""),
+    official !== (links.official ?? ""),
+    photos !== (links.photos ?? ""),
+    policy !== (links.policy ?? ""),
+    bankAccount !== (links.bank_account ?? ""),
+    joinPolicy !== crew.join_policy,
+    isPublic !== crew.is_public,
+  ];
+  const dirtyCount = changed.filter(Boolean).length;
+  const dirty = dirtyCount > 0;
+
+  function revert() {
+    setTagline(crew.tagline ?? "");
+    setDescription(crew.description ?? "");
+    setLocation(crew.location ?? "");
+    setHoursWeekday(links.hours_weekday ?? "");
+    setHoursWeekend(links.hours_weekend ?? "");
+    setPhone(links.phone ?? "");
+    setOfficial(links.official ?? "");
+    setPhotos(links.photos ?? "");
+    setPolicy(links.policy ?? "");
+    setBankAccount(links.bank_account ?? "");
+    setJoinPolicy(crew.join_policy);
+    setIsPublic(crew.is_public);
+    setMsg(null);
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -100,120 +165,325 @@ export function CrewInfoForm({
     if (!error) router.refresh();
   }
 
+  const POLICIES = [
+    ["open", t("crew.policyOpen"), t("crew.policyOpenDesc")],
+    ["approval", t("crew.policyApproval"), t("crew.policyApprovalDesc")],
+    ["invite", t("crew.policyInvite"), t("crew.policyInviteDesc")],
+  ] as const;
+  const policyBadge =
+    joinPolicy === "open"
+      ? "bg-success-bg text-success"
+      : joinPolicy === "approval"
+        ? "bg-label-bg text-label"
+        : "bg-[#222] text-muted";
+
   return (
-    <form onSubmit={save}>
-      <label className={label}>{t("crew.fName")}</label>
-      <input className={`${input} opacity-50`} value={crew.name} disabled />
-      <p className="mt-1 text-xs text-muted">{t("crew.nameLocked")}</p>
+    <form onSubmit={save} className="grid items-start gap-4 min-[900px]:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="flex flex-col gap-3.5">
+        {/* 1. 브랜딩 — 업로드는 저장 바와 무관하게 즉시 반영된다 */}
+        <section className={CARD}>
+          <h3 className={CARD_HEAD}>{t("crew.infoBranding")}</h3>
+          <div className="flex flex-col gap-5 p-[18px] sm:flex-row sm:items-start">
+            <CrewImageUpload crewId={crew.id} url={logoUrl} kind="logo" />
+            <CrewImageUpload crewId={crew.id} url={coverUrl} kind="cover" />
+          </div>
+        </section>
 
-      <label className={label}>{t("crew.fSlug")}</label>
-      <input className={`${input} opacity-50`} value={`/${crew.slug}`} disabled />
+        {/* 2. 기본 정보 */}
+        <section className={CARD}>
+          <h3 className={CARD_HEAD}>{t("crew.infoBasic")}</h3>
+          <div className="flex flex-col gap-3.5 p-[18px]">
+            <div className="grid gap-3.5 sm:grid-cols-2">
+              <Field label={t("crew.fName")} hint={t("crew.nameLocked")}>
+                <input className={`${input} opacity-50`} value={crew.name} disabled />
+              </Field>
+              <Field label={t("crew.fSlug")}>
+                {/* 접두는 줄지 않고 입력만 줄어야 한다 — 접두에 shrink-0, 입력에 w-0 */}
+                <span className="flex h-10 items-center overflow-hidden rounded-lg border border-line-strong bg-page opacity-50">
+                  <span className="shrink-0 whitespace-nowrap border-r border-line-strong px-2.5 text-xs text-[#555]">
+                    roxlogy.com/crews/
+                  </span>
+                  <input
+                    className="h-full w-0 min-w-0 flex-1 bg-transparent px-2.5 text-sm outline-none"
+                    value={crew.slug}
+                    disabled
+                    aria-label={t("crew.fSlug")}
+                  />
+                </span>
+              </Field>
+            </div>
+            <Field label={t("crew.fTagline")} right={`${tagline.length}/60`}>
+              <input
+                className={input}
+                size={1}
+                value={tagline}
+                onChange={(e) => setTagline(e.target.value)}
+                maxLength={60}
+              />
+            </Field>
+            <Field label={t("crew.fDesc")}>
+              <textarea
+                className={`${area} min-h-24`}
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={2000}
+              />
+            </Field>
+          </div>
+        </section>
 
-      <label className={label}>{t("crew.fTagline")}</label>
-      <input className={input} value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={60} />
+        {/* 3. 활동 정보 */}
+        <section className={CARD}>
+          <h3 className={CARD_HEAD}>{t("crew.infoActivity")}</h3>
+          <div className="flex flex-col gap-3.5 p-[18px]">
+            <Field label={t("crew.fLocation")}>
+              <input
+                className={input}
+                size={1}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                maxLength={60}
+              />
+            </Field>
+            <div className="grid gap-3.5 sm:grid-cols-2">
+              <Field label={t("crew.fHoursWeekday")}>
+                <input
+                  className={input}
+                  size={1}
+                  placeholder={t("crew.hoursPh")}
+                  value={hoursWeekday}
+                  onChange={(e) => setHoursWeekday(e.target.value)}
+                  maxLength={60}
+                />
+              </Field>
+              <Field label={t("crew.fHoursWeekend")}>
+                <input
+                  className={input}
+                  size={1}
+                  placeholder={t("crew.hoursPh")}
+                  value={hoursWeekend}
+                  onChange={(e) => setHoursWeekend(e.target.value)}
+                  maxLength={60}
+                />
+              </Field>
+            </div>
+            <div className="grid gap-3.5 sm:grid-cols-2">
+              <Field label={t("crew.fPhone")}>
+                <input
+                  className={input}
+                  size={1}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  maxLength={60}
+                />
+              </Field>
+              <Field label={t("crew.fOfficial")}>
+                <input
+                  className={input}
+                  size={1}
+                  value={official}
+                  onChange={(e) => setOfficial(e.target.value)}
+                  maxLength={200}
+                  placeholder="https://"
+                  inputMode="url"
+                />
+              </Field>
+            </div>
+          </div>
+        </section>
 
-      <label className={label}>{t("crew.fDesc")}</label>
-      <textarea
-        className={`${input} min-h-24`}
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        maxLength={2000}
-      />
+        {/* 4. 크루원 전용 — 소개 탭에서 크루원에게만 보이는 항목 */}
+        <section className={CARD}>
+          <h3 className={`${CARD_HEAD} flex flex-wrap items-center gap-2`}>
+            {t("crew.infoMembersOnly")}
+            <span className="rounded bg-label-bg px-1.5 py-0.5 text-[10px] font-bold text-label">
+              {t("crew.membersOnlyBadge")}
+            </span>
+          </h3>
+          <div className="flex flex-col gap-3.5 p-[18px]">
+            <Field label={t("crew.fPhotos")} hint={t("crew.fPhotosHint")}>
+              <input
+                className={input}
+                size={1}
+                value={photos}
+                onChange={(e) => setPhotos(e.target.value)}
+                maxLength={500}
+                placeholder="https://photos.app.goo.gl/..."
+                inputMode="url"
+              />
+            </Field>
+            <Field label={t("crew.fBankAccount")}>
+              <input
+                className={input}
+                size={1}
+                value={bankAccount}
+                onChange={(e) => setBankAccount(e.target.value)}
+                maxLength={80}
+                placeholder={t("crew.fBankAccountHint")}
+              />
+            </Field>
+            <Field label={t("crew.fRules")} hint={t("crew.fRulesHint")}>
+              <textarea
+                className={`${area} min-h-24`}
+                rows={4}
+                value={policy}
+                onChange={(e) => setPolicy(e.target.value)}
+                maxLength={2000}
+              />
+            </Field>
+          </div>
+        </section>
 
-      <label className={label}>{t("crew.fLocation")}</label>
-      <input className={input} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={60} />
+        {/* 5. 가입 · 공개 */}
+        <section className={CARD}>
+          <h3 className={CARD_HEAD}>{t("crew.infoJoin")}</h3>
+          <div className="flex flex-col gap-3.5 p-[18px]">
+            <div>
+              <span className={fieldLabel}>{t("crew.fPolicy")}</span>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {POLICIES.map(([v, lbl, desc]) => {
+                  const on = joinPolicy === v;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => setJoinPolicy(v)}
+                      className={`rounded-[10px] border px-3.5 py-3 text-left ${
+                        on ? "border-line-accent bg-highlight" : "border-line bg-page hover:border-muted/40"
+                      }`}
+                    >
+                      <span className={`block text-sm font-bold ${on ? "text-accent" : ""}`}>
+                        {lbl}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-[#777]">{desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div
+              className={`flex items-center gap-3 rounded-[10px] border px-3.5 py-3 ${
+                isPublic ? "border-line-accent bg-highlight" : "border-line bg-page"
+              }`}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold">{t("crew.fPublicShort")}</span>
+                <span className="mt-0.5 block text-xs text-[#777]">{t("crew.fPublicDesc")}</span>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isPublic}
+                aria-label={t("crew.fPublicShort")}
+                onClick={() => setIsPublic((p) => !p)}
+                className={`relative h-[26px] w-11 shrink-0 rounded-full transition-colors ${
+                  isPublic ? "bg-accent" : "bg-[#333]"
+                }`}
+              >
+                <span
+                  className={`absolute top-[3px] h-5 w-5 rounded-full transition-[left] ${
+                    isPublic ? "left-[23px] bg-background" : "left-[3px] bg-muted"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </section>
 
-      <label className={label}>{t("crew.fHoursWeekday")}</label>
-      <input className={input} value={hoursWeekday} onChange={(e) => setHoursWeekday(e.target.value)} maxLength={60} />
-
-      <label className={label}>{t("crew.fHoursWeekend")}</label>
-      <input className={input} value={hoursWeekend} onChange={(e) => setHoursWeekend(e.target.value)} maxLength={60} />
-
-      <label className={label}>{t("crew.fPhone")}</label>
-      <input className={input} value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={60} />
-
-      <label className={label}>{t("crew.fOfficial")}</label>
-      <input
-        className={input}
-        value={official}
-        onChange={(e) => setOfficial(e.target.value)}
-        maxLength={200}
-        placeholder="https://"
-        inputMode="url"
-      />
-
-      <label className={label}>{t("crew.fPhotos")}</label>
-      <input
-        className={input}
-        value={photos}
-        onChange={(e) => setPhotos(e.target.value)}
-        maxLength={500}
-        placeholder="https://photos.app.goo.gl/..."
-        inputMode="url"
-      />
-      <p className="mt-1 text-xs text-muted">{t("crew.fPhotosHint")}</p>
-
-      <label className={label}>{t("crew.fBankAccount")}</label>
-      <input
-        className={input}
-        value={bankAccount}
-        onChange={(e) => setBankAccount(e.target.value)}
-        maxLength={80}
-        placeholder={t("crew.fBankAccountHint")}
-      />
-
-      <label className={label}>{t("crew.fRules")}</label>
-      <textarea
-        className={`${input} min-h-28`}
-        value={policy}
-        onChange={(e) => setPolicy(e.target.value)}
-        maxLength={2000}
-        placeholder={t("crew.fRulesHint")}
-      />
-
-      <label className={label}>{t("crew.fPolicy")}</label>
-      <div className="mt-1 flex gap-2">
-        {(
-          [
-            ["open", t("crew.policyOpen")],
-            ["approval", t("crew.policyApproval")],
-            ["invite", t("crew.policyInvite")],
-          ] as const
-        ).map(([v, lbl]) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setJoinPolicy(v)}
-            className={`rounded-full px-3 py-1.5 text-xs ${
-              joinPolicy === v
-                ? "bg-accent font-bold text-background"
-                : "bg-surface text-muted hover:text-foreground"
+        {/* 하단 저장 바 — 폼이 길어 스크롤 끝까지 내려야 저장 버튼이 나왔다.
+            아래 탭바(모바일)와 겹치지 않도록 띄운다. */}
+        <div className="sticky bottom-0 z-30 -mx-1 flex flex-wrap items-center gap-3 border-t border-line bg-[color-mix(in_srgb,var(--page)_93%,transparent)] px-1 py-3 backdrop-blur max-md:bottom-[84px]">
+          <span
+            aria-hidden
+            className={`h-2 w-2 shrink-0 rounded-full ${
+              dirty ? "bg-accent" : msg ? "bg-success" : "bg-[#444]"
             }`}
-          >
-            {lbl}
-          </button>
-        ))}
+          />
+          <p className={`text-[13px] ${dirty ? "text-accent" : "text-muted"}`}>
+            {dirty ? t("crew.unsavedN", { n: dirtyCount }) : (msg ?? t("crew.noChanges"))}
+          </p>
+          <span className="ml-auto flex items-center gap-2">
+            {dirty && (
+              <button
+                type="button"
+                onClick={revert}
+                disabled={busy}
+                className="h-10 rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+              >
+                {t("crew.revert")}
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={busy || !dirty}
+              className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110 disabled:bg-[#2a2a2a] disabled:text-[#666]"
+            >
+              {busy ? t("common.saving") : t("crew.save")}
+            </button>
+          </span>
+        </div>
       </div>
 
-      <label className="mt-4 flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-        {t("crew.fPublic")}
-      </label>
-
-      {/* 하단 고정 저장 바 — 폼이 길어 스크롤 끝까지 내려야 저장 버튼이 나왔다.
-          아래 탭바(모바일)와 겹치지 않도록 여백을 준다. */}
-      <div className="sticky bottom-0 z-30 -mx-1 mt-6 flex flex-wrap items-center gap-3 border-t border-line bg-[color-mix(in_srgb,var(--page)_93%,transparent)] px-1 py-3 backdrop-blur max-md:bottom-[84px]">
-        <p className="text-[13px] text-muted">
-          {msg ?? (dirty ? t("crew.unsaved") : t("crew.noChanges"))}
-        </p>
-        <button
-          type="submit"
-          disabled={busy || !dirty}
-          className="ml-auto rounded-lg bg-accent px-5 py-2.5 text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+      {/* 우측 — 목록 카드 미리보기. 저장 전 값으로 그려 고치는 즉시 보이게 한다 */}
+      <aside className="order-first flex flex-col gap-3 min-[900px]:order-none min-[900px]:sticky min-[900px]:top-5">
+        <div className={CARD}>
+          <p className="border-b border-line px-[18px] py-3 text-xs text-muted">
+            {t("crew.preview")}
+          </p>
+          <div className="flex flex-col gap-3 p-[18px]">
+            <div className="flex items-start gap-2.5">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+              ) : (
+                <span className="h-10 w-10 shrink-0 rounded-full border border-[#4a4a4a]" />
+              )}
+              <span className="min-w-0">
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <span className="truncate text-[15px] font-extrabold">{crew.name}</span>
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${policyBadge}`}>
+                    {t(
+                      joinPolicy === "open"
+                        ? "crew.policyOpen"
+                        : joinPolicy === "approval"
+                          ? "crew.policyApproval"
+                          : "crew.policyInvite",
+                    )}
+                  </span>
+                </span>
+                <span className="mt-0.5 block truncate text-xs text-[#9a9a9a]">
+                  {[location, hoursWeekend || hoursWeekday].filter(Boolean).join(" · ") || "—"}
+                </span>
+              </span>
+            </div>
+            <p className="line-clamp-2 text-[13px] leading-relaxed text-[#c9c9c9]">
+              {description || tagline || t("crew.previewNoDesc")}
+            </p>
+            <div className="flex items-center gap-2 border-t border-line pt-2.5 text-xs text-[#9a9a9a]">
+              <span>
+                <strong className="tabular text-foreground">{memberCount}</strong>{" "}
+                {t("crew.memberUnit")}
+              </span>
+              <span>
+                <strong className="tabular text-foreground">{postCount}</strong>{" "}
+                {t("crew.postUnit")}
+              </span>
+              <span className={`ml-auto ${isPublic ? "text-success" : "text-[#777]"}`}>
+                {t(isPublic ? "crew.previewPublic" : "crew.previewPrivate")}
+              </span>
+            </div>
+          </div>
+        </div>
+        <Link
+          href={`/crews/${crew.slug}`}
+          className={`${CARD} px-[18px] py-3 text-xs text-accent hover:underline`}
         >
-          {busy ? t("common.saving") : t("crew.save")}
-        </button>
-      </div>
+          {t("crew.openCrewPage")}
+        </Link>
+      </aside>
     </form>
   );
 }
@@ -241,6 +511,14 @@ async function downscaleImage(file: File, maxDim: number): Promise<Blob> {
 
 /** 크루 이미지(로고·커버) 업로드 — 스태프 전용. crew-logos/<crewId>/<kind> 에
  *  업서트하고 해당 컬럼에 캐시버스터(?v=) 붙인 공개 URL 을 저장한다. */
+
+/**
+ * 크루 이미지(로고·커버) 업로드 — 스태프 전용. crew-logos/<crewId>/<kind> 에
+ * 업서트하고 해당 컬럼에 캐시버스터(?v=) 붙인 공개 URL 을 저장한다.
+ *
+ * 브랜딩 카드 안에 들어간다: 로고는 96px 원에 ✎ 배지, 커버는 120px 배너에 "커버 변경"
+ * 버튼을 얹는다. 폼의 저장 바와 무관하게 **고르는 즉시 저장**되므로 안내를 옆에 적는다.
+ */
 export function CrewImageUpload({
   crewId,
   url,
@@ -258,10 +536,6 @@ export function CrewImageUpload({
   const column = kind === "logo" ? "logo_url" : "cover_url";
   // 로고는 정사각 512px, 커버는 가로 1600px 이면 충분하다.
   const maxDim = kind === "logo" ? 512 : 1600;
-  const previewCls =
-    kind === "logo"
-      ? "h-16 w-16 shrink-0 rounded-md object-cover"
-      : "h-24 w-full max-w-72 shrink-0 rounded-md object-cover";
 
   async function upload(file: File) {
     setBusy(true);
@@ -302,48 +576,104 @@ export function CrewImageUpload({
     else router.refresh();
   }
 
-  return (
-    <div className={kind === "logo" ? "flex items-center gap-4" : "flex flex-col gap-3"}>
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="" className={previewCls} />
-      ) : (
-        <div
-          className={`flex items-center justify-center bg-surface text-xs text-muted ${previewCls}`}
-        >
-          {t(kind === "logo" ? "crew.logoNone" : "crew.coverNone")}
-        </div>
-      )}
-      <div>
-        <label className="inline-block cursor-pointer rounded-md bg-surface px-4 py-2 text-sm font-semibold hover:text-accent">
-          {busy ? "…" : t(kind === "logo" ? "crew.logoUpload" : "crew.coverUpload")}
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            disabled={busy}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) upload(f);
-              e.target.value = "";
-            }}
-          />
-        </label>
+  const picker = (children: React.ReactNode, cls: string) => (
+    <label className={cls} title={t(kind === "logo" ? "crew.logoEdit" : "crew.coverChange")}>
+      {children}
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        disabled={busy}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) upload(f);
+          e.target.value = "";
+        }}
+      />
+    </label>
+  );
+
+  if (kind === "logo") {
+    return (
+      <div className="flex shrink-0 flex-col items-center gap-2">
+        {picker(
+          <>
+            <span className="relative block h-24 w-24 cursor-pointer rounded-full border-2 border-[#4a4a4a] hover:border-accent">
+              {url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={url} alt="" className="h-full w-full rounded-full object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center rounded-full text-xs text-muted">
+                  {busy ? "…" : t("crew.logoNone")}
+                </span>
+              )}
+              <span
+                aria-hidden
+                className="absolute -bottom-0.5 -right-0.5 flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] border-card bg-accent text-xs text-background"
+              >
+                ✎
+              </span>
+            </span>
+          </>,
+          "block",
+        )}
+        <span className="text-[11px] text-[#666]">{t("crew.logoSquareHint")}</span>
         {url && (
           <button
             type="button"
             onClick={remove}
             disabled={busy}
-            className="ml-3 text-sm text-muted hover:text-red-400 disabled:opacity-50"
+            className="text-xs text-[#777] hover:text-danger disabled:opacity-50"
           >
             {t("crew.logoRemove")}
           </button>
         )}
-        <p className="mt-1.5 text-xs text-muted">
-          {t(kind === "logo" ? "crew.logoHint" : "crew.coverHint")}
-        </p>
-        {err && <p role="alert" className="mt-1 text-xs text-red-400">{err}</p>}
+        {err && (
+          <p role="alert" className="text-xs text-danger">
+            {err}
+          </p>
+        )}
       </div>
+    );
+  }
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted">{t("crew.coverTitle")}</span>
+        {url && (
+          <button
+            type="button"
+            onClick={remove}
+            disabled={busy}
+            className="text-xs text-[#777] hover:text-danger disabled:opacity-50"
+          >
+            {t("crew.logoRemove")}
+          </button>
+        )}
+      </div>
+      {picker(
+        <span className="relative block h-[120px] w-full cursor-pointer overflow-hidden rounded-[10px] border border-line-strong hover:border-accent">
+          {url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-page text-xs text-muted">
+              {busy ? "…" : t("crew.coverNone")}
+            </span>
+          )}
+          <span className="absolute bottom-2 right-2 flex h-[30px] items-center rounded-lg border border-[#333] bg-[rgba(13,13,13,.85)] px-2.5 text-xs font-semibold">
+            ◫ {t("crew.coverChange")}
+          </span>
+        </span>,
+        "block",
+      )}
+      <span className="text-[11px] text-[#666]">{t("crew.coverBannerHint")}</span>
+      {err && (
+        <p role="alert" className="text-xs text-danger">
+          {err}
+        </p>
+      )}
     </div>
   );
 }
