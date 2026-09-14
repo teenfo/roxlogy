@@ -453,7 +453,7 @@ export default async function CrewFinancePage({
       <section className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
         <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finIncome")}</p>
-          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px]">
+          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-info md:text-[26px]">
             {won(monthIncome)}
           </p>
           <p className="mt-0.5 text-xs text-[#777]">
@@ -462,7 +462,7 @@ export default async function CrewFinancePage({
         </Card>
         <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finExpense")}</p>
-          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px]">
+          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-danger md:text-[26px]">
             {won(monthExpense)}
           </p>
           <p className="mt-0.5 text-xs text-[#777]">
