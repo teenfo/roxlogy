@@ -198,7 +198,7 @@ export function CrewLedgerTable({
   return (
     <div className="overflow-hidden rounded-[14px] border border-line bg-card">
       {/* 묶인 줄을 누르면 안에 든 거래를 그대로 펼쳐 보여 준다 — 체크를 끄지 않고도
-          누가·얼마를 확인할 수 있어야 한다. 고치는 건 여전히 낱개 보기에서 한다. */}
+          누가·얼마를 확인하고 바로 고치거나 지울 수 있어야 한다. */}
       <Dialog
         open={!!openGroup}
         onClose={() => setOpenKey(null)}
@@ -251,6 +251,15 @@ export function CrewLedgerTable({
                       : t("crew.finUnsettledBadge")}
                   </span>
                   <span className="tabular shrink-0 text-[13px] font-bold">{won(r.amount)}</span>
+                  {/* 묶음 안에서 바로 고친다 — 접힌 줄 하나가 사람 21명이라
+                      "펴서 보기"로 돌아가 그 사람을 다시 찾게 하면 손이 너무 많이 간다.
+                      ⋯ 메뉴 대신 아이콘을 쓰는 건 목록이 스크롤되기 때문이다(잘린다). */}
+                  {isStaff && !closed && (
+                    <span className="flex shrink-0 items-center gap-1 self-center">
+                      <CrewLedgerForm crewId={crewId} today={today} entry={r} trigger="icon" />
+                      <CrewLedgerDelete id={r.id} />
+                    </span>
+                  )}
                   {r.memo && (
                     <span className="w-full truncate text-[11px] text-[#777]">{r.memo}</span>
                   )}
@@ -258,8 +267,7 @@ export function CrewLedgerTable({
               ))}
             </ul>
 
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <span className="text-xs text-[#777]">{t("crew.finGroupEditHint")}</span>
+            <div className="mt-4 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setOpenKey(null)}

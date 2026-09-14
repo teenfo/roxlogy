@@ -371,8 +371,14 @@ export function CrewLedgerDelete({
     if (!confirm(t("crew.finDeleteConfirm"))) return;
     setBusy(true);
     const supabase = createClient();
-    await supabase.from("crew_ledger").delete().eq("id", id);
+    // supabase-js 는 실패해도 throw 하지 않는다 — 마감된 달이면 트리거가 막는데
+    // 조용히 넘기면 새로고침 뒤 행이 그대로라 "안 지워졌다"로만 보인다.
+    const { error } = await supabase.from("crew_ledger").delete().eq("id", id);
     setBusy(false);
+    if (error) {
+      alert(t("crew.finDeleteFailed"));
+      return;
+    }
     router.refresh();
   }
 
