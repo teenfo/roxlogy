@@ -5,9 +5,6 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 
-const input =
-  "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
-
 export type DuesAudience = "all" | "member" | "associate";
 
 export type DuesLink = {
@@ -130,176 +127,194 @@ export function CrewDuesLinksManage({
     router.refresh();
   }
 
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="text-xs text-muted">{t("crew.duesHint")}</p>
+  const field =
+    "h-[38px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
+  const pill = (on: boolean) =>
+    `h-7 rounded-full px-2.5 text-xs font-bold ${
+      on ? "bg-accent text-background" : "border border-line-strong bg-control text-muted hover:text-foreground"
+    }`;
+  const iconBtn =
+    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#333] text-xs disabled:opacity-40";
 
-      {items.length > 0 && (
-        <ul className="flex flex-col gap-1.5">
-          {items.map((l) =>
-            editId === l.id ? (
-              <li key={l.id} className="rounded-md bg-surface p-3 ring-1 ring-accent/40">
-                <form onSubmit={saveEdit} className="flex flex-col gap-2">
-                  <input
-                    className={input}
-                    value={eLabel}
-                    onChange={(e) => setELabel(e.target.value)}
-                    placeholder={t("crew.duesLabelPh")}
-                    maxLength={60}
-                  />
-                  <input
-                    className={input}
-                    value={eUrl}
-                    onChange={(e) => setEUrl(e.target.value)}
-                    placeholder={t("crew.duesUrlPh")}
-                    maxLength={500}
-                    inputMode="url"
-                  />
-                  <input
-                    className={input}
-                    value={eAmount}
-                    onChange={(e) => setEAmount(e.target.value)}
-                    placeholder={t("crew.duesAmountPh")}
-                    inputMode="numeric"
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-muted">{t("crew.duesAudience")}</span>
-                    {(["all", "member", "associate"] as const).map((a) => (
-                      <button
-                        key={a}
-                        type="button"
-                        onClick={() => setEAudience(a)}
-                        className={`rounded-full px-3 py-1 text-xs ${
-                          eAudience === a
-                            ? "bg-accent font-bold text-background"
-                            : "bg-background text-muted hover:text-foreground"
-                        }`}
-                      >
-                        {audLabel[a]}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      disabled={busy || !eLabel.trim() || !urlOk(eUrl)}
-                      className="rounded-md bg-accent px-4 py-1.5 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
-                    >
-                      {t("common.save")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditId(null)}
-                      className="rounded-md px-3 py-1.5 text-xs text-muted hover:text-foreground"
-                    >
-                      {t("common.cancel")}
-                    </button>
-                  </div>
-                </form>
-              </li>
-            ) : (
-              <li
-                key={l.id}
-                className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-surface px-3 py-2.5"
-              >
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${audBadge[l.audience]}`}
+  /** 추가·수정이 같은 칸을 쓴다 — 수정은 행이 폼으로 바뀐다 */
+  const fields = (
+    v: { label: string; url: string; amount: string; audience: DuesAudience },
+    on: {
+      label: (x: string) => void;
+      url: (x: string) => void;
+      amount: (x: string) => void;
+      audience: (x: DuesAudience) => void;
+    },
+  ) => (
+    <>
+      <input
+        className={field}
+        value={v.label}
+        onChange={(e) => on.label(e.target.value)}
+        placeholder={t("crew.duesLabelPh")}
+        maxLength={60}
+        aria-label={t("crew.duesLabelPh")}
+      />
+      <div className="grid grid-cols-[minmax(0,1fr)_110px] gap-2">
+        <input
+          className={field}
+          value={v.url}
+          onChange={(e) => on.url(e.target.value)}
+          placeholder={t("crew.duesUrlPh")}
+          maxLength={500}
+          inputMode="url"
+          aria-label={t("crew.duesUrlPh")}
+        />
+        <span className="flex h-[38px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-accent">
+          <span aria-hidden className="px-2 text-xs text-[#666]">
+            ₩
+          </span>
+          <input
+            className="tabular h-full min-w-0 flex-1 border-0 bg-transparent pr-2.5 text-right text-sm outline-none"
+            value={v.amount}
+            onChange={(e) => on.amount(e.target.value)}
+            placeholder={t("crew.duesAmountPh")}
+            inputMode="numeric"
+            aria-label={t("crew.duesAmountPh")}
+          />
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-muted">{t("crew.duesAudience")}</span>
+        {(["all", "member", "associate"] as const).map((a) => (
+          <button
+            key={a}
+            type="button"
+            aria-pressed={v.audience === a}
+            onClick={() => on.audience(a)}
+            className={pill(v.audience === a)}
+          >
+            {audLabel[a]}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="overflow-hidden rounded-[14px] border border-line bg-card">
+      <div className="border-b border-line px-[18px] py-3.5">
+        <p className="text-[15px] font-extrabold">{t("crew.duesTitle")}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-[#777]">{t("crew.duesHint")}</p>
+      </div>
+
+      <div className="flex flex-col">
+        {items.map((l) =>
+          editId === l.id ? (
+            <form
+              key={l.id}
+              onSubmit={saveEdit}
+              className="flex flex-col gap-2.5 border-b border-[#1c1c1c] bg-inset px-[18px] py-3.5"
+            >
+              {fields(
+                { label: eLabel, url: eUrl, amount: eAmount, audience: eAudience },
+                { label: setELabel, url: setEUrl, amount: setEAmount, audience: setEAudience },
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={busy || !eLabel.trim() || !urlOk(eUrl)}
+                  className="h-9 rounded-lg bg-accent px-4 text-xs font-extrabold text-background hover:brightness-110 disabled:opacity-40"
                 >
-                  {audLabel[l.audience]}
-                </span>
-                <span className="min-w-0 truncate text-sm font-semibold">{l.label}</span>
-                {l.amount != null && (
-                  <span className="shrink-0 font-mono text-xs font-semibold text-track">
-                    {won(l.amount)}
+                  {t("common.save")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditId(null)}
+                  className="h-9 px-2 text-xs text-muted hover:text-foreground"
+                >
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div
+              key={l.id}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-[#1c1c1c] px-[18px] py-3"
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-sm font-bold">{l.label}</span>
+                  {l.amount != null && (
+                    <span className="tabular text-[13px] font-bold text-accent">
+                      {won(l.amount)}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-[3px] flex min-w-0 items-center gap-2 text-xs text-[#777]">
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${audBadge[l.audience]}`}>
+                    {audLabel[l.audience]}
                   </span>
-                )}
-                {l.url ? (
-                  <a
-                    href={l.url}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="min-w-0 flex-1 truncate text-xs text-accent hover:underline"
-                  >
-                    {l.url}
-                  </a>
-                ) : (
-                  <span className="min-w-0 flex-1 truncate text-xs text-muted">
-                    {t("crew.duesNoLink")}
-                  </span>
-                )}
+                  {l.url ? (
+                    <a
+                      href={l.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="truncate hover:text-accent hover:underline"
+                    >
+                      {l.url}
+                    </a>
+                  ) : (
+                    <span className="truncate">{t("crew.duesNoLink")}</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-1">
                 <button
                   type="button"
                   onClick={() => startEdit(l)}
                   disabled={busy}
-                  className="shrink-0 text-xs text-muted hover:text-accent disabled:opacity-50"
+                  aria-label={t("common.edit")}
+                  className={`${iconBtn} text-[#c9c9c9] hover:border-muted`}
                 >
-                  {t("common.edit")}
+                  ✎
                 </button>
                 <button
                   type="button"
                   onClick={() => del(l.id)}
                   disabled={busy}
-                  className="-m-2 shrink-0 p-2 text-muted hover:text-red-400 disabled:opacity-50"
                   aria-label={t("common.delete")}
+                  className={`${iconBtn} text-danger hover:bg-danger-card`}
                 >
-                  ✕
+                  ×
                 </button>
-              </li>
-            ),
-          )}
-        </ul>
-      )}
+              </div>
+            </div>
+          ),
+        )}
+        {items.length === 0 && (
+          <p className="px-[18px] py-6 text-center text-[13px] text-[#666]">
+            {t("crew.duesLinksEmpty")}
+          </p>
+        )}
+      </div>
 
-      <form onSubmit={add} className="flex flex-col gap-2 rounded-md bg-surface p-4">
-        <input
-          className={input}
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder={t("crew.duesLabelPh")}
-          maxLength={60}
-        />
-        <input
-          className={input}
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder={t("crew.duesUrlPh")}
-          maxLength={500}
-          inputMode="url"
-        />
-        <input
-          className={input}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder={t("crew.duesAmountPh")}
-          inputMode="numeric"
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted">{t("crew.duesAudience")}</span>
-          {(["all", "member", "associate"] as const).map((a) => (
-            <button
-              key={a}
-              type="button"
-              onClick={() => setAudience(a)}
-              className={`rounded-full px-3 py-1 text-xs ${
-                audience === a
-                  ? "bg-accent font-bold text-background"
-                  : "bg-background text-muted hover:text-foreground"
-              }`}
-            >
-              {audLabel[a]}
-            </button>
-          ))}
-        </div>
-        {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
-        <div>
-          <button
-            type="submit"
-            disabled={busy || !label.trim() || !urlOk(url)}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
-          >
-            + {t("crew.duesAdd")}
-          </button>
-        </div>
+      <form
+        onSubmit={add}
+        className="flex flex-col gap-2.5 border-t border-line bg-inset px-[18px] py-4"
+      >
+        <p className="text-xs font-bold text-muted">{t("crew.newLink")}</p>
+        {fields(
+          { label, url, amount, audience },
+          { label: setLabel, url: setUrl, amount: setAmount, audience: setAudience },
+        )}
+        {err && (
+          <p role="alert" className="text-xs text-danger">
+            {err}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={busy || !label.trim() || !urlOk(url)}
+          className="h-[38px] self-start rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+        >
+          + {t("crew.duesAdd")}
+        </button>
       </form>
     </div>
   );

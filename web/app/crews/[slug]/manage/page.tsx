@@ -25,6 +25,7 @@ import {
   CrewTierFees,
   CrewTierManage,
   type CrewTier,
+  type TierCounts,
 } from "@/components/crew-tier-manage";
 import { Card, Chip } from "@/components/ui/crew-ui";
 import {
@@ -156,6 +157,15 @@ export default async function CrewManagePage({
   const members = (roster ?? []) as ManageMember[];
   const tiers = (tierRows ?? []) as CrewTier[];
   const pendingCount = members.filter((m) => m.status === "pending").length;
+  /** 등급별 활동 회원 수 — 명단에서 세면 추가 조회가 없다(stats.tiers 는 이름만 있어
+   *  같은 이름이 둘이면 붙일 수 없다) */
+  const bankAccount =
+    ((row.links ?? {}) as Record<string, string | null>).bank_account ?? "";
+  const tierCounts: TierCounts = {};
+  for (const m of members) {
+    if (m.status !== "active" || !m.tier_id) continue;
+    tierCounts[m.tier_id] = (tierCounts[m.tier_id] ?? 0) + 1;
+  }
   const stats = statRow as CrewStats | null;
 
   type AttachedRow = {
@@ -350,40 +360,49 @@ export default async function CrewManagePage({
       {/* ---------------- 회원 등급 ---------------- */}
       {tab === "tiers" && (
         <section>
-          <h2 className="text-base font-extrabold">{t("crew.tierTitle")}</h2>
-          <div className="mt-3 max-w-2xl">
-            <CrewTierManage crewId={crew.id} tiers={tiers} />
-          </div>
+          <CrewTierManage crewId={crew.id} tiers={tiers} counts={tierCounts} />
         </section>
       )}
 
       {/* ---------------- 회비 ---------------- */}
       {tab === "dues" && (
-        <>
-          <section>
-            <h2 className="text-base font-extrabold">{t("crew.duesFeeTitle")}</h2>
-            <p className="mt-1 text-xs text-muted">{t("crew.duesFeeDesc")}</p>
-            <div className="mt-3 max-w-2xl">
-              <CrewTierFees crewId={crew.id} tiers={tiers} />
+        // 좌: 등급별 회비 + 계좌 / 우: 결제 링크. 좁으면 한 열로 떨어진다.
+        <div className="grid items-start gap-4 min-[900px]:grid-cols-2">
+          <div className="flex flex-col gap-3.5">
+            <CrewTierFees
+              crewId={crew.id}
+              tiers={tiers}
+              counts={tierCounts}
+              tiersHref={`/crews/${slug}/manage?tab=tiers`}
+            />
+            {/* 회비 계좌는 크루 정보의 links.bank_account 한 곳에서 관리한다 —
+                여기서는 무엇이 걸려 있는지 보여 주고 그리로 보낸다 */}
+            <div className="flex flex-col gap-2 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
+              <p className="text-xs text-muted">
+                {t("crew.bankAccount")}
+                <span className="ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-bold bg-label-bg text-label">
+                  {t("crew.membersOnlyBadge")}
+                </span>
+              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="min-w-0 break-all text-sm font-semibold">
+                  {bankAccount || <span className="text-[#666]">{t("crew.bankAccountNone")}</span>}
+                </span>
+                <Link
+                  href={`/crews/${slug}/manage?tab=info`}
+                  className="shrink-0 text-xs text-accent hover:underline"
+                >
+                  {t("crew.goInfoEdit")}
+                </Link>
+              </div>
             </div>
-            <Link
-              href={`/crews/${slug}/manage?tab=tiers`}
-              className="mt-3 inline-block text-xs text-accent hover:underline"
-            >
-              {t("crew.tierGoTiers")}
-            </Link>
-          </section>
+          </div>
 
-          <section>
-            <h2 className="text-base font-extrabold">{t("crew.duesTitle")}</h2>
-            <div className="mt-3 max-w-lg">
-              <CrewDuesLinksManage
-                crewId={crew.id}
-                items={(duesRows ?? []) as DuesLink[]}
-              />
-            </div>
-          </section>
-        </>
+          <CrewDuesLinksManage
+            crewId={crew.id}
+            items={(duesRows ?? []) as DuesLink[]}
+          />
+        </div>
       )}
 
       {/* ---------------- 프로그램 ---------------- */}
