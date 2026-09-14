@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { Avatar, Card, Chip } from "@/components/ui/crew-ui";
+import { Avatar } from "@/components/ui/crew-ui";
 import { Dialog } from "@/components/ui/dialog";
 import { tierBadgeClass } from "@/lib/crew-role";
 import { duesErrText } from "@/lib/dues-error";
@@ -147,15 +147,26 @@ export type BoardCharge = {
   waive_reason: string | null;
 };
 
-/** 회비 확정 보드 — 회계 탭의 운영진 전용 섹션.
- *  청구를 회원별로 묶어 월회비·회차비를 함께 보여주고 건별로 확정한다.
- *  확정하면 회계에 수입이 기록되고, 해제하면 그 회계 행도 지워진다. */
+
+type MemberState = "unpaid" | "waived" | "settled";
+
+/**
+ * 회비 납부 보드 — 회계 탭의 운영진 전용 화면 (디자인 시안 §1).
+ *
+ * 청구를 회원별로 묶고 **미납 → 면제 → 완료** 순으로 세운다. 이 화면에 오는 이유가
+ * "누가 아직 안 냈나"라서 미납이 위로 올라오고 미납 회원만 기본으로 펼쳐진다.
+ * 완료 행은 눌러 접히는 압축 행이다.
+ *
+ * 청구 구성("월회비 + 모임 2회 + 면제 1건")을 이름 아래에 적어, 펼치지 않고도 그 달에
+ * 무엇이 걸려 있는지 보이게 했다. 건별 액션(확인·면제·취소·해제)과 RPC 는 그대로다.
+ */
 export function CrewDuesMatrix({
   crewId,
   period,
   periodLabel,
   charges,
   locked = false,
+  initialFilter = "all",
 }: {
   crewId: string;
   period: string;
@@ -164,28 +175,23 @@ export function CrewDuesMatrix({
   charges: BoardCharge[];
   /** 마감된 달 — 확정·면제·대사를 막는다 (DB 트리거도 같이 막는다) */
   locked?: boolean;
+  /** 사이드 "확인할 일" 카드에서 ?f=unpaid 로 들어온 경우 미납만 펴고 시작한다 */
+  initialFilter?: "all" | "unpaid" | "settled" | "waived";
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  /** 펼친 회원. 기본은 전부 접힘 — 회원이 많으면 한 화면에 안 들어온다. */
-  const [open, setOpen] = useState<Set<string>>(new Set());
-  /** 상태 필터 — 미납만 추려 보는 게 이 화면의 주 용도다 */
-  const [filter, setFilter] = useState<"all" | "unpaid" | "settled" | "waived">(
-    "all",
-  );
-  /** 미납 요약 카드를 누르면 뜨는 내역. 관리 탭의 "미납 회비" 타일과 같은 동작이지만
+  /** 접은 회원. 기본은 미납만 펼침이라, 펼친 쪽이 아니라 **닫은 쪽**을 들고 있는다 */
+  const [closed, setClosed] = useState<Set<string>>(new Set());
+  /** 추가로 펼친 회원 */
+  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState(initialFilter);
+  const [query, setQuery] = useState("");
+  /** 미납 요약을 누르면 뜨는 내역. 관리 탭의 "미납 회비" 타일과 같은 동작이지만
    *  이쪽은 **이 달** 청구만 본다 — 두 숫자가 다를 수 있어 모달에도 달을 적는다. */
   const [unpaidOpen, setUnpaidOpen] = useState(false);
-  const toggle = (uid: string) =>
-    setOpen((p) => {
-      const n = new Set(p);
-      if (n.has(uid)) n.delete(uid);
-      else n.add(uid);
-      return n;
-    });
 
   async function call(key: string, fn: string, args: Record<string, unknown>) {
     setBusy(key);
@@ -208,30 +214,33 @@ export function CrewDuesMatrix({
   /** 대사(reconcile)는 그 달을 현재 등급·요금·출석에 맞추는 동작이라 결과를
    *  반드시 알린다. 0건일 때 아무 표시가 없으면 버튼이 안 먹는 것처럼 보인다.
    *  확정·신고된 청구는 어느 경로로도 건드리지 않고 locked 로만 보고된다. */
-  async function reconcile(rpc: string, kindLabel: string) {
-    setBusy(rpc);
+  async function reconcile(rpcs: [string, string][], key: string) {
+    setBusy(key);
     setErr(null);
     setNote(null);
-    const { data, error } = await createClient().rpc(rpc, {
-      p_crew: crewId,
-      p_period: period,
-    });
+    const client = createClient();
+    const lines: string[] = [];
+    for (const [rpc, kindLabel] of rpcs) {
+      const { data, error } = await client.rpc(rpc, { p_crew: crewId, p_period: period });
+      if (error) {
+        setBusy(null);
+        return setErr(duesErrText(t, error.message));
+      }
+      const r = (data ?? {}) as {
+        created?: number;
+        updated?: number;
+        removed?: number;
+        locked?: number;
+      };
+      const parts: string[] = [];
+      if (r.created) parts.push(t("crew.duesGenCreated", { n: r.created }));
+      if (r.updated) parts.push(t("crew.duesGenUpdated", { n: r.updated }));
+      if (r.removed) parts.push(t("crew.duesGenRemoved", { n: r.removed }));
+      const tail = r.locked ? ` (${t("crew.duesGenLocked", { n: r.locked })})` : "";
+      lines.push(`${kindLabel} — ${parts.length ? parts.join(" · ") : t("crew.duesGenNone")}${tail}`);
+    }
     setBusy(null);
-    if (error) return setErr(duesErrText(t, error.message));
-    const r = (data ?? {}) as {
-      created?: number;
-      updated?: number;
-      removed?: number;
-      locked?: number;
-    };
-    const parts: string[] = [];
-    if (r.created) parts.push(t("crew.duesGenCreated", { n: r.created }));
-    if (r.updated) parts.push(t("crew.duesGenUpdated", { n: r.updated }));
-    if (r.removed) parts.push(t("crew.duesGenRemoved", { n: r.removed }));
-    const head = `${periodLabel} ${kindLabel} — `;
-    const body = parts.length ? parts.join(" · ") : t("crew.duesGenNone");
-    const tail = r.locked ? ` (${t("crew.duesGenLocked", { n: r.locked })})` : "";
-    setNote(head + body + tail);
+    setNote(`${periodLabel} · ${lines.join(" / ")}`);
     router.refresh();
   }
 
@@ -243,31 +252,95 @@ export function CrewDuesMatrix({
     byMember.set(c.user_id, arr);
   }
 
+  const isOpen = (c: BoardCharge) => c.status === "pending" || c.status === "reported";
+  const stateOf = (list: BoardCharge[]): MemberState =>
+    list.some(isOpen) ? "unpaid" : list.every((c) => c.status === "waived") ? "waived" : "settled";
   const sum = (f: (c: BoardCharge) => boolean) =>
     charges.filter(f).reduce((a, c) => a + c.amount, 0);
   // 면제는 미납도 수입도 아니다 — 두 합계 어디에도 넣지 않는다
-  const unpaid = sum((c) => c.status === "pending" || c.status === "reported");
+  const unpaid = sum(isOpen);
   const paid = sum((c) => c.status === "confirmed");
   const waived = sum((c) => c.status === "waived");
+  // 인원수는 **회원 상태** 기준으로 센다 — 필터 칩과 같은 기준이어야 "완료 6" 을
+  // 눌렀는데 5명만 나오는 일이 없다(미납 회원도 확정된 청구를 들고 있다).
+  const stateCount = (st: MemberState) =>
+    [...byMember.values()].filter((l) => stateOf(l) === st).length;
+  // 납부율은 금액 기준, 면제 제외 — 면제까지 분모에 넣으면 아무도 100%가 되지 않는다
+  const billable = paid + unpaid;
+  const rate = billable > 0 ? (paid / billable) * 100 : 100;
 
-  const statusOf = (c: BoardCharge) =>
-    c.status === "waived"
-      ? "waived"
-      : c.status === "confirmed"
-        ? "settled"
-        : "unpaid";
-  const shownMembers = [...byMember.entries()].filter(([, list]) =>
-    filter === "all" ? true : list.some((c) => statusOf(c) === filter),
-  );
+  const ORDER: Record<MemberState, number> = { unpaid: 0, waived: 1, settled: 2 };
+
+  const q = query.trim().toLowerCase();
+  const members = [...byMember.entries()]
+    .map(([uid, list]) => ({ uid, list, state: stateOf(list) }))
+    .filter((m) => (filter === "all" ? true : m.state === filter))
+    .filter((m) => !q || m.list[0].display_name.toLowerCase().includes(q))
+    .sort((a, b) => ORDER[a.state] - ORDER[b.state]);
+
+  // 기본 펼침은 미납 회원. 닫은 쪽을 기억하므로 접었다 펴는 게 그대로 남는다.
+  const expanded = (uid: string, state: MemberState) =>
+    opened.has(uid) || (state === "unpaid" && !closed.has(uid));
+  const toggle = (uid: string, state: MemberState) => {
+    if (expanded(uid, state)) {
+      setOpened((p) => {
+        const n = new Set(p);
+        n.delete(uid);
+        return n;
+      });
+      setClosed((p) => new Set(p).add(uid));
+    } else {
+      setClosed((p) => {
+        const n = new Set(p);
+        n.delete(uid);
+        return n;
+      });
+      setOpened((p) => new Set(p).add(uid));
+    }
+  };
+  const allExpanded = members.every((m) => expanded(m.uid, m.state));
 
   /** 이 달 미납(확인 대기 포함) 청구를 회원별로 묶는다 */
   const unpaidByMember = [...byMember.entries()]
-    .map(([uid, list]) => ({
-      uid,
-      name: list[0].display_name,
-      rows: list.filter((c) => c.status === "pending" || c.status === "reported"),
-    }))
+    .map(([uid, list]) => ({ uid, name: list[0].display_name, rows: list.filter(isOpen) }))
     .filter((m) => m.rows.length > 0);
+
+  /** "월회비 + 모임 2회 + 면제 1건" — 펼치지 않고도 무엇이 걸려 있는지 보이게 */
+  const breakdown = (list: BoardCharge[]) => {
+    const parts: string[] = [];
+    if (list.some((c) => c.kind === "monthly" && c.status !== "waived")) {
+      parts.push(t("crew.duesKindMonthly"));
+    }
+    const sessions = list.filter((c) => c.kind === "session" && c.status !== "waived").length;
+    if (sessions) parts.push(t("crew.duesBreakdownSessions", { n: sessions }));
+    const custom = list.filter((c) => c.kind === "custom" && c.status !== "waived").length;
+    if (custom) parts.push(t("crew.duesBreakdownCustom", { n: custom }));
+    const exempt = list.filter((c) => c.status === "waived").length;
+    if (exempt) parts.push(t("crew.duesBreakdownExempt", { n: exempt }));
+    return parts.join(" + ");
+  };
+  const shortDate = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleDateString(locale, { month: "numeric", day: "numeric" })
+      : null;
+
+  const CARD = "overflow-hidden rounded-[14px] border border-line bg-card";
+  const cols =
+    "grid grid-cols-[32px_minmax(0,1fr)_auto_20px] items-center gap-2.5 sm:grid-cols-[32px_minmax(0,1fr)_120px_110px_28px] sm:gap-3";
+  const seg = (k: typeof filter, label: string, n: number) => (
+    <button
+      key={k}
+      type="button"
+      aria-pressed={filter === k}
+      onClick={() => setFilter(k)}
+      className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
+        filter === k ? "bg-accent text-background" : "text-[#c9c9c9] hover:text-foreground"
+      }`}
+    >
+      {label}
+      <span className={`text-[11px] ${filter === k ? "text-[#6b5a00]" : "text-[#777]"}`}>{n}</span>
+    </button>
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -335,267 +408,359 @@ export function CrewDuesMatrix({
         </div>
       </Dialog>
 
-      {/* 요약 3카드 + 대사 버튼 */}
-      <div className="grid gap-2.5 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
-        <Card className="px-4 py-3">
-          <p className="text-xs text-muted">{t("crew.duesPaidLabel")}</p>
-          <p className="tabular mt-1 text-xl font-extrabold">{won(paid)}</p>
-        </Card>
-        {unpaid > 0 ? (
-          <button
-            type="button"
-            onClick={() => setUnpaidOpen(true)}
-            className="rounded-2xl border border-line bg-card px-4 py-3 text-left ring-accent/40 hover:ring-1"
-          >
-            <p className="text-xs text-muted">{t("crew.duesUnpaidLabel")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold text-danger">{won(unpaid)}</p>
-            <span className="mt-0.5 block text-xs text-accent">{t("crew.unpaidOpen")}</span>
-          </button>
-        ) : (
-          <Card className="px-4 py-3">
-            <p className="text-xs text-muted">{t("crew.duesUnpaidLabel")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold text-success">{won(unpaid)}</p>
-          </Card>
-        )}
-        <Card className="px-4 py-3">
-          <p className="text-xs text-muted">{t("crew.duesWaivedLabel")}</p>
-          <p className="tabular mt-1 text-xl font-extrabold text-muted">
-            {won(waived)}
-          </p>
-        </Card>
-        <div className="flex flex-col justify-center gap-1.5">
-          <button
-            type="button"
-            onClick={() =>
-              reconcile("generate_monthly_charges", t("crew.duesKindMonthly"))
-            }
-            disabled={busy != null || locked}
-            className="rounded-lg border border-line-strong bg-control px-3 py-1.5 text-xs font-semibold hover:border-muted/60 disabled:opacity-50"
-          >
-            {busy === "generate_monthly_charges"
-              ? "…"
-              : t("crew.duesGenerate", { period: periodLabel })}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              reconcile("generate_session_charges", t("crew.duesKindSession"))
-            }
-            disabled={busy != null || locked}
-            className="rounded-lg border border-line-strong bg-control px-3 py-1.5 text-xs font-semibold hover:border-muted/60 disabled:opacity-50"
-          >
-            {busy === "generate_session_charges"
-              ? "…"
-              : t("crew.duesGenerateSession", { period: periodLabel })}
-          </button>
+      {/* ── §1-a 요약 ── */}
+      <div className={`${CARD} flex flex-col`}>
+        <div className="grid divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="px-[18px] py-3.5">
+            <p className="text-xs text-muted">{t("crew.duesPaidLabel")}</p>
+            <p className="tabular mt-1 text-[22px] font-extrabold leading-tight">{won(paid)}</p>
+            <p className="mt-0.5 text-xs text-[#777]">{t("crew.memberN", { n: stateCount("settled") })}</p>
+          </div>
+          {/* 미납은 눌러서 내역을 본다 — 관리 탭의 미납 타일과 같은 동작 */}
+          {unpaid > 0 ? (
+            <button
+              type="button"
+              onClick={() => setUnpaidOpen(true)}
+              className="px-[18px] py-3.5 text-left hover:bg-card-hover"
+            >
+              <p className="text-xs text-muted">{t("crew.duesUnpaidLabel")}</p>
+              <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-danger">
+                {won(unpaid)}
+              </p>
+              <p className="mt-0.5 text-xs text-accent">
+                {t("crew.memberN", { n: stateCount("unpaid") })} · {t("crew.unpaidOpen")}
+              </p>
+            </button>
+          ) : (
+            <div className="px-[18px] py-3.5">
+              <p className="text-xs text-muted">{t("crew.duesUnpaidLabel")}</p>
+              <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-success">
+                {won(0)}
+              </p>
+              <p className="mt-0.5 text-xs text-[#777]">{t("crew.duesAllPaid")}</p>
+            </div>
+          )}
+          <div className="px-[18px] py-3.5">
+            <p className="text-xs text-muted">{t("crew.duesWaivedLabel")}</p>
+            <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-muted">
+              {won(waived)}
+            </p>
+            <p className="mt-0.5 text-xs text-[#777]">{t("crew.memberN", { n: stateCount("waived") })}</p>
+          </div>
+        </div>
+        {/* 납부율 — 금액 기준, 면제 제외 */}
+        <div className="flex flex-col gap-1.5 border-t border-line px-[18px] py-3">
+          <div className="flex items-center justify-between gap-2 text-xs text-muted">
+            <span>{t("crew.duesRateNote")}</span>
+            <strong className="tabular text-sm font-extrabold text-foreground">
+              {rate.toFixed(1)}%
+            </strong>
+          </div>
+          <span className="flex h-2 overflow-hidden rounded-full bg-[#1c1c1c]">
+            <span className="h-full bg-accent" style={{ width: `${rate}%` }} />
+            <span className="h-full flex-1 bg-danger" />
+          </span>
         </div>
       </div>
 
-      {err && <p role="alert" className="text-xs text-danger">{err}</p>}
+      {err && (
+        <p role="alert" className="text-xs text-danger">
+          {err}
+        </p>
+      )}
       {note && <p className="text-xs text-accent">{note}</p>}
-      <p className="text-xs text-muted">{t("crew.duesGenHint")}</p>
 
-      {/* 상태 칩 + 모두 펼치기 */}
-      {charges.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          {(["all", "unpaid", "settled", "waived"] as const).map((k) => (
-            <Chip
-              key={k}
-              active={filter === k}
-              onClick={() => setFilter(k)}
-              count={
-                k === "all"
-                  ? byMember.size
-                  : [...byMember.values()].filter((l) =>
-                      l.some((c) => statusOf(c) === k),
-                    ).length
-              }
-            >
-              {k === "all"
-                ? t("crew.all")
-                : k === "unpaid"
-                  ? t("crew.duesFltUnpaid")
-                  : k === "settled"
-                    ? t("crew.duesSettled")
-                    : t("crew.duesWaived")}
-            </Chip>
-          ))}
-          {byMember.size > 1 && (
+      {/* ── §1-b 목록 ── */}
+      <div className={CARD}>
+        <div className="flex flex-wrap items-center gap-2.5 border-b border-line px-[18px] py-3.5">
+          <div className="flex flex-wrap gap-1 rounded-full border border-line-mid bg-page p-[3px]">
+            {seg("all", t("crew.filterAll"), byMember.size)}
+            {seg("unpaid", t("crew.duesFltUnpaid"), stateCount("unpaid"))}
+            {seg("settled", t("crew.duesSettled"), stateCount("settled"))}
+            {seg("waived", t("crew.duesWaived"), stateCount("waived"))}
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              size={1}
+              placeholder={t("crew.memberSearch")}
+              className="h-8 w-[150px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-accent"
+            />
             <button
               type="button"
+              title={t("crew.duesRecalcTip")}
+              disabled={busy != null || locked}
               onClick={() =>
-                setOpen((p) =>
-                  p.size === byMember.size ? new Set() : new Set(byMember.keys()),
+                reconcile(
+                  [
+                    ["generate_monthly_charges", t("crew.duesKindMonthly")],
+                    ["generate_session_charges", t("crew.duesKindSession")],
+                  ],
+                  "recalc",
                 )
               }
-              className="ml-auto text-xs text-accent hover:underline"
+              className="h-8 shrink-0 rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold hover:border-muted/60 disabled:opacity-50"
             >
-              {open.size === byMember.size
-                ? t("crew.duesCollapseAll")
-                : t("crew.duesExpandAll")}
+              {busy === "recalc" ? "…" : `↻ ${t("crew.duesRecalc")}`}
             </button>
-          )}
+          </div>
         </div>
-      )}
 
-      {!charges.length ? (
-        <Card className="px-4 py-8 text-center">
-          <p className="text-xs text-muted">{t("crew.duesNoCharges")}</p>
-        </Card>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {shownMembers.map(([uid, list]) => {
-            const head = list[0];
-            const memberUnpaid = list
-              .filter((c) => c.status === "pending" || c.status === "reported")
-              .reduce((a, c) => a + c.amount, 0);
-            const memberTotal = list.reduce((a, c) => a + c.amount, 0);
-            const allWaived = list.every((c) => c.status === "waived");
-            return (
-              <li
-                key={uid}
-                className="overflow-hidden rounded-2xl border border-line bg-card"
+        {!charges.length ? (
+          <div className="flex flex-col items-center gap-3 px-[18px] py-10 text-center">
+            <p className="text-[13px] text-muted">{t("crew.duesNoCharges")}</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                disabled={busy != null || locked}
+                onClick={() =>
+                  reconcile(
+                    [["generate_monthly_charges", t("crew.duesKindMonthly")]],
+                    "generate_monthly_charges",
+                  )
+                }
+                className="h-9 rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background disabled:opacity-40"
               >
-                <button
-                  type="button"
-                  onClick={() => toggle(uid)}
-                  aria-expanded={open.has(uid)}
-                  className="flex w-full flex-wrap items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-card-hover"
+                {busy === "generate_monthly_charges"
+                  ? "…"
+                  : t("crew.duesGenerate", { period: periodLabel })}
+              </button>
+              <button
+                type="button"
+                disabled={busy != null || locked}
+                onClick={() =>
+                  reconcile(
+                    [["generate_session_charges", t("crew.duesKindSession")]],
+                    "generate_session_charges",
+                  )
+                }
+                className="h-9 rounded-lg border border-line-strong bg-control px-4 text-[13px] font-semibold hover:border-muted/60 disabled:opacity-50"
+              >
+                {busy === "generate_session_charges"
+                  ? "…"
+                  : t("crew.duesGenerateSession", { period: periodLabel })}
+              </button>
+            </div>
+            <p className="max-w-md text-xs text-[#777]">{t("crew.duesGenHint")}</p>
+          </div>
+        ) : (
+          <>
+            <div
+              className={`hidden ${cols} border-b border-[#1c1c1c] px-[18px] py-2 text-[11px] font-bold tracking-[0.06em] text-[#777] sm:grid`}
+            >
+              <span />
+              <span>{t("crew.duesColMember")}</span>
+              <span className="text-right">{t("crew.duesColDue")}</span>
+              <span className="text-right">{t("crew.duesColStatus")}</span>
+              <span />
+            </div>
+
+            {members.map(({ uid, list, state }) => {
+              const head = list[0];
+              const open = expanded(uid, state);
+              const memberUnpaid = list.filter(isOpen).reduce((a, c) => a + c.amount, 0);
+              // 청구 합계에서 면제는 뺀다 — 낼 돈이 아니다
+              const memberTotal = list
+                .filter((c) => c.status !== "waived")
+                .reduce((a, c) => a + c.amount, 0);
+              return (
+                <div
+                  key={uid}
+                  className={`border-b border-[#1c1c1c] ${
+                    state === "unpaid" ? "bg-danger-card" : ""
+                  }`}
                 >
-                  <Avatar name={head.display_name} size={36} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate text-[15px] font-bold">
-                        {head.display_name}
+                  <button
+                    type="button"
+                    onClick={() => toggle(uid, state)}
+                    aria-expanded={open}
+                    className={`${cols} w-full px-[18px] text-left hover:bg-card-hover ${
+                      state === "settled" ? "py-2" : "py-3"
+                    }`}
+                  >
+                    <Avatar name={head.display_name} size={32} />
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate text-sm font-bold">{head.display_name}</span>
+                        {head.tier_name && (
+                          <span
+                            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${tierBadgeClass(head.tier_color)}`}
+                          >
+                            {head.tier_name}
+                          </span>
+                        )}
                       </span>
-                      {head.tier_name && (
-                        <span
-                          className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${tierBadgeClass(head.tier_color)}`}
-                        >
-                          {head.tier_name}
-                        </span>
-                      )}
+                      <span className="mt-0.5 block truncate text-xs font-normal text-[#777]">
+                        {breakdown(list)}
+                      </span>
                     </span>
-                    {head.email && (
-                      <span className="truncate text-xs font-normal text-muted">
-                        {head.email}
-                      </span>
-                    )}
-                  </span>
-                  <span className="ml-auto flex shrink-0 items-center gap-2.5">
-                    <span className="tabular text-xs text-muted">
-                      {t("crew.duesChargeCount", { n: list.length })} ·{" "}
+                    <span className="tabular hidden text-right text-sm font-bold sm:block">
                       {won(memberTotal)}
                     </span>
-                    <span
-                      className={`rounded-md px-2 py-0.5 text-xs font-bold ${
-                        memberUnpaid > 0
-                          ? "bg-danger-bg text-danger"
-                          : allWaived
-                            ? "bg-line text-muted"
-                            : "bg-success-bg text-success"
-                      }`}
-                    >
-                      {memberUnpaid > 0
-                        ? t("crew.duesOutstanding", { amount: won(memberUnpaid) })
-                        : allWaived
-                          ? t("crew.duesWaived")
-                          : `✓ ${t("crew.duesSettled")}`}
-                    </span>
-                    <span aria-hidden className="text-xs text-muted">
-                      {open.has(uid) ? "▾" : "▸"}
-                    </span>
-                  </span>
-                </button>
-
-                <ul
-                  className="flex flex-col gap-1 border-t border-line bg-inset px-3 py-2.5"
-                  hidden={!open.has(uid)}
-                >
-                  {list.map((c) => (
-                    <li
-                      key={c.charge_id}
-                      className="flex flex-wrap items-center gap-2 rounded-md bg-background px-3 py-2"
-                    >
-                      <span className="min-w-0 flex-1 truncate text-xs">
-                        {c.label}
-                        <span className="ml-1.5 text-[10px] text-muted">
-                          {c.kind === "monthly"
-                            ? t("crew.duesKindMonthly")
-                            : c.kind === "session"
-                              ? t("crew.duesKindSession")
-                              : t("crew.duesKindCustom")}
-                        </span>
+                    <span className="flex flex-col items-end gap-0.5 sm:block sm:text-right">
+                      <span className="tabular text-xs font-bold sm:hidden">
+                        {won(memberTotal)}
                       </span>
-                      <span className="font-mono text-xs">{won(c.amount)}</span>
-                      {c.status === "reported" && (
-                        <span className={badge("bg-accent/15 text-accent")}>
-                          {t("crew.duesReported")}
-                        </span>
-                      )}
-                      {c.status === "waived" && c.waive_reason && (
-                        <span className="truncate text-[10px] text-muted">
-                          {c.waive_reason}
-                        </span>
-                      )}
-                      {c.status !== "confirmed" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            c.status === "waived"
-                              ? call(c.charge_id, "unwaive_dues_charge", {
-                                  p_charge: c.charge_id,
-                                })
-                              : waive(c.charge_id)
-                          }
-                          disabled={busy != null || locked}
-                          className={`${badge(
-                            c.status === "waived"
-                              ? "bg-track/15 text-track"
-                              : "bg-background text-muted",
-                          )} hover:brightness-125 disabled:opacity-50`}
+                      <span
+                        className={`inline-block shrink-0 rounded px-1.5 py-0.5 text-[11px] font-bold ${
+                          state === "unpaid"
+                            ? "bg-[#3a1a1a] text-[#ff8a8a]"
+                            : state === "waived"
+                              ? "bg-[#222] text-muted"
+                              : "text-success"
+                        }`}
+                      >
+                        {state === "unpaid"
+                          ? t("crew.duesOutstanding", { amount: won(memberUnpaid) })
+                          : state === "waived"
+                            ? t("crew.duesStatusExemptAll")
+                            : `✓ ${t("crew.duesStatusDone")}`}
+                      </span>
+                    </span>
+                    <span aria-hidden className="text-right text-[11px] text-[#666]">
+                      {open ? "▲" : "▼"}
+                    </span>
+                  </button>
+
+                  {/* 펼침 — 건별 카드 */}
+                  <ul className="flex flex-col gap-1.5 px-[18px] pb-3.5 sm:pl-16" hidden={!open}>
+                    {list.map((c) => {
+                      const exempt = c.status === "waived";
+                      const done = c.status === "confirmed";
+                      return (
+                        <li
+                          key={c.charge_id}
+                          className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg border px-3 py-2 sm:grid-cols-[minmax(0,1fr)_90px_auto] ${
+                            !exempt && !done
+                              ? "border-danger-line bg-[#1a1010]"
+                              : "border-[#1c1c1c] bg-page"
+                          }`}
                         >
-                          {c.status === "waived"
-                            ? t("crew.duesWaived")
-                            : t("crew.duesWaive")}
-                        </button>
-                      )}
-                      {c.status === "waived" ? null : c.status === "confirmed" ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!window.confirm(t("crew.duesUncheckConfirm"))) return;
-                            call(c.charge_id, "unconfirm_dues_charge", {
-                              p_charge: c.charge_id,
-                            });
-                          }}
-                          disabled={busy != null || locked}
-                          className={`${badge("bg-track/15 text-track")} hover:brightness-125 disabled:opacity-50`}
-                        >
-                          ✓ {t("crew.duesConfirmed")}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            call(c.charge_id, "confirm_dues_charge", {
-                              p_charge: c.charge_id,
-                            })
-                          }
-                          disabled={busy != null || locked}
-                          className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
-                        >
-                          {t("crew.duesConfirm")}
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                          <span className="min-w-0">
+                            <span className="block truncate text-[13px] font-semibold">
+                              {c.label}
+                            </span>
+                            <span className="block text-[11px] text-[#777]">
+                              {c.kind === "monthly"
+                                ? t("crew.duesKindMonthly")
+                                : c.kind === "session"
+                                  ? t("crew.duesKindSession")
+                                  : t("crew.duesKindCustom")}
+                              {shortDate(c.event_at) ? ` · ${shortDate(c.event_at)}` : ""}
+                              {exempt && c.waive_reason ? ` · ${c.waive_reason}` : ""}
+                            </span>
+                          </span>
+                          <span
+                            className={`tabular text-right text-[13px] font-bold ${exempt ? "text-[#666] line-through" : ""}`}
+                          >
+                            {won(c.amount)}
+                          </span>
+                          <span className="col-span-2 flex items-center justify-end gap-1.5 sm:col-span-1">
+                            {c.status === "reported" && (
+                              <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-bold text-accent">
+                                {t("crew.duesReported")}
+                              </span>
+                            )}
+                            {exempt ? (
+                              <>
+                                <span className="text-[11px] text-muted">
+                                  {t("crew.duesWaived")}
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={busy != null || locked}
+                                  onClick={() =>
+                                    call(c.charge_id, "unwaive_dues_charge", {
+                                      p_charge: c.charge_id,
+                                    })
+                                  }
+                                  className="text-[11px] text-[#666] hover:text-foreground disabled:opacity-50"
+                                >
+                                  {t("crew.duesRelease")}
+                                </button>
+                              </>
+                            ) : done ? (
+                              <>
+                                <span className="text-xs font-bold text-success">
+                                  ✓ {t("crew.duesConfirmed")}
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={busy != null || locked}
+                                  onClick={() => {
+                                    if (!window.confirm(t("crew.duesUncheckConfirm"))) return;
+                                    call(c.charge_id, "unconfirm_dues_charge", {
+                                      p_charge: c.charge_id,
+                                    });
+                                  }}
+                                  className="text-[11px] text-[#666] hover:text-danger disabled:opacity-50"
+                                >
+                                  {t("crew.duesUndo")}
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={busy != null || locked}
+                                  onClick={() => waive(c.charge_id)}
+                                  className="h-7 shrink-0 rounded-md border border-[#333] px-2.5 text-[11px] font-semibold text-muted hover:border-muted/60 hover:text-foreground disabled:opacity-50"
+                                >
+                                  {t("crew.duesWaive")}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={busy != null || locked}
+                                  onClick={() =>
+                                    call(c.charge_id, "confirm_dues_charge", {
+                                      p_charge: c.charge_id,
+                                    })
+                                  }
+                                  className="h-7 shrink-0 rounded-md bg-accent px-2.5 text-[11px] font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+                                >
+                                  ✓ {t("crew.duesConfirm")}
+                                </button>
+                              </>
+                            )}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+
+            {members.length === 0 && (
+              <p className="px-[18px] py-8 text-center text-[13px] text-[#666]">
+                {t("crew.filterEmpty")}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 text-xs text-[#777]">
+              <span>
+                {t("crew.duesShownN", { n: members.length, m: byMember.size })}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (allExpanded) {
+                    setOpened(new Set());
+                    setClosed(new Set(byMember.keys()));
+                  } else {
+                    setClosed(new Set());
+                    setOpened(new Set(byMember.keys()));
+                  }
+                }}
+                className="font-bold text-accent hover:underline"
+              >
+                {allExpanded ? t("crew.duesCollapseAll") : t("crew.duesExpandAll")}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

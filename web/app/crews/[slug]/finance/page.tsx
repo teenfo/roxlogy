@@ -5,19 +5,14 @@ import { isFullMember } from "@/lib/crew-types";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { todayISOIn } from "@/lib/format";
-import {
-  CrewLedgerDelete,
-  CrewLedgerForm,
-} from "@/components/crew-ledger-form";
+import { CrewLedgerForm } from "@/components/crew-ledger-form";
 import { CrewDuesMatrix, type BoardCharge } from "@/components/crew-dues-check";
-import { Badge, Card, Chip, SectionHead } from "@/components/ui/crew-ui";
+import { CrewLedgerTable, type LedgerTableRow } from "@/components/crew-ledger-table";
+import { CrewFinanceExport } from "@/components/crew-finance-export";
+import { Card } from "@/components/ui/crew-ui";
 import { CrewBankOpening } from "@/components/crew-bank-opening";
 import { CrewMonthClose } from "@/components/crew-month-close";
-import {
-  CrewLedgerSettle,
-  CrewLedgerSettleMonth,
-} from "@/components/crew-ledger-settle";
-import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { CrewLedgerSettleMonth } from "@/components/crew-ledger-settle";
 
 type LedgerRow = {
   id: string;
@@ -54,10 +49,10 @@ export default async function CrewFinancePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ m?: string; tab?: string; k?: string }>;
+  searchParams: Promise<{ m?: string; tab?: string; k?: string; f?: string }>;
 }) {
   const { slug } = await params;
-  const { m, tab, k } = await searchParams;
+  const { m, tab, k, f } = await searchParams;
 
   const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
@@ -98,6 +93,7 @@ export default async function CrewFinancePage({
     { data: chargeRows },
     { data: bankRow },
     { data: closeRow },
+    { data: tierRows },
     { count: unpaidCount },
   ] = await Promise.all([
       supabase
@@ -110,11 +106,13 @@ export default async function CrewFinancePage({
         .lte("entry_date", to)
         .order("entry_date", { ascending: false })
         .order("created_at", { ascending: false }),
-      // 누적 잔액용 전체 합계 (kind별 sum) + 통장 반영 여부
+      // 누적 잔액용 전체 거래 — 합계뿐 아니라 행별 러닝 잔액도 여기서 만든다
       supabase
         .from("crew_ledger")
-        .select("kind, amount, settled_on")
-        .eq("crew_id", crew.id),
+        .select("id, entry_date, created_at, kind, amount, settled_on")
+        .eq("crew_id", crew.id)
+        .order("entry_date", { ascending: false })
+        .order("created_at", { ascending: false }),
       // 회비 청구 보드 (운영진만 — RPC 가 스태프를 검증)
       isStaff && view === "dues"
         ? supabase.rpc("crew_dues_board", { p_slug: slug, p_period: month })
@@ -132,6 +130,15 @@ export default async function CrewFinancePage({
         .eq("crew_id", crew.id)
         .eq("period", month)
         .maybeSingle(),
+      // 이 달 청구 기준 카드 — 등급이 곧 요금표다 (회비 탭에서만)
+      isStaff && view === "dues"
+        ? supabase
+            .from("crew_member_tiers")
+            .select("id, name, color, monthly_fee, session_fee")
+            .eq("crew_id", crew.id)
+            .is("archived_at", null)
+            .order("sort_order")
+        : Promise.resolve({ data: null }),
       // 마감 전 경고용 미수 건수 — 운영진만 (crew_dues_charges RLS)
       isStaff
         ? supabase
@@ -158,6 +165,9 @@ export default async function CrewFinancePage({
     .filter((r) => r.kind === "expense")
     .reduce((a, r) => a + r.amount, 0);
   const all = (allRows ?? []) as {
+    id: string;
+    entry_date: string;
+    created_at: string;
     kind: string;
     amount: number;
     settled_on: string | null;
@@ -175,6 +185,26 @@ export default async function CrewFinancePage({
   // 이 달 미반영 건수 — 일괄 반영 버튼에 쓴다
   const monthUnsettled = entries.filter((r) => r.settled_on == null).length;
 
+  // 행별 러닝 잔액 — 최신 거래가 곧 현재 장부 잔액이고, 아래로 내려가며 역산한다.
+  // 필터와 무관하게 **전체 거래** 기준이라 목록을 걸러도 잔액이 흔들리지 않는다.
+  const balanceOf = new Map<string, number>();
+  let running = totalBalance;
+  for (const r of all) {
+    balanceOf.set(r.id, running);
+    running -= signed(r);
+  }
+  const tableRows: LedgerTableRow[] = entries.map((r) => ({
+    ...r,
+    balance: balanceOf.get(r.id) ?? 0,
+  }));
+
+  // 수입 KPI 부제 — 회비로 들어온 돈과 그 밖을 갈라 보여 준다
+  const duesIncome = entries
+    .filter((r) => r.kind === "income" && r.source === "dues")
+    .reduce((a, r) => a + r.amount, 0);
+  const otherIncome = monthIncome - duesIncome;
+  const monthNet = monthIncome - monthExpense;
+
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString(tag, {
     year: "numeric",
     month: "long",
@@ -188,62 +218,205 @@ export default async function CrewFinancePage({
     `/crews/${slug}/finance?m=${mm}` +
     (vv === "dues" ? "&tab=dues" : "") +
     (kk === "all" ? "" : `&k=${kk}`);
-  const dayLabel = (iso: string) =>
-    new Date(`${iso}T00:00:00`).toLocaleDateString(tag, {
-      month: "short",
-      day: "numeric",
-    });
+  // 미래 달은 볼 이유가 없다 — 다음 달 버튼을 잠근다
+  const thisMonth = todayISOIn(tz).slice(0, 7);
+  const canNext = month < thisMonth;
+  const bankAccount = crew.links?.bank_account ?? "";
+  const duesFilter =
+    f === "unpaid" || f === "settled" || f === "waived" ? f : ("all" as const);
 
-  const shown =
-    kindFilter === "all" ? entries : entries.filter((r) => r.kind === kindFilter);
-  const countOf = (kk: "all" | "income" | "expense") =>
-    kk === "all" ? entries.length : entries.filter((r) => r.kind === kk).length;
+  // 사이드 "확인할 일" — 이 달 미납만. 첫 미납자를 한 줄 요약으로 보여 준다.
+  const openCharges = charges.filter(
+    (c) => c.status === "pending" || c.status === "reported",
+  );
+  const unpaidAmount = openCharges.reduce((a, c) => a + c.amount, 0);
+  const unpaidPeople = new Set(openCharges.map((c) => c.user_id)).size;
+  const firstUnpaid = openCharges[0] ?? null;
 
-  // 날짜별 그룹 — 하루 합계를 머리글에 얹어 그날 돈이 어떻게 움직였는지 보이게
-  const byDate = new Map<string, LedgerRow[]>();
-  for (const r of shown) {
-    const arr = byDate.get(r.entry_date) ?? [];
-    arr.push(r);
-    byDate.set(r.entry_date, arr);
-  }
-  const dayNet = (rs: LedgerRow[]) =>
-    rs.reduce((a, r) => a + (r.kind === "income" ? r.amount : -r.amount), 0);
+  const tiers = (tierRows ?? []) as {
+    id: string;
+    name: string;
+    color: string;
+    monthly_fee: number | null;
+    session_fee: number | null;
+  }[];
+
+  /** 하위 탭 — 밑줄형. 회비 탭은 운영진에게만 있다. */
+  const subTab = (v: "dues" | "ledger", label: string, badge: React.ReactNode) => (
+    <Link
+      key={v}
+      href={linkFor(month, v)}
+      aria-current={view === v}
+      className={`-mb-px flex items-center gap-1.5 border-b-2 px-1 pb-2.5 text-sm ${
+        view === v
+          ? "border-accent font-bold text-accent"
+          : "border-transparent text-muted hover:text-foreground"
+      }`}
+    >
+      {label}
+      {badge}
+    </Link>
+  );
+
+  /** 확인할 일 — 이 달 미납. 누르면 목록이 미납만 남는다(?f=unpaid).
+   *  좁은 화면에서는 본문 위로 올린다 — 사이드가 아래로 떨어지면 제일 먼저 볼 것이
+   *  제일 마지막에 오게 된다. */
+  const todoCard =
+    view === "dues" && unpaidAmount > 0 ? (
+      <div className="flex flex-col gap-2 rounded-[14px] border border-danger-line bg-danger-card px-[18px] py-3.5">
+        <p className="text-[11px] font-extrabold tracking-[0.08em] text-danger">
+          {t("crew.duesTodo")}
+        </p>
+        <p className="text-base font-extrabold">
+          {t("crew.duesTodoSum", { n: unpaidPeople, amount: won(unpaidAmount) })}
+        </p>
+        {firstUnpaid && (
+          <p className="text-[13px] text-[#c9c9c9]">
+            {firstUnpaid.display_name} — {firstUnpaid.label}
+          </p>
+        )}
+        <Link
+          href={`${linkFor(month, "dues")}&f=unpaid`}
+          className="flex h-9 items-center justify-center rounded-lg bg-danger text-[13px] font-extrabold text-background hover:brightness-110"
+        >
+          {t("crew.duesOpenUnpaid")}
+        </Link>
+      </div>
+    ) : null;
+
+  /** 크루 통장 — 두 탭 모두 우측에 붙는다. 장부와 통장의 차이가 곧 미반영 금액이다. */
+  const bankCard = (
+    <div className="flex flex-col gap-2 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[15px] font-extrabold">{t("crew.finBank")}</p>
+        <span
+          className={`shrink-0 text-[11px] font-bold ${
+            unsettled === 0 ? "text-success" : "text-danger"
+          }`}
+        >
+          {unsettled === 0
+            ? `✓ ${t("crew.finLedgerMatch")}`
+            : t("crew.finBankDiff", { amount: won(Math.abs(unsettled)) })}
+        </span>
+      </div>
+      <p className="text-xs text-muted">{t("crew.finCurrentBalance")}</p>
+      <p className="tabular text-[26px] font-extrabold leading-tight">{won(bankBalance)}</p>
+      <dl className="flex flex-col gap-1 border-t border-line pt-2.5 text-[13px]">
+        {[
+          [t("crew.finOpening"), won(bank?.opening_balance ?? 0)],
+          [
+            t("crew.finAllTimeNet"),
+            `${totalBalance >= 0 ? "+" : "−"}${won(Math.abs(totalBalance))}`,
+          ],
+          [t("crew.finUnsettledTx"), won(unsettled)],
+        ].map(([k, v]) => (
+          <div key={k} className="flex items-center justify-between gap-2">
+            <dt className="text-muted">{k}</dt>
+            <dd className="tabular font-semibold">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      {bankAccount && (
+        <p className="break-all text-xs text-[#777]">{bankAccount}</p>
+      )}
+      {isStaff && (
+        <div className="flex flex-wrap gap-2">
+          <CrewBankOpening
+            crewId={crew.id}
+            openingBalance={bank?.opening_balance ?? 0}
+            openingOn={bank?.opening_on ?? null}
+          />
+          {monthUnsettled > 0 && (
+            <CrewLedgerSettleMonth
+              crewId={crew.id}
+              from={from}
+              to={to}
+              count={monthUnsettled}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <main>
-      {/* 툴바 — 내역 추가 + 월 이동 + 장부/회비 세그먼트 */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center rounded-[10px] border border-line-mid bg-control">
+    <main className="flex flex-col gap-5">
+      {/* ── §0 월 헤더 ── */}
+      <div className="flex flex-wrap items-center gap-3.5">
+        <h1 className="text-[22px] font-extrabold">{monthLabel}</h1>
+        <span
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+            closed ? "bg-line text-muted" : "bg-success-bg text-success"
+          }`}
+        >
+          {closed ? t("crew.finMonthClosed") : `● ${t("crew.finMonthOpen")}`}
+        </span>
+        <span className="flex items-center rounded-full border border-line-mid bg-control">
           <Link
             href={linkFor(shiftMonth(month, -1))}
             aria-label={t("crew.prevMonth")}
-            className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent hover:bg-card-hover"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-accent hover:bg-card-hover"
           >
             ‹
           </Link>
-          <span className="tabular px-2 text-sm font-bold">{monthLabel}</span>
-          <Link
-            href={linkFor(shiftMonth(month, 1))}
-            aria-label={t("crew.nextMonth")}
-            className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent hover:bg-card-hover"
-          >
-            ›
-          </Link>
-        </div>
-        {isStaff && (
-          <nav className="flex gap-1.5">
-            {(["ledger", "dues"] as const).map((v) => (
-              <Chip key={v} href={linkFor(month, v)} active={view === v}>
-                {t(v === "ledger" ? "crew.finTabLedger" : "crew.finTabDues")}
-              </Chip>
-            ))}
-          </nav>
-        )}
-        {isStaff && view === "ledger" && !closed && (
-          <CrewLedgerForm crewId={crew.id} today={todayISOIn(tz)} />
-        )}
-        <div className="ml-auto flex flex-wrap items-center gap-2 max-md:ml-0 max-md:w-full">
-          <span className="min-w-0 text-xs text-muted">{t("crew.finNote")}</span>
+          <span className="tabular px-2 text-[13px] font-bold">{month.replace("-", " ")}</span>
+          {canNext ? (
+            <Link
+              href={linkFor(shiftMonth(month, 1))}
+              aria-label={t("crew.nextMonth")}
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-accent hover:bg-card-hover"
+            >
+              ›
+            </Link>
+          ) : (
+            <span
+              aria-hidden
+              className="flex h-[30px] w-[30px] items-center justify-center text-[#444]"
+            >
+              ›
+            </span>
+          )}
+        </span>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <CrewFinanceExport
+            filename={`${slug}-${month}-${view}.csv`}
+            head={
+              view === "dues"
+                ? [
+                    t("crew.colMember"),
+                    t("crew.colTier"),
+                    t("crew.finColDesc"),
+                    t("crew.finAmount"),
+                    t("crew.duesSettled"),
+                  ]
+                : [
+                    t("crew.finColDate"),
+                    t("crew.finKindAll"),
+                    t("crew.finColDesc"),
+                    t("crew.finAmount"),
+                    t("crew.finTotalBalance"),
+                    t("crew.finMemo"),
+                  ]
+            }
+            rows={
+              view === "dues"
+                ? charges.map((c) => [
+                    c.display_name,
+                    c.tier_name ?? "",
+                    c.label,
+                    c.amount,
+                    c.status,
+                  ])
+                : tableRows.map((r) => [
+                    r.entry_date,
+                    t(r.kind === "income" ? "crew.finKindIncome" : "crew.finKindExpense"),
+                    r.title,
+                    r.kind === "income" ? r.amount : -r.amount,
+                    r.balance,
+                    r.memo ?? "",
+                  ])
+            }
+          />
           <CrewMonthClose
             crewId={crew.id}
             period={month}
@@ -256,236 +429,147 @@ export default async function CrewFinancePage({
       </div>
 
       {closed && (
-        <p className="mt-3 rounded-[10px] bg-label-bg px-3 py-2 text-xs font-semibold text-label">
+        <p className="rounded-[10px] bg-label-bg px-3 py-2 text-xs font-semibold text-label">
           {t("crew.finClosedNote", { period: monthLabel })}
         </p>
       )}
 
-      {/* 요약 4카드 — 누적 잔액만 강조 */}
-      <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card className="px-4 py-3.5">
+      {/* ── §0 KPI 4 ── */}
+      <section className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+        <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finIncome")}</p>
-          <p className="tabular mt-1 text-xl font-extrabold text-info">
-            +{won(monthIncome)}
+          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px]">
+            {won(monthIncome)}
+          </p>
+          <p className="mt-0.5 text-xs text-[#777]">
+            {t("crew.finIncomeSub", { dues: won(duesIncome), other: won(otherIncome) })}
           </p>
         </Card>
-        <Card className="px-4 py-3.5">
+        <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finExpense")}</p>
-          <p className="tabular mt-1 text-xl font-extrabold text-danger">
-            −{won(monthExpense)}
+          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px]">
+            {won(monthExpense)}
+          </p>
+          <p className="mt-0.5 text-xs text-[#777]">
+            {t("crew.finEntryN", { n: entries.filter((r) => r.kind === "expense").length })}
           </p>
         </Card>
-        <Card className="px-4 py-3.5">
+        <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finMonthNet")}</p>
-          <p className="tabular mt-1 text-xl font-extrabold">
-            {won(monthIncome - monthExpense)}
+          <p
+            className={`tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px] ${
+              monthNet >= 0 ? "text-success" : "text-danger"
+            }`}
+          >
+            {monthNet >= 0 ? "+" : "−"}
+            {won(Math.abs(monthNet))}
           </p>
+          <p className="mt-0.5 text-xs text-[#777]">{t("crew.finNetSub")}</p>
         </Card>
-        <Card highlight className="px-4 py-3.5">
-          <p className="text-xs text-muted">{t("crew.finTotalBalance")}</p>
-          <p className="tabular mt-1 text-xl font-extrabold text-accent">
+        <Card highlight className="px-[18px] py-3.5">
+          <p className="text-xs text-[#c9b34a]">{t("crew.finBalance")}</p>
+          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px] text-accent">
             {won(totalBalance)}
           </p>
-        </Card>
-      </section>
-
-      {/* 통장 — 장부와 따로 본다. 차이가 곧 미반영 금액이다 */}
-      <section className="mt-3">
-        <Card className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-xs text-muted">{t("crew.finBankBalance")}</p>
-            <p className="tabular mt-1 text-2xl font-extrabold">
-              {won(bankBalance)}
-            </p>
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs text-muted">{t("crew.finUnsettled")}</p>
-            <p
-              className={`tabular mt-1 text-lg font-bold ${
-                unsettled === 0 ? "text-muted" : "text-accent"
-              }`}
-            >
-              {unsettled >= 0 ? "+" : "−"}
-              {won(Math.abs(unsettled))}
-            </p>
-          </div>
-          <div className="ml-auto flex items-center gap-3 max-md:ml-0 max-md:w-full">
-            <span className="text-xs text-muted [word-break:keep-all]">
-              {t("crew.finBankNote")}
+          <p className="mt-0.5 flex flex-wrap items-center justify-between gap-x-2 text-xs text-[#777]">
+            <span>
+              {t("crew.finBalanceSub", { opening: won(bank?.opening_balance ?? 0) })}
             </span>
-            {isStaff && (
-              <CrewLedgerSettleMonth
-                crewId={crew.id}
-                from={from}
-                to={to}
-                count={monthUnsettled}
-              />
-            )}
-            {isStaff && (
-              <CrewBankOpening
-                crewId={crew.id}
-                openingBalance={bank?.opening_balance ?? 0}
-                openingOn={bank?.opening_on ?? null}
-              />
-            )}
-          </div>
+            <span className={unsettled === 0 ? "text-success" : "text-danger"}>
+              {unsettled === 0
+                ? `✓ ${t("crew.finBankMatch")}`
+                : t("crew.finBankDiff", { amount: won(Math.abs(unsettled)) })}
+            </span>
+          </p>
         </Card>
       </section>
 
-      {/* 회비 청구·확정 — 운영진 전용, 보고 있는 달 기준 */}
-      {view === "dues" && (
-        <section className="mt-6">
-          <SectionHead
-            title={t("crew.duesCheckTitle")}
-            right={<span className="text-xs text-muted">{monthLabel}</span>}
-          />
+      {/* ── §0 하위 탭 ── */}
+      <nav className="flex flex-wrap items-center gap-5 border-b border-line">
+        {isStaff &&
+          subTab(
+            "dues",
+            t("crew.finTabDues"),
+            unpaidCount ? (
+              <span className="rounded-full bg-[#3a1a1a] px-1.5 py-0.5 text-[10px] font-bold text-[#ff8a8a]">
+                {t("crew.duesFltUnpaid")} {unpaidCount}
+              </span>
+            ) : null,
+          )}
+        {subTab(
+          "ledger",
+          t("crew.finTabLedger"),
+          <span className="text-[11px] text-[#777]">{entries.length}</span>,
+        )}
+        <span className="ml-auto pb-2.5 text-xs text-[#777]">
+          🔒 {t(isStaff ? "crew.finVisibility" : "crew.finVisibilityRead")}
+        </span>
+      </nav>
+
+      {/* ── 본문 + 우측 사이드 ── */}
+      {todoCard && <div className="min-[900px]:hidden">{todoCard}</div>}
+      <div className="grid items-start gap-4 min-[900px]:grid-cols-[minmax(0,1fr)_280px]">
+        {view === "dues" ? (
           <CrewDuesMatrix
             crewId={crew.id}
             period={month}
             periodLabel={monthLabel}
             charges={charges}
             locked={closed != null}
+            initialFilter={duesFilter}
           />
-        </section>
-      )}
+        ) : (
+          <CrewLedgerTable
+            rows={tableRows}
+            crewId={crew.id}
+            today={todayISOIn(tz)}
+            isStaff={isStaff}
+            closed={closed != null}
+            monthLabel={monthLabel}
+            locale={tag}
+          />
+        )}
 
-      {view === "ledger" && (
-        <>
-          {/* 수입·지출 필터 */}
-          {entries.length > 0 && (
-            <div className="mt-6 flex flex-wrap gap-1.5">
-              {(["all", "income", "expense"] as const).map((kk) => (
-                <Chip
-                  key={kk}
-                  href={linkFor(month, view, kk)}
-                  active={kindFilter === kk}
-                  count={countOf(kk)}
-                >
-                  {t(
-                    kk === "all"
-                      ? "crew.finKindAll"
-                      : kk === "income"
-                        ? "crew.finKindIncome"
-                        : "crew.finKindExpense",
-                  )}
-                </Chip>
-              ))}
-            </div>
+        <aside className="flex flex-col gap-3 min-[900px]:sticky min-[900px]:top-5">
+          {todoCard && <div className="hidden min-[900px]:block">{todoCard}</div>}
+          {view === "ledger" && isStaff && !closed && (
+            <CrewLedgerForm crewId={crew.id} today={todayISOIn(tz)} trigger="inline" />
           )}
+          {bankCard}
 
-          {!shown.length ? (
-            <Card className="mt-4 px-4 py-10 text-center">
-              <p className="text-sm text-muted">
-                {t(entries.length ? "crew.finFilterEmpty" : "crew.finEmpty")}
+          {/* 이 달 청구 기준 — 등급이 곧 요금표다 */}
+          {view === "dues" && tiers.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
+              <p className="text-[11px] font-extrabold tracking-[0.08em] text-[#777]">
+                {t("crew.duesBasis", { period: monthLabel })}
               </p>
-            </Card>
-          ) : (
-            <div className="mt-4 flex flex-col gap-4">
-              {[...byDate.keys()].map((d) => {
-                const rs = byDate.get(d)!;
-                const net = dayNet(rs);
-                return (
-                  <section key={d}>
-                    <div className="mb-1.5 flex items-baseline gap-2 px-1">
-                      <span className="text-sm font-extrabold">
-                        {dayLabel(d)}
-                      </span>
-                      <span className="text-xs text-muted">
-                        {t("crew.finEntryN", { n: rs.length })}
-                      </span>
-                      <span
-                        className={`tabular ml-auto text-sm font-bold ${
-                          net >= 0 ? "text-info" : "text-danger"
-                        }`}
-                      >
-                        {net >= 0 ? "+" : "−"}
-                        {won(Math.abs(net))}
-                      </span>
-                    </div>
-                    <Card className="divide-y divide-line overflow-hidden">
-                      {rs.map((r) => (
-                        <div
-                          key={r.id}
-                          className="flex min-w-0 items-center gap-3 px-5 py-3 transition-colors hover:bg-card-hover"
-                        >
-                          <Badge tone={r.kind === "income" ? "info" : "danger"}>
-                            {r.kind === "income"
-                              ? t("crew.finKindIncome")
-                              : t("crew.finKindExpense")}
-                          </Badge>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold">
-                              {r.source === "dues"
-                                ? t("crew.duesEntry", { detail: r.title })
-                                : r.title}
-                            </span>
-                            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
-                              {r.method && (
-                                <span className="rounded-md bg-line px-1.5 py-0.5 text-xs font-bold text-foreground/75">
-                                  {t(`crew.finMethod.${r.method}` as DictKey)}
-                                </span>
-                              )}
-                              {isStaff ? (
-                                <CrewLedgerSettle
-                                  id={r.id}
-                                  entryDate={r.entry_date}
-                                  settledOn={r.settled_on}
-                                  label={
-                                    r.settled_on
-                                      ? t("crew.finSettledOn", {
-                                          date: dayLabel(r.settled_on),
-                                        })
-                                      : null
-                                  }
-                                />
-                              ) : (
-                                <span
-                                  className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${
-                                    r.settled_on
-                                      ? "bg-success-bg text-success"
-                                      : "bg-label-bg text-label"
-                                  }`}
-                                >
-                                  {r.settled_on
-                                    ? t("crew.finSettledOn", {
-                                        date: dayLabel(r.settled_on),
-                                      })
-                                    : t("crew.finUnsettledBadge")}
-                                </span>
-                              )}
-                              {r.memo && (
-                                <span className="min-w-0 truncate">{r.memo}</span>
-                              )}
-                            </span>
-                          </span>
-                          <span
-                            className={`tabular shrink-0 text-[15px] font-extrabold ${
-                              r.kind === "income" ? "text-info" : "text-danger"
-                            }`}
-                          >
-                            {r.kind === "income" ? "+" : "−"}
-                            {won(r.amount)}
-                          </span>
-                          {isStaff && !closed && (
-                            <>
-                              <CrewLedgerForm
-                                crewId={crew.id}
-                                today={todayISOIn(tz)}
-                                entry={r}
-                              />
-                              <CrewLedgerDelete id={r.id} />
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </Card>
-                  </section>
-                );
-              })}
+              <dl className="flex flex-col gap-1 text-xs">
+                {tiers.flatMap((x) =>
+                  [
+                    x.monthly_fee
+                      ? [`${x.name} ${t("crew.tierMonthly")}`, won(x.monthly_fee)]
+                      : null,
+                    x.session_fee
+                      ? [`${x.name} ${t("crew.tierSession")}`, won(x.session_fee)]
+                      : null,
+                  ].filter((r): r is string[] => r != null),
+                ).map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between gap-2">
+                    <dt className="min-w-0 truncate text-muted">{k}</dt>
+                    <dd className="tabular shrink-0 font-semibold">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              <Link
+                href={`/crews/${slug}/manage?tab=dues`}
+                className="text-xs font-semibold text-accent hover:underline"
+              >
+                {t("crew.duesFeeSettings")}
+              </Link>
             </div>
           )}
-        </>
-      )}
+        </aside>
+      </div>
     </main>
   );
 }

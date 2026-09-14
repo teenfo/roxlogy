@@ -42,12 +42,15 @@ export function CrewLedgerForm({
   crewId,
   today,
   entry,
+  trigger = "button",
 }: {
   crewId: string;
   /** 서버에서 계산한 사용자 시간대의 오늘 (UTC 로 하루 어긋나는 것 방지) */
   today: string;
   /** 있으면 수정 모드 */
   entry?: LedgerEntry;
+  /** 어떤 모양으로 앉을지 — inline 은 사이드 카드에 폼을 그대로 편다(모달 없음) */
+  trigger?: "button" | "icon" | "menu" | "inline";
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -138,9 +141,124 @@ export function CrewLedgerForm({
     router.refresh();
   }
 
+  const fields = (
+    <>
+      {fromDues && <p className="text-xs text-muted">{t("crew.finDuesLocked")}</p>}
+      <div className="flex flex-wrap gap-2">
+        <select
+          className={input}
+          aria-label={t("crew.finKindIncome")}
+          value={kind}
+          disabled={fromDues}
+          onChange={(e) => {
+            const k = e.target.value as "income" | "expense";
+            setKind(k);
+            // 수입으로 바꾸면 "카드"는 목록에서 사라진다 — 남겨 두면
+            // 화면에 없는 값이 저장된다
+            if (!(METHODS[k] as readonly string[]).includes(method)) setMethod("");
+          }}
+        >
+          <option value="income">{t("crew.finKindIncome")}</option>
+          <option value="expense">{t("crew.finKindExpense")}</option>
+        </select>
+        <input
+          type="date"
+          aria-label={t("crew.finDate")}
+          className={input}
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+        />
+        <input
+          type="text"
+          inputMode="numeric"
+          size={1}
+          className={`${input} w-32 min-w-0 flex-1`}
+          placeholder={t("crew.finAmount")}
+          value={amount}
+          disabled={fromDues}
+          onChange={(e) => setAmount(e.target.value)}
+          required
+        />
+      </div>
+      <input
+        className={input}
+        size={1}
+        placeholder={t("crew.finTitle")}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        maxLength={120}
+        required
+      />
+      <div className="flex flex-wrap gap-2">
+        <select
+          className={`${input} min-w-0 flex-1`}
+          aria-label={t("crew.finMethodNone")}
+          value={method}
+          onChange={(e) => setMethod(e.target.value)}
+        >
+          <option value="">
+            {t(kind === "income" ? "crew.finMethodNoneIn" : "crew.finMethodNone")}
+          </option>
+          {METHODS[kind].map((mth) => (
+            <option key={mth} value={mth}>
+              {t(`crew.finMethod.${mth}` as Parameters<typeof t>[0])}
+            </option>
+          ))}
+        </select>
+        <label className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted">
+          {t("crew.finSettledLabel")}
+          <input
+            type="date"
+            size={1}
+            className={`${input} min-w-0 flex-1`}
+            value={settledOn}
+            onChange={(e) => setSettledOn(e.target.value)}
+          />
+        </label>
+      </div>
+      {kind === "income" && method === "cash" && (
+        <p className="text-xs text-muted">{t("crew.finCashInHint")}</p>
+      )}
+      <input
+        className={input}
+        size={1}
+        placeholder={t("crew.finMemo")}
+        value={memo}
+        onChange={(e) => setMemo(e.target.value)}
+        maxLength={500}
+      />
+      {err && (
+        <p role="alert" className="text-xs text-danger">
+          {err}
+        </p>
+      )}
+    </>
+  );
+
+  // 사이드 카드에 그대로 펴는 모양 — 모달을 열지 않고 바로 입력한다
+  if (trigger === "inline") {
+    return (
+      <form
+        onSubmit={save}
+        className="flex flex-col gap-2 overflow-hidden rounded-[14px] border border-line bg-card p-[18px]"
+      >
+        <p className="text-[15px] font-extrabold">{t("crew.finAdd")}</p>
+        {fields}
+        <button
+          type="submit"
+          disabled={busy}
+          className="mt-1 h-10 rounded-lg bg-accent text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+        >
+          {busy ? t("common.saving") : t("crew.finSave")}
+        </button>
+      </form>
+    );
+  }
+
   return (
     <>
-      {editing ? (
+      {trigger === "icon" ? (
         <button
           type="button"
           onClick={openModal}
@@ -148,6 +266,14 @@ export function CrewLedgerForm({
           className="-m-2 shrink-0 p-2 text-xs text-muted transition-colors hover:text-accent"
         >
           ✎
+        </button>
+      ) : trigger === "menu" ? (
+        <button
+          type="button"
+          onClick={openModal}
+          className="rounded-md px-2.5 py-2 text-left text-[13px] text-foreground hover:bg-[#222]"
+        >
+          {t("common.edit")}
         </button>
       ) : (
         <button
@@ -166,120 +292,28 @@ export function CrewLedgerForm({
         panelClassName="max-w-lg"
       >
         {open && (
-          <div>
-            <form
-              onSubmit={save}
-              className="flex flex-col gap-2 rounded-md bg-surface p-4"
-            >
-              <p className="text-sm font-semibold">
-                {t(editing ? "crew.finEdit" : "crew.finAdd")}
-              </p>
-              {fromDues && (
-                <p className="text-xs text-muted">{t("crew.finDuesLocked")}</p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <select
-                  className={input}
-                  value={kind}
-                  disabled={fromDues}
-                  onChange={(e) => {
-                    const k = e.target.value as "income" | "expense";
-                    setKind(k);
-                    // 수입으로 바꾸면 "카드"는 목록에서 사라진다 — 남겨 두면
-                    // 화면에 없는 값이 저장된다
-                    if (!(METHODS[k] as readonly string[]).includes(method))
-                      setMethod("");
-                  }}
-                >
-                  <option value="income">{t("crew.finKindIncome")}</option>
-                  <option value="expense">{t("crew.finKindExpense")}</option>
-                </select>
-                <input
-                  type="date"
-                  className={input}
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  className={`${input} w-32`}
-                  placeholder={t("crew.finAmount")}
-                  value={amount}
-                  disabled={fromDues}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                />
-              </div>
-              <input
-                className={input}
-                placeholder={t("crew.finTitle")}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                maxLength={120}
-                required
-              />
-              <div className="flex flex-wrap gap-2">
-                <select
-                  className={input}
-                  value={method}
-                  onChange={(e) => setMethod(e.target.value)}
-                >
-                  <option value="">
-                    {t(
-                      kind === "income"
-                        ? "crew.finMethodNoneIn"
-                        : "crew.finMethodNone",
-                    )}
-                  </option>
-                  {METHODS[kind].map((mth) => (
-                    <option key={mth} value={mth}>
-                      {t(`crew.finMethod.${mth}` as Parameters<typeof t>[0])}
-                    </option>
-                  ))}
-                </select>
-                <label className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted">
-                  {t("crew.finSettledLabel")}
-                  <input
-                    type="date"
-                    className={`${input} min-w-0 flex-1`}
-                    value={settledOn}
-                    onChange={(e) => setSettledOn(e.target.value)}
-                  />
-                </label>
-              </div>
-              {kind === "income" && method === "cash" && (
-                <p className="text-xs text-muted">
-                  {t("crew.finCashInHint")}
-                </p>
-              )}
-              <input
-                className={input}
-                placeholder={t("crew.finMemo")}
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                maxLength={500}
-              />
-              {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
-                >
-                  {busy ? t("common.saving") : t(editing ? "common.save" : "crew.finSave")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
-                >
-                  {t("common.close")}
-                </button>
-              </div>
-            </form>
-          </div>
+          <form onSubmit={save} className="flex flex-col gap-2 rounded-md bg-surface p-4">
+            <p className="text-sm font-semibold">
+              {t(editing ? "crew.finEdit" : "crew.finAdd")}
+            </p>
+            {fields}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={busy}
+                className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+              >
+                {busy ? t("common.saving") : t(editing ? "common.save" : "crew.finSave")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
+              >
+                {t("common.close")}
+              </button>
+            </div>
+          </form>
         )}
       </Dialog>
     </>
@@ -287,7 +321,13 @@ export function CrewLedgerForm({
 }
 
 /** 내역 삭제 (스태프 전용) */
-export function CrewLedgerDelete({ id }: { id: string }) {
+export function CrewLedgerDelete({
+  id,
+  variant = "icon",
+}: {
+  id: string;
+  variant?: "icon" | "menu";
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -299,6 +339,19 @@ export function CrewLedgerDelete({ id }: { id: string }) {
     await supabase.from("crew_ledger").delete().eq("id", id);
     setBusy(false);
     router.refresh();
+  }
+
+  if (variant === "menu") {
+    return (
+      <button
+        type="button"
+        onClick={del}
+        disabled={busy}
+        className="rounded-md px-2.5 py-2 text-left text-[13px] text-danger hover:bg-danger-card disabled:opacity-40"
+      >
+        {t("crew.finDelete")}…
+      </button>
+    );
   }
 
   return (
