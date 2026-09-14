@@ -44,6 +44,7 @@
 - 클라이언트는 anon 키 + RLS로만 접근.
 - **함수 실행 권한은 기본 차단**(2026-08-30, 마이그레이션 013·024). anon·authenticated는 기본 권한에서 회수했고, PUBLIC은 이벤트 트리거 `rox_lock_new_functions_trg`가 함수 생성 직후 회수한다(`alter default privileges … from public`은 실제로 적용되지 않아 이벤트 트리거로 대체). 클라이언트(웹 anon 키·MCP)가 호출할 RPC는 정의 직후 반드시 `grant execute on function public.<name>(<args>) to anon, authenticated;` 를 붙일 것 — 빠뜨리면 permission denied로 시끄럽게 실패한다. 반대로 **호출자 검증이 없는 SECURITY DEFINER 함수(내부 헬퍼·크론·트리거용)에는 절대 grant하지 말 것** — 과거 `enqueue_notification`·`_mcp_insert_workouts`가 익명 호출 가능한 상태였다.
 - 컬럼을 드롭하는 마이그레이션은 그 컬럼을 참조하는 함수를 함께 재정의할 것 (`language sql` 함수는 의존성이 추적되지 않아 드롭이 성공하고 호출 시점에 터진다).
+- **`crew_ledger` 에 컬럼을 더하면 `rox_ledger_month_guard` 도 같이 고칠 것.** 이 트리거가 "마감된 달엔 통장 반영일(`settled_on`)만 바꿀 수 있다"를 판정하는 방식이 **컬럼을 손으로 나열한 튜플 비교**라, 새 컬럼을 그 목록에 적지 않으면 마감된 달에도 그 컬럼만 조용히 바뀐다(2026-09-14 마이그레이션 106·108 에서 두 번 겪음). 같은 함정: 컬럼을 나열해 비교·복사하는 트리거·RPC 는 전부 새 컬럼을 모른다.
 - **RPC 의 반환 모양을 바꾸는 변경은 배포와 원자적이지 않다.** 마이그레이션은 즉시
   반영되는데 Vercel 빌드는 1~2분 걸려서, 그 사이 운영 사이트는 "새 DB + 옛 코드"
   로 돈다 (2026-09-10 실제 장애: `crew_event_detail.going_names` → `going` 으로
