@@ -11,6 +11,7 @@ import { CrewDuesMatrix, type BoardCharge } from "@/components/crew-dues-check";
 import { CrewLedgerTable, type LedgerTableRow } from "@/components/crew-ledger-table";
 import { CrewFinanceExport } from "@/components/crew-finance-export";
 import { CrewExpenseMix } from "@/components/crew-expense-mix";
+import { CrewDuesNotify } from "@/components/crew-dues-notify";
 import { Card } from "@/components/ui/crew-ui";
 import { CrewBankOpening } from "@/components/crew-bank-opening";
 import { CrewMonthClose } from "@/components/crew-month-close";
@@ -279,12 +280,18 @@ export default async function CrewFinancePage({
             {firstUnpaid.display_name} — {firstUnpaid.label}
           </p>
         )}
-        <Link
-          href={`${linkFor(month, "dues")}&f=unpaid`}
-          className="flex h-9 items-center justify-center rounded-lg bg-danger text-[13px] font-extrabold text-background hover:brightness-110"
-        >
-          {t("crew.duesOpenUnpaid")}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`${linkFor(month, "dues")}&f=unpaid`}
+            className="flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg bg-danger px-3 text-[13px] font-extrabold text-background hover:brightness-110"
+          >
+            {t("crew.duesOpenUnpaid")}
+          </Link>
+          {/* 독촉은 운영진만. 크론이 아니라 눌러야 나간다 */}
+          {isStaff && (
+            <CrewDuesNotify crewId={crew.id} period={month} count={unpaidPeople} />
+          )}
+        </div>
       </div>
     ) : null;
 
