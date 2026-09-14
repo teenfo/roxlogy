@@ -41,6 +41,7 @@ export default async function PftRaceListPage() {
     { data: entryRows, error: entryErr },
     { data: createdRows, error: createdErr },
     { data: me },
+    { data: staffRows },
   ] = await Promise.all([
     supabase
       .from("pft_race_entries")
@@ -56,13 +57,22 @@ export default async function PftRaceListPage() {
       .eq("created_by", user!.id)
       .order("created_at", { ascending: false })
       .limit(200),
-    supabase.from("profiles").select("birth_year").eq("id", user!.id).maybeSingle(),
+    supabase.from("profiles").select("birth_year, is_admin").eq("id", user!.id).maybeSingle(),
+    // 레이스를 만들 수 있는 건 관리자·크루 운영진뿐이다(허브와 같은 판정).
+    supabase
+      .from("crew_members")
+      .select("id")
+      .eq("user_id", user!.id)
+      .eq("status", "active")
+      .in("role", ["owner", "coach"])
+      .limit(1),
   ]);
 
   // supabase-js 는 실패해도 throw 하지 않는다 — 확인 없이 빈 목록을 그리면
   // "레이스가 없다"로 읽혀서 사용자가 기록을 잃었다고 오해한다.
   const loadErr = entryErr ?? createdErr;
   const age = me?.birth_year != null ? new Date().getFullYear() - Number(me.birth_year) : null;
+  const canCreateRace = !!me?.is_admin || (staffRows ?? []).length > 0;
 
   // 참가한 것과 만든 것을 레이스 기준으로 합친다(둘 다인 경우가 흔하다)
   const byId = new Map<string, RaceListRow>();
@@ -119,9 +129,11 @@ export default async function PftRaceListPage() {
           <Link href="/pft/race/join" className={btn}>
             {t("pft.race.join")}
           </Link>
-          <Link href="/pft/race/new" className={btn}>
-            {t("pft.race.create")}
-          </Link>
+          {canCreateRace ? (
+            <Link href="/pft/race/new" className={btn}>
+              {t("pft.race.create")}
+            </Link>
+          ) : null}
         </div>
       </div>
 
