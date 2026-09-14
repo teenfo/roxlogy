@@ -108,31 +108,27 @@ export function CrewLedgerTable({
       day: "numeric",
     });
 
-  /** 회차 키별 행 수 — 두 줄 이상일 때만 묶는다(한 줄은 묶어도 달라지는 게 없다) */
+  /** 묶는 단위는 **회차 + 날짜**다. 회차 키만 보면 여러 날에 걸친 회차(월회비를
+   *  7일에 8명, 13일에 2명 확정한 경우)가 한 줄로 접히면서 7일 돈이 13일로 올라간다.
+   *  장부에서 날짜를 옮기는 건 그냥 틀린 값이다. */
+  const groupKey = (r: LedgerTableRow) =>
+    r.dues_group ? `${r.dues_group}|${r.entry_date}` : null;
   const groupCount = new Map<string, number>();
   for (const r of shown) {
-    if (r.dues_group) groupCount.set(r.dues_group, (groupCount.get(r.dues_group) ?? 0) + 1);
+    const k = groupKey(r);
+    if (k) groupCount.set(k, (groupCount.get(k) ?? 0) + 1);
   }
   const hasGroups = [...groupCount.values()].some((n) => n > 1);
 
-  /** 표에 그릴 것 — 낱개 행이거나, 같은 회차를 접은 한 줄 */
+  /** 표에 그릴 것 — 낱개 행이거나, 같은 날 같은 회차를 접은 한 줄 */
   type Item =
     | { type: "row"; row: LedgerTableRow }
-    | {
-        type: "group";
-        key: string;
-        rows: LedgerTableRow[];
-        amount: number;
-        /** 접은 줄의 잔액은 그 회차의 가장 최근 행 기준 — 한 번에 확정한 건들이라
-         *  같은 날 연속으로 들어가 있어 그 값이 회차 전체를 반영한 잔액이다 */
-        balance: number;
-        date: string;
-      };
+    | { type: "group"; key: string; rows: LedgerTableRow[]; amount: number; date: string };
   const items: Item[] = [];
   if (grouped) {
     const at = new Map<string, number>();
     for (const r of shown) {
-      const key = r.dues_group;
+      const key = groupKey(r);
       if (!key || (groupCount.get(key) ?? 0) < 2) {
         items.push({ type: "row", row: r });
         continue;
@@ -140,14 +136,7 @@ export function CrewLedgerTable({
       const i = at.get(key);
       if (i == null) {
         at.set(key, items.length);
-        items.push({
-          type: "group",
-          key,
-          rows: [r],
-          amount: r.amount,
-          balance: r.balance,
-          date: r.entry_date,
-        });
+        items.push({ type: "group", key, rows: [r], amount: r.amount, date: r.entry_date });
       } else {
         const g = items[i] as Extract<Item, { type: "group" }>;
         g.rows.push(r);
@@ -238,11 +227,14 @@ export function CrewLedgerTable({
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1.5 sm:contents">
+              {/* 잔액은 적지 않는다 — 회차 행들 사이에 다른 거래가 끼어 있을 수 있어
+                  (회원 한 명씩 월회비→회차비 순으로 확정하면 실제로 그렇다) 한 줄에
+                  걸어 둘 "이 시점의 잔액"이라는 게 없다. 낱개로 펴면 행마다 보인다. */}
               <span className="text-right sm:block">
                 <span className="tabular block text-sm font-bold text-success">
                   +{won(it.amount)}
                 </span>
-                <span className="tabular block text-[11px] text-[#777]">{won(it.balance)}</span>
+                <span className="block text-[11px] text-[#777]">{t("crew.finGroupNoBalance")}</span>
               </span>
               {/* 묶은 줄은 고칠 수 없다 — 개별 행을 고치려면 체크를 끈다 */}
               <span className="hidden sm:block" />

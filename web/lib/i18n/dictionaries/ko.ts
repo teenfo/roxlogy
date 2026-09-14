@@ -650,6 +650,7 @@ const ko: Record<DictKey, string> = {
   "crew.finCat.race": "대회 참가",
   "crew.finCat.other": "기타",
   "crew.finExpenseMix": "{period} 지출 구성",
+  "crew.finGroupNoBalance": "잔액은 펴서 보기",
   "crew.finGroupDues": "회비 입금 묶어 보기",
   "crew.finGroupOf": "{n}명 · 자동 집계",
   "crew.finTabLedger": "장부",
