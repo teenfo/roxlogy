@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { crewRoleBadgeClass, isStaffRole, tierBadgeClass } from "@/lib/crew-role";
+import { crewRoleBadgeClass, isStaffRole, tierTextClass } from "@/lib/crew-role";
+import { Avatar } from "@/components/ui/crew-ui";
 import { Dialog } from "@/components/ui/dialog";
 import type { CrewTier } from "@/components/crew-tier-manage";
 import { duesErrText } from "@/lib/dues-error";
@@ -362,7 +363,59 @@ export type ManageMember = {
   attend_paid_count: number;
 };
 
-/** 멤버 관리 — 가입 신청 승인/거절, 부리더 지정/해제(리더만), 리더 위임, 제외. */
+/** 한 페이지에 20명. 크루가 100명을 넘어가면 한 화면에 다 깔 수 없다. */
+const PAGE = 20;
+
+/** ⋯ 행 메뉴 — 바깥을 덮는 버튼으로 바깥 클릭·ESC 를 받는다(document 리스너 없이). */
+function RowMenu({
+  label,
+  children,
+}: {
+  label: string;
+  children: (close: () => void) => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const { t } = useI18n();
+  return (
+    <span className="relative shrink-0">
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={() => setOpen((p) => !p)}
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-line-strong text-base leading-none text-muted hover:border-muted/60 hover:text-foreground"
+      >
+        ⋯
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label={t("common.close")}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-10 cursor-default"
+          />
+          <span className="absolute right-0 top-9 z-20 flex w-[180px] flex-col rounded-[10px] border border-[#333] bg-[#1a1a1a] p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]">
+            {children(() => setOpen(false))}
+          </span>
+        </>
+      )}
+    </span>
+  );
+}
+
+/** 색은 항목마다 붙인다 — 여기에 text-foreground 를 넣으면 "제외"의 text-danger 와
+ *  같은 자리를 다퉈 어느 쪽이 이길지가 CSS 순서에 달린다. */
+const menuItem = "rounded-md px-2.5 py-2 text-left text-[13px] hover:bg-[#222] disabled:opacity-40";
+
+/**
+ * 멤버 관리 — 가입 신청 승인/거절, 등급 지정, 부리더 지정/해제(리더만), 리더 위임, 제외.
+ *
+ * 디자인 시안(2026-09) 반영: 필터 칩 → 알약 세그먼트, 행마다 늘어놓던 버튼 4개 →
+ * ⋯ 메뉴, 체크박스 다중 선택 + 일괄 등급 변경, CSV 내보내기, 20행 페이지네이션.
+ * Supabase 호출(`set_crew_tier`·`set_crew_role`·`transfer_crew_leader`·승인/제외)은
+ * 그대로다 — 바뀐 건 화면뿐이다.
+ */
 export function CrewMemberManage({
   slug,
   crewId,
@@ -385,6 +438,11 @@ export function CrewMemberManage({
   /** null = 전체. 'staff' | tier_id | 'none'(등급 없음) */
   const [filter, setFilter] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [bulkTier, setBulkTier] = useState("");
+  /** 이력 다이얼로그를 연 멤버 */
+  const [history, setHistory] = useState<{ id: string; name: string } | null>(null);
 
   async function run(key: string, fn: () => PromiseLike<{ error: { message: string } | null }>) {
     setBusy(key);
@@ -416,6 +474,30 @@ export function CrewMemberManage({
     if (!window.confirm(t("crew.transferConfirm"))) return;
     run(`t${u}`, () => supabase().rpc("transfer_crew_leader", { p_slug: slug, p_user: u }));
   };
+
+  /** 선택한 여러 명의 등급을 한 번에. 일괄 RPC 가 없어 순차로 부른다 —
+   *  하나라도 실패하면 거기서 멈추고 그때까지의 변경은 남긴다(되돌리면 더 헷갈린다). */
+  async function applyBulk() {
+    if (!bulkTier || sel.size === 0) return;
+    setBusy("bulk");
+    setErr(null);
+    const client = createClient();
+    for (const u of sel) {
+      const { error } = await client.rpc("set_crew_tier", {
+        p_slug: slug,
+        p_user: u,
+        p_tier: bulkTier,
+      });
+      if (error) {
+        setBusy(null);
+        return setErr(duesErrText(t, error.message));
+      }
+    }
+    setBusy(null);
+    setSel(new Set());
+    setBulkTier("");
+    router.refresh();
+  }
 
   const roleLabel = (r: string) =>
     r === "owner"
@@ -450,7 +532,8 @@ export function CrewMemberManage({
             ? isStaffRole(m.role)
             : !isStaffRole(m.role) && (m.tier_id ?? "none") === filter,
         );
-  const chips: { key: string; label: string; n: number }[] = [
+  const chips: { key: string | null; label: string; n: number }[] = [
+    { key: null, label: t("crew.filterAll"), n: allActive.length },
     ...(counts.get("staff")
       ? [{ key: "staff", label: t("crew.filterStaff"), n: counts.get("staff")! }]
       : []),
@@ -461,45 +544,108 @@ export function CrewMemberManage({
       ? [{ key: "none", label: t("crew.filterNoTier"), n: counts.get("none")! }]
       : []),
   ];
-  const btn = "rounded-md px-2.5 py-1 text-xs disabled:opacity-50";
+
+  // 필터·검색이 바뀌면 페이지가 범위를 벗어난다 — 효과로 되돌리지 않고 렌더에서 조인다.
+  const maxPage = Math.max(1, Math.ceil(active.length / PAGE));
+  const cur = Math.min(page, maxPage);
+  const rows = active.slice((cur - 1) * PAGE, cur * PAGE);
+
+  const pageSel = rows.filter((m) => sel.has(m.user_id)).length;
+  const allPageSel = rows.length > 0 && pageSel === rows.length;
+  const toggle = (u: string) =>
+    setSel((p) => {
+      const next = new Set(p);
+      if (next.has(u)) next.delete(u);
+      else next.add(u);
+      return next;
+    });
+  const toggleAll = () =>
+    setSel((p) => {
+      const next = new Set(p);
+      if (allPageSel) rows.forEach((m) => next.delete(m.user_id));
+      else rows.forEach((m) => next.add(m.user_id));
+      return next;
+    });
+
+  /** 지금 필터·검색에 걸린 명단을 CSV 로. 서버를 거치지 않고 브라우저에서 만든다. */
+  function exportCsv() {
+    const head = [
+      t("crew.colMember"),
+      t("crew.csvEmail"),
+      t("crew.colTier"),
+      t("crew.csvRole"),
+      t("crew.colAttend"),
+      t("crew.csvAttendAll"),
+    ];
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const body = active.map((m) =>
+      [
+        m.display_name,
+        m.email ?? "",
+        m.tier_name ?? "",
+        roleLabel(m.role),
+        String(m.attend_paid_count),
+        String(m.attend_count),
+      ]
+        .map(esc)
+        .join(","),
+    );
+    // 엑셀이 UTF-8 로 읽게 BOM 을 붙인다 — 없으면 한글이 깨진다
+    const blob = new Blob(["﻿" + [head.map(esc).join(","), ...body].join("\r\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}-members.csv`;
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  const CARD = "overflow-hidden rounded-[14px] border border-line bg-card";
+  const cols =
+    "sm:grid sm:grid-cols-[20px_minmax(0,1.6fr)_110px_90px_44px] sm:items-center sm:gap-3";
+  const check = "h-4 w-4 shrink-0 cursor-pointer accent-accent";
 
   return (
-    <div>
-      {err && <p role="alert" className="mb-3 text-sm text-red-400">{err}</p>}
+    <div className="flex flex-col gap-4">
+      {err && (
+        <p role="alert" className="text-sm text-danger">
+          {err}
+        </p>
+      )}
 
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={t("crew.memberSearch")}
-        className="mb-4 w-full max-w-sm rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
-      />
-
+      {/* 가입 대기 — 제일 먼저 처리할 일이라 표 위에 따로 둔다 */}
       {pending.length > 0 && (
-        <>
-          <h3 className="text-sm font-semibold text-muted">
-            {t("crew.pendingRequests")} ({pending.length})
-          </h3>
-          <ul className="mt-2 flex flex-col gap-1.5">
+        <div className="overflow-hidden rounded-[14px] border border-line-accent bg-highlight">
+          <p className="border-b border-line-accent px-[18px] py-3 text-[13px] font-extrabold text-accent">
+            {t("crew.pendingRequests")} {pending.length}
+          </p>
+          <ul>
             {pending.map((m) => (
-              <li key={m.user_id} className="flex items-center justify-between gap-3 rounded-md bg-surface px-4 py-2.5">
+              <li
+                key={m.user_id}
+                className="flex flex-wrap items-center gap-2.5 border-b border-line-accent/40 px-[18px] py-2.5 last:border-0"
+              >
+                <Avatar name={m.display_name} size={32} />
                 <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm">{m.display_name}</span>
-                  {m.email && (
-                    <span className="truncate text-xs text-muted">{m.email}</span>
-                  )}
+                  <span className="truncate text-sm font-bold">{m.display_name}</span>
+                  {m.email && <span className="truncate text-[11px] text-[#666]">{m.email}</span>}
                 </span>
-                <span className="flex gap-2">
+                <span className="ml-auto flex shrink-0 gap-2">
                   <button
+                    type="button"
                     onClick={() => approve(m.user_id)}
                     disabled={busy != null}
-                    className={`${btn} bg-accent font-bold text-background`}
+                    className="h-[30px] rounded-md bg-accent px-3 text-xs font-extrabold text-background disabled:opacity-40"
                   >
                     {t("crew.approveMember")}
                   </button>
                   <button
+                    type="button"
                     onClick={() => remove(m.user_id, t("crew.rejectConfirm"))}
                     disabled={busy != null}
-                    className={`${btn} bg-background text-red-400`}
+                    className="h-[30px] rounded-md px-2 text-xs text-danger hover:bg-danger-card disabled:opacity-40"
                   >
                     {t("crew.rejectMember")}
                   </button>
@@ -507,99 +653,164 @@ export function CrewMemberManage({
               </li>
             ))}
           </ul>
-          <div className="mt-5" />
-        </>
-      )}
-
-      <h3 className="text-sm font-semibold text-muted">
-        {t("crew.manageMembers")} ({active.length}
-        {filter != null && `/${allActive.length}`})
-        <span className="ml-2 font-normal text-[10px]">
-          {t("crew.attendColHint")}
-        </span>
-      </h3>
-
-      {/* 등급별 필터 — 인원이 있는 구분만 보여준다 */}
-      {chips.length > 1 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => setFilter(null)}
-            className={`rounded-full px-3 py-1 text-xs ${
-              filter == null
-                ? "bg-accent font-bold text-background"
-                : "bg-background text-muted hover:text-foreground"
-            }`}
-          >
-            {t("crew.filterAll")} {allActive.length}
-          </button>
-          {chips.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={() => setFilter(c.key)}
-              className={`rounded-full px-3 py-1 text-xs ${
-                filter === c.key
-                  ? "bg-accent font-bold text-background"
-                  : "bg-background text-muted hover:text-foreground"
-              }`}
-            >
-              {c.label} {c.n}
-            </button>
-          ))}
         </div>
       )}
 
-      <ul className="mt-2 flex flex-col gap-1.5">
-        {active.map((m) => (
-          <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-surface px-4 py-2.5">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-sm">{m.display_name}</span>
-                {m.email && (
-                  <span className="truncate text-xs text-muted">{m.email}</span>
-                )}
-              </span>
-              {isStaffRole(m.role) ? (
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${crewRoleBadgeClass(
-                    m.role,
-                  )}`}
+      <div className={CARD}>
+        {/* 툴바 — 좌 세그먼트 / 우 검색·CSV */}
+        <div className="flex flex-wrap items-center gap-2.5 border-b border-line px-[18px] py-3.5">
+          <div className="flex flex-wrap gap-1 rounded-full border border-line-mid bg-page p-[3px]">
+            {chips.map((c) => {
+              const on = filter === c.key;
+              return (
+                <button
+                  key={c.key ?? "all"}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => {
+                    setFilter(c.key);
+                    setPage(1);
+                  }}
+                  className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
+                    on ? "bg-accent text-background" : "text-[#c9c9c9] hover:text-foreground"
+                  }`}
                 >
-                  {roleLabel(m.role)}
-                </span>
-              ) : (
-                m.tier_name && (
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tierBadgeClass(
-                      m.tier_color,
-                    )}`}
-                  >
-                    {m.tier_name}
+                  {c.label}
+                  <span className={`text-[11px] ${on ? "text-[#6b5a00]" : "text-[#777]"}`}>
+                    {c.n}
                   </span>
-                )
-              )}
-              {/* 출석 = 유료 모임 / 무료 포함 전체 */}
-              {m.attend_count > 0 && (
-                <span
-                  className="shrink-0 font-mono text-xs text-muted"
-                  title={t("crew.attendColHint")}
-                >
-                  <span className="text-accent">{m.attend_paid_count}</span>
-                  {` / ${m.attend_count}`}
-                </span>
-              )}
-            </span>
-            <span className="flex flex-wrap items-center gap-2">
-              <MemberHistory slug={slug} userId={m.user_id} name={m.display_name} btn={btn} />
-              {/* 등급 지정 — 운영진이면 누구나. 등급이 role(정회원/일반회원)까지 맞춘다. */}
-              {m.role !== "owner" && (
+                </button>
+              );
+            })}
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+              size={1}
+              placeholder={t("crew.memberSearch")}
+              className="h-[34px] w-[200px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-accent"
+            />
+            <button
+              type="button"
+              onClick={exportCsv}
+              className="h-[34px] shrink-0 rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold hover:border-muted/60"
+            >
+              ↓ {t("crew.memberCsv")}
+            </button>
+          </div>
+        </div>
+
+        {/* 선택 바 — 고른 사람들의 등급을 한 번에 바꾼다 */}
+        {sel.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2.5 border-b border-line-accent bg-highlight px-[18px] py-2.5 text-[13px]">
+            <strong className="text-accent">{t("crew.memberSelected", { n: sel.size })}</strong>
+            <span className="text-muted">{t("crew.memberBulkTier")}</span>
+            <select
+              value={bulkTier}
+              disabled={busy != null}
+              onChange={(e) => setBulkTier(e.target.value)}
+              className="h-[30px] rounded-md border border-line-accent bg-page px-2 text-[13px] outline-none"
+            >
+              <option value="">—</option>
+              {tiers
+                .filter((x) => !x.archived_at)
+                .map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.name}
+                  </option>
+                ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => void applyBulk()}
+              disabled={busy != null || !bulkTier}
+              className="h-[30px] rounded-md bg-accent px-3 text-[13px] font-extrabold text-background disabled:opacity-40"
+            >
+              {busy === "bulk" ? t("crew.memberApplying") : t("crew.memberApply")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSel(new Set())}
+              className="ml-auto text-[#777] hover:text-foreground"
+            >
+              {t("crew.memberClearSel")}
+            </button>
+          </div>
+        )}
+
+        {/* 컬럼 머리 — 좁은 화면에서는 행이 카드처럼 쌓여 의미가 없다 */}
+        <div
+          className={`hidden ${cols} border-b border-[#1c1c1c] px-[18px] py-2 text-[11px] font-bold tracking-[0.06em] text-[#777]`}
+        >
+          <input
+            type="checkbox"
+            checked={allPageSel}
+            onChange={toggleAll}
+            aria-label={t("crew.memberSelectAll")}
+            className={check}
+          />
+          <span>{t("crew.colMember")}</span>
+          <span>{t("crew.colTier")}</span>
+          <span className="text-right">{t("crew.colAttend")}</span>
+          <span />
+        </div>
+
+        {rows.map((m) => {
+          const on = sel.has(m.user_id);
+          const canPromote = myRole === "owner" && m.user_id !== myUserId && m.role !== "owner";
+          return (
+            <div
+              key={m.user_id}
+              className={`${cols} border-b border-[#1c1c1c] px-[18px] py-2.5 ${
+                on ? "bg-highlight" : "hover:bg-card-hover"
+              }`}
+            >
+              <div className="flex min-w-0 items-center gap-2.5 sm:contents">
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => toggle(m.user_id)}
+                  aria-label={m.display_name}
+                  className={check}
+                />
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <Avatar name={m.display_name} size={36} />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-sm font-bold">{m.display_name}</span>
+                      {isStaffRole(m.role) && (
+                        <span
+                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${crewRoleBadgeClass(
+                            m.role,
+                          )}`}
+                        >
+                          {roleLabel(m.role)}
+                        </span>
+                      )}
+                    </div>
+                    {m.email && (
+                      <div className="truncate text-[11px] text-[#666]">{m.email}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 flex items-center gap-3 pl-[26px] sm:mt-0 sm:contents">
+                {/* 등급 지정 — 등급이 role(정회원/일반회원)까지 맞춘다. 리더는 등급 밖이다. */}
                 <select
                   value={m.tier_id ?? ""}
-                  disabled={busy != null}
+                  aria-label={t("crew.colTier")}
+                  disabled={busy != null || m.role === "owner"}
                   onChange={(e) => setTier(m.user_id, e.target.value)}
-                  className="rounded-md border border-muted/30 bg-background px-2 py-1 text-xs outline-none focus:border-accent disabled:opacity-50"
+                  className={`h-[30px] min-w-0 rounded-md border border-line-strong bg-page px-2 text-xs font-bold outline-none focus:border-accent disabled:opacity-50 ${tierTextClass(
+                    m.tier_color,
+                  )}`}
                 >
+                  {!m.tier_id && <option value="">—</option>}
                   {tiers
                     .filter((x) => !x.archived_at || x.id === m.tier_id)
                     .map((x) => (
@@ -608,54 +819,144 @@ export function CrewMemberManage({
                       </option>
                     ))}
                 </select>
-              )}
-              {myRole === "owner" && m.user_id !== myUserId && m.role !== "owner" && (
-              <>
-                {m.role !== "coach" ? (
-                  <button
-                    onClick={() => setRole(m.user_id, "coach")}
-                    disabled={busy != null}
-                    className={`${btn} bg-background text-track`}
-                  >
-                    {t("crew.makeCoach")}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setRole(m.user_id, "member")}
-                    disabled={busy != null}
-                    className={`${btn} bg-background text-muted`}
-                  >
-                    {t("crew.demoteCoach")}
-                  </button>
-                )}
-                <button
-                  onClick={() => transfer(m.user_id)}
-                  disabled={busy != null}
-                  className={`${btn} bg-background text-accent`}
+
+                {/* 출석 = 유료 모임 / 무료 포함 전체 */}
+                <span
+                  className="tabular text-[13px] sm:text-right"
+                  title={t("crew.attendColHint")}
                 >
-                  {t("crew.transferLeader")}
-                </button>
-                <button
-                  onClick={() => remove(m.user_id, t("crew.kickConfirm"))}
-                  disabled={busy != null}
-                  className={`${btn} bg-background text-red-400`}
-                >
-                  {t("crew.kick")}
-                </button>
-              </>
-              )}
+                  <strong>{m.attend_paid_count}</strong>
+                  <span className="text-[#666]"> / {m.attend_count}</span>
+                </span>
+
+                <RowMenu label={t("crew.memberMenu", { name: m.display_name })}>
+                  {(close) => (
+                    <>
+                      <button
+                        type="button"
+                        className={`${menuItem} text-foreground`}
+                        onClick={() => {
+                          close();
+                          setHistory({ id: m.user_id, name: m.display_name });
+                        }}
+                      >
+                        {t("crew.memberHistory")}
+                      </button>
+                      {canPromote && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busy != null}
+                            className={`${menuItem} text-foreground`}
+                            onClick={() => {
+                              close();
+                              setRole(m.user_id, m.role === "coach" ? "member" : "coach");
+                            }}
+                          >
+                            {t(m.role === "coach" ? "crew.demoteCoach" : "crew.makeCoach")}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy != null}
+                            className={`${menuItem} text-foreground`}
+                            onClick={() => {
+                              close();
+                              transfer(m.user_id);
+                            }}
+                          >
+                            {t("crew.transferLeader")}…
+                          </button>
+                        </>
+                      )}
+                      <span className="my-1 h-px bg-[#2a2a2a]" />
+                      <button
+                        type="button"
+                        disabled={busy != null || m.role === "owner"}
+                        className={`${menuItem} text-danger hover:bg-danger-card`}
+                        onClick={() => {
+                          close();
+                          remove(m.user_id, t("crew.kickConfirm"));
+                        }}
+                      >
+                        {t("crew.kick")}…
+                      </button>
+                    </>
+                  )}
+                </RowMenu>
+              </div>
+            </div>
+          );
+        })}
+
+        {rows.length === 0 && (
+          <p className="px-[18px] py-8 text-center text-[13px] text-[#666]">
+            {t("crew.filterEmpty")}
+          </p>
+        )}
+
+        {/* 푸터 — 몇 명을 보고 있는지 + 페이지 이동 */}
+        {active.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 text-xs text-[#777]">
+            <span>
+              {t("crew.memberRange", {
+                a: (cur - 1) * PAGE + 1,
+                b: Math.min(cur * PAGE, active.length),
+                n: active.length,
+              })}
             </span>
-          </li>
-        ))}
-      </ul>
-      {!active.length && (
-        <p className="mt-2 rounded-md bg-surface px-4 py-6 text-center text-xs text-muted">
-          {t("crew.filterEmpty")}
-        </p>
+            {maxPage > 1 && (
+              <span className="flex gap-1.5">
+                <button
+                  type="button"
+                  aria-label={t("crew.prevPage")}
+                  disabled={cur === 1}
+                  onClick={() => setPage(cur - 1)}
+                  className="rounded-md border border-line-strong px-2 py-1 disabled:opacity-30"
+                >
+                  ‹
+                </button>
+                {Array.from({ length: maxPage }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-current={n === cur}
+                    onClick={() => setPage(n)}
+                    className={`rounded-md px-2 py-1 ${
+                      n === cur
+                        ? "bg-accent font-extrabold text-background"
+                        : "border border-line-strong hover:border-muted/60"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  aria-label={t("crew.nextPage")}
+                  disabled={cur === maxPage}
+                  onClick={() => setPage(cur + 1)}
+                  className="rounded-md border border-line-strong px-2 py-1 disabled:opacity-30"
+                >
+                  ›
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {history && (
+        <MemberHistory
+          slug={slug}
+          userId={history.id}
+          name={history.name}
+          onClose={() => setHistory(null)}
+        />
       )}
     </div>
   );
 }
+
 
 type ChangeRow = {
   id: string;
@@ -671,39 +972,43 @@ type ChangeRow = {
 };
 
 /** 회원 한 명의 등급·권한·상태 변경 이력.
- *  crew_members 트리거가 쌓고(마이그레이션 103) 운영진만 읽는다. 열 때 한 번 받아 온다 —
- *  목록에 회원이 수십 명이라 미리 받아 두면 그만큼 왕복이 늘어난다. */
+ *  crew_members 트리거가 쌓고(마이그레이션 103) 운영진만 읽는다. 행 메뉴에서 고른
+ *  한 명만 마운트되고, 그때 한 번 받아 온다 — 목록에 회원이 수십 명이라 미리 받아
+ *  두면 그만큼 왕복이 늘어난다. */
 function MemberHistory({
   slug,
   userId,
   name,
-  btn,
+  onClose,
 }: {
   slug: string;
   userId: string;
   name: string;
-  btn: string;
+  onClose: () => void;
 }) {
   const { t, locale } = useI18n();
-  const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<ChangeRow[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  async function load() {
-    setOpen(true);
-    setErr(null);
-    setRows(null);
-    const { data, error } = await createClient().rpc("crew_member_changes_list", {
-      p_slug: slug,
-      p_user: userId,
-      p_limit: 100,
-    });
-    if (error) return setErr(error.message);
-    if (data && !Array.isArray(data)) {
-      return setErr(String((data as { error?: string }).error ?? "error"));
-    }
-    setRows((data ?? []) as ChangeRow[]);
-  }
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await createClient().rpc("crew_member_changes_list", {
+        p_slug: slug,
+        p_user: userId,
+        p_limit: 100,
+      });
+      if (cancelled) return;
+      if (error) return setErr(error.message);
+      if (data && !Array.isArray(data)) {
+        return setErr(String((data as { error?: string }).error ?? "error"));
+      }
+      setRows((data ?? []) as ChangeRow[]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, userId]);
 
   const roleLabel = (r: string | null) =>
     r === "owner"
@@ -727,13 +1032,9 @@ function MemberHistory({
     new Date(iso).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
 
   return (
-    <>
-      <button onClick={load} className={`${btn} bg-background text-muted`}>
-        {t("crew.memberHistory")}
-      </button>
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
+    <Dialog
+        open
+        onClose={onClose}
         label={t("crew.memberHistoryTitle", { name })}
         closeLabel={t("common.close")}
         panelClassName="max-w-lg"
@@ -793,14 +1094,13 @@ function MemberHistory({
           <p className="text-[11px] text-muted">{t("crew.memberHistoryNote")}</p>
           <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={onClose}
             className="self-start rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
           >
             {t("common.close")}
           </button>
         </div>
-      </Dialog>
-    </>
+    </Dialog>
   );
 }
 

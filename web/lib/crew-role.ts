@@ -51,3 +51,31 @@ export function crewRoleDictKey(role: string): DictKey {
 export function isStaffRole(role: string): boolean {
   return role === "owner" || role === "coach";
 }
+
+/** 등급 색을 글자에만 쓰는 곳(셀렉트 등) — 배경·링 없이 색만 가져간다. */
+const TIER_TEXT: Record<TierColor, string> = {
+  yellow: "text-accent",
+  blue: "text-track",
+  chalk: "text-foreground/80",
+  gray: "text-muted",
+  green: "text-emerald-400",
+  red: "text-red-400",
+};
+
+export function tierTextClass(color: string | null | undefined): string {
+  return TIER_TEXT[(color ?? "gray") as TierColor] ?? TIER_TEXT.gray;
+}
+
+/** 등급 색을 면(바·범례 사각)으로 쓰는 곳 — 배지보다 진하게 깔아야 비율이 읽힌다. */
+const TIER_BAR: Record<TierColor, string> = {
+  yellow: "bg-accent",
+  blue: "bg-track",
+  chalk: "bg-foreground/70",
+  gray: "bg-muted",
+  green: "bg-emerald-400",
+  red: "bg-red-400",
+};
+
+export function tierBarClass(color: string | null | undefined): string {
+  return TIER_BAR[(color ?? "gray") as TierColor] ?? TIER_BAR.gray;
+}

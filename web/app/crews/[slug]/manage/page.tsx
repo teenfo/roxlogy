@@ -4,7 +4,8 @@ import { getCrew } from "@/lib/crew";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
-import { tierBadgeClass } from "@/lib/crew-role";
+import { tierBarClass } from "@/lib/crew-role";
+
 import {
   CrewDeleteButton,
   CrewImageUpload,
@@ -72,10 +73,10 @@ function Stat({
           ? "text-danger"
           : "";
   return (
-    <Card className="px-4 py-3.5">
+    <Card className="px-[18px] py-3.5">
       <p className="text-xs text-muted">{label}</p>
-      <p className={`tabular mt-1 text-xl font-extrabold ${cls}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-muted">{sub}</p>}
+      <p className={`tabular mt-1 text-[26px] font-extrabold leading-tight ${cls}`}>{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-[#777]">{sub}</p>}
     </Card>
   );
 }
@@ -256,18 +257,6 @@ export default async function CrewManagePage({
       {/* ---------------- 크루원 ---------------- */}
       {tab === "members" && (
         <>
-          {pendingCount > 0 && (
-            <a
-              href="#members"
-              className="flex items-center justify-between gap-3 rounded-md border border-accent/40 bg-accent/10 px-4 py-3 text-sm hover:bg-accent/15"
-            >
-              <span className="font-semibold text-accent">
-                {t("crew.pendingAlert", { n: pendingCount })}
-              </span>
-              <span className="text-xs text-muted">{t("crew.pendingAlertGo")}</span>
-            </a>
-          )}
-
           {stats && (
             <section>
               <h2 className="text-base font-extrabold">{t("crew.statsTitle")}</h2>
@@ -303,55 +292,57 @@ export default async function CrewManagePage({
                 />
               </div>
 
-              {/* 등급 분포 — 색만으로 구분하지 않도록 이름·숫자를 함께 적는다 */}
+              {/* 등급 분포 — 한 줄 바로 비율을, 범례로 이름·수를 같이 적는다
+                  (색만으로 구분하지 않는다) */}
               {stats.tiers.length > 0 && (
-                <ul className="mt-3 flex flex-col gap-1.5">
-                  {stats.tiers.map((x) => {
-                    const pct = stats.members
-                      ? Math.round((x.count / stats.members) * 100)
-                      : 0;
-                    return (
-                      <li
-                        key={x.name}
-                        className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-2.5"
-                      >
+                <div className="mt-3 flex flex-col gap-2.5 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
+                  <div className="flex items-center justify-between text-xs text-muted">
+                    <span>{t("crew.tierDist")}</span>
+                    <Link
+                      href={`/crews/${slug}/manage?tab=tiers`}
+                      className="text-accent hover:underline"
+                    >
+                      {t("crew.tierManageLink")}
+                    </Link>
+                  </div>
+                  <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-line">
+                    {stats.tiers
+                      .filter((x) => x.count > 0)
+                      .map((x) => (
                         <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${tierBadgeClass(
-                            x.color,
-                          )}`}
-                        >
-                          {x.name}
-                        </span>
-                        <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line">
-                          <span
-                            className="block h-full rounded-full bg-muted/60"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </span>
-                        <span className="tabular w-16 shrink-0 text-right text-xs text-muted">
-                          {x.count}
-                          <span className="ml-1 text-[10px]">({pct}%)</span>
+                          key={x.name}
+                          className={`h-full ${tierBarClass(x.color)}`}
+                          style={{
+                            width: `${stats.members ? (x.count / stats.members) * 100 : 0}%`,
+                          }}
+                        />
+                      ))}
+                  </div>
+                  <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+                    {stats.tiers.map((x) => (
+                      <li key={x.name} className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-[2px] ${tierBarClass(x.color)}`} />
+                        {x.name} <strong className="tabular">{x.count}</strong>
+                        <span className="text-[#777]">
+                          {stats.members ? Math.round((x.count / stats.members) * 100) : 0}%
                         </span>
                       </li>
-                    );
-                  })}
-                </ul>
+                    ))}
+                  </ul>
+                </div>
               )}
             </section>
           )}
 
           <section id="members" className="scroll-mt-6">
-            <h2 className="text-base font-extrabold">{t("crew.manageMembers")}</h2>
-            <div className="mt-3">
-              <CrewMemberManage
-                slug={slug}
-                crewId={crew.id}
-                myRole={myRole}
-                myUserId={user.id}
-                members={members}
-                tiers={tiers}
-              />
-            </div>
+            <CrewMemberManage
+              slug={slug}
+              crewId={crew.id}
+              myRole={myRole}
+              myUserId={user.id}
+              members={members}
+              tiers={tiers}
+            />
           </section>
 
         </>
