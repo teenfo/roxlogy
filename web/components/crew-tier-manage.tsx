@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { TIER_COLORS, tierBadgeClass, type TierColor } from "@/lib/crew-role";
@@ -30,9 +29,8 @@ function toFee(v: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** 카드 — 회비·등급 표가 같은 모양을 쓴다 */
+/** 카드 */
 const CARD = "overflow-hidden rounded-[14px] border border-line bg-card";
-const HEAD = "flex items-start justify-between gap-3 border-b border-line px-[18px] py-3.5";
 const COL = "text-[11px] font-bold tracking-[0.06em] text-[#777]";
 
 /** ₩ 접두가 붙은 금액 칸 */
@@ -169,13 +167,15 @@ function useDraft<T extends Record<string, unknown>>(tiers: CrewTier[], pick: (x
 }
 
 /**
- * 회원 등급 — 운영진 전용. **여기서는 등급만 다룬다**: 이름·색·정회원 권한·기본 등급·삭제.
- * 금액(월회비·회차비)은 회비 탭의 CrewTierFees 가 맡는다 — 회비 설정이 두 탭에 흩어져
- * 있어 어디서 고치는지 헷갈렸다(2026-09-14 피드백). 그래서 디자인 시안의 표에 있던
- * 월 회비·회차비 열은 빼고, 그 자리를 회비 탭으로 넘겼다.
+ * 회원 등급 · 회비 — 운영진 전용. 등급이 곧 요금표라 한 표에서 다 다룬다:
+ * 이름·색·정회원 권한·월회비·회차비·기본 등급·삭제.
  *
- * 이름·색·권한은 로컬로 모았다가 "저장"으로 한 번에 쓴다(표에서 칸마다 저장하면 클릭
- * 한 번이 요청 하나가 된다). 기본 등급 지정과 삭제는 단발 동작이라 즉시 처리한다.
+ * 한때 등급 탭과 회비 탭으로 나눠 뒀는데(2026-09-14), 나눠도 **등급 목록 자체가
+ * 두 탭에 다 있어서** "이름은 등급 탭, 금액은 회비 탭" 이라는 같은 혼선이 남았다.
+ * 표를 하나로 되돌리고 탭도 합쳤다 — 고칠 곳이 한 군데면 헷갈릴 일이 없다.
+ *
+ * 이름·색·권한·금액은 로컬로 모았다가 "저장"으로 한 번에 쓴다(표에서 칸마다 저장하면
+ * 클릭 한 번이 요청 하나가 된다). 기본 등급 지정과 삭제는 단발 동작이라 즉시 처리한다.
  */
 export function CrewTierManage({
   crewId,
@@ -200,8 +200,20 @@ export function CrewTierManage({
     name: x.name,
     color: x.color,
     is_full_member: x.is_full_member,
+    monthly: x.monthly_fee == null ? "" : String(x.monthly_fee),
+    session: x.session_fee == null ? "" : String(x.session_fee),
   }));
   const dirty = d.changed(active);
+
+  // 이번 달 예상 월 회비 청구 = Σ(월회비 × 그 등급 활동 인원). 저장 전 값으로 미리 센다.
+  const expected = active.reduce(
+    (a, x) => a + (toFee(d.valueOf(x).monthly) ?? 0) * (counts[x.id] ?? 0),
+    0,
+  );
+  const billable = active.reduce(
+    (a, x) => a + (toFee(d.valueOf(x).monthly) != null ? (counts[x.id] ?? 0) : 0),
+    0,
+  );
 
   async function save() {
     setBusy("save");
@@ -211,7 +223,13 @@ export function CrewTierManage({
       const v = d.valueOf(x);
       const { error } = await supabase
         .from("crew_member_tiers")
-        .update({ name: v.name.trim() || x.name, color: v.color, is_full_member: v.is_full_member })
+        .update({
+          name: v.name.trim() || x.name,
+          color: v.color,
+          is_full_member: v.is_full_member,
+          monthly_fee: toFee(v.monthly),
+          session_fee: toFee(v.session),
+        })
         .eq("id", x.id)
         .eq("crew_id", crewId);
       if (error) {
@@ -229,7 +247,7 @@ export function CrewTierManage({
     if (!name.trim()) return;
     setBusy("add");
     setErr(null);
-    // 금액은 비워 두고 만든다 — 요금은 회비 탭에서 정한다
+    // 금액은 비워 두고 만든다 — 만든 뒤 표에서 채운다
     const { error } = await createClient().from("crew_member_tiers").insert({
       crew_id: crewId,
       name: name.trim(),
@@ -281,12 +299,13 @@ export function CrewTierManage({
     else router.refresh();
   }
 
-  // 좁은 화면에서는 5열이 들어가지 않아 이름 칸이 몇 픽셀로 찌그러진다(390px 확인).
-  // 그래서 모바일은 이름 한 줄 + 조작 한 줄로 쌓고, md 부터 한 줄 표가 된다.
-  // 조작 줄은 `md:contents` 로 격자에서 사라져 자식들이 그대로 표의 칸이 된다.
+  // 좁은 화면에서는 7열이 들어가지 않아 이름 칸이 몇 픽셀로 찌그러진다(390px 확인).
+  // 그래서 모바일은 이름 / 멤버·권한 / 금액 / 기본·삭제로 쌓고, lg 부터 한 줄 표가 된다.
+  // 각 줄은 `lg:contents` 로 격자에서 사라져 자식들이 그대로 표의 칸이 된다 —
+  // 그래서 DOM 순서가 곧 열 순서다.
   const cols =
-    "md:grid md:grid-cols-[minmax(0,1.4fr)_70px_110px_80px_36px] md:items-center md:gap-3";
-  const cellLabel = "text-[11px] font-bold text-[#777] md:hidden";
+    "lg:grid lg:grid-cols-[minmax(0,1.4fr)_70px_110px_106px_106px_70px_36px] lg:items-center lg:gap-3";
+  const cellLabel = "text-[11px] font-bold text-[#777] lg:hidden";
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -346,6 +365,8 @@ export function CrewTierManage({
           <span>{t("crew.colTier")}</span>
           <span className="text-center">{t("crew.colMembers")}</span>
           <span className="text-center">{t("crew.tierFull")}</span>
+          <span className="text-right">{t("crew.tierMonthly")}</span>
+          <span className="text-right">{t("crew.tierSession")}</span>
           <span className="text-center">{t("crew.colDefault")}</span>
           <span />
         </div>
@@ -380,13 +401,13 @@ export function CrewTierManage({
                 />
               </span>
 
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 pl-[38px] md:contents">
-                <span className="tabular flex items-center gap-1.5 text-sm font-bold md:justify-center">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 pl-[38px] lg:contents">
+                <span className="tabular flex items-center gap-1.5 text-sm font-bold lg:justify-center">
                   <span className={cellLabel}>{t("crew.colMembers")}</span>
                   {n}
                 </span>
 
-                <span className="flex items-center gap-1.5 md:justify-center">
+                <span className="flex items-center gap-1.5 lg:justify-center">
                   <span className={cellLabel}>{t("crew.tierFull")}</span>
                   <Toggle
                     on={v.is_full_member}
@@ -395,8 +416,32 @@ export function CrewTierManage({
                     onChange={(next) => d.set(x.id, { is_full_member: next }, x)}
                   />
                 </span>
+              </div>
 
-                <span className="flex items-center gap-1.5 md:justify-center">
+              {/* 금액 — 좁은 화면에서는 제 줄을 쓴다. ₩ 칸 둘이 들어가야 한다 */}
+              <div className="mt-2 grid grid-cols-2 gap-2 pl-[38px] lg:contents">
+                <span className="flex min-w-0 flex-col gap-1 lg:block">
+                  <span className={cellLabel}>{t("crew.tierMonthly")}</span>
+                  <FeeInput
+                    label={`${x.name} ${t("crew.tierMonthly")}`}
+                    value={v.monthly}
+                    disabled={busy != null}
+                    onChange={(nv) => d.set(x.id, { monthly: nv }, x)}
+                  />
+                </span>
+                <span className="flex min-w-0 flex-col gap-1 lg:block">
+                  <span className={cellLabel}>{t("crew.tierSession")}</span>
+                  <FeeInput
+                    label={`${x.name} ${t("crew.tierSession")}`}
+                    value={v.session}
+                    disabled={busy != null}
+                    onChange={(nv) => d.set(x.id, { session: nv }, x)}
+                  />
+                </span>
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 pl-[38px] lg:contents">
+                <span className="flex items-center gap-1.5 lg:justify-center">
                   <span className={cellLabel}>{t("crew.colDefault")}</span>
                   <button
                     type="button"
@@ -419,7 +464,7 @@ export function CrewTierManage({
                   title={n > 0 ? t("crew.tierDeleteNote") : undefined}
                   disabled={busy != null || x.is_default || n > 0}
                   onClick={() => remove(x)}
-                  className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm text-danger hover:bg-danger-card disabled:cursor-not-allowed disabled:text-[#444] disabled:hover:bg-transparent md:ml-0 md:justify-self-center"
+                  className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm text-danger hover:bg-danger-card disabled:cursor-not-allowed disabled:text-[#444] disabled:hover:bg-transparent lg:ml-0 lg:justify-self-center"
                 >
                   ×
                 </button>
@@ -428,9 +473,20 @@ export function CrewTierManage({
           );
         })}
 
-        <p className="flex flex-wrap gap-x-4 gap-y-1 px-[18px] py-3 text-xs text-[#777]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#1c1c1c] px-[18px] py-3 text-xs text-muted">
+          <span>{t("crew.expectedMonthly")}</span>
+          <strong className="tabular font-bold text-foreground">
+            {won(expected)}{" "}
+            <span className="font-medium text-[#777]">
+              · {t("crew.expectedMembers", { n: billable })}
+            </span>
+          </strong>
+        </div>
+
+        <p className="flex flex-wrap gap-x-4 gap-y-1 px-[18px] pb-3 text-xs text-[#777]">
           <span>● {t("crew.tierDefaultNote")}</span>
           <span>● {t("crew.tierDeleteNote")}</span>
+          <span>● {t("crew.tierFeeHint")}</span>
         </p>
       </div>
 
@@ -461,168 +517,6 @@ export function CrewTierManage({
           className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110 disabled:bg-[#2a2a2a] disabled:text-[#666]"
         >
           {busy === "save" ? t("common.saving") : t("common.save")}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * 등급별 회비 — 회비 탭. 등급이 곧 요금표라 등급마다 월회비·회차비를 여기서 정한다.
- * 시안에서는 읽기 전용 표였지만, 금액 편집이 회비 탭으로 넘어왔으므로 입력칸으로 둔다
- * (2026-09-14). 등급의 이름·색·권한은 등급 탭이 맡는다.
- *
- * 등급 표와 같이 로컬로 모았다가 "저장"으로 한 번에 쓴다. 비우면 요금 없음(null)이고,
- * 월회비가 없는 등급은 월 일괄 청구에서 빠진다.
- */
-export function CrewTierFees({
-  crewId,
-  tiers,
-  counts = {},
-  tiersHref,
-}: {
-  crewId: string;
-  tiers: CrewTier[];
-  counts?: TierCounts;
-  /** "등급 추가·이름 변경 →" 이 가는 곳 */
-  tiersHref: string;
-}) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  const active = tiers.filter((x) => !x.archived_at);
-  const d = useDraft(tiers, (x) => ({
-    monthly: x.monthly_fee == null ? "" : String(x.monthly_fee),
-    session: x.session_fee == null ? "" : String(x.session_fee),
-  }));
-  const dirty = d.changed(active);
-
-  async function save() {
-    setBusy(true);
-    setErr(null);
-    const supabase = createClient();
-    for (const x of dirty) {
-      const v = d.valueOf(x);
-      const { error } = await supabase
-        .from("crew_member_tiers")
-        .update({ monthly_fee: toFee(v.monthly), session_fee: toFee(v.session) })
-        .eq("id", x.id)
-        .eq("crew_id", crewId);
-      if (error) {
-        setBusy(false);
-        return setErr(duesErrText(t, error.message));
-      }
-    }
-    setBusy(false);
-    d.reset();
-    router.refresh();
-  }
-
-  // 이번 달 예상 월 회비 청구 = Σ(월회비 × 그 등급 활동 인원). 저장 전 값으로 미리 센다.
-  const expected = active.reduce((a, x) => {
-    const fee = toFee(d.valueOf(x).monthly) ?? 0;
-    return a + fee * (counts[x.id] ?? 0);
-  }, 0);
-  const billable = active.reduce(
-    (a, x) => a + (toFee(d.valueOf(x).monthly) != null ? (counts[x.id] ?? 0) : 0),
-    0,
-  );
-
-  const cols = "grid grid-cols-[minmax(0,1fr)_92px_92px] items-center gap-2 px-[18px] md:grid-cols-[minmax(0,1fr)_110px_110px] md:gap-3";
-
-  return (
-    <div className={CARD}>
-      <div className={HEAD}>
-        <div className="min-w-0">
-          <p className="text-[15px] font-extrabold">{t("crew.duesFeeTitle")}</p>
-          <p className="mt-0.5 text-xs text-[#777]">{t("crew.duesFeeSub")}</p>
-        </div>
-        <Link href={tiersHref} className="shrink-0 text-xs text-accent hover:underline">
-          {t("crew.tierGoTiers")}
-        </Link>
-      </div>
-
-      {active.length === 0 ? (
-        <p className="px-[18px] py-6 text-center text-[13px] text-[#666]">{t("crew.tierFeeNone")}</p>
-      ) : (
-        <>
-          <div className={`${cols} ${COL} border-b border-[#1c1c1c] py-2`} aria-hidden>
-            <span>{t("crew.colTier")}</span>
-            <span className="text-right">{t("crew.tierMonthly")}</span>
-            <span className="text-right">{t("crew.tierSession")}</span>
-          </div>
-
-          {active.map((x) => {
-            const v = d.valueOf(x);
-            return (
-              <div key={x.id} className={`${cols} border-b border-[#1c1c1c] py-3`}>
-                <span className="flex min-w-0 items-center gap-2">
-                  <span
-                    className={`shrink-0 rounded-[5px] px-2 py-[3px] text-[11px] font-bold ${tierBadgeClass(x.color)}`}
-                  >
-                    {x.name}
-                  </span>
-                  <span className="text-xs text-[#777]">
-                    {t("crew.memberN", { n: counts[x.id] ?? 0 })}
-                  </span>
-                </span>
-                <FeeInput
-                  label={`${x.name} ${t("crew.tierMonthly")}`}
-                  value={v.monthly}
-                  disabled={busy}
-                  onChange={(nv) => d.set(x.id, { monthly: nv }, x)}
-                />
-                <FeeInput
-                  label={`${x.name} ${t("crew.tierSession")}`}
-                  value={v.session}
-                  disabled={busy}
-                  onChange={(nv) => d.set(x.id, { session: nv }, x)}
-                />
-              </div>
-            );
-          })}
-
-          <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 text-xs text-muted">
-            <span>{t("crew.expectedMonthly")}</span>
-            <strong className="tabular font-bold text-foreground">
-              {won(expected)}{" "}
-              <span className="font-medium text-[#777]">
-                · {t("crew.expectedMembers", { n: billable })}
-              </span>
-            </strong>
-          </div>
-        </>
-      )}
-
-      {err && (
-        <p role="alert" className="px-[18px] pb-2 text-sm text-danger">
-          {err}
-        </p>
-      )}
-
-      <div className="flex items-center justify-end gap-3 border-t border-line bg-inset px-[18px] py-3">
-        <span className="text-xs text-muted">
-          {dirty.length > 0 ? t("crew.unsavedN", { n: dirty.length }) : t("crew.tierFeeHint")}
-        </span>
-        {dirty.length > 0 && (
-          <button
-            type="button"
-            onClick={d.reset}
-            disabled={busy}
-            className="h-9 shrink-0 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-muted/60"
-          >
-            {t("crew.revert")}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => void save()}
-          disabled={busy || dirty.length === 0}
-          className="h-9 shrink-0 rounded-lg bg-accent px-4 text-xs font-extrabold text-background hover:brightness-110 disabled:bg-[#2a2a2a] disabled:text-[#666]"
-        >
-          {busy ? t("common.saving") : t("common.save")}
         </button>
       </div>
     </div>

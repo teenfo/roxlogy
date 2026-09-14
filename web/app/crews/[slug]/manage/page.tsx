@@ -23,7 +23,6 @@ import {
   type DuesLink,
 } from "@/components/crew-dues-links";
 import {
-  CrewTierFees,
   CrewTierManage,
   type CrewTier,
   type TierCounts,
@@ -34,7 +33,9 @@ import {
   type UnpaidCharge,
 } from "@/components/crew-unpaid-card";
 
-const TABS = ["info", "members", "tiers", "dues", "programs"] as const;
+// 등급·회비는 한 탭이다 — 등급이 곧 요금표라 표 하나에서 다 고친다(2026-09-14).
+// 나눠 뒀던 때의 링크(?tab=tiers)는 아래에서 dues 로 흡수한다.
+const TABS = ["info", "members", "dues", "programs"] as const;
 type Tab = (typeof TABS)[number];
 
 type CrewStats = {
@@ -92,7 +93,9 @@ export default async function CrewManagePage({
   const { tab: tabParam } = await searchParams;
   const tab: Tab = (TABS as readonly string[]).includes(tabParam ?? "")
     ? (tabParam as Tab)
-    : "info";
+    : tabParam === "tiers"
+      ? "dues"
+      : "info";
 
   const [crew, user, { t, tz }] = await Promise.all([
     getCrew(slug),
@@ -216,8 +219,7 @@ export default async function CrewManagePage({
   const tabLabel: Record<Tab, string> = {
     info: t("crew.tabInfo"),
     members: t("crew.tabMembers"),
-    tiers: t("crew.tierTitle"),
-    dues: t("crew.tabDues"),
+    dues: t("crew.tabTiersDues"),
     programs: t("crew.tabPrograms"),
   };
 
@@ -316,7 +318,7 @@ export default async function CrewManagePage({
                   <div className="flex items-center justify-between text-xs text-muted">
                     <span>{t("crew.tierDist")}</span>
                     <Link
-                      href={`/crews/${slug}/manage?tab=tiers`}
+                      href={`/crews/${slug}/manage?tab=dues`}
                       className="text-accent hover:underline"
                     >
                       {t("crew.tierManageLink")}
@@ -365,24 +367,13 @@ export default async function CrewManagePage({
         </>
       )}
 
-      {/* ---------------- 회원 등급 ---------------- */}
-      {tab === "tiers" && (
-        <section>
-          <CrewTierManage crewId={crew.id} tiers={tiers} counts={tierCounts} />
-        </section>
-      )}
-
-      {/* ---------------- 회비 ---------------- */}
+      {/* ---------------- 등급 · 회비 ---------------- */}
       {tab === "dues" && (
-        // 좌: 등급별 회비 + 계좌 / 우: 결제 링크. 좁으면 한 열로 떨어진다.
-        <div className="grid items-start gap-4 min-[900px]:grid-cols-2">
-          <div className="flex flex-col gap-3.5">
-            <CrewTierFees
-              crewId={crew.id}
-              tiers={tiers}
-              counts={tierCounts}
-              tiersHref={`/crews/${slug}/manage?tab=tiers`}
-            />
+        <>
+          <CrewTierManage crewId={crew.id} tiers={tiers} counts={tierCounts} />
+
+          {/* 계좌와 납부 링크 — 표 아래 2열. 좁으면 한 열로 떨어진다 */}
+          <div className="grid items-start gap-4 min-[900px]:grid-cols-2">
             {/* 회비 계좌는 크루 정보의 links.bank_account 한 곳에서 관리한다 —
                 여기서는 무엇이 걸려 있는지 보여 주고 그리로 보낸다 */}
             <div className="flex flex-col gap-2 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
@@ -404,13 +395,13 @@ export default async function CrewManagePage({
                 </Link>
               </div>
             </div>
-          </div>
 
-          <CrewDuesLinksManage
-            crewId={crew.id}
-            items={(duesRows ?? []) as DuesLink[]}
-          />
-        </div>
+            <CrewDuesLinksManage
+              crewId={crew.id}
+              items={(duesRows ?? []) as DuesLink[]}
+            />
+          </div>
+        </>
       )}
 
       {/* ---------------- 프로그램 ---------------- */}
