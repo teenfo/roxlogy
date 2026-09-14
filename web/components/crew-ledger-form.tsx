@@ -112,7 +112,11 @@ export function CrewLedgerForm({
       method: method || null,
       settled_on: settledOn || null,
       // 종류와 짝이 안 맞는 값은 DB 체크 제약에 걸린다 — 보내기 전에 떨군다
-      category: category && isValidCategory(kind, category) ? category : null,
+      // 종류(수입/지출)가 바뀌어 못 쓰게 된 값만 비운다. **모른다고 지우지 않는다** —
+      // 분류 목록을 늘린 마이그레이션이 배포보다 먼저 반영되면 옛 번들이 새 분류를
+      // 모르는 창이 생기는데, 거기서 지워 버리면 고치지도 않은 값이 날아간다
+      // (2026-09-14 실제로 한 행이 그렇게 비워졌다).
+      category: category || null,
     };
     const { error } = editing
       ? await supabase
@@ -188,6 +192,11 @@ export function CrewLedgerForm({
         onChange={(e) => setCategory(e.target.value)}
       >
         <option value="">{t("crew.finCatNone")}</option>
+        {/* 목록에 없는 값(새 분류를 모르는 옛 번들)도 칸을 만들어 둔다 —
+            안 그러면 "미분류"로 보이고, 저장하면 실제로 미분류가 된다 */}
+        {category && !isValidCategory(kind, category) && (
+          <option value={category}>{t(categoryDictKey(category))}</option>
+        )}
         {LEDGER_CATEGORIES[kind].map((c) => (
           <option key={c} value={c}>
             {t(categoryDictKey(c))}
