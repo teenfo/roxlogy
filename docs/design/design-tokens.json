@@ -1,0 +1,182 @@
+{
+  "metadata": {
+    "name": "ROXLOGY",
+    "specVersion": "1.3",
+    "publishedVersion": 5,
+    "sourceCommit": "ed3aed0bec43e075f6f15542229df19650d2d1bb",
+    "date": "2026-09-16",
+    "mode": "light application / dedicated dark PFT board",
+    "unit": "CSS px unless stated",
+    "note": "current values extracted from source; recommendedMobile is not applied"
+  },
+  "current": {
+    "cssRoot": {
+      "background": "#f5f6f8",
+      "foreground": "#25282d",
+      "card": "#fff",
+      "card-foreground": "#25282d",
+      "popover": "#fff",
+      "popover-foreground": "#25282d",
+      "primary": "#efcf20",
+      "primary-foreground": "#25282d",
+      "secondary": "#edf0f4",
+      "secondary-foreground": "#323842",
+      "muted": "#f0f2f5",
+      "muted-foreground": "#69727f",
+      "accent": "#edf0f4",
+      "accent-foreground": "#242a32",
+      "destructive": "#bc4e42",
+      "border": "#e2e5eb",
+      "input": "#d7dce5",
+      "ring": "#8195b8",
+      "chart-1": "#cfb714",
+      "chart-2": "#8297cf",
+      "chart-3": "#3a4856",
+      "chart-4": "#bb7055",
+      "chart-5": "#63a090",
+      "radius": ".75rem",
+      "sidebar": "#fff",
+      "sidebar-foreground": "#59616e",
+      "sidebar-primary": "#242a32",
+      "sidebar-primary-foreground": "#fff",
+      "sidebar-accent": "#fff7cc",
+      "sidebar-accent-foreground": "#242a32",
+      "sidebar-border": "#e2e5eb",
+      "sidebar-ring": "#8195b8"
+    },
+    "fontStack": "Pretendard, Noto Sans KR, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    "fontFilesBundled": false,
+    "layout": {
+      "sidebarWidth": "15.5rem",
+      "mobileSidebarWidth": "18rem",
+      "mobileSidebarBelow": 768,
+      "contentMaxWidth": 1600,
+      "contentPadding": [
+        32,
+        36
+      ],
+      "mobilePadding": [
+        23,
+        16
+      ],
+      "mobileMaxWidth": 600,
+      "topbarHeight": 74,
+      "mobileTopbarHeight": 60
+    },
+    "breakpointsMax": [
+      1200,
+      1050,
+      1000,
+      600
+    ],
+    "controls": {
+      "primaryHeight": 42,
+      "inputHeight": 42,
+      "inputFontSize": 14,
+      "filterHeight": 40,
+      "segmentsHeight": 33
+    },
+    "finance": {
+      "sidebarWidth": 320,
+      "sidebarWidthAt1200": 290,
+      "mainSingleColumnAt": 1050,
+      "allCardsStackAt": 600,
+      "mobileInputFontSize": 16,
+      "mobilePrimaryMinHeight": 48,
+      "mobileSecondaryMinHeight": 44
+    },
+    "customColors": {
+      "primary": "#efd126",
+      "primaryForeground": "#252b31",
+      "primaryHover": "#e4c41f",
+      "raceSurface": "#222930",
+      "detailSurface": "#252d34",
+      "income": "#448369",
+      "expense": "#b56b66"
+    },
+    "completion": {
+      "mobileTabs": {
+        "web": 5,
+        "native": 6,
+        "breakpoint": 768,
+        "bridge": "RoxNative"
+      },
+      "dialog": "original custom Dialog + RoxDialog adapter",
+      "shareRatios": {
+        "9:16": [
+          1080,
+          1920
+        ],
+        "1:1": [
+          1080,
+          1080
+        ]
+      },
+      "loadingLayouts": 22,
+      "gateTypes": 5,
+      "newScreenLocales": [
+        "ko",
+        "en",
+        "es"
+      ],
+      "legacyCopyTranslation": "partial"
+    },
+    "pft": {
+      "staffTopSingleColumnAt": 1050,
+      "staffAthleteColumns": {
+        "default": 3,
+        "max1250": 2,
+        "max600": 1
+      },
+      "mobileInputFontSize": 16,
+      "mobilePrimaryMinHeight": 48,
+      "startHeight": 52,
+      "mobileSecondaryMinHeight": 44,
+      "boardMobileAt": 700,
+      "boardTabletAt": 1100,
+      "boardWideFrom": 1700,
+      "boardMobileOrder": [
+        "timing",
+        "finished",
+        "entrants"
+      ],
+      "boardColors": {
+        "background": "#12171C",
+        "panel": "#181F26",
+        "foreground": "#F3F5F7",
+        "muted": "#A8B4C1"
+      },
+      "stageColors": [
+        "#7BD2F2",
+        "#E4CD3E",
+        "#B6DD8C",
+        "#8FC8DC",
+        "#F2A362",
+        "#DAB0EE"
+      ],
+      "storage": "localStorage per race; same-origin browser tabs; no server"
+    }
+  },
+  "recommendedMobile": {
+    "status": "not-applied",
+    "bodyFontSize": 16,
+    "inputFontSize": 16,
+    "minimumTouchTarget": [
+      44,
+      44
+    ],
+    "primaryControlHeight": 48,
+    "sidebarMaxWidth": "calc(100vw - 32px)",
+    "safeAreaBottom": "env(safe-area-inset-bottom)",
+    "qaWidths": [
+      320,
+      360,
+      375,
+      390,
+      430,
+      600,
+      767,
+      768
+    ]
+  }
+}
