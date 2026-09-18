@@ -86,12 +86,12 @@ export default async function EventsPage({
             name="q"
             defaultValue={q ?? ""}
             placeholder={t("events.searchPh")}
-            className="min-w-52 flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent"
+            className="min-w-52 flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
           />
           <select
             name="region"
             defaultValue={region ?? ""}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent"
+            className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
           >
             <option value="">{t("events.allRegions")}</option>
             {REGIONS.map((r) => (
@@ -102,7 +102,7 @@ export default async function EventsPage({
           </select>
           <button
             type="submit"
-            className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+            className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95"
           >
             {t("common.search")}
           </button>
@@ -127,12 +127,12 @@ export default async function EventsPage({
                         <p className="text-sm font-semibold">
                           <RowLink
                             href={`/events/${e.id}`}
-                            className="hover:text-accent hover:underline"
+                            className="hover:text-gold hover:underline"
                           >
                             {e.name}
                           </RowLink>
                           {e.country_code === "KR" && (
-                            <span className="ml-2 rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent">
+                            <span className="ml-2 rounded border border-gold/60 px-1.5 py-0.5 text-xs text-gold">
                               {t("events.koreaBadge")}
                             </span>
                           )}
@@ -161,7 +161,7 @@ export default async function EventsPage({
                               href={e.official_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-accent hover:underline"
+                              className="text-xs text-gold hover:underline"
                             >
                               {t("events.official")}
                             </a>
@@ -170,7 +170,7 @@ export default async function EventsPage({
                             href={`/predict?event=${encodeURIComponent(e.name)}${
                               e.start_date ? `&date=${e.start_date}` : ""
                             }`}
-                            className="rounded-md border border-accent/50 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/10"
+                            className="rounded-md border border-gold/50 px-2.5 py-1 text-xs font-semibold text-gold hover:bg-accent/10"
                           >
                             {t("events.setGoal")}
                           </RowLink>
@@ -196,7 +196,7 @@ export default async function EventsPage({
                       <span className="text-sm">
                         <RowLink
                           href={`/events/${e.id}`}
-                          className="hover:text-accent hover:underline"
+                          className="hover:text-gold hover:underline"
                         >
                           {e.name}
                         </RowLink>{" "}
@@ -225,7 +225,7 @@ export default async function EventsPage({
             href="https://hyrox.com/find-my-race/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-accent hover:underline"
+            className="text-gold hover:underline"
           >
             {t("events.disclaimer.link")}
           </a>

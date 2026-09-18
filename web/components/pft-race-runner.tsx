@@ -366,7 +366,7 @@ export function PftRaceRunner({
                 className={`h-10 rounded-lg border px-3.5 text-sm font-semibold disabled:opacity-40 ${
                   quit
                     ? "border-line-strong bg-control hover:border-muted/60"
-                    : "border-danger-line-strong bg-control text-danger hover:brightness-125"
+                    : "border-danger-line-strong bg-control text-danger hover:brightness-95"
                 }`}
               >
                 {quit ? t("pft.race.dnfUndo") : t("pft.race.dnfMark")}
@@ -391,7 +391,7 @@ export function PftRaceRunner({
                   type="button"
                   onClick={join}
                   disabled={busy || closed || joinBlocked}
-                  className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-black text-background hover:brightness-110 disabled:opacity-40"
+                  className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-black text-accent-foreground hover:brightness-95 disabled:opacity-40"
                 >
                   {t("pft.race.join")}
                 </button>
@@ -430,7 +430,7 @@ export function PftRaceRunner({
                 : t("pft.race.notSavedNote")}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link href="/pft" className="flex h-9 items-center rounded-lg bg-accent px-4 text-sm font-bold text-background">
+            <Link href="/pft" className="flex h-9 items-center rounded-lg bg-accent px-4 text-sm font-bold text-accent-foreground">
               {t("pft.title")}
             </Link>
             {!closed && finished && (
@@ -457,7 +457,7 @@ export function PftRaceRunner({
             <div className="mt-3 flex flex-wrap gap-2">
               <Link
                 href={`/pft/race/${race.code}/staff`}
-                className="flex h-9 items-center rounded-lg bg-accent px-3 text-sm font-bold text-background hover:brightness-110"
+                className="flex h-9 items-center rounded-lg bg-accent px-3 text-sm font-bold text-accent-foreground hover:brightness-95"
               >
                 {t("pft.race.staffOpen")}
               </Link>

@@ -88,7 +88,7 @@ export function SessionCompare({
           <select
             value={metric}
             onChange={(e) => setMetric(e.target.value)}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent"
+            className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-gold"
           >
             <option value="total">{t("compare.total")}</option>
             {stationKeys.map((k) => (

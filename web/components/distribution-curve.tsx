@@ -55,7 +55,7 @@ export async function DistributionCurve({
         <h2 className="text-sm font-semibold text-muted">
           {t("dist.title")}
         </h2>
-        <span className="text-xs font-bold text-accent">
+        <span className="text-xs font-bold text-gold">
           {t("dist.topPct", { pct })}
         </span>
       </div>
@@ -97,15 +97,15 @@ export async function DistributionCurve({
           y1={4}
           x2={myX}
           y2={curveH}
-          className="stroke-accent"
+          className="stroke-gold"
           strokeWidth="2"
         />
-        <circle cx={myX} cy={4} r="3" className="fill-accent" />
+        <circle cx={myX} cy={4} r="3" className="fill-gold" />
         <text
           x={myX}
           y={H - 5}
           textAnchor={myX > W - 60 ? "end" : myX < 60 ? "start" : "middle"}
-          className="fill-accent"
+          className="fill-gold"
           fontSize="10"
           fontWeight="bold"
         >

@@ -78,7 +78,7 @@ const catOf = (ex: Exercise) =>
 
 /** 인라인 편집 인풋 — 평소엔 배경 없이 글자만, 손을 대면 칸이 드러난다 */
 const inlineCls =
-  "min-w-0 rounded-lg border border-transparent bg-transparent px-2 outline-none hover:border-line-strong hover:bg-page focus:border-accent focus:bg-page";
+  "min-w-0 rounded-lg border border-transparent bg-transparent px-2 outline-none hover:border-line-strong hover:bg-page focus:border-gold focus:bg-page";
 
 type Draft = {
   ex: string;
@@ -472,7 +472,7 @@ export function ProgramBuilder({
                   onClick={() => jumpToWeek(w)}
                   className={`flex h-[34px] shrink-0 items-center gap-2 rounded-full px-3 text-[13px] font-bold transition-colors ${
                     week === w
-                      ? "bg-accent text-background"
+                      ? "bg-accent text-accent-foreground"
                       : "border border-line-strong text-foreground-2 hover:border-muted/60"
                   }`}
                 >
@@ -901,7 +901,7 @@ function WorkoutCard({
               onClick={() => onSetType(ty)}
               className={`flex h-6 items-center rounded-full px-2.5 text-xs font-bold transition-colors ${
                 w.type === ty
-                  ? "bg-accent text-background"
+                  ? "bg-accent text-accent-foreground"
                   : "text-muted hover:text-foreground"
               }`}
             >
@@ -941,7 +941,7 @@ function WorkoutCard({
                 {!it.exercises && it.pending_exercise && (
                   <span
                     title={t("programs.pendingHint")}
-                    className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-accent"
+                    className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-gold"
                   >
                     {t("programs.pendingBadge")}
                   </span>
@@ -1095,7 +1095,7 @@ function ExercisePicker({
               }
             }}
             placeholder={t("programs.searchEx")}
-            className="h-[38px] w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none placeholder:text-muted-3 focus:border-accent"
+            className="h-[38px] w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none placeholder:text-muted-3 focus:border-gold"
           />
           {draft.open && (
             <div className="absolute inset-x-0 top-[42px] z-20 max-h-80 overflow-y-auto rounded-[10px] border border-line-strong bg-card-hover shadow-[var(--shadow-menu)]">
@@ -1137,7 +1137,7 @@ function ExercisePicker({
                   <span className="text-[13px] text-muted">
                     {t("exercises.noResults")}
                   </span>
-                  <span className="text-[13px] font-bold text-accent">
+                  <span className="text-[13px] font-bold text-gold">
                     {t("programs.newExFrom", { q: draft.q })}
                   </span>
                 </button>
@@ -1194,7 +1194,7 @@ function ExercisePicker({
                   }
                 }}
                 inputMode="decimal"
-                className="tabular h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-accent"
+                className="tabular h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-gold"
               />
             </label>
           ))}
@@ -1211,7 +1211,7 @@ function ExercisePicker({
                 }
               }}
               maxLength={60}
-              className="h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-accent"
+              className="h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-gold"
             />
           </label>
           <button
@@ -1221,7 +1221,7 @@ function ExercisePicker({
               setTimeout(() => searchRef.current?.focus(), 0);
             }}
             disabled={busy}
-            className="col-span-2 flex h-9 items-center justify-center self-end rounded-lg bg-accent px-3 text-[13px] font-extrabold text-background transition hover:brightness-110 disabled:opacity-40 md:col-span-1"
+            className="col-span-2 flex h-9 items-center justify-center self-end rounded-lg bg-accent px-3 text-[13px] font-extrabold text-accent-foreground transition hover:brightness-95 disabled:opacity-40 md:col-span-1"
           >
             {t("programs.addItem")} ↵
           </button>

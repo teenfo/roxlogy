@@ -39,7 +39,7 @@ export default async function CrewPostPage({
     <main>
       <Link
         href={`/crews/${slug}/board`}
-        className="text-xs text-muted hover:text-accent"
+        className="text-xs text-muted hover:text-gold"
       >
         ← {t("crew.board")}
       </Link>
@@ -50,7 +50,7 @@ export default async function CrewPostPage({
             {t(`crew.cat.${post.category}` as DictKey)}
           </span>
           {post.pinned && (
-            <span className="text-[10px] font-bold text-accent">PIN</span>
+            <span className="text-[10px] font-bold text-gold">PIN</span>
           )}
           {post.members_only && (
             <span className="rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
@@ -61,7 +61,7 @@ export default async function CrewPostPage({
         </div>
         <h1 className="mt-2 text-2xl font-bold leading-snug">{post.title}</h1>
         <p className="mt-2 flex flex-wrap gap-x-3 text-xs text-muted">
-          <Link href={`/u/${post.author_id}`} className="hover:text-accent">
+          <Link href={`/u/${post.author_id}`} className="hover:text-gold">
             {post.author_name}
           </Link>
           <span>{formatDate(post.created_at, tag, tz)}</span>
@@ -96,7 +96,7 @@ export default async function CrewPostPage({
                 <div className="flex items-baseline gap-2">
                   <Link
                     href={`/u/${c.author_id}`}
-                    className="text-xs font-semibold hover:text-accent"
+                    className="text-xs font-semibold hover:text-gold"
                   >
                     {c.author_name}
                   </Link>

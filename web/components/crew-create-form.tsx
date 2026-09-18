@@ -71,7 +71,7 @@ export function CrewCreateForm() {
   }
 
   const input =
-    "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+    "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
   const label = "mt-4 block text-xs text-muted";
 
   return (
@@ -137,7 +137,7 @@ export function CrewCreateForm() {
             onClick={() => setJoinPolicy(v)}
             className={`rounded-full px-3 py-1.5 text-xs ${
               joinPolicy === v
-                ? "bg-accent font-bold text-background"
+                ? "bg-accent font-bold text-accent-foreground"
                 : "bg-surface text-muted hover:text-foreground"
             }`}
           >
@@ -160,7 +160,7 @@ export function CrewCreateForm() {
       <button
         type="submit"
         disabled={busy || !name.trim() || !slugOk}
-        className="mt-6 w-full rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+        className="mt-6 w-full rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
       >
         {t("crew.submitCreate")}
       </button>

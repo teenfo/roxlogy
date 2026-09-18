@@ -213,7 +213,7 @@ export default async function RaceDetailPage({
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-2xl font-bold">{race.event}</h1>
-        <span className="font-mono text-3xl font-bold text-accent">
+        <span className="font-mono text-3xl font-bold text-gold">
           {formatMs(race.total_time_ms)}
         </span>
       </div>
@@ -258,7 +258,7 @@ export default async function RaceDetailPage({
         {!sim ? (
           <p className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("races.noSim")}{" "}
-            <Link href="/sessions/new" className="text-accent hover:underline">
+            <Link href="/sessions/new" className="text-gold hover:underline">
               {t("races.noSimLink")}
             </Link>
           </p>

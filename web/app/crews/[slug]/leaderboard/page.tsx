@@ -40,11 +40,11 @@ export default async function CrewLeaderboardPage({
   };
   const rankStyle = (rank: number) =>
     rank === 1
-      ? "bg-accent text-background"
+      ? "bg-accent text-accent-foreground"
       : rank === 2
-        ? "bg-foreground/80 text-background"
+        ? "bg-foreground/80 text-accent-foreground"
         : rank === 3
-          ? "bg-tier-copper text-background"
+          ? "bg-tier-copper text-accent-foreground"
           : "bg-line text-muted";
 
   return (
@@ -102,7 +102,7 @@ export default async function CrewLeaderboardPage({
                   <span className="min-w-0">
                     <Link
                       href={`/u/${r.user_id}`}
-                      className="flex items-center gap-2 truncate text-base font-bold hover:text-accent"
+                      className="flex items-center gap-2 truncate text-base font-bold hover:text-gold"
                     >
                       {r.display_name}
                       {r.division && (
@@ -119,7 +119,7 @@ export default async function CrewLeaderboardPage({
                 </span>
                 <span className="text-right">
                   <span
-                    className={`tabular block text-[22px] font-extrabold ${r.rank === 1 ? "text-accent" : ""}`}
+                    className={`tabular block text-[22px] font-extrabold ${r.rank === 1 ? "text-gold" : ""}`}
                   >
                     {formatMs(r.best_ms)}
                   </span>

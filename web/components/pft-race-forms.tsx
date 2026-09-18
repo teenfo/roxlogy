@@ -7,7 +7,7 @@ import { useI18n } from "@/components/i18n-provider";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 const input =
-  "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
+  "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
 
 /** 레이스 생성 — 전체 관리자, 또는 크루 운영진(크루 선택 시) */
 export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: string }[] }) {
@@ -72,7 +72,7 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
           <label
             key={key}
             className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 ${
-              joinOpen === value ? "border-accent bg-highlight" : "border-line-soft bg-inset"
+              joinOpen === value ? "border-gold bg-highlight" : "border-line-soft bg-inset"
             }`}
           >
             <input
@@ -93,7 +93,7 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
       <button
         type="submit"
         disabled={busy || !title.trim()}
-        className="h-11 rounded-lg bg-accent text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+        className="h-11 rounded-lg bg-accent text-sm font-extrabold text-accent-foreground hover:brightness-95 disabled:opacity-40"
       >
         {t("pft.race.create")}
       </button>

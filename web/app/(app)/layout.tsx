@@ -23,7 +23,7 @@ export default async function AppLayout({
         <p className="mt-2 text-sm text-muted">{t("suspended.body")}</p>
         <SignOutForm
           className="mt-6"
-          buttonClassName="text-sm text-accent hover:underline"
+          buttonClassName="text-sm text-gold hover:underline"
           label={t("common.logout")}
         />
       </main>

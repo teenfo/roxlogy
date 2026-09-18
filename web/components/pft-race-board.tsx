@@ -138,7 +138,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
       {/* 1. 레이스 종합 카드 */}
       <section className="flex flex-wrap items-center gap-6 rounded-2xl border border-line-mid bg-card px-5 py-5 md:px-[26px]">
         <div className="flex min-w-0 flex-col gap-2 md:min-w-[280px]">
-          <p className="flex items-center gap-2.5 text-xs font-extrabold tracking-[0.14em] text-accent">
+          <p className="flex items-center gap-2.5 text-xs font-extrabold tracking-[0.14em] text-gold">
             {t("pft.race.board")}
             {data.race.crew && <span className="text-gold-dim">{data.race.crew}</span>}
           </p>
@@ -161,7 +161,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             <li
               key={st.key}
               // 지표 카드(Stat)와 같은 치수 — 상단이 한 줄로 읽히려면 높이가 맞아야 한다
-              className="min-w-0 rounded-xl border border-black/10 px-4 py-3 text-center text-background"
+              className="min-w-0 rounded-xl border border-black/10 px-4 py-3 text-center text-accent-foreground"
               style={{ background: PFT_COLORS[st.key] }}
               title={t(st.detail as DictKey) || undefined}
             >
@@ -205,7 +205,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               <span className="text-[11px] font-bold tracking-[0.06em] text-muted-3">{t("pft.race.youAreIn")}</span>
               <Link
                 href={raceHref}
-                className="flex h-[52px] items-center rounded-xl bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110"
+                className="flex h-[52px] items-center rounded-xl bg-accent px-5 text-sm font-extrabold text-accent-foreground hover:brightness-95"
               >
                 {t("pft.race.myScreen")}
               </Link>
@@ -352,7 +352,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
             <p className="flex items-center gap-2.5 text-[17px] font-extrabold">
               {closed ? t("pft.race.dnf") : t("pft.race.running")}
-              <span className={`${pill} ${closed ? "bg-line text-muted" : "bg-highlight text-accent"}`}>
+              <span className={`${pill} ${closed ? "bg-line text-muted" : "bg-highlight text-gold"}`}>
                 {running.length}
               </span>
             </p>
@@ -425,9 +425,9 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                   <span
                     className={`tabular flex h-10 w-10 items-center justify-center rounded-full border text-[17px] font-extrabold ${
                       r.rank === 1
-                        ? "border-accent bg-accent text-background"
+                        ? "border-gold bg-accent text-accent-foreground"
                         : r.rank <= 3
-                          ? "border-line-accent bg-highlight text-accent"
+                          ? "border-line-accent bg-highlight text-gold"
                           : "border-line-strong text-muted"
                     }`}
                   >
@@ -441,7 +441,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                       <span className="flex items-center gap-2">
                         <span className="min-w-0 truncate text-lg font-extrabold">{r.name}</span>
                         {isMe && (
-                          <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-background">
+                          <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-accent-foreground">
                             {t("pft.race.meTag")}
                           </span>
                         )}
@@ -476,7 +476,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                   </span>
                   <span className="w-[90px] text-right md:w-[110px]">
                     <span
-                      className={`tabular block text-[22px] font-extrabold leading-[1.1] md:text-[26px] ${r.rank === 1 ? "text-accent" : ""}`}
+                      className={`tabular block text-[22px] font-extrabold leading-[1.1] md:text-[26px] ${r.rank === 1 ? "text-gold" : ""}`}
                     >
                       {formatMs(r.total_ms)}
                     </span>
@@ -496,15 +496,15 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               })}
             </span>
             {joinedMe ? (
-              <Link href={raceHref} className="font-bold text-accent hover:underline">
+              <Link href={raceHref} className="font-bold text-gold hover:underline">
                 {t("pft.race.myScreen")} →
               </Link>
             ) : showCode ? (
-              <Link href={raceHref} className="font-bold text-accent hover:underline">
+              <Link href={raceHref} className="font-bold text-gold hover:underline">
                 {t("pft.race.joinCta")} →
               </Link>
             ) : meId ? (
-              <Link href="/pft" className="font-bold text-accent hover:underline">
+              <Link href="/pft" className="font-bold text-gold hover:underline">
                 {t("pft.race.allResults")}
               </Link>
             ) : null}
@@ -544,7 +544,7 @@ function Stat({
       <p className={`text-[11px] font-bold tracking-[0.06em] ${tone === "accent" ? "text-gold" : "text-muted-3"}`}>{label}</p>
       <p
         className={`tabular mt-1 text-[28px] font-extrabold leading-[1.1] ${
-          tone === "accent" ? "text-accent" : tone === "success" ? "text-success" : ""
+          tone === "accent" ? "text-gold" : tone === "success" ? "text-success" : ""
         }`}
       >
         {value}
@@ -636,7 +636,7 @@ function LiveRow({
           )}
           <span
             className={`hidden h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-extrabold md:inline-flex ${
-              closed ? "bg-line text-muted" : "bg-highlight text-accent"
+              closed ? "bg-line text-muted" : "bg-highlight text-gold"
             }`}
           >
             {closed ? t("pft.race.dnf") : `${cur + 1}/6 ${stationLabel(cur)}`}
@@ -647,7 +647,7 @@ function LiveRow({
         </div>
         <span
           className={`inline-flex h-6 w-fit items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-extrabold md:hidden ${
-            closed ? "bg-line text-muted" : "bg-highlight text-accent"
+            closed ? "bg-line text-muted" : "bg-highlight text-gold"
           }`}
         >
           {closed ? t("pft.race.dnf") : `${cur + 1}/6 ${stationLabel(cur)}`}
@@ -670,7 +670,7 @@ function LiveRow({
                 </div>
                 <div className="tabular flex justify-between text-xs">
                   <span className="truncate text-muted-3">{stationLabel(i)}</span>
-                  <span className={`font-bold ${done ? "text-foreground-2" : isCur && !closed ? "text-accent" : "text-muted-3"}`}>
+                  <span className={`font-bold ${done ? "text-foreground-2" : isCur && !closed ? "text-gold" : "text-muted-3"}`}>
                     {done && ms != null ? formatMs(ms) : isCur && !closed ? fmtClock(curElapsed) : "—"}
                   </span>
                 </div>

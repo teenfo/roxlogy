@@ -8,7 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { LEDGER_CATEGORIES, categoryDictKey, isValidCategory } from "@/lib/ledger-category";
 
 const input =
-  "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+  "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
 
 /**
  * 수단은 "어떻게 냈나"가 아니라 "이 돈이 통장에 언제 찍히나"를 가늠하려고 있다.
@@ -283,7 +283,7 @@ export function CrewLedgerForm({
         <button
           type="submit"
           disabled={busy}
-          className="mt-1 h-10 rounded-lg bg-accent text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+          className="mt-1 h-10 rounded-lg bg-accent text-sm font-extrabold text-accent-foreground hover:brightness-95 disabled:opacity-40"
         >
           {busy ? t("common.saving") : t("crew.finSave")}
         </button>
@@ -298,7 +298,7 @@ export function CrewLedgerForm({
           type="button"
           onClick={openModal}
           aria-label={t("common.edit")}
-          className="-m-2 shrink-0 p-2 text-xs text-muted transition-colors hover:text-accent"
+          className="-m-2 shrink-0 p-2 text-xs text-muted transition-colors hover:text-gold"
         >
           ✎
         </button>
@@ -314,7 +314,7 @@ export function CrewLedgerForm({
         <button
           type="button"
           onClick={openModal}
-          className="flex h-9 shrink-0 items-center rounded-[10px] border border-accent/40 px-3 text-sm font-semibold text-accent transition-colors hover:bg-accent/10"
+          className="flex h-9 shrink-0 items-center rounded-[10px] border border-gold/40 px-3 text-sm font-semibold text-gold transition-colors hover:bg-accent/10"
         >
           + {t("crew.finAdd")}
         </button>
@@ -336,7 +336,7 @@ export function CrewLedgerForm({
               <button
                 type="submit"
                 disabled={busy}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+                className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
               >
                 {busy ? t("common.saving") : t(editing ? "common.save" : "crew.finSave")}
               </button>

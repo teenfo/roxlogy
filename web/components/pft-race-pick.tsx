@@ -20,7 +20,7 @@ export type JoinableRace = {
 };
 
 const INPUT =
-  "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
+  "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
 
 /**
  * 레이스 참가 — 먼저 "지금 참가할 수 있는 레이스"를 보여 주고 골라서 참가한다.
@@ -102,7 +102,7 @@ export function PftRacePick({
                   className={`h-10 shrink-0 rounded-lg px-5 text-sm font-extrabold disabled:opacity-40 ${
                     r.joined
                       ? "border border-line-strong bg-control text-foreground hover:border-muted/60"
-                      : "bg-accent text-background hover:brightness-110"
+                      : "bg-accent text-accent-foreground hover:brightness-95"
                   }`}
                 >
                   {busy === r.code

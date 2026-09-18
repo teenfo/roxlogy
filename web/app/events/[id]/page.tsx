@@ -115,7 +115,7 @@ export default async function EventDetailPage({
     live?.phase === "finished"
       ? ["bg-track/15 text-track", t("events.phaseFinished")]
       : live?.phase === "racing"
-        ? ["bg-accent/15 text-accent", t("events.phaseRacing")]
+        ? ["bg-accent/15 text-gold", t("events.phaseRacing")]
         : live?.phase === "scheduled"
           ? ["bg-surface text-muted", t("events.phaseScheduled")]
           : null;
@@ -157,7 +157,7 @@ export default async function EventDetailPage({
               href={ev.official_url}
               target="_blank"
               rel="noreferrer noopener"
-              className="rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent"
+              className="rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-gold"
             >
               {t("events.official")} ↗
             </a>
@@ -165,14 +165,14 @@ export default async function EventDetailPage({
           {myPlanId && (
             <Link
               href={`/schedule/race/${myPlanId}?from=${encodeURIComponent(`/events/${id}`)}`}
-              className="rounded-md border border-line-accent bg-highlight px-3 py-1.5 text-xs font-bold text-accent hover:brightness-125"
+              className="rounded-md border border-line-accent bg-highlight px-3 py-1.5 text-xs font-bold text-gold hover:brightness-95"
             >
               {t("race.myPlan")} →
             </Link>
           )}
           <Link
             href={`/predict?event=${encodeURIComponent(ev.name)}${ev.start_date ? `&date=${ev.start_date}` : ""}`}
-            className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
+            className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground hover:brightness-95"
           >
             {t("events.setGoal")}
           </Link>
@@ -263,7 +263,7 @@ export default async function EventDetailPage({
                       </div>
                     </div>
                     {myPct != null && (
-                      <p className="mt-2 text-xs text-accent">
+                      <p className="mt-2 text-xs text-gold">
                         🎯 {t("events.myGoalPct", {
                           time: formatMs(goal!.target_total_ms),
                           pct: myPct,

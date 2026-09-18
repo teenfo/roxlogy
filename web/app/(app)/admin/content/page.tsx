@@ -105,7 +105,7 @@ export default async function AdminContentPage({
             name="q"
             defaultValue={q ?? ""}
             placeholder={t("exercises.searchPh")}
-            className="w-full max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+            className="w-full max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-gold"
           />
         </form>
         <div className="mt-4 flex flex-col gap-2">
@@ -148,7 +148,7 @@ export default async function AdminContentPage({
             >
               <Link
                 href={`/programs/${p.id}`}
-                className="text-sm font-medium hover:text-accent"
+                className="text-sm font-medium hover:text-gold"
               >
                 {p.title}
               </Link>

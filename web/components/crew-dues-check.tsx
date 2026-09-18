@@ -60,7 +60,7 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
       <div className="flex flex-wrap items-baseline gap-2">
         <span className="text-sm text-muted">{t("crew.duesMyTitle")}</span>
         {outstanding > 0 ? (
-          <span className="font-mono text-sm font-bold text-accent">
+          <span className="font-mono text-sm font-bold text-gold">
             {won(outstanding)}
           </span>
         ) : (
@@ -101,7 +101,7 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
               </span>
             ) : c.status === "reported" ? (
               <>
-                <span className={badge("bg-accent/15 text-accent")}>
+                <span className={badge("bg-accent/15 text-gold")}>
                   {t("crew.duesReported")}
                 </span>
                 <button
@@ -118,7 +118,7 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
                 type="button"
                 onClick={() => report(c.charge_id, true)}
                 disabled={busy != null}
-                className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
+                className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
               >
                 {t("crew.duesReport")}
               </button>
@@ -334,7 +334,7 @@ export function CrewDuesMatrix({
       aria-pressed={filter === k}
       onClick={() => setFilter(k)}
       className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
-        filter === k ? "bg-accent text-background" : "text-foreground-2 hover:text-foreground"
+        filter === k ? "bg-accent text-accent-foreground" : "text-foreground-2 hover:text-foreground"
       }`}
     >
       {label}
@@ -366,7 +366,7 @@ export function CrewDuesMatrix({
               <li key={m.uid} className="rounded-xl bg-inset px-3 py-2.5">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="truncate text-sm font-semibold">{m.name}</span>
-                  <span className="tabular shrink-0 text-xs text-accent">
+                  <span className="tabular shrink-0 text-xs text-gold">
                     {won(m.rows.reduce((a, c) => a + c.amount, 0))}
                   </span>
                 </div>
@@ -375,7 +375,7 @@ export function CrewDuesMatrix({
                     <li key={c.charge_id} className="flex items-baseline gap-2 text-xs text-muted">
                       <span className="min-w-0 flex-1 truncate">{c.label}</span>
                       {c.status === "reported" && (
-                        <span className="shrink-0 text-accent">{t("crew.duesReported")}</span>
+                        <span className="shrink-0 text-gold">{t("crew.duesReported")}</span>
                       )}
                       <span className="tabular shrink-0">{won(c.amount)}</span>
                     </li>
@@ -393,7 +393,7 @@ export function CrewDuesMatrix({
                 setFilter("unpaid");
                 setUnpaidOpen(false);
               }}
-              className="text-xs text-accent hover:underline"
+              className="text-xs text-gold hover:underline"
             >
               {t("crew.unpaidFilterHere")}
             </button>
@@ -427,7 +427,7 @@ export function CrewDuesMatrix({
               <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-danger">
                 {won(unpaid)}
               </p>
-              <p className="mt-0.5 text-xs text-accent">
+              <p className="mt-0.5 text-xs text-gold">
                 {t("crew.memberN", { n: stateCount("unpaid") })} · {t("crew.unpaidOpen")}
               </p>
             </button>
@@ -468,7 +468,7 @@ export function CrewDuesMatrix({
           {err}
         </p>
       )}
-      {note && <p className="text-xs text-accent">{note}</p>}
+      {note && <p className="text-xs text-gold">{note}</p>}
 
       {/* ── §1-b 목록 ── */}
       <div className={CARD}>
@@ -485,7 +485,7 @@ export function CrewDuesMatrix({
               onChange={(e) => setQuery(e.target.value)}
               size={1}
               placeholder={t("crew.memberSearch")}
-              className="h-8 w-[150px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-accent"
+              className="h-8 w-[150px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-gold"
             />
             <button
               type="button"
@@ -520,7 +520,7 @@ export function CrewDuesMatrix({
                     "generate_monthly_charges",
                   )
                 }
-                className="h-9 rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background disabled:opacity-40"
+                className="h-9 rounded-lg bg-accent px-4 text-[13px] font-extrabold text-accent-foreground disabled:opacity-40"
               >
                 {busy === "generate_monthly_charges"
                   ? "…"
@@ -658,7 +658,7 @@ export function CrewDuesMatrix({
                           </span>
                           <span className="col-span-2 flex items-center justify-end gap-1.5 sm:col-span-1">
                             {c.status === "reported" && (
-                              <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-bold text-accent">
+                              <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-bold text-gold">
                                 {t("crew.duesReported")}
                               </span>
                             )}
@@ -717,7 +717,7 @@ export function CrewDuesMatrix({
                                       p_charge: c.charge_id,
                                     })
                                   }
-                                  className="h-7 shrink-0 rounded-md bg-accent px-2.5 text-[11px] font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+                                  className="h-7 shrink-0 rounded-md bg-accent px-2.5 text-[11px] font-extrabold text-accent-foreground hover:brightness-95 disabled:opacity-40"
                                 >
                                   ✓ {t("crew.duesConfirm")}
                                 </button>
@@ -753,7 +753,7 @@ export function CrewDuesMatrix({
                     setOpened(new Set(byMember.keys()));
                   }
                 }}
-                className="font-bold text-accent hover:underline"
+                className="font-bold text-gold hover:underline"
               >
                 {allExpanded ? t("crew.duesCollapseAll") : t("crew.duesExpandAll")}
               </button>

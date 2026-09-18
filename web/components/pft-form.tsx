@@ -17,7 +17,7 @@ import {
 } from "@/lib/pft";
 
 const input =
-  "h-10 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
+  "h-10 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
 const label = "mt-3 block text-xs text-muted";
 const card = "rounded-2xl border border-line bg-card px-5 py-4";
 
@@ -124,7 +124,7 @@ export function PftForm({
               <span className="text-xs text-muted">{t("pft.fDate")}</span>
               <input
                 type="date"
-                className={`${input} mt-1 [color-scheme:dark]`}
+                className={`${input} mt-1`}
                 value={testedOn}
                 onChange={(e) => setTestedOn(e.target.value)}
                 required
@@ -289,7 +289,7 @@ export function PftForm({
             {t("pft.previewBadge")}
           </p>
           <p
-            className={`tabular mt-1 text-[40px] font-extrabold leading-none ${totalMs != null ? "text-accent" : "text-line-strongest"}`}
+            className={`tabular mt-1 text-[40px] font-extrabold leading-none ${totalMs != null ? "text-gold" : "text-line-strongest"}`}
           >
             {totalMs != null ? formatMs(totalMs) : "--:--"}
           </p>
@@ -325,7 +325,7 @@ export function PftForm({
             disabled={busy || !canSave}
             className={`mt-4 h-11 w-full rounded-lg text-[15px] font-extrabold ${
               canSave
-                ? "bg-accent text-background hover:brightness-110"
+                ? "bg-accent text-accent-foreground hover:brightness-95"
                 : "cursor-not-allowed bg-line-mid text-muted-2"
             } disabled:opacity-60`}
           >

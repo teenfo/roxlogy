@@ -44,7 +44,7 @@ export function AdminUserActions({
         onClick={() => patch({ is_admin: !isAdmin })}
         className={`rounded-md border px-2.5 py-1 text-xs font-semibold disabled:opacity-40 ${
           isAdmin
-            ? "border-accent/40 text-accent hover:bg-accent/10"
+            ? "border-gold/40 text-gold hover:bg-accent/10"
             : "border-muted/30 text-muted hover:text-foreground"
         }`}
       >

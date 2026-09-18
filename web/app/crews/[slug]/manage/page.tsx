@@ -67,7 +67,7 @@ function Stat({
 }) {
   const cls =
     accent === "accent"
-      ? "text-accent"
+      ? "text-gold"
       : accent === "track"
         ? "text-track"
         : accent === "red"
@@ -319,7 +319,7 @@ export default async function CrewManagePage({
                     <span>{t("crew.tierDist")}</span>
                     <Link
                       href={`/crews/${slug}/manage?tab=dues`}
-                      className="text-accent hover:underline"
+                      className="text-gold hover:underline"
                     >
                       {t("crew.tierManageLink")}
                     </Link>
@@ -389,7 +389,7 @@ export default async function CrewManagePage({
                 </span>
                 <Link
                   href={`/crews/${slug}/manage?tab=info`}
-                  className="shrink-0 text-xs text-accent hover:underline"
+                  className="shrink-0 text-xs text-gold hover:underline"
                 >
                   {t("crew.goInfoEdit")}
                 </Link>

@@ -200,7 +200,7 @@ export default async function ProgramsPage() {
           <AiProgramButton />
           <Link
             href="/programs/new"
-            className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background transition hover:brightness-110 max-md:flex-1 max-md:justify-center"
+            className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground transition hover:brightness-95 max-md:flex-1 max-md:justify-center"
           >
             {t("programs.create")}
           </Link>
@@ -216,7 +216,7 @@ export default async function ProgramsPage() {
           className="grid items-center gap-5 rounded-2xl border border-line-accent bg-highlight px-6 py-5 max-md:grid-cols-1 max-md:px-4 md:grid-cols-[minmax(0,1fr)_auto]"
         >
           <div className="flex min-w-0 flex-col gap-3">
-            <p className="flex flex-wrap items-center gap-x-2 text-xs font-extrabold tracking-[0.1em] text-accent">
+            <p className="flex flex-wrap items-center gap-x-2 text-xs font-extrabold tracking-[0.1em] text-gold">
               {t("programs.enrolled")}
               <span className="font-semibold tracking-normal text-gold-dim">
                 {dateLabel(running.startDate)}
@@ -225,7 +225,7 @@ export default async function ProgramsPage() {
             </p>
             <Link
               href={`/programs/${running.id}`}
-              className="text-[22px] font-extrabold tracking-tight hover:text-accent max-md:text-lg"
+              className="text-[22px] font-extrabold tracking-tight hover:text-gold max-md:text-lg"
             >
               {running.title}
             </Link>
@@ -253,21 +253,21 @@ export default async function ProgramsPage() {
             {running.todayTemplate ? (
               <Link
                 href={`/workouts/${running.todayTemplate.id}`}
-                className="flex h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-extrabold text-background transition hover:brightness-110"
+                className="flex h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-extrabold text-accent-foreground transition hover:brightness-95"
               >
                 ▶ {running.todayTemplate.title}
               </Link>
             ) : (
               <Link
                 href="/schedule"
-                className="flex h-11 items-center justify-center rounded-lg border border-line-accent px-5 text-[15px] font-bold text-accent transition hover:brightness-125"
+                className="flex h-11 items-center justify-center rounded-lg border border-line-accent px-5 text-[15px] font-bold text-gold transition hover:brightness-95"
               >
                 {t("schedule.title")}
               </Link>
             )}
             <Link
               href="/schedule"
-              className="text-xs font-semibold text-gold-dim hover:text-accent"
+              className="text-xs font-semibold text-gold-dim hover:text-gold"
             >
               {t("schedule.title")} →
             </Link>

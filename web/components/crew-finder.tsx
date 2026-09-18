@@ -88,7 +88,7 @@ export function CrewFinder({ crews }: { crews: CrewDirectoryRow[] }) {
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("crew.findPh")}
           aria-label={t("crew.findCrew")}
-          className="ml-auto h-9 w-full max-w-56 rounded-lg border border-line-mid bg-card px-3 text-[13px] outline-none focus:border-accent"
+          className="ml-auto h-9 w-full max-w-56 rounded-lg border border-line-mid bg-card px-3 text-[13px] outline-none focus:border-gold"
         />
       </div>
 
@@ -98,7 +98,7 @@ export function CrewFinder({ crews }: { crews: CrewDirectoryRow[] }) {
           <p className="mt-1 text-sm text-muted">{t("crew.findEmptyHint")}</p>
           <Link
             href="/crews/new"
-            className="mt-4 inline-block rounded-lg border border-line-accent bg-highlight px-5 py-2.5 text-sm font-bold text-accent"
+            className="mt-4 inline-block rounded-lg border border-line-accent bg-highlight px-5 py-2.5 text-sm font-bold text-gold"
           >
             + {t("crew.createCta")}
           </Link>

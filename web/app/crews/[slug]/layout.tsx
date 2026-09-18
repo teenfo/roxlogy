@@ -74,12 +74,12 @@ export default async function CrewLayout({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="min-w-0 truncate text-2xl font-black tracking-tight sm:text-3xl">
                 {/* 크루명 = 소개로 가는 링크 (소개 탭을 대신한다) */}
-                <Link href={`/crews/${slug}`} className="hover:text-accent">
+                <Link href={`/crews/${slug}`} className="hover:text-gold">
                   {crew.name}
                 </Link>
               </h1>
               {crew.crew_status === "pending" && (
-                <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent">
+                <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-bold text-gold">
                   {t("crew.pendingBadge")}
                 </span>
               )}

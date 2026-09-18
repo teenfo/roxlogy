@@ -122,15 +122,15 @@ function SegmentCurve({
         y1={4}
         x2={myX}
         y2={curveH}
-        className="stroke-accent"
+        className="stroke-gold"
         strokeWidth="2"
       />
-      <circle cx={myX} cy={4} r="3" className="fill-accent" />
+      <circle cx={myX} cy={4} r="3" className="fill-gold" />
       <text
         x={myX}
         y={H - 4}
         textAnchor={myX > W - 55 ? "end" : myX < 55 ? "start" : "middle"}
-        className="fill-accent"
+        className="fill-gold"
         fontSize="10"
         fontWeight="bold"
       >
@@ -172,13 +172,13 @@ function HistorySpark({ points }: { points: SegHistoryPoint[] }) {
         <polyline
           points={line.join(" ")}
           fill="none"
-          className="stroke-accent/70"
+          className="stroke-gold/70"
           strokeWidth="1.5"
         />
       )}
       {points.map((p, i) => (
         <g key={`${p.date}-${i}`}>
-          <circle cx={x(i)} cy={y(p.ms)} r="3" className="fill-accent" />
+          <circle cx={x(i)} cy={y(p.ms)} r="3" className="fill-gold" />
           <text
             x={x(i)}
             y={y(p.ms) - 6}
@@ -207,7 +207,7 @@ export function RaceReplayTable({
   const [sel, setSel] = useState<Selected | null>(null);
 
   const cellBtn =
-    "cursor-pointer rounded px-1 py-0.5 text-accent underline decoration-accent/40 decoration-dotted underline-offset-2 hover:bg-accent/10";
+    "cursor-pointer rounded px-1 py-0.5 text-gold underline decoration-gold/40 decoration-dotted underline-offset-2 hover:bg-accent/10";
 
   const openRun = (r: ReplayRow) =>
     r.runMs != null &&
@@ -315,7 +315,7 @@ export function RaceReplayTable({
           <div>
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="text-base font-bold">{sel.label}</h3>
-              <span className="font-mono text-lg font-bold text-accent">
+              <span className="font-mono text-lg font-bold text-gold">
                 {formatMs(sel.ms)}
               </span>
             </div>
@@ -328,7 +328,7 @@ export function RaceReplayTable({
                     field: fieldSize.toLocaleString(tag),
                   })}
                   {topPct != null && (
-                    <span className="ml-2 font-bold text-accent">
+                    <span className="ml-2 font-bold text-gold">
                       {t("dist.topPct", { pct: topPct })}
                     </span>
                   )}

@@ -206,7 +206,7 @@ export default async function WorkoutPage({
             <div className="flex shrink-0 flex-col items-end gap-1.5 max-md:items-stretch">
               <Link
                 href="/sessions/new"
-                className="flex h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-extrabold text-background transition hover:brightness-110"
+                className="flex h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-extrabold text-accent-foreground transition hover:brightness-95"
               >
                 ◔ {t("workouts.recordAsSession")}
               </Link>

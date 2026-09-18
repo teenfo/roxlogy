@@ -37,7 +37,7 @@ import { FollowButton } from "@/components/follow-button";
 
 const KIND_BADGE: Record<string, string> = {
   run: "border-track/60 text-track",
-  station: "border-accent/60 text-accent",
+  station: "border-gold/60 text-gold",
   roxzone: "border-muted/60 text-muted",
 };
 
@@ -478,13 +478,13 @@ export default async function SessionDetailPage({
         </div>
 
         <div className="sm:text-right">
-          <p className="tabular text-[44px] font-extrabold leading-none tracking-tight text-accent">
+          <p className="tabular text-[44px] font-extrabold leading-none tracking-tight text-gold">
             {formatMs(session.total_time_ms)}
           </p>
           <p className="mt-2 flex flex-wrap items-center gap-x-2.5 text-[13px] sm:justify-end">
             {pbGap != null && (
               <span
-                className={`tabular font-bold ${pbGap <= 0 ? "text-accent" : "text-danger"}`}
+                className={`tabular font-bold ${pbGap <= 0 ? "text-gold" : "text-danger"}`}
               >
                 {pbGap <= 0 ? t("sessions.pb") : `PB ${gapLabel(pbGap)}`}
               </span>
@@ -507,7 +507,7 @@ export default async function SessionDetailPage({
               {linked.program_days?.programs ? (
                 <Link
                   href={`/programs/${linked.program_days.programs.id}`}
-                  className="text-accent hover:underline"
+                  className="text-gold hover:underline"
                 >
                   {linked.program_days.programs.title}
                   {linked.program_days.day_index != null
@@ -523,7 +523,7 @@ export default async function SessionDetailPage({
           {isOwner && session.rpe != null && (
             <div className={`flex items-center gap-2 text-sm ${linked ? "mt-2" : ""}`}>
               <span className="text-muted">{t("sessions.rpe")}</span>
-              <span className="tabular rounded-md bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent">
+              <span className="tabular rounded-md bg-accent/15 px-2 py-0.5 text-xs font-bold text-gold">
                 {t("sessions.rpeValue", { n: session.rpe })}
               </span>
             </div>
@@ -714,7 +714,7 @@ export default async function SessionDetailPage({
                 <p className="text-sm text-muted">{t("run.degNone")}</p>
                 <Link
                   href="/runs/new"
-                  className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+                  className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
                 >
                   {t("run.add")}
                 </Link>
@@ -744,7 +744,7 @@ export default async function SessionDetailPage({
                       {formatMs(degradation.baseline!.baseline_1k_ms)}
                     </span>
                   </span>
-                  <Link href="/runs" className="hover:text-accent">
+                  <Link href="/runs" className="hover:text-gold">
                     {t("run.baselineFrom", {
                       distance: formatDistance(
                         degradation.baseline!.from_distance_m,

@@ -17,12 +17,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Roxlogy",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#141414",
+  // 밝은 앱이므로 브라우저 크롬도 흰 상단바에 맞춘다(스펙 1.3).
+  themeColor: "#ffffff",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -34,7 +36,7 @@ export default function RootLayout({
   // 기본 로케일로 내보내고, 실제 로케일이 정해지는 LocaleBoundary 에서 맞춰 준다.
   const locale = DEFAULT_LOCALE;
   return (
-    <html lang={locale} className="h-full scroll-smooth antialiased">
+    <html lang={locale} className="h-full scroll-smooth">
       <body className="min-h-full flex flex-col">
         <TzSync />
         {/* 로케일(쿠키)은 Suspense 안에서 읽는다 — 셸은 정적으로 두고, 서버·클라이언트가

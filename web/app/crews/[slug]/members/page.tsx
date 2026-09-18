@@ -92,7 +92,7 @@ export default async function CrewMembersPage({
                 <span className="min-w-0">
                   <Link
                     href={`/u/${m.user_id}`}
-                    className="block truncate text-[15px] font-bold hover:text-accent"
+                    className="block truncate text-[15px] font-bold hover:text-gold"
                   >
                     {m.display_name}
                   </Link>

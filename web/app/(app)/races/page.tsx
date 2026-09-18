@@ -37,7 +37,7 @@ export default async function RacesPage() {
           {!!races?.length && <ExportButton kind="races" />}
           <Link
             href="/races/new"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
           >
             {t("races.register")}
           </Link>
@@ -55,7 +55,7 @@ export default async function RacesPage() {
             <p className="mt-1 text-muted">{t("races.syncedDesc")}</p>
             <Link
               href="/settings/profile"
-              className="mt-2 inline-block text-accent hover:underline"
+              className="mt-2 inline-block text-gold hover:underline"
             >
               {t("races.syncedCta")}
             </Link>
@@ -66,7 +66,7 @@ export default async function RacesPage() {
             <p className="mt-1 text-muted">{t("races.syncDesc")}</p>
             <Link
               href="/settings/profile"
-              className="mt-2 inline-block text-accent hover:underline"
+              className="mt-2 inline-block text-gold hover:underline"
             >
               {t("races.syncCta")}
             </Link>
@@ -76,7 +76,7 @@ export default async function RacesPage() {
                 href="https://results.hyrox.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent hover:underline"
+                className="text-gold hover:underline"
               >
                 {t("races.findLink")}
               </a>
@@ -114,7 +114,7 @@ export default async function RacesPage() {
                         {t("percentile.top", { pct: String(Math.round(pct)) })}
                       </span>
                     )}
-                    <span className="font-mono text-lg font-semibold text-accent">
+                    <span className="font-mono text-lg font-semibold text-gold">
                       {formatMs(r.total_time_ms)}
                     </span>
                   </span>

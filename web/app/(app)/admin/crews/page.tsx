@@ -52,7 +52,7 @@ export default async function AdminCrewsPage() {
               <div className="min-w-0">
                 <Link
                   href={`/crews/${c.slug}`}
-                  className="text-sm font-bold hover:text-accent"
+                  className="text-sm font-bold hover:text-gold"
                 >
                   {c.name}
                 </Link>
@@ -78,7 +78,7 @@ export default async function AdminCrewsPage() {
           >
             <Link
               href={`/crews/${c.slug}`}
-              className="truncate text-sm hover:text-accent"
+              className="truncate text-sm hover:text-gold"
             >
               {c.name}
               <span className="ml-2 text-xs text-muted">/{c.slug}</span>

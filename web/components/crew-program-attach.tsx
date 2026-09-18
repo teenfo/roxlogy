@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 
 const input =
-  "h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
+  "h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
 
 export type AttachedProgram = {
   program_id: string;
@@ -186,7 +186,7 @@ export function CrewProgramAttach({
                   <span
                     className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${
                       state === "live"
-                        ? "bg-accent text-background"
+                        ? "bg-accent text-accent-foreground"
                         : state === "soon"
                           ? "bg-line text-muted"
                           : "bg-line text-muted"
@@ -272,7 +272,7 @@ export function CrewProgramAttach({
             ))}
           </select>
         </label>
-        <Link href="/programs" className="text-xs text-accent hover:underline">
+        <Link href="/programs" className="text-xs text-gold hover:underline">
           {t("crew.progManage")}
         </Link>
 
@@ -327,7 +327,7 @@ export function CrewProgramAttach({
         <button
           type="submit"
           disabled={busy || !pick || !start}
-          className="h-[42px] rounded-lg bg-accent text-sm font-extrabold text-background hover:brightness-110 disabled:bg-line-mid disabled:text-muted-3"
+          className="h-[42px] rounded-lg bg-accent text-sm font-extrabold text-accent-foreground hover:brightness-95 disabled:bg-line-mid disabled:text-muted-3"
         >
           {busy ? t("common.saving") : t("crew.progAttachBtn")}
         </button>

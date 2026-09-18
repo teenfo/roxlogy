@@ -40,7 +40,7 @@ export default async function MembersPage({
           name="q"
           defaultValue={q ?? ""}
           placeholder={t("members.searchPh")}
-          className="w-full max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          className="w-full max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-gold"
         />
       </form>
 
@@ -58,7 +58,7 @@ export default async function MembersPage({
               <div className="min-w-0">
                 <RowLink
                   href={`/u/${m.id}`}
-                  className="text-sm font-semibold hover:text-accent"
+                  className="text-sm font-semibold hover:text-gold"
                 >
                   {m.display_name}
                 </RowLink>

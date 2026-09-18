@@ -51,7 +51,7 @@ export default async function AdminUserDetailPage({
           {u.display_name ?? t("admin.noName")}
         </h1>
         {u.is_admin && (
-          <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+          <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-gold">
             admin
           </span>
         )}
@@ -67,7 +67,7 @@ export default async function AdminUserDetailPage({
         )}
         <Link
           href={`/u/${u.id}`}
-          className="ml-auto text-xs text-accent hover:underline"
+          className="ml-auto text-xs text-gold hover:underline"
         >
           {t("admin.viewPublic")}
         </Link>
@@ -137,7 +137,7 @@ export default async function AdminUserDetailPage({
               >
                 <Link
                   href={`/crews/${c.slug}`}
-                  className="text-sm font-semibold hover:text-accent"
+                  className="text-sm font-semibold hover:text-gold"
                 >
                   {c.name}
                 </Link>

@@ -236,7 +236,24 @@ const RPC_OBJECTS: Record<string, string> = {
 const RPC_SCALARS: Record<string, unknown> = {
   pft_race_can_manage: true,
   race_percentile: 42,
-  pft_race_board: null,
+  // 보드는 다크로 남는 화면이라 캡쳐로 꼭 확인해야 한다 — 최소 구조를 채워 둔다
+  pft_race_board: {
+    race: {
+      id: uuid(1), code: "QT2S7L", title: "LOOP8 PFT 9월", status: "open",
+      crew: "LOOP8", crew_slug: "loop8", created_at: "2026-09-01T00:00:00.000Z",
+      join_open: true,
+    },
+    server_now: "2026-09-18T09:30:00.000Z",
+    entries: NAMES.map((n, i) => ({
+      entry_id: uuid(100 + i), user_id: uuid(200 + i), name: n,
+      started_at: i < 4 ? "2026-09-18T09:20:00.000Z" : null,
+      splits: i < 4 ? [62000, 145000, 228000].slice(0, i + 1) : [],
+      finished_at: i < 2 ? "2026-09-18T09:28:00.000Z" : null,
+      total_ms: i < 2 ? 480000 + i * 9000 : null,
+      scaled: false, badge: i === 0 ? "gold" : null,
+      wave: i < 4 ? 1 : null, dnf_at: null,
+    })),
+  },
   pft_race_my_entry: null,
   pft_race_split: null,
   pft_race_staff_split: null,

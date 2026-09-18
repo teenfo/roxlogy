@@ -39,7 +39,7 @@ export default async function GoalsPage() {
         <h1 className="text-2xl font-bold">{t("goals.title")}</h1>
         <Link
           href="/predict"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
         >
           {t("goals.new")}
         </Link>
@@ -49,7 +49,7 @@ export default async function GoalsPage() {
       {!goals.length ? (
         <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
           {t("goals.empty")}{" "}
-          <Link href="/predict" className="text-accent hover:underline">
+          <Link href="/predict" className="text-gold hover:underline">
             {t("goals.new")}
           </Link>
         </p>
@@ -60,7 +60,7 @@ export default async function GoalsPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xl font-bold text-accent">
+                    <span className="font-mono text-xl font-bold text-gold">
                       {formatMs(g.target_total_ms)}
                     </span>
                     {g.division && (
@@ -88,7 +88,7 @@ export default async function GoalsPage() {
                 <div className="flex shrink-0 items-center gap-3">
                   <Link
                     href={`/predict?goal=${g.id}`}
-                    className="text-xs font-semibold text-accent hover:underline"
+                    className="text-xs font-semibold text-gold hover:underline"
                   >
                     {t("common.edit")}
                   </Link>
@@ -109,7 +109,7 @@ export default async function GoalsPage() {
                 </span>
                 <span className="rounded bg-background px-2 py-1">
                   {t("predict.stationSum")}:{" "}
-                  <span className="font-mono font-semibold text-accent">
+                  <span className="font-mono font-semibold text-gold">
                     {formatMs(g.station_total_ms)}
                   </span>
                 </span>

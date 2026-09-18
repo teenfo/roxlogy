@@ -117,7 +117,7 @@ export function SettingsChips() {
               href={`#${s.id}`}
               className={`flex h-8 shrink-0 items-center rounded-full px-3.5 text-[13px] font-semibold transition-colors ${
                 on
-                  ? "bg-accent text-background"
+                  ? "bg-accent text-accent-foreground"
                   : "border border-line-strong text-muted"
               }`}
             >

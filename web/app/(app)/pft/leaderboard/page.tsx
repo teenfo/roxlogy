@@ -68,11 +68,11 @@ export default async function PftLeaderboardPage({
   };
   const rankStyle = (rank: number) =>
     rank === 1
-      ? "bg-accent text-background"
+      ? "bg-accent text-accent-foreground"
       : rank === 2
-        ? "bg-foreground-2 text-background"
+        ? "bg-foreground-2 text-accent-foreground"
         : rank === 3
-          ? "bg-tier-copper text-background"
+          ? "bg-tier-copper text-accent-foreground"
           : "bg-line text-muted";
 
   return (
@@ -93,7 +93,7 @@ export default async function PftLeaderboardPage({
         </div>
         <Link
           href="/pft/measure"
-          className="flex h-10 shrink-0 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110"
+          className="flex h-10 shrink-0 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground hover:brightness-95"
         >
           ▶ {t("pft.mStartCta")}
         </Link>
@@ -103,7 +103,7 @@ export default async function PftLeaderboardPage({
         <Card className="px-5 py-3.5">
           <p className="text-sm text-muted">
             {t("leaderboard.optInPrompt")}{" "}
-            <Link href="/settings/profile" className="text-accent hover:underline">
+            <Link href="/settings/profile" className="text-gold hover:underline">
               {t("leaderboard.optInLink")}
             </Link>
           </p>
@@ -175,11 +175,11 @@ export default async function PftLeaderboardPage({
                     <span className="min-w-0">
                       <Link
                         href={`/u/${r.user_id}`}
-                        className="flex items-center gap-1.5 truncate text-base font-bold hover:text-accent"
+                        className="flex items-center gap-1.5 truncate text-base font-bold hover:text-gold"
                       >
                         {r.display_name}
                         {isMe && (
-                          <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-background">
+                          <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-accent-foreground">
                             ME
                           </span>
                         )}
@@ -209,7 +209,7 @@ export default async function PftLeaderboardPage({
 
                   <span className="text-right">
                     <span
-                      className={`tabular block text-[22px] font-extrabold ${r.rank === 1 ? "text-accent" : ""}`}
+                      className={`tabular block text-[22px] font-extrabold ${r.rank === 1 ? "text-gold" : ""}`}
                     >
                       {formatMs(r.total_ms)}
                     </span>

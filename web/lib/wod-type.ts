@@ -13,7 +13,7 @@ const STYLE: Record<string, { chip: string; dot: string }> = {
   run: { chip: "bg-info-bg text-info", dot: "bg-info" },
   strength: { chip: "bg-gold-bg text-accent-dim", dot: "bg-accent-dim" },
   wod: { chip: "bg-success-bg text-success", dot: "bg-success" },
-  race_sim: { chip: "bg-accent/15 text-accent", dot: "bg-accent" },
+  race_sim: { chip: "bg-accent/15 text-gold", dot: "bg-accent" },
 };
 const FALLBACK = { chip: "bg-line text-foreground/75", dot: "bg-muted" };
 

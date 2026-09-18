@@ -64,7 +64,7 @@ export function AdminExerciseEditor({
   }
 
   const inputCls =
-    "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+    "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
 
   return (
     <div className="rounded-md bg-surface px-4 py-3">
@@ -166,7 +166,7 @@ export function AdminExerciseEditor({
               type="button"
               onClick={save}
               disabled={state === "saving"}
-              className="rounded-md bg-accent px-4 py-1.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="rounded-md bg-accent px-4 py-1.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
             >
               {state === "saving" ? t("common.saving") : t("common.save")}
             </button>

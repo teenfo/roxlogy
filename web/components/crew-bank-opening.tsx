@@ -77,7 +77,7 @@ export function CrewBankOpening({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           inputMode="numeric"
-          className="tabular h-9 w-32 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-accent"
+          className="tabular h-9 w-32 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-gold"
         />
       </label>
       <label className="flex flex-col gap-1 text-xs text-muted">
@@ -86,13 +86,13 @@ export function CrewBankOpening({
           type="date"
           value={on}
           onChange={(e) => setOn(e.target.value)}
-          className="h-9 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-accent"
+          className="h-9 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-gold"
         />
       </label>
       <button
         type="submit"
         disabled={busy}
-        className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background disabled:opacity-40"
+        className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-accent-foreground disabled:opacity-40"
       >
         {t("common.save")}
       </button>

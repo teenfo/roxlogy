@@ -61,7 +61,7 @@ export function RehearsalReport({
     <section className="mt-8">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-lg font-semibold">{t("dash.rehearsalTitle")}</h2>
-        <Link href="/goals" className="text-sm text-accent hover:underline">
+        <Link href="/goals" className="text-sm text-gold hover:underline">
           {t("goals.title")}
         </Link>
       </div>
@@ -72,7 +72,7 @@ export function RehearsalReport({
           <select
             value={goalId}
             onChange={(e) => setGoalId(e.target.value)}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+            className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
           >
             {goals.map((g) => (
               <option key={g.id} value={g.id}>
@@ -86,7 +86,7 @@ export function RehearsalReport({
           <select
             value={sessionId}
             onChange={(e) => setSessionId(e.target.value)}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+            className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
           >
             {sessions.map((s) => (
               <option key={s.id} value={s.id}>

@@ -179,7 +179,7 @@ export function PftMeasure({
             <label className="block">
               <span className="text-xs text-muted">{t("pft.fLocation")}</span>
               <input
-                className="mt-1 h-10 w-full rounded-lg border border-line-strongest bg-page px-3 text-sm outline-none focus:border-accent"
+                className="mt-1 h-10 w-full rounded-lg border border-line-strongest bg-page px-3 text-sm outline-none focus:border-gold"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 maxLength={80}
@@ -212,7 +212,7 @@ export function PftMeasure({
               onClick={save}
               disabled={busy || tooShort}
               className={`h-11 rounded-lg px-6 text-[15px] font-extrabold ${
-                tooShort ? "cursor-not-allowed bg-line-mid text-muted-2" : "bg-accent text-background hover:brightness-110"
+                tooShort ? "cursor-not-allowed bg-line-mid text-muted-2" : "bg-accent text-accent-foreground hover:brightness-95"
               } disabled:opacity-60`}
             >
               {busy ? t("common.saving") : t("pft.mSave")}

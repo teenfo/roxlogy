@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "The science of hybrid racing",
     start_url: "/dashboard",
     display: "standalone",
-    background_color: "#141414",
-    theme_color: "#141414",
+    background_color: "#f5f6f8",
+    theme_color: "#ffffff",
     icons: [
       {
         src: "/roxlogy-appicon.svg",

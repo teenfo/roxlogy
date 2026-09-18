@@ -96,14 +96,14 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
   return (
     <div className="flex flex-col gap-1.5">
       {err && <p role="alert" className="text-sm text-danger">{err}</p>}
-      {notice && <p role="status" className="text-sm text-accent">{notice}</p>}
+      {notice && <p role="status" className="text-sm text-gold">{notice}</p>}
       {items.map((r) => (
         <div key={r.id} className="rounded-md bg-surface px-4 py-2.5">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {r.source !== "user" && (
               <span
                 title={t(r.source === "ai" ? "admin.exReqAiHint" : "admin.exReqMcpHint")}
-                className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent"
+                className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gold"
               >
                 {t(r.source === "ai" ? "admin.exReqAi" : "admin.exReqMcp")}
               </span>
@@ -127,7 +127,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
             <button
               onClick={() => approve(r)}
               disabled={busy != null}
-              className="shrink-0 rounded-md bg-accent px-3 py-1 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="shrink-0 rounded-md bg-accent px-3 py-1 text-xs font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
             >
               {t("admin.exReqApprove")}
             </button>
@@ -155,7 +155,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
                 value={linking.q}
                 onChange={(e) => searchExercises(r.id, e.target.value)}
                 placeholder={t("admin.exReqLinkSearch")}
-                className="h-9 w-full rounded-md border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent"
+                className="h-9 w-full rounded-md border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold"
               />
               {linking.hits.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
@@ -164,7 +164,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
                       key={ex.id}
                       onClick={() => link(r, ex.id)}
                       disabled={busy != null}
-                      className="rounded-md border border-line-mid bg-background px-2.5 py-1 text-xs hover:border-accent disabled:opacity-40"
+                      className="rounded-md border border-line-mid bg-background px-2.5 py-1 text-xs hover:border-gold disabled:opacity-40"
                     >
                       {locale === "ko" ? ex.name_ko : ex.name_en}
                     </button>

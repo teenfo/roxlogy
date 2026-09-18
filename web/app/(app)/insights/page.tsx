@@ -44,10 +44,10 @@ export default async function InsightsPage() {
           {rows.map((r) => (
             <li
               key={r.id}
-              className="rounded-lg border border-accent/25 bg-surface p-5"
+              className="rounded-lg border border-gold/25 bg-surface p-5"
             >
               <div className="flex items-center justify-between gap-4">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-accent">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-gold">
                   {t("ai.weekly.title")}
                 </h2>
                 {r.period_start && (

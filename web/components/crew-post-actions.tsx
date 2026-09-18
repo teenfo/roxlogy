@@ -39,7 +39,7 @@ export function CrewPostActions({
     <span className="ml-auto flex items-center gap-3 text-xs">
       <Link
         href={`/crews/${slug}/board/${postId}/edit`}
-        className="text-muted hover:text-accent"
+        className="text-muted hover:text-gold"
       >
         {t("common.edit")}
       </Link>

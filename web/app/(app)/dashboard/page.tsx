@@ -334,14 +334,14 @@ export default async function DashboardPage() {
             {profile?.display_name ?? user!.email}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            <Link href="/settings/profile" className="text-accent hover:underline">
+            <Link href="/settings/profile" className="text-gold hover:underline">
               {t("dash.profileSettings")}
             </Link>
           </p>
         </div>
         <Link
           href="/sessions/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
         >
           {t("dash.recordSession")}
         </Link>
@@ -392,7 +392,7 @@ export default async function DashboardPage() {
                   className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                     todayDone
                       ? "bg-track/15 text-track"
-                      : "bg-accent/15 text-accent"
+                      : "bg-accent/15 text-gold"
                   }`}
                 >
                   {todayDone ? t("dash.todayDone") : t("dash.todayTodo")}
@@ -401,7 +401,7 @@ export default async function DashboardPage() {
             </h2>
             <Link
               href={`/programs/${today.programId}`}
-              className="text-sm text-accent hover:underline"
+              className="text-sm text-gold hover:underline"
             >
               {today.programTitle}
             </Link>
@@ -421,7 +421,7 @@ export default async function DashboardPage() {
                     {/* 가장 자주 쓰는 진입점 — 체크리스트로 바로 가게 한다 */}
                     <RowLink
                       href={`/workouts/${w.id}`}
-                      className="text-sm hover:text-accent"
+                      className="text-sm hover:text-gold"
                     >
                       {w.title}
                     </RowLink>
@@ -451,7 +451,7 @@ export default async function DashboardPage() {
             </h2>
             <Link
               href={`/crews/${crew.slug}/schedule`}
-              className="text-sm text-accent hover:underline"
+              className="text-sm text-gold hover:underline"
             >
               {t("dash.viewAll")}
             </Link>
@@ -459,7 +459,7 @@ export default async function DashboardPage() {
           <ul className="mt-3 flex flex-col gap-1.5">
             {rows.map((r, i) => {
               const kindCls = {
-                meetup: "bg-accent/15 text-accent",
+                meetup: "bg-accent/15 text-gold",
                 race: "bg-track/15 text-track",
                 program: "bg-background text-muted",
               }[r.kind];
@@ -495,7 +495,7 @@ export default async function DashboardPage() {
                       <span className="ml-auto shrink-0 text-xs text-muted">
                         ✓ {r.going_count ?? 0}
                         {r.my_status === "going" && (
-                          <span className="ml-1 text-accent">
+                          <span className="ml-1 text-gold">
                             {t("crew.rsvpGoing")}
                           </span>
                         )}
@@ -530,7 +530,7 @@ export default async function DashboardPage() {
       <section className="mt-6">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold">{t("dash.recentTitle")}</h2>
-          <Link href="/sessions" className="text-sm text-accent hover:underline">
+          <Link href="/sessions" className="text-sm text-gold hover:underline">
             {t("dash.viewAll")}
           </Link>
         </div>
@@ -540,7 +540,7 @@ export default async function DashboardPage() {
             <p>{t("dash.empty")}</p>
             <Link
               href="/sessions/new"
-              className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+              className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
             >
               {t("dash.recordFirst")}
             </Link>

@@ -157,7 +157,7 @@ export function McpConnect({
           <h3 className="text-[15px] font-extrabold">{t("mcp.title")}</h3>
           {/* 배지는 실제 상태를 말한다 — 예전엔 항상 "읽기 전용"이라 거짓이었다 */}
           {write === true ? (
-            <span className="rounded-[5px] border border-line-accent bg-highlight px-2 py-[3px] text-xs font-bold text-accent">
+            <span className="rounded-[5px] border border-line-accent bg-highlight px-2 py-[3px] text-xs font-bold text-gold">
               {t("mcp.writeOn")}
             </span>
           ) : write === false ? (
@@ -231,7 +231,7 @@ export function McpConnect({
               <button
                 type="button"
                 onClick={() => copy("cmd", cmd(token))}
-                className="ml-auto flex h-8 shrink-0 items-center rounded-lg bg-accent px-3 text-[13px] font-extrabold text-background transition hover:brightness-110"
+                className="ml-auto flex h-8 shrink-0 items-center rounded-lg bg-accent px-3 text-[13px] font-extrabold text-accent-foreground transition hover:brightness-95"
               >
                 {copied === "cmd" ? t("mcp.copied") : t("mcp.copyCmd")}
               </button>
@@ -308,7 +308,7 @@ export function McpConnect({
           <p
             role={notice.kind === "err" ? "alert" : "status"}
             className={`text-xs font-semibold ${
-              notice.kind === "err" ? "text-danger" : "text-accent"
+              notice.kind === "err" ? "text-danger" : "text-gold"
             }`}
           >
             {notice.text}

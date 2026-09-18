@@ -75,7 +75,7 @@ export function RaceEditForm({
   }
 
   const field =
-    "rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent";
+    "rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-gold";
 
   if (!open)
     return (
@@ -161,7 +161,7 @@ export function RaceEditForm({
           type="button"
           onClick={save}
           disabled={busy}
-          className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+          className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
         >
           {busy ? t("common.saving") : t("common.save")}
         </button>

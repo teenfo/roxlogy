@@ -43,12 +43,12 @@ export function CrewCommentForm({ postId }: { postId: string }) {
         onChange={(e) => setBody(e.target.value)}
         placeholder={t("crew.commentPlaceholder")}
         maxLength={500}
-        className="flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+        className="flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-gold"
       />
       <button
         type="submit"
         disabled={busy || !body.trim()}
-        className="shrink-0 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
+        className="shrink-0 rounded-md border border-gold px-4 text-sm font-semibold text-gold hover:bg-accent/10 disabled:opacity-50"
       >
         {t("crew.commentSubmit")}
       </button>

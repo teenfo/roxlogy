@@ -25,7 +25,7 @@ import { useI18n } from "@/components/i18n-provider";
 
 const TIER_STYLE: Record<string, string> = {
   aggressive: "border-danger/60 text-danger",
-  challenging: "border-accent/60 text-accent",
+  challenging: "border-gold/60 text-gold",
   realistic: "border-track/60 text-track",
   comfortable: "border-muted/60 text-muted",
 };
@@ -328,7 +328,7 @@ export function PredictForm({
   }
 
   const inputCls =
-    "w-24 rounded-md border border-muted/30 bg-surface px-2 py-1.5 text-right font-mono text-sm text-foreground outline-none focus:border-accent";
+    "w-24 rounded-md border border-muted/30 bg-surface px-2 py-1.5 text-right font-mono text-sm text-foreground outline-none focus:border-gold";
 
   return (
     <main>
@@ -336,9 +336,9 @@ export function PredictForm({
       <p className="mt-1 text-sm text-muted">{t("predict.desc")}</p>
 
       {goalEventName && (
-        <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-4 py-3">
+        <div className="mt-4 rounded-md border border-gold/40 bg-accent/10 px-4 py-3">
           <p className="text-xs text-muted">{t("predict.forEvent")}</p>
-          <p className="mt-0.5 text-sm font-semibold text-accent">
+          <p className="mt-0.5 text-sm font-semibold text-gold">
             {goalEventName}
             {goalEventDate ? ` · ${goalEventDate}` : ""}
           </p>
@@ -352,7 +352,7 @@ export function PredictForm({
             value={targetText}
             onChange={(e) => setTargetText(formatTimeInput(e.target.value))}
             inputMode="numeric"
-            className="w-36 rounded-md border border-muted/30 bg-surface px-3 py-2.5 font-mono text-lg text-foreground outline-none focus:border-accent"
+            className="w-36 rounded-md border border-muted/30 bg-surface px-3 py-2.5 font-mono text-lg text-foreground outline-none focus:border-gold"
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm text-muted">
@@ -360,7 +360,7 @@ export function PredictForm({
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as Level)}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+            className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-gold"
           >
             {LEVELS.map((l) => (
               <option key={l} value={l}>
@@ -416,7 +416,7 @@ export function PredictForm({
                   median: formatMs(eventDivStat.medianMs),
                 })}
                 {eventPct != null && (
-                  <span className="ml-1 font-semibold text-accent">
+                  <span className="ml-1 font-semibold text-gold">
                     {t("predict.eventStatPct", { pct: eventPct })}
                   </span>
                 )}
@@ -436,7 +436,7 @@ export function PredictForm({
             </div>
             <div className="rounded-md bg-surface px-4 py-3">
               <p className="text-xs text-muted">{t("predict.stationSum")}</p>
-              <p className="mt-1 font-mono text-xl font-bold text-accent">
+              <p className="mt-1 font-mono text-xl font-bold text-gold">
                 {formatMs(result.stationTotalMs)}
               </p>
             </div>
@@ -468,7 +468,7 @@ export function PredictForm({
                   </p>
                   <Link
                     href="/runs/new"
-                    className="mt-2 inline-block text-xs font-semibold text-accent hover:brightness-110"
+                    className="mt-2 inline-block text-xs font-semibold text-gold hover:brightness-95"
                   >
                     {t("run.add")} →
                   </Link>
@@ -498,7 +498,7 @@ export function PredictForm({
                 </div>
                 <p
                   className={`mt-2 text-sm font-semibold ${
-                    check.reachable ? "text-track" : "text-accent"
+                    check.reachable ? "text-track" : "text-gold"
                   }`}
                 >
                   {check.reachable
@@ -542,7 +542,7 @@ export function PredictForm({
           </section>
 
           {isLoggedIn && eff ? (
-            <section className="mt-8 rounded-md border border-accent/25 bg-surface/50 p-4">
+            <section className="mt-8 rounded-md border border-gold/25 bg-surface/50 p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div>
                   <h2 className="text-lg font-semibold">
@@ -559,7 +559,7 @@ export function PredictForm({
                     setPickedSession("");
                     setSaveState("idle");
                   }}
-                  className="text-xs font-semibold text-accent hover:underline"
+                  className="text-xs font-semibold text-gold hover:underline"
                 >
                   {t("predict.resetToSuggested")}
                 </button>
@@ -574,7 +574,7 @@ export function PredictForm({
                       setEventChoice(e.target.value);
                       setSaveState("idle");
                     }}
-                    className="max-w-64 rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                    className="max-w-64 rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
                   >
                     <option value="">{t("predict.goalEventNone")}</option>
                     {upcomingEvents.map((e) => (
@@ -596,7 +596,7 @@ export function PredictForm({
                           setSaveState("idle");
                         }}
                         maxLength={80}
-                        className="w-52 rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                        className="w-52 rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
                       />
                     </label>
                     <label className="flex flex-col gap-1.5 text-sm text-muted">
@@ -608,7 +608,7 @@ export function PredictForm({
                           setCustomEventDate(e.target.value);
                           setSaveState("idle");
                         }}
-                        className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                        className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
                       />
                     </label>
                   </>
@@ -644,7 +644,7 @@ export function PredictForm({
                       setDivision(e.target.value);
                       setSaveState("idle");
                     }}
-                    className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                    className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
                   >
                     <option value="">{t("newSession.divisionNone")}</option>
                     {DIVISIONS.map((d) => (
@@ -660,7 +660,7 @@ export function PredictForm({
                     <select
                       value={pickedSession}
                       onChange={(e) => loadSession(e.target.value)}
-                      className="max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-accent"
+                      className="max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
                     >
                       <option value="">{t("predict.fromSessionPh")}</option>
                       {sessions.map((s) => (
@@ -675,7 +675,7 @@ export function PredictForm({
 
               <div className="mt-4 rounded-md bg-background px-4 py-3">
                 <p className="text-xs text-muted">{t("predict.adjustedTotal")}</p>
-                <p className="mt-1 font-mono text-2xl font-bold text-accent">
+                <p className="mt-1 font-mono text-2xl font-bold text-gold">
                   {formatMs(adjustedMs)}
                 </p>
               </div>
@@ -734,7 +734,7 @@ export function PredictForm({
                   type="button"
                   onClick={saveGoal}
                   disabled={saveState !== "idle"}
-                  className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+                  className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
                 >
                   {saveState === "saving"
                     ? t("common.saving")
@@ -747,7 +747,7 @@ export function PredictForm({
                 {saveState === "saved" && (
                   <Link
                     href="/goals"
-                    className="text-sm text-accent hover:underline"
+                    className="text-sm text-gold hover:underline"
                   >
                     {t("goals.title")}
                   </Link>
@@ -759,7 +759,7 @@ export function PredictForm({
             </section>
           ) : !isLoggedIn ? (
             <p className="mt-6 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm text-muted">
-              <Link href="/signup" className="text-accent hover:underline">
+              <Link href="/signup" className="text-gold hover:underline">
                 {t("predict.signupPrompt.before")}
               </Link>
               {t("predict.signupPrompt.after")}

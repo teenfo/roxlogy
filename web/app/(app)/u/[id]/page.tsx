@@ -69,7 +69,7 @@ export default async function PublicProfilePage({
               href={`https://instagram.com/${profile.instagram}`}
               target="_blank"
               rel="noreferrer noopener"
-              className="mt-1 inline-block text-sm text-accent hover:underline"
+              className="mt-1 inline-block text-sm text-gold hover:underline"
             >
               @{profile.instagram}
             </a>
@@ -104,7 +104,7 @@ export default async function PublicProfilePage({
                   className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
                 >
                   <span className="text-sm">{formatDate(s.started_at, tag, tz)}</span>
-                  <span className="font-mono text-lg font-semibold text-accent">
+                  <span className="font-mono text-lg font-semibold text-gold">
                     {formatMs(s.total_time_ms)}
                   </span>
                 </RowLink>

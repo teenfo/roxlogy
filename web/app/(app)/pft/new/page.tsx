@@ -35,7 +35,7 @@ export default async function PftNewPage() {
       <h1 className="mt-2 text-[26px] font-extrabold">{t("pft.add")}</h1>
       <p className="mt-1 text-sm text-muted">
         {t("pft.addDesc")}{" "}
-        <Link href="/pft/measure" className="text-accent hover:underline">
+        <Link href="/pft/measure" className="text-gold hover:underline">
           {t("pft.mStartCta")} →
         </Link>
       </p>

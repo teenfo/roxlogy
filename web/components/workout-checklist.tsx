@@ -292,8 +292,8 @@ export function WorkoutChecklist({
                   <span
                     className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-[15px] font-extrabold transition-colors ${
                       isDone
-                        ? "border-success bg-success text-background"
-                        : "border-line-strongest text-transparent hover:border-accent"
+                        ? "border-success bg-success text-accent-foreground"
+                        : "border-line-strongest text-transparent hover:border-gold"
                     }`}
                   >
                     ✓
@@ -308,7 +308,7 @@ export function WorkoutChecklist({
                     {it.exerciseId ? (
                       <Link
                         href={`/exercises/${it.exerciseId}`}
-                        className={`min-w-0 truncate text-lg font-extrabold hover:text-accent ${
+                        className={`min-w-0 truncate text-lg font-extrabold hover:text-gold ${
                           isDone ? "text-muted line-through" : ""
                         }`}
                       >
@@ -400,7 +400,7 @@ export function WorkoutChecklist({
           className={`flex h-11 items-center justify-center rounded-lg px-5 text-[15px] font-extrabold transition disabled:opacity-40 max-md:w-full ${
             allDone
               ? "bg-success-bg text-success"
-              : "bg-accent text-background hover:brightness-110"
+              : "bg-accent text-accent-foreground hover:brightness-95"
           }`}
         >
           {pending

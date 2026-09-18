@@ -24,7 +24,7 @@ export default async function AdminLayout({
   return (
     <div>
       <div className="flex items-center gap-2">
-        <span className="rounded bg-accent/15 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-accent">
+        <span className="rounded bg-accent/15 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-gold">
           {t("nav.admin")}
         </span>
       </div>

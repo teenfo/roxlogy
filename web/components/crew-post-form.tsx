@@ -85,7 +85,7 @@ export function CrewPostForm({
   }
 
   const field =
-    "w-full rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-accent";
+    "w-full rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-gold";
 
   return (
     <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
@@ -101,7 +101,7 @@ export function CrewPostForm({
               onClick={() => setCategory(c)}
               className={`rounded-full border px-3 py-1 text-xs ${
                 category === c
-                  ? "border-accent text-accent"
+                  ? "border-gold text-gold"
                   : "border-muted/40 text-muted hover:border-foreground"
               }`}
             >
@@ -155,7 +155,7 @@ export function CrewPostForm({
         <button
           type="submit"
           disabled={busy || !title.trim()}
-          className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+          className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
         >
           {busy
             ? t("crew.publishing")

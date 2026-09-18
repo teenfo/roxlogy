@@ -63,12 +63,12 @@ export default async function ExercisesPage({
           name="q"
           defaultValue={q ?? ""}
           placeholder={t("exercises.searchPh")}
-          className="min-w-52 flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent"
+          className="min-w-52 flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
         />
         <select
           name="category"
           defaultValue={category ?? ""}
-          className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent"
+          className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
         >
           <option value="">{t("exercises.allCategories")}</option>
           {CATEGORIES.map((c) => (
@@ -80,7 +80,7 @@ export default async function ExercisesPage({
         <select
           name="equipment"
           defaultValue={equipment ?? ""}
-          className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent"
+          className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
         >
           <option value="">{t("exercises.allEquipment")}</option>
           {EQUIPMENT.map((e) => (
@@ -91,7 +91,7 @@ export default async function ExercisesPage({
         </select>
         <button
           type="submit"
-          className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+          className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95"
         >
           {t("common.search")}
         </button>
@@ -115,7 +115,7 @@ export default async function ExercisesPage({
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold">{primary}</p>
                     {ex.station_type && (
-                      <span className="rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent">
+                      <span className="rounded border border-gold/60 px-1.5 py-0.5 text-xs text-gold">
                         {t("exercises.stationN", {
                           n: ex.station_type.replace("station_", ""),
                         })}
@@ -146,7 +146,7 @@ export default async function ExercisesPage({
                       {(ex.helps_stations ?? []).map((h: string) => (
                         <span
                           key={`h-${h}`}
-                          className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent"
+                          className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-gold"
                         >
                           {dictLabel(t, `hstation.${h}`, h)}
                         </span>

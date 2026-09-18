@@ -40,7 +40,7 @@ export default async function AdminUsersPage({
           name="q"
           defaultValue={q ?? ""}
           placeholder={t("admin.searchName")}
-          className="w-full max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          className="w-full max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-gold"
         />
       </form>
 
@@ -61,7 +61,7 @@ export default async function AdminUsersPage({
                 <td className="py-2.5 pr-4">
                   <Link
                     href={`/admin/users/${u.id}`}
-                    className="font-medium hover:text-accent"
+                    className="font-medium hover:text-gold"
                   >
                     {u.display_name ?? t("admin.noName")}
                   </Link>
@@ -82,7 +82,7 @@ export default async function AdminUsersPage({
                 <td className="py-2.5 pr-4">
                   <span className="flex flex-wrap gap-1">
                     {u.is_admin && (
-                      <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                      <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-gold">
                         admin
                       </span>
                     )}

@@ -61,7 +61,7 @@ export function MobileTabBar() {
               aria-hidden
               className="mx-auto mb-3 block h-1 w-10 rounded-full bg-line-strong"
             />
-            <p className="text-xs font-extrabold tracking-[0.08em] text-accent">
+            <p className="text-xs font-extrabold tracking-[0.08em] text-gold">
               {t(openItem.label).toUpperCase()}
             </p>
             <ul className="mt-2 flex flex-col gap-1.5">
@@ -80,7 +80,7 @@ export function MobileTabBar() {
                         aria-hidden
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
                           i === 0
-                            ? "border border-line-accent bg-highlight text-accent"
+                            ? "border border-line-accent bg-highlight text-gold"
                             : "bg-line text-muted"
                         }`}
                       >
@@ -134,7 +134,7 @@ export function MobileTabBar() {
               <span
                 aria-hidden
                 className={`relative flex h-[30px] w-11 items-center justify-center rounded-full transition-colors ${
-                  on ? "bg-accent text-background" : "text-muted"
+                  on ? "bg-accent text-accent-foreground" : "text-muted"
                 }`}
               >
                 <NavIcon name={item.icon} className="h-5 w-5" />
@@ -142,13 +142,13 @@ export function MobileTabBar() {
                   <NavIcon
                     name="chevron"
                     className={`absolute -right-0.5 bottom-0.5 h-3 w-3 ${
-                      on ? "text-background" : "text-muted-2"
+                      on ? "text-accent-foreground" : "text-muted-2"
                     } ${sheet === item.key ? "rotate-180" : ""}`}
                   />
                 )}
               </span>
               <span
-                className={`mt-0.5 text-xs ${on ? "font-extrabold text-accent" : "text-muted"}`}
+                className={`mt-0.5 text-xs ${on ? "font-extrabold text-gold" : "text-muted"}`}
               >
                 {t(item.label)}
               </span>

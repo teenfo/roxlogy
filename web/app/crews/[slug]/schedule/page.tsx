@@ -189,7 +189,7 @@ export default async function CrewSchedulePage({
           <Link
             href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
             aria-label={t("crew.prevMonth")}
-            className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent hover:bg-card-hover"
+            className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-gold hover:bg-card-hover"
           >
             ‹
           </Link>
@@ -197,7 +197,7 @@ export default async function CrewSchedulePage({
           <Link
             href={`/crews/${slug}/schedule?m=${shiftMonth(month, 1)}`}
             aria-label={t("crew.nextMonth")}
-            className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent hover:bg-card-hover"
+            className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-gold hover:bg-card-hover"
           >
             ›
           </Link>
@@ -235,7 +235,7 @@ export default async function CrewSchedulePage({
                     <p
                       className={`tabular text-[30px] font-extrabold leading-none max-md:text-2xl ${
                         hasNext
-                          ? "text-accent"
+                          ? "text-gold"
                           : isSunday(d)
                             ? "text-sunday"
                             : ""
@@ -279,7 +279,7 @@ export default async function CrewSchedulePage({
                               {r.title}
                             </span>
                             {isNext && (
-                              <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-background">
+                              <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-accent-foreground">
                                 {t("crew.nextMeetup")}
                               </span>
                             )}

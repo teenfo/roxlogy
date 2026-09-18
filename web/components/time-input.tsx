@@ -31,7 +31,7 @@ export function TimeInput({
         onChange(v, parseTimeToMs(v));
       }}
       onBlur={() => setTouched(true)}
-      className={`w-20 rounded-md border bg-background px-2 py-1.5 text-right font-mono text-sm outline-none focus:border-accent ${
+      className={`w-20 rounded-md border bg-background px-2 py-1.5 text-right font-mono text-sm outline-none focus:border-gold ${
         invalid ? "border-danger" : "border-muted/30"
       } ${className}`}
     />

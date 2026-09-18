@@ -24,7 +24,7 @@ export default async function CrewNewPostPage({
     <main>
       <Link
         href={`/crews/${slug}/board`}
-        className="text-xs text-muted hover:text-accent"
+        className="text-xs text-muted hover:text-gold"
       >
         ← {t("crew.board")}
       </Link>

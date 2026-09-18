@@ -34,7 +34,7 @@ export default async function FeedPage({
   const feed = (rows ?? []) as FeedRow[];
 
   const tabCls = (active: boolean) =>
-    `rounded-full border px-3 py-1 text-xs ${active ? "border-accent text-accent" : "border-muted/40 text-muted hover:border-foreground"}`;
+    `rounded-full border px-3 py-1 text-xs ${active ? "border-gold text-gold" : "border-muted/40 text-muted hover:border-foreground"}`;
 
   return (
     <main>
@@ -42,7 +42,7 @@ export default async function FeedPage({
         <h1 className="text-2xl font-bold">{t("feed.title")}</h1>
         <Link
           href="/members"
-          className="rounded-md border border-accent/50 px-3 py-1.5 text-sm font-semibold text-accent hover:bg-accent/10"
+          className="rounded-md border border-gold/50 px-3 py-1.5 text-sm font-semibold text-gold hover:bg-accent/10"
         >
           {t("feed.findMembers")}
         </Link>
@@ -72,7 +72,7 @@ export default async function FeedPage({
               <div className="flex flex-col gap-0.5">
                 <RowLink
                   href={`/u/${r.author_id}`}
-                  className="text-sm font-semibold hover:text-accent"
+                  className="text-sm font-semibold hover:text-gold"
                 >
                   {r.author_name}
                 </RowLink>
@@ -82,7 +82,7 @@ export default async function FeedPage({
               </div>
               <RowLink
                 href={`/sessions/${r.session_id}`}
-                className="font-mono text-lg font-semibold text-accent hover:underline"
+                className="font-mono text-lg font-semibold text-gold hover:underline"
               >
                 {formatMs(r.total_time_ms)}
               </RowLink>

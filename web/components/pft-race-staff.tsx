@@ -391,7 +391,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       {/* 헤더 */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-accent">{t("pft.race.staff")}</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-gold">{t("pft.race.staff")}</p>
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{race.title}</h1>
           <p className="mt-1 text-sm text-muted">
             {race.join_open ? (
@@ -499,7 +499,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       type="button"
                       onClick={() => add(r.user_id)}
                       disabled={busy || closed}
-                      className="h-8 rounded-lg bg-accent px-3 text-xs font-bold text-background disabled:opacity-40"
+                      className="h-8 rounded-lg bg-accent px-3 text-xs font-bold text-accent-foreground disabled:opacity-40"
                     >
                       {t("pft.race.staffAddBtn")}
                     </button>
@@ -533,8 +533,8 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         disabled={busy || closed}
                         className={`flex h-14 items-center justify-between gap-3 rounded-xl border px-4 text-left font-extrabold transition disabled:opacity-40 ${
                           picked === g.wave
-                            ? "border-accent bg-accent text-background"
-                            : "border-line-accent bg-highlight text-accent hover:brightness-125"
+                            ? "border-gold bg-accent text-accent-foreground"
+                            : "border-line-accent bg-highlight text-gold hover:brightness-95"
                         }`}
                       >
                         <span className="text-base">
@@ -542,7 +542,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         </span>
                         <span
                           className={`min-w-0 truncate text-xs font-semibold ${
-                            picked === g.wave ? "text-background/70" : "text-muted"
+                            picked === g.wave ? "text-accent-foreground/70" : "text-muted"
                           }`}
                         >
                           {g.rows.map((e) => e.name).join(", ")}
@@ -576,7 +576,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     <li key={e.entry_id}>
                       <label
                         className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 ${
-                          on ? "border-accent bg-highlight" : "border-line-soft bg-inset"
+                          on ? "border-gold bg-highlight" : "border-line-soft bg-inset"
                         }`}
                       >
                         <input
@@ -591,7 +591,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         />
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{e.name}</span>
                         {e.wave != null && (
-                          <span className="shrink-0 rounded bg-highlight px-1.5 py-0.5 text-[10px] font-extrabold text-accent">
+                          <span className="shrink-0 rounded bg-highlight px-1.5 py-0.5 text-[10px] font-extrabold text-gold">
                             {t("pft.race.waveN", { n: e.wave })}
                           </span>
                         )}
@@ -638,7 +638,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                 type="button"
                 onClick={startWave}
                 disabled={busy || closed || !selected.length}
-                className="mt-3 h-16 w-full rounded-2xl bg-accent text-xl font-black text-background hover:brightness-110 disabled:opacity-40"
+                className="mt-3 h-16 w-full rounded-2xl bg-accent text-xl font-black text-accent-foreground hover:brightness-95 disabled:opacity-40"
               >
                 {t("pft.race.staffStart", { n: selected.length })}
               </button>
@@ -703,7 +703,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         {mine.length > 0 && ` · ${t("pft.race.staffPending", { n: mine.length })}`}
                       </p>
                     </div>
-                    <p className={`tabular text-3xl font-black leading-none ${!dnf && state === "running" && !done ? "text-accent" : dnf ? "text-muted" : ""}`}>
+                    <p className={`tabular text-3xl font-black leading-none ${!dnf && state === "running" && !done ? "text-gold" : dnf ? "text-muted" : ""}`}>
                       {state === "finished"
                         ? formatMs(total)
                         : dnf
@@ -740,7 +740,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       // 버튼 색 = 지금 찍을 종목의 색. 6칸 바의 현재 칸과 같은 색이라
                       // 어느 종목을 찍는 중인지 색만으로 알아본다.
                       style={{ background: PFT_COLORS[PFT_STATIONS[current].key] }}
-                      className="mt-3 flex h-16 w-full flex-col items-center justify-center rounded-2xl text-background hover:brightness-110 active:brightness-95 disabled:opacity-40"
+                      className="mt-3 flex h-16 w-full flex-col items-center justify-center rounded-2xl text-accent-foreground hover:brightness-95 active:brightness-95 disabled:opacity-40"
                     >
                       <span className="text-[11px] font-bold opacity-80">{t("pft.race.tapHint", { n: current + 1 })}</span>
                       <span className="text-xl font-black">{t("pft.race.staffTap", { station: stationLabel(current) })} ✓</span>
@@ -800,7 +800,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         className={`h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40 ${
                           quit
                             ? "border-line-strong bg-control hover:border-muted/60"
-                            : "border-danger-line-strong bg-control text-danger hover:brightness-125"
+                            : "border-danger-line-strong bg-control text-danger hover:brightness-95"
                         }`}
                       >
                         {quit ? t("pft.race.dnfUndo") : t("pft.race.dnfMark")}

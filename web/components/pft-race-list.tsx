@@ -69,7 +69,7 @@ export function PftRaceList({
                         {t(r.status === "closed" ? "pft.race.ended" : "pft.race.open")}
                       </span>
                       {r.created && (
-                        <span className="rounded-md bg-highlight px-2 py-0.5 text-[11px] font-bold text-accent">
+                        <span className="rounded-md bg-highlight px-2 py-0.5 text-[11px] font-bold text-gold">
                           {t("pft.race.roleStaff")}
                         </span>
                       )}

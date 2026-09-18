@@ -13,9 +13,9 @@ import { duesErrText } from "@/lib/dues-error";
 
 /** 입력 한 칸 */
 const input =
-  "h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
+  "h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
 const area =
-  "w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-accent";
+  "w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-gold";
 const fieldLabel = "mb-1.5 block text-xs text-muted";
 const CARD = "rounded-[14px] border border-line bg-card";
 const CARD_HEAD = "border-b border-line px-[18px] py-3.5 text-[15px] font-extrabold";
@@ -355,7 +355,7 @@ export function CrewInfoForm({
                         on ? "border-line-accent bg-highlight" : "border-line bg-page hover:border-muted/40"
                       }`}
                     >
-                      <span className={`block text-sm font-bold ${on ? "text-accent" : ""}`}>
+                      <span className={`block text-sm font-bold ${on ? "text-gold" : ""}`}>
                         {lbl}
                       </span>
                       <span className="mt-0.5 block text-xs text-muted-3">{desc}</span>
@@ -402,7 +402,7 @@ export function CrewInfoForm({
               dirty ? "bg-accent" : msg ? "bg-success" : "bg-line-strongest"
             }`}
           />
-          <p className={`text-[13px] ${dirty ? "text-accent" : "text-muted"}`}>
+          <p className={`text-[13px] ${dirty ? "text-gold" : "text-muted"}`}>
             {dirty ? t("crew.unsavedN", { n: dirtyCount }) : (msg ?? t("crew.noChanges"))}
           </p>
           <span className="ml-auto flex items-center gap-2">
@@ -419,7 +419,7 @@ export function CrewInfoForm({
             <button
               type="submit"
               disabled={busy || !dirty}
-              className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110 disabled:bg-line-mid disabled:text-muted-3"
+              className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-accent-foreground hover:brightness-95 disabled:bg-line-mid disabled:text-muted-3"
             >
               {busy ? t("common.saving") : t("crew.save")}
             </button>
@@ -479,7 +479,7 @@ export function CrewInfoForm({
         </div>
         <Link
           href={`/crews/${crew.slug}`}
-          className={`${CARD} px-[18px] py-3 text-xs text-accent hover:underline`}
+          className={`${CARD} px-[18px] py-3 text-xs text-gold hover:underline`}
         >
           {t("crew.openCrewPage")}
         </Link>
@@ -598,7 +598,7 @@ export function CrewImageUpload({
       <div className="flex shrink-0 flex-col items-center gap-2">
         {picker(
           <>
-            <span className="relative block h-24 w-24 cursor-pointer rounded-full border-2 border-line-strongest hover:border-accent">
+            <span className="relative block h-24 w-24 cursor-pointer rounded-full border-2 border-line-strongest hover:border-gold">
               {url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={url} alt="" className="h-full w-full rounded-full object-cover" />
@@ -609,7 +609,7 @@ export function CrewImageUpload({
               )}
               <span
                 aria-hidden
-                className="absolute -bottom-0.5 -right-0.5 flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] border-card bg-accent text-xs text-background"
+                className="absolute -bottom-0.5 -right-0.5 flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] border-card bg-accent text-xs text-accent-foreground"
               >
                 ✎
               </span>
@@ -653,7 +653,7 @@ export function CrewImageUpload({
         )}
       </div>
       {picker(
-        <span className="relative block h-[120px] w-full cursor-pointer overflow-hidden rounded-[10px] border border-line-strong hover:border-accent">
+        <span className="relative block h-[120px] w-full cursor-pointer overflow-hidden rounded-[10px] border border-line-strong hover:border-gold">
           {url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={url} alt="" className="h-full w-full object-cover" />
@@ -948,7 +948,7 @@ export function CrewMemberManage({
       {/* 가입 대기 — 제일 먼저 처리할 일이라 표 위에 따로 둔다 */}
       {pending.length > 0 && (
         <div className="overflow-hidden rounded-[14px] border border-line-accent bg-highlight">
-          <p className="border-b border-line-accent px-[18px] py-3 text-[13px] font-extrabold text-accent">
+          <p className="border-b border-line-accent px-[18px] py-3 text-[13px] font-extrabold text-gold">
             {t("crew.pendingRequests")} {pending.length}
           </p>
           <ul>
@@ -967,7 +967,7 @@ export function CrewMemberManage({
                     type="button"
                     onClick={() => approve(m.user_id)}
                     disabled={busy != null}
-                    className="h-[30px] rounded-md bg-accent px-3 text-xs font-extrabold text-background disabled:opacity-40"
+                    className="h-[30px] rounded-md bg-accent px-3 text-xs font-extrabold text-accent-foreground disabled:opacity-40"
                   >
                     {t("crew.approveMember")}
                   </button>
@@ -1002,7 +1002,7 @@ export function CrewMemberManage({
                     setPage(1);
                   }}
                   className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
-                    on ? "bg-accent text-background" : "text-foreground-2 hover:text-foreground"
+                    on ? "bg-accent text-accent-foreground" : "text-foreground-2 hover:text-foreground"
                   }`}
                 >
                   {c.label}
@@ -1022,7 +1022,7 @@ export function CrewMemberManage({
               }}
               size={1}
               placeholder={t("crew.memberSearch")}
-              className="h-[34px] w-[200px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-accent"
+              className="h-[34px] w-[200px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-gold"
             />
             <button
               type="button"
@@ -1037,7 +1037,7 @@ export function CrewMemberManage({
         {/* 선택 바 — 고른 사람들의 등급을 한 번에 바꾼다 */}
         {sel.size > 0 && (
           <div className="flex flex-wrap items-center gap-2.5 border-b border-line-accent bg-highlight px-[18px] py-2.5 text-[13px]">
-            <strong className="text-accent">{t("crew.memberSelected", { n: sel.size })}</strong>
+            <strong className="text-gold">{t("crew.memberSelected", { n: sel.size })}</strong>
             <span className="text-muted">{t("crew.memberBulkTier")}</span>
             <select
               value={bulkTier}
@@ -1058,7 +1058,7 @@ export function CrewMemberManage({
               type="button"
               onClick={() => void applyBulk()}
               disabled={busy != null || !bulkTier}
-              className="h-[30px] rounded-md bg-accent px-3 text-[13px] font-extrabold text-background disabled:opacity-40"
+              className="h-[30px] rounded-md bg-accent px-3 text-[13px] font-extrabold text-accent-foreground disabled:opacity-40"
             >
               {busy === "bulk" ? t("crew.memberApplying") : t("crew.memberApply")}
             </button>
@@ -1136,7 +1136,7 @@ export function CrewMemberManage({
                   aria-label={t("crew.colTier")}
                   disabled={busy != null || m.role === "owner"}
                   onChange={(e) => setTier(m.user_id, e.target.value)}
-                  className={`h-[30px] min-w-0 rounded-md border border-line-strong bg-page px-2 text-xs font-bold outline-none focus:border-accent disabled:opacity-50 ${tierTextClass(
+                  className={`h-[30px] min-w-0 rounded-md border border-line-strong bg-page px-2 text-xs font-bold outline-none focus:border-gold disabled:opacity-50 ${tierTextClass(
                     m.tier_color,
                   )}`}
                 >
@@ -1253,7 +1253,7 @@ export function CrewMemberManage({
                     onClick={() => setPage(n)}
                     className={`rounded-md px-2 py-1 ${
                       n === cur
-                        ? "bg-accent font-extrabold text-background"
+                        ? "bg-accent font-extrabold text-accent-foreground"
                         : "border border-line-strong hover:border-muted/60"
                     }`}
                   >

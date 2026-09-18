@@ -382,7 +382,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   }
 
   const inputCls =
-    "rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent";
+    "rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-gold";
 
   return (
     <main>
@@ -495,7 +495,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               type="button"
               onClick={handleSearch}
               disabled={searching || !canSearch}
-              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
             >
               {searching
                 ? t("raceNew.import.searching")
@@ -518,7 +518,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           <div className="mt-4 border-t border-muted/20 pt-3">
             <p className="text-sm font-semibold">{t("raceNew.step2")}</p>
             {firstNameMiss && hits.length > 0 && (
-              <p className="mt-2 text-xs text-accent">
+              <p className="mt-2 text-xs text-gold">
                 {t("raceNew.import.firstNameMiss", {
                   name: firstName.trim(),
                 })}
@@ -717,7 +717,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             <button
               onClick={handleSave}
               disabled={pending}
-              className="rounded-md bg-accent px-6 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="rounded-md bg-accent px-6 py-2.5 font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
             >
               {pending
                 ? t("common.saving")
@@ -729,7 +729,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         <button
           type="button"
           onClick={() => setShowManual(true)}
-          className="mt-4 text-sm text-accent hover:underline"
+          className="mt-4 text-sm text-gold hover:underline"
         >
           {t("raceNew.manualToggle")}
         </button>
@@ -783,7 +783,7 @@ function ManualImport({
         type="button"
         onClick={onOpenSite}
         disabled={!canOpenSite}
-        className="text-xs text-accent hover:underline disabled:opacity-40"
+        className="text-xs text-gold hover:underline disabled:opacity-40"
       >
         {t("raceNew.import.openSite")} ↗
       </button>
@@ -795,7 +795,7 @@ function ManualImport({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://results.hyrox.com/…"
-          className="min-w-0 flex-1 rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+          className="min-w-0 flex-1 rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold"
         />
         <button
           type="button"
@@ -814,7 +814,7 @@ function ManualImport({
         onChange={(e) => setText(e.target.value)}
         rows={4}
         placeholder={t("raceNew.import.pastePh")}
-        className="mt-3 w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-xs outline-none focus:border-accent"
+        className="mt-3 w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-xs outline-none focus:border-gold"
       />
       <button
         type="button"

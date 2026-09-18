@@ -66,7 +66,7 @@ export function ExerciseDrills({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="text-sm font-semibold text-accent hover:underline"
+          className="text-sm font-semibold text-gold hover:underline"
         >
           {t("exercises.drillAdd")}
         </button>
@@ -83,7 +83,7 @@ export function ExerciseDrills({
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t("exercises.drillTitlePh")}
             aria-label={t("exercises.drillTitle")}
-            className="rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+            className="rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold"
           />
           <textarea
             value={body}
@@ -91,13 +91,13 @@ export function ExerciseDrills({
             placeholder={t("exercises.drillBodyPh")}
             aria-label={t("exercises.drillBody")}
             rows={3}
-            className="rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+            className="rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold"
           />
           {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <button
             type="submit"
             disabled={pending || !title.trim()}
-            className="justify-self-start rounded-md bg-accent px-5 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+            className="justify-self-start rounded-md bg-accent px-5 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
           >
             {pending ? t("exercises.drillSaving") : t("exercises.drillSave")}
           </button>

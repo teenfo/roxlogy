@@ -58,7 +58,7 @@ export function ProgramBasicsEditor({
   }
 
   const field =
-    "rounded-lg border border-line-strong bg-page px-3 py-2 text-sm outline-none focus:border-accent";
+    "rounded-lg border border-line-strong bg-page px-3 py-2 text-sm outline-none focus:border-gold";
 
   return (
     <>
@@ -136,7 +136,7 @@ export function ProgramBasicsEditor({
               <button
                 type="submit"
                 disabled={busy}
-                className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background disabled:opacity-40"
+                className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-accent-foreground disabled:opacity-40"
               >
                 {busy ? t("common.saving") : t("common.save")}
               </button>

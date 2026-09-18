@@ -119,7 +119,7 @@ export function RacePartnerBox({
             type="button"
             onClick={() => respond(true)}
             disabled={busy}
-            className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background transition hover:brightness-110 disabled:opacity-40"
+            className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-accent-foreground transition hover:brightness-95 disabled:opacity-40"
           >
             {t("race.partnerAccept")}
           </button>
@@ -144,7 +144,7 @@ export function RacePartnerBox({
               <Avatar name={p.name} size={32} />
               <Link
                 href={`/u/${p.user_id}`}
-                className="min-w-0 flex-1 truncate text-sm font-bold hover:text-accent"
+                className="min-w-0 flex-1 truncate text-sm font-bold hover:text-gold"
               >
                 {p.name}
               </Link>
@@ -190,7 +190,7 @@ export function RacePartnerBox({
                 }
               }}
               placeholder={t("race.partnerSearchPh")}
-              className="h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none transition-colors focus:border-accent"
+              className="h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none transition-colors focus:border-gold"
             />
             <button
               type="button"
@@ -236,7 +236,7 @@ export function RacePartnerBox({
                           : ""}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[13px] font-bold text-accent">
+                    <span className="shrink-0 text-[13px] font-bold text-gold">
                       {already.has(h.user_id)
                         ? t("race.partnerAlready")
                         : t("race.partnerInvite")}

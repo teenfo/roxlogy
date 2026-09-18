@@ -103,7 +103,7 @@ export default async function CrewHomePage({
         <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
           {(crew.description || tags.length > 0) && (
             <Card highlight className="px-6 py-5">
-              <p className="text-xs font-extrabold tracking-[0.1em] text-accent">
+              <p className="text-xs font-extrabold tracking-[0.1em] text-gold">
                 {t("crew.aboutLabel")}
               </p>
               {crew.description && (
@@ -164,7 +164,7 @@ export default async function CrewHomePage({
                 {l.label}
                 <span className="ml-auto text-xs">↗</span>
               </span>
-              <span className="truncate text-[15px] font-bold text-accent">
+              <span className="truncate text-[15px] font-bold text-gold">
                 {l.href.replace(/^https?:\/\//, "")}
               </span>
             </a>
@@ -222,7 +222,7 @@ export default async function CrewHomePage({
                       href={l.url}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="shrink-0 rounded-lg bg-accent px-4 py-1.5 text-xs font-bold text-background hover:brightness-110"
+                      className="shrink-0 rounded-lg bg-accent px-4 py-1.5 text-xs font-bold text-accent-foreground hover:brightness-95"
                     >
                       {t("crew.duesPayBtn")}
                     </a>
@@ -260,7 +260,7 @@ export default async function CrewHomePage({
           right={
             <Link
               href={`/crews/${slug}/board`}
-              className="text-[13px] text-muted hover:text-accent"
+              className="text-[13px] text-muted hover:text-gold"
             >
               {t("crew.viewAll")} →
             </Link>

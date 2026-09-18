@@ -273,7 +273,7 @@ export default async function SessionsPage({
           </Link>
           <Link
             href="/sessions/new"
-            className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110"
+            className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground hover:brightness-95"
           >
             + {t("sessions.record")}
           </Link>
@@ -285,7 +285,7 @@ export default async function SessionsPage({
         <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <Card highlight className="px-4 py-3.5">
             <p className="text-xs text-gold">{t("sessions.pb")}</p>
-            <p className="tabular mt-1 text-[22px] font-extrabold text-accent">
+            <p className="tabular mt-1 text-[22px] font-extrabold text-gold">
               {formatMs(pb.ms)}
             </p>
             <p className="mt-0.5 truncate text-xs text-gold-dim">
@@ -418,7 +418,7 @@ export default async function SessionsPage({
                       {d.getFullYear()}
                     </span>
                     <span
-                      className={`tabular block text-xl font-extrabold ${isPb ? "text-accent" : ""}`}
+                      className={`tabular block text-xl font-extrabold ${isPb ? "text-gold" : ""}`}
                     >
                       {d.getMonth() + 1}/{d.getDate()}
                     </span>
@@ -446,7 +446,7 @@ export default async function SessionsPage({
                         </span>
                       )}
                       {isPb && (
-                        <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-background">
+                        <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-accent-foreground">
                           PB
                         </span>
                       )}
@@ -473,14 +473,14 @@ export default async function SessionsPage({
                   {/* 기록 */}
                   <span className="text-right max-sm:col-span-2 max-sm:mt-1 max-sm:text-left">
                     <span
-                      className={`tabular block text-2xl font-extrabold ${isPb ? "text-accent" : ""}`}
+                      className={`tabular block text-2xl font-extrabold ${isPb ? "text-gold" : ""}`}
                     >
                       {formatMs(ms)}
                     </span>
                     <span
                       className={`tabular mt-0.5 block text-xs ${
                         isPb
-                          ? "text-accent"
+                          ? "text-gold"
                           : gap != null && gap > 1_800_000
                             ? "text-danger"
                             : "text-muted"
@@ -503,7 +503,7 @@ export default async function SessionsPage({
       {lastPage > 1 && (
         <nav className="flex justify-center gap-4 text-sm">
           {page > 1 && (
-            <Link href={qs({ page: String(page - 1) })} className="text-accent">
+            <Link href={qs({ page: String(page - 1) })} className="text-gold">
               {t("sessions.pagePrev")}
             </Link>
           )}
@@ -511,7 +511,7 @@ export default async function SessionsPage({
             {page} / {lastPage}
           </span>
           {page < lastPage && (
-            <Link href={qs({ page: String(page + 1) })} className="text-accent">
+            <Link href={qs({ page: String(page + 1) })} className="text-gold">
               {t("sessions.pageNext")}
             </Link>
           )}

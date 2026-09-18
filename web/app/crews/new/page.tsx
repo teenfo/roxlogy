@@ -26,7 +26,7 @@ export default async function CrewNewPage() {
           <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             <Link
               href="/login?next=/crews/new"
-              className="text-accent hover:underline"
+              className="text-gold hover:underline"
             >
               {t("common.login")}
             </Link>

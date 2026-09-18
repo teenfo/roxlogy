@@ -121,7 +121,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
       <Link href="/">
-        <Image src="/roxlogy-mark.svg" alt="Roxlogy" width={64} height={64} />
+        <Image src="/roxlogy-appicon.svg" alt="Roxlogy" width={64} height={64} />
       </Link>
       <h1 className="mt-6 text-2xl font-bold">
         {mode === "login" ? t("auth.loginTitle") : t("auth.signupTitle")}
@@ -154,7 +154,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder={t("auth.displayNamePh")}
-                className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+                className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-gold"
               />
               <span className="text-xs text-muted">{t("auth.displayNameHint")}</span>
             </label>
@@ -166,7 +166,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+              className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-gold"
             />
           </label>
           <label className="flex flex-col gap-1.5 text-sm text-muted">
@@ -178,7 +178,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-md border border-muted/30 bg-surface px-3 py-2.5 pr-16 text-foreground outline-none focus:border-accent"
+                className="w-full rounded-md border border-muted/30 bg-surface px-3 py-2.5 pr-16 text-foreground outline-none focus:border-gold"
               />
               <button
                 type="button"
@@ -217,7 +217,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           <button
             type="submit"
             disabled={pending || (mode === "signup" && !displayName.trim())}
-            className="mt-2 rounded-md bg-accent px-4 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
+            className="mt-2 rounded-md bg-accent px-4 py-2.5 font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
           >
             {pending
               ? t("auth.processing")
@@ -231,14 +231,14 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           {mode === "login" ? (
             <>
               {t("auth.noAccount")}{" "}
-              <Link href={`/signup${nextQs}`} className="text-accent hover:underline">
+              <Link href={`/signup${nextQs}`} className="text-gold hover:underline">
                 {t("auth.submitSignup")}
               </Link>
             </>
           ) : (
             <>
               {t("auth.haveAccount")}{" "}
-              <Link href={`/login${nextQs}`} className="text-accent hover:underline">
+              <Link href={`/login${nextQs}`} className="text-gold hover:underline">
                 {t("auth.submitLogin")}
               </Link>
             </>

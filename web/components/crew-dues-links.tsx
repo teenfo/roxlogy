@@ -52,7 +52,7 @@ export function CrewDuesLinksManage({
   const audBadge: Record<DuesAudience, string> = {
     all: "bg-background text-muted",
     member: "bg-track/15 text-track",
-    associate: "bg-accent/15 text-accent",
+    associate: "bg-accent/15 text-gold",
   };
 
   const parseAmount = (v: string) => {
@@ -128,10 +128,10 @@ export function CrewDuesLinksManage({
   }
 
   const field =
-    "h-[38px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
+    "h-[38px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
   const pill = (on: boolean) =>
     `h-7 rounded-full px-2.5 text-xs font-bold ${
-      on ? "bg-accent text-background" : "border border-line-strong bg-control text-muted hover:text-foreground"
+      on ? "bg-accent text-accent-foreground" : "border border-line-strong bg-control text-muted hover:text-foreground"
     }`;
   const iconBtn =
     "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line-strong text-xs disabled:opacity-40";
@@ -165,7 +165,7 @@ export function CrewDuesLinksManage({
           inputMode="url"
           aria-label={t("crew.duesUrlPh")}
         />
-        <span className="flex h-[38px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-accent">
+        <span className="flex h-[38px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-gold">
           <span aria-hidden className="px-2 text-xs text-muted-3">
             ₩
           </span>
@@ -219,7 +219,7 @@ export function CrewDuesLinksManage({
                 <button
                   type="submit"
                   disabled={busy || !eLabel.trim() || !urlOk(eUrl)}
-                  className="h-9 rounded-lg bg-accent px-4 text-xs font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+                  className="h-9 rounded-lg bg-accent px-4 text-xs font-extrabold text-accent-foreground hover:brightness-95 disabled:opacity-40"
                 >
                   {t("common.save")}
                 </button>
@@ -241,7 +241,7 @@ export function CrewDuesLinksManage({
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="truncate text-sm font-bold">{l.label}</span>
                   {l.amount != null && (
-                    <span className="tabular text-[13px] font-bold text-accent">
+                    <span className="tabular text-[13px] font-bold text-gold">
                       {won(l.amount)}
                     </span>
                   )}
@@ -255,7 +255,7 @@ export function CrewDuesLinksManage({
                       href={l.url}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="truncate hover:text-accent hover:underline"
+                      className="truncate hover:text-gold hover:underline"
                     >
                       {l.url}
                     </a>
@@ -311,7 +311,7 @@ export function CrewDuesLinksManage({
         <button
           type="submit"
           disabled={busy || !label.trim() || !urlOk(url)}
-          className="h-[38px] self-start rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+          className="h-[38px] self-start rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground hover:brightness-95 disabled:opacity-40"
         >
           + {t("crew.duesAdd")}
         </button>

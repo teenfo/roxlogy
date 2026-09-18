@@ -73,7 +73,7 @@ export function GlobalNav({
     const on = active === item.key;
     const cls = `flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm transition-colors max-md:h-8 max-md:px-2.5 max-md:text-xs ${
       on
-        ? "bg-accent font-extrabold text-background"
+        ? "bg-accent font-extrabold text-accent-foreground"
         : open === item.key
           ? "bg-line text-foreground"
           : "text-foreground/70 hover:bg-line hover:text-foreground"
@@ -96,7 +96,7 @@ export function GlobalNav({
         {t(item.label)}
         <span
           aria-hidden
-          className={`text-[9px] ${open === item.key ? "text-accent" : "text-muted"}`}
+          className={`text-[9px] ${open === item.key ? "text-gold" : "text-muted"}`}
         >
           {open === item.key ? "▲" : "▼"}
         </span>
@@ -115,7 +115,7 @@ export function GlobalNav({
           className="flex shrink-0 items-center gap-2.5"
         >
           <Image
-            src="/roxlogy-mark.svg"
+            src="/roxlogy-appicon.svg"
             alt="Roxlogy"
             width={30}
             height={30}
@@ -183,7 +183,7 @@ export function GlobalNav({
                   onClick={() => setMenu(!menu)}
                   aria-expanded={menu}
                   aria-label={t("nav.menu")}
-                  className={`flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-extrabold text-background ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-extrabold text-accent-foreground ${
                     isAdmin
                       ? "ring-2 ring-line-accent ring-offset-2 ring-offset-[var(--nav)]"
                       : ""
@@ -202,7 +202,7 @@ export function GlobalNav({
                     {isAdmin && (
                       <Link
                         href="/admin"
-                        className="block px-4 py-2.5 text-sm font-semibold text-accent hover:bg-card-hover"
+                        className="block px-4 py-2.5 text-sm font-semibold text-gold hover:bg-card-hover"
                       >
                         {t("nav.admin")}
                       </Link>
@@ -222,7 +222,7 @@ export function GlobalNav({
           ) : (
             <Link
               href={`/login${loginNext ? `?next=${encodeURIComponent(loginNext)}` : ""}`}
-              className="flex h-9 items-center rounded-full bg-accent px-4 text-[13px] font-bold text-background hover:brightness-110"
+              className="flex h-9 items-center rounded-full bg-accent px-4 text-[13px] font-bold text-accent-foreground hover:brightness-95"
             >
               {t("common.login")}
             </Link>
@@ -240,7 +240,7 @@ export function GlobalNav({
                 href={c.href}
                 className="rounded-xl bg-card p-3.5 transition-colors hover:bg-card-hover"
               >
-                <span aria-hidden className="text-base text-accent">
+                <span aria-hidden className="text-base text-gold">
                   <NavIcon name={c.icon} className="h-4 w-4" />
                 </span>
                 <p className="mt-1 text-[15px] font-bold">{t(c.label)}</p>

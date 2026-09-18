@@ -88,7 +88,7 @@ export default async function RunsPage() {
         </div>
         <Link
           href="/runs/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
         >
           {t("run.add")}
         </Link>
@@ -154,7 +154,7 @@ export default async function RunsPage() {
           </p>
           <Link
             href="/runs/new"
-            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95"
           >
             {t("run.add")}
           </Link>
@@ -170,7 +170,7 @@ export default async function RunsPage() {
                 <span className="font-mono text-sm text-muted">
                   {formatMs(r.duration_ms)}
                 </span>
-                <span className="rounded-full bg-background px-2 py-0.5 font-mono text-xs font-bold text-accent">
+                <span className="rounded-full bg-background px-2 py-0.5 font-mono text-xs font-bold text-gold">
                   {formatPace(r.pace_s_per_km)}
                   {t("run.paceUnit")}
                 </span>
@@ -180,8 +180,8 @@ export default async function RunsPage() {
                 </span>
                 <span className="ml-auto flex items-center gap-3 text-xs text-muted">
                   {formatDateShortYear(r.ran_on, tag, tz)}
-                  <RecordCardButton data={cardFor(r)} className="hover:text-accent" />
-                  <Link href={`/runs/${r.id}/edit`} className="hover:text-accent">
+                  <RecordCardButton data={cardFor(r)} className="hover:text-gold" />
+                  <Link href={`/runs/${r.id}/edit`} className="hover:text-gold">
                     {t("common.edit")}
                   </Link>
                   <RunDeleteButton id={r.id} />

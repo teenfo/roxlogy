@@ -117,7 +117,7 @@ export default async function CrewEventPage({
           </p>
           <Link
             href={`/crews/${slug}`}
-            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95"
           >
             {t("crew.about")}
           </Link>
@@ -181,7 +181,7 @@ export default async function CrewEventPage({
     tally.push({
       label: t("crew.rsvpWaitlisted"),
       value: ev.waitlist_names.length,
-      cls: "text-accent",
+      cls: "text-gold",
     });
 
   return (
@@ -279,7 +279,7 @@ export default async function CrewEventPage({
           {isMember && (
             <div className="px-6 py-3.5 max-md:px-4">
               <p className="text-xs text-muted">{t("crew.attendCheckTab")}</p>
-              <p className="tabular mt-0.5 text-[22px] font-extrabold text-accent max-md:text-lg">
+              <p className="tabular mt-0.5 text-[22px] font-extrabold text-gold max-md:text-lg">
                 {checked}
                 <span className="text-sm font-bold text-muted">
                   {" / "}
@@ -435,7 +435,7 @@ export default async function CrewEventPage({
                     <p className="flex items-baseline gap-2">
                       <Link
                         href={`/u/${c.author_id}`}
-                        className="text-[13px] font-bold hover:text-accent"
+                        className="text-[13px] font-bold hover:text-gold"
                       >
                         {c.author_name}
                       </Link>

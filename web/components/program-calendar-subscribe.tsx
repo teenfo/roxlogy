@@ -58,7 +58,7 @@ export function ProgramCalendarSubscribe({
       <button
         type="button"
         onClick={copy}
-        className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent"
+        className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:text-gold"
       >
         {copied ? `✓ ${t("programs.copied")}` : `🔗 ${t("programs.subscribeCopy")}`}
       </button>

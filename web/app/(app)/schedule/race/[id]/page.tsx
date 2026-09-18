@@ -127,7 +127,7 @@ export default async function RacePlanPage({
   const accepted = plan.partners.filter((p) => p.status === "accepted").length;
 
   const badges: { label: string; cls: string }[] = [
-    { label: "MY RACE", cls: "border border-line-accent text-accent" },
+    { label: "MY RACE", cls: "border border-line-accent text-gold" },
   ];
   if (plan.division)
     badges.push({
@@ -247,7 +247,7 @@ export default async function RacePlanPage({
           </div>
           <div className="px-6 py-3.5 max-md:px-4">
             <p className="text-xs text-muted">{t("race.goalTitle")}</p>
-            <p className="tabular mt-0.5 text-[22px] font-extrabold text-accent max-md:text-lg">
+            <p className="tabular mt-0.5 text-[22px] font-extrabold text-gold max-md:text-lg">
               {plan.goal_target_ms == null ? "—" : formatMs(plan.goal_target_ms)}
             </p>
           </div>
@@ -287,7 +287,7 @@ export default async function RacePlanPage({
             {isOwner && (
               <Link
                 href={`/predict?event=${encodeURIComponent(plan.title)}&date=${plan.race_date}`}
-                className="ml-auto text-xs font-bold text-accent hover:underline"
+                className="ml-auto text-xs font-bold text-gold hover:underline"
               >
                 {plan.goal_target_ms == null
                   ? t("events.setGoal")
@@ -301,7 +301,7 @@ export default async function RacePlanPage({
             </p>
           ) : (
             <>
-              <p className="tabular text-3xl font-extrabold text-accent">
+              <p className="tabular text-3xl font-extrabold text-gold">
                 {formatMs(plan.goal_target_ms)}
               </p>
               {splits.some((s) => s.ms != null) && (

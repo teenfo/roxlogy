@@ -56,7 +56,7 @@ export function CrewLikeButton({
       aria-pressed={liked}
       className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition disabled:opacity-60 ${
         liked
-          ? "border-accent text-accent"
+          ? "border-gold text-gold"
           : "border-muted/40 text-muted hover:border-foreground"
       }`}
     >

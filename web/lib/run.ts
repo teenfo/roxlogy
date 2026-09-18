@@ -97,9 +97,9 @@ export function gradeClass(grade: Degradation["grade"]): string {
     case "excellent":
       return "bg-emerald-500/15 text-emerald-400";
     case "good":
-      return "bg-accent/15 text-accent";
+      return "bg-accent/15 text-gold";
     case "fair":
-      return "bg-amber-500/15 text-accent";
+      return "bg-amber-500/15 text-gold";
     case "weak":
       return "bg-danger/15 text-danger";
     default:

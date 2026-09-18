@@ -18,7 +18,7 @@ import { useI18n } from "@/components/i18n-provider";
 
 const KIND_BADGE: Record<string, string> = {
   run: "border-track/60 text-track",
-  station: "border-accent/60 text-accent",
+  station: "border-gold/60 text-gold",
   roxzone: "border-muted/60 text-muted",
 };
 
@@ -219,14 +219,14 @@ export function SessionNewForm({
           type="datetime-local"
           value={startedAt}
           onChange={(e) => setStartedAt(e.target.value)}
-          className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent"
+          className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-gold"
         />
         <label className="ml-2 text-sm text-muted">{t("newSession.division")}</label>
         <select
           value={division}
           onChange={(e) => setDivision(e.target.value)}
           disabled={!!raceResultId}
-          className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent disabled:opacity-60"
+          className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-gold disabled:opacity-60"
         >
           <option value="">{t("newSession.divisionNone")}</option>
           {DIVISIONS.map((d) => (
@@ -262,7 +262,7 @@ export function SessionNewForm({
               onClick={() => setRpe(rpe === n ? null : n)}
               className={`h-8 w-8 rounded-md border text-xs font-semibold transition ${
                 rpe === n
-                  ? "border-accent bg-accent text-background"
+                  ? "border-gold bg-accent text-accent-foreground"
                   : "border-muted/30 text-muted hover:border-foreground"
               }`}
             >
@@ -286,7 +286,7 @@ export function SessionNewForm({
                 }
                 className={`rounded-full border px-3 py-1 text-xs transition ${
                   templateId === w.id
-                    ? "border-accent bg-accent text-background"
+                    ? "border-gold bg-accent text-accent-foreground"
                     : "border-muted/30 text-muted hover:border-foreground"
                 }`}
               >
@@ -305,7 +305,7 @@ export function SessionNewForm({
           rows={3}
           maxLength={2000}
           placeholder={t("newSession.notesPlaceholder")}
-          className="mt-1 w-full resize-y rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          className="mt-1 w-full resize-y rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-gold"
         />
       </div>
 
@@ -344,7 +344,7 @@ export function SessionNewForm({
           <button
             onClick={handleSave}
             disabled={pending || totalMs === 0}
-            className="rounded-md bg-accent px-6 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
+            className="rounded-md bg-accent px-6 py-2.5 font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
           >
             {pending ? t("common.saving") : t("newSession.save")}
           </button>

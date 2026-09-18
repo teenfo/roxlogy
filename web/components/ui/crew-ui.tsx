@@ -12,7 +12,7 @@ import Link from "next/link";
 export type Tone = "accent" | "info" | "danger" | "success" | "label" | "neutral";
 
 const TONE: Record<Tone, string> = {
-  accent: "bg-accent/15 text-accent",
+  accent: "bg-accent/15 text-gold",
   info: "bg-info-bg text-info",
   danger: "bg-danger-bg text-danger",
   success: "bg-success-bg text-success",
@@ -32,7 +32,7 @@ export function Badge({
   children: React.ReactNode;
   className?: string;
 }) {
-  const base = outline ? "border border-line-accent text-accent" : TONE[tone];
+  const base = outline ? "border border-line-accent text-gold" : TONE[tone];
   return (
     <span
       className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold leading-none ${base} ${className}`}
@@ -59,7 +59,7 @@ export function Chip({
 }) {
   const cls = `inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors ${
     active
-      ? "bg-accent text-background"
+      ? "bg-accent text-accent-foreground"
       : "border border-line-strong text-muted hover:border-muted/60 hover:text-foreground"
   }`;
   const body = (
@@ -141,7 +141,7 @@ export function Avatar({
   return (
     <span
       aria-hidden
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-extrabold text-background ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-extrabold text-accent-foreground ${className}`}
       style={{
         width: size,
         height: size,

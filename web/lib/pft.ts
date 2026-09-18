@@ -61,7 +61,7 @@ export function pftBadge(
 export function badgeClass(badge: string): string {
   switch (badge) {
     case "gold":
-      return "bg-gold-bg text-accent ring-1 ring-line-accent";
+      return "bg-gold-bg text-gold ring-1 ring-line-accent";
     case "silver":
       return "bg-line-mid text-medal-silver ring-1 ring-line-strongest";
     default:
@@ -72,7 +72,7 @@ export function badgeClass(badge: string): string {
 /** 배지 글자색만 — 게이지·예상 완주 문구처럼 배경 없이 쓰는 자리 */
 export function badgeText(badge: string): string {
   return badge === "gold"
-    ? "text-accent"
+    ? "text-gold"
     : badge === "silver"
       ? "text-medal-silver"
       : "text-medal-bronze";

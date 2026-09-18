@@ -235,7 +235,7 @@ export function NotificationSettings() {
               type="button"
               onClick={test}
               disabled={busy}
-              className="mt-1.5 text-xs font-bold text-accent hover:underline disabled:opacity-40"
+              className="mt-1.5 text-xs font-bold text-gold hover:underline disabled:opacity-40"
             >
               {t("notif.test")}
             </button>
@@ -287,7 +287,7 @@ export function NotificationSettings() {
                     type="time"
                     value={wodTime}
                     onChange={(e) => saveWodTime(e.target.value)}
-                    className="h-8 rounded-lg border border-line-strong bg-page px-2 text-sm text-foreground outline-none focus:border-accent"
+                    className="h-8 rounded-lg border border-line-strong bg-page px-2 text-sm text-foreground outline-none focus:border-gold"
                   />
                   <span>{t("notif.wodTimeHint")}</span>
                 </label>

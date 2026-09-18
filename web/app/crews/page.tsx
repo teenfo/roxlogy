@@ -51,7 +51,7 @@ export default async function CrewDirectoryPage() {
           </div>
           <Link
             href={user ? "/crews/new" : "/login?next=%2Fcrews%2Fnew"}
-            className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-extrabold text-background hover:brightness-110"
+            className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-extrabold text-accent-foreground hover:brightness-95"
           >
             + {t("crew.createCta")}
           </Link>
@@ -63,7 +63,7 @@ export default async function CrewDirectoryPage() {
             <span className="text-sm text-muted">{t("crew.guestNote")}</span>
             <Link
               href="/login?next=%2Fcrews"
-              className="text-sm font-bold text-accent hover:underline"
+              className="text-sm font-bold text-gold hover:underline"
             >
               {t("common.login")} →
             </Link>
@@ -73,7 +73,7 @@ export default async function CrewDirectoryPage() {
         {/* 내 크루 */}
         {mine.length > 0 && (
           <section className="mt-8">
-            <p className="mb-2 text-xs font-bold tracking-[0.06em] text-accent">
+            <p className="mb-2 text-xs font-bold tracking-[0.06em] text-gold">
               {t("crew.myCrews")}
             </p>
             <ul className="flex flex-col gap-3">
@@ -134,7 +134,7 @@ export default async function CrewDirectoryPage() {
                             aria-hidden
                             className="inline-block h-1.5 w-1.5 rounded-full bg-accent"
                           />
-                          <span className="font-bold text-accent">
+                          <span className="font-bold text-gold">
                             {t("crew.nextMeetup")}
                           </span>
                           <span className="text-foreground/85">
@@ -152,7 +152,7 @@ export default async function CrewDirectoryPage() {
 
                     <div className="flex shrink-0 flex-col items-end gap-2 max-sm:hidden">
                       <AvatarStack names={c.member_names} max={4} />
-                      <span className="text-[13px] font-bold text-accent">
+                      <span className="text-[13px] font-bold text-gold">
                         {t("crew.goCrewPage")} →
                       </span>
                     </div>

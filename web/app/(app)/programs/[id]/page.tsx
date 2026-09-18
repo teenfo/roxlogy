@@ -148,7 +148,7 @@ export default async function ProgramDetailPage({
         {isOwner && preview === "1" && (
           <Link
             href={`/programs/${program.id}`}
-            className="text-[13px] font-semibold text-accent hover:underline"
+            className="text-[13px] font-semibold text-gold hover:underline"
           >
             {t("programs.backToBuilder")}
           </Link>
@@ -233,7 +233,7 @@ export default async function ProgramDetailPage({
             </span>
             <a
               href={`/programs/${program.id}/calendar.ics`}
-              className="rounded-md bg-control px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent"
+              className="rounded-md bg-control px-2.5 py-1 text-xs font-semibold text-foreground hover:text-gold"
             >
               📅 {t("programs.icsDownload")}
             </a>
@@ -324,7 +324,7 @@ export default async function ProgramDetailPage({
                                     {!it.exercises && it.pending_exercise && (
                                       <span
                                         title={t("programs.pendingHint")}
-                                        className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-accent"
+                                        className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-gold"
                                       >
                                         {t("programs.pendingBadge")}
                                       </span>

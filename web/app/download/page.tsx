@@ -26,13 +26,13 @@ export default async function DownloadPage() {
   const androidReady = !!PLAY_STORE_URL || hasApk;
 
   const apkBtn =
-    "rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110";
+    "rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95";
 
   return (
     <main className="flex flex-1 flex-col">
       <div className="flex items-center justify-between px-6 pt-4">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/roxlogy-mark.svg" alt="Roxlogy" width={28} height={28} />
+          <Image src="/roxlogy-appicon.svg" alt="Roxlogy" width={28} height={28} />
           <span className="text-sm font-black tracking-tightst">ROXLOGY</span>
         </Link>
         <LocaleSwitcher compact />
@@ -77,7 +77,7 @@ export default async function DownloadPage() {
                   <a
                     href={dl.phoneUrl}
                     download
-                    className="rounded-md border border-accent px-5 py-2.5 text-sm font-semibold text-accent hover:bg-accent/10"
+                    className="rounded-md border border-gold px-5 py-2.5 text-sm font-semibold text-gold hover:bg-accent/10"
                   >
                     {t("download.phoneApk")}
                   </a>
@@ -152,7 +152,7 @@ export default async function DownloadPage() {
 
         <p className="mt-8 text-center text-sm text-muted">
           {t("download.webCta")}{" "}
-          <Link href="/signup" className="text-accent hover:underline">
+          <Link href="/signup" className="text-gold hover:underline">
             {t("common.signup")}
           </Link>
         </p>

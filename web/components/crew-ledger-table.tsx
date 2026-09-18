@@ -187,7 +187,7 @@ export function CrewLedgerTable({
       aria-pressed={kind === k}
       onClick={() => setKind(k)}
       className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
-        kind === k ? "bg-accent text-background" : "text-foreground-2 hover:text-foreground"
+        kind === k ? "bg-accent text-accent-foreground" : "text-foreground-2 hover:text-foreground"
       }`}
     >
       {label}
@@ -302,7 +302,7 @@ export function CrewLedgerTable({
           onChange={(e) => setQuery(e.target.value)}
           size={1}
           placeholder={t("crew.finSearch")}
-          className="ml-auto h-[34px] w-[180px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-accent"
+          className="ml-auto h-[34px] w-[180px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-gold"
         />
       </div>
 

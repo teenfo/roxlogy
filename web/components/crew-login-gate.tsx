@@ -17,7 +17,7 @@ export async function CrewLoginGate({ next }: { next: string }) {
       </p>
       <Link
         href={`/login?next=${encodeURIComponent(next)}`}
-        className="mt-5 inline-flex h-10 items-center rounded-full bg-accent px-5 text-sm font-extrabold text-background transition hover:brightness-110"
+        className="mt-5 inline-flex h-10 items-center rounded-full bg-accent px-5 text-sm font-extrabold text-accent-foreground transition hover:brightness-95"
       >
         {t("common.login")}
       </Link>

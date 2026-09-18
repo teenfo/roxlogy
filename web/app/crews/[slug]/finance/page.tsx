@@ -256,7 +256,7 @@ export default async function CrewFinancePage({
       aria-current={view === v}
       className={`-mb-px flex items-center gap-1.5 border-b-2 px-1 pb-2.5 text-sm ${
         view === v
-          ? "border-accent font-bold text-accent"
+          ? "border-gold font-bold text-gold"
           : "border-transparent text-muted hover:text-foreground"
       }`}
     >
@@ -285,7 +285,7 @@ export default async function CrewFinancePage({
         <div className="flex flex-wrap gap-2">
           <Link
             href={`${linkFor(month, "dues")}&f=unpaid`}
-            className="flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg bg-danger px-3 text-[13px] font-extrabold text-background hover:brightness-110"
+            className="flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg bg-danger px-3 text-[13px] font-extrabold text-accent-foreground hover:brightness-95"
           >
             {t("crew.duesOpenUnpaid")}
           </Link>
@@ -368,7 +368,7 @@ export default async function CrewFinancePage({
           <Link
             href={linkFor(shiftMonth(month, -1))}
             aria-label={t("crew.prevMonth")}
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-accent hover:bg-card-hover"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-gold hover:bg-card-hover"
           >
             ‹
           </Link>
@@ -377,7 +377,7 @@ export default async function CrewFinancePage({
             <Link
               href={linkFor(shiftMonth(month, 1))}
               aria-label={t("crew.nextMonth")}
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-accent hover:bg-card-hover"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-gold hover:bg-card-hover"
             >
               ›
             </Link>
@@ -483,7 +483,7 @@ export default async function CrewFinancePage({
         </Card>
         <Card highlight className="px-[18px] py-3.5">
           <p className="text-xs text-gold">{t("crew.finBalance")}</p>
-          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px] text-accent">
+          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px] text-gold">
             {won(totalBalance)}
           </p>
           <p className="mt-0.5 flex flex-wrap items-center justify-between gap-x-2 text-xs text-muted-3">
@@ -580,7 +580,7 @@ export default async function CrewFinancePage({
               </dl>
               <Link
                 href={`/crews/${slug}/manage?tab=dues`}
-                className="text-xs font-semibold text-accent hover:underline"
+                className="text-xs font-semibold text-gold hover:underline"
               >
                 {t("crew.duesFeeSettings")}
               </Link>

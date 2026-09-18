@@ -34,8 +34,8 @@ export function LocaleSwitcher({ compact = false }: { compact?: boolean }) {
       aria-label={t("a11y.language")}
       className={
         compact
-          ? "rounded-md border border-muted/30 bg-transparent px-2 py-1 text-xs text-muted outline-none focus:border-accent"
-          : "rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent"
+          ? "rounded-md border border-muted/30 bg-transparent px-2 py-1 text-xs text-muted outline-none focus:border-gold"
+          : "rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-gold"
       }
     >
       {SUPPORTED_LOCALES.map((l) => (

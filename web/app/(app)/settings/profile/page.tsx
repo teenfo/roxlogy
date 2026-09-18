@@ -109,7 +109,7 @@ export default async function ProfileSettingsPage() {
                   {t("profile.getAppDesc")}
                 </span>
               </span>
-              <span aria-hidden className="shrink-0 text-accent">
+              <span aria-hidden className="shrink-0 text-gold">
                 →
               </span>
             </Link>

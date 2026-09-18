@@ -8,7 +8,7 @@ import { DIVISIONS } from "@/lib/divisions";
 import { dictLabel } from "@/lib/dict-label";
 
 const input =
-  "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+  "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
 
 export type AdminUserDetail = {
   id: string;
@@ -281,7 +281,7 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
             checked={f.is_admin}
             onChange={(e) => set("is_admin", e.target.checked)}
           />
-          <span className="font-semibold text-accent">{t("admin.fIsAdmin")}</span>
+          <span className="font-semibold text-gold">{t("admin.fIsAdmin")}</span>
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -299,7 +299,7 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+        className="mt-5 rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
       >
         {busy ? "…" : t("crew.save")}
       </button>

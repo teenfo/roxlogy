@@ -23,7 +23,9 @@ export default async function BoardPage({ params }: { params: Promise<{ code: st
   if (!board) notFound();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-page text-foreground">
+    // 라이브보드는 현장 모니터용 독립 다크 화면이다 — 앱이 밝아져도 여기는 어둡다
+    // (스펙 §15: "일반 화면의 다크 모드 전환 기능을 의미하지 않습니다").
+    <div className="theme-dark flex min-h-dvh flex-col bg-page text-foreground">
       {/* 상단 바는 보드 컴포넌트가 그린다 — 종료 표시가 Realtime 으로 같이 바뀌어야 한다 */}
       <PftRaceBoard initial={board} meId={auth.user?.id ?? null} />
     </div>

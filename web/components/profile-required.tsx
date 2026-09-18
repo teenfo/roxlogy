@@ -18,13 +18,13 @@ export async function ProfileRequired({ missing }: { missing: ("birth_year" | "g
       role="alert"
       className="flex flex-col gap-3 rounded-2xl border border-line-accent bg-highlight px-4 py-4"
     >
-      <p className="text-sm font-extrabold text-accent">{t("pft.race.needProfile")}</p>
+      <p className="text-sm font-extrabold text-gold">{t("pft.race.needProfile")}</p>
       <p className="text-[13px] text-foreground/85 [word-break:keep-all]">
         {t("pft.race.needProfileDesc", { fields: labels })}
       </p>
       <Link
         href="/settings/profile"
-        className="flex h-11 w-fit items-center rounded-lg bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110"
+        className="flex h-11 w-fit items-center rounded-lg bg-accent px-5 text-sm font-extrabold text-accent-foreground hover:brightness-95"
       >
         {t("pft.race.goProfile")} →
       </Link>

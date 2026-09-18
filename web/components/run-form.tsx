@@ -14,7 +14,7 @@ import {
 } from "@/lib/run";
 
 const input =
-  "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+  "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
 const label = "mt-4 block text-xs text-muted";
 
 /** 러닝 기록 입력·수정. 거리 + 시간만 필수고 페이스는 DB 생성 컬럼이 채운다
@@ -286,7 +286,7 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 w-full rounded-md bg-accent px-4 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-50"
+        className="mt-5 w-full rounded-md bg-accent px-4 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-50"
       >
         {busy ? t("common.saving") : t("common.save")}
       </button>

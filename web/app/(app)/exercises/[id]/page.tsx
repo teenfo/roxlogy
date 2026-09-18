@@ -203,7 +203,7 @@ export default async function ExerciseDetailPage({
             {helps.map((h) => (
               <span
                 key={h}
-                className="rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent"
+                className="rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-gold"
               >
                 {dictLabel(t, `hstation.${h}`, h)}
               </span>

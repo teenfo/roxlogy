@@ -14,7 +14,7 @@ export const TIER_COLORS: TierColor[] = [
 ];
 
 const TIER_CLASS: Record<TierColor, string> = {
-  yellow: "bg-accent/15 text-accent ring-1 ring-accent/40",
+  yellow: "bg-accent/15 text-gold ring-1 ring-gold/40",
   blue: "bg-track/15 text-track ring-1 ring-track/40",
   chalk: "bg-foreground/10 text-foreground/80 ring-1 ring-foreground/15",
   gray: "bg-background text-muted ring-1 ring-muted/25",
@@ -54,7 +54,7 @@ export function isStaffRole(role: string): boolean {
 
 /** 등급 색을 글자에만 쓰는 곳(셀렉트 등) — 배경·링 없이 색만 가져간다. */
 const TIER_TEXT: Record<TierColor, string> = {
-  yellow: "text-accent",
+  yellow: "text-gold",
   blue: "text-track",
   chalk: "text-foreground/80",
   gray: "text-muted",

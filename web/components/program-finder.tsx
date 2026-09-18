@@ -62,7 +62,7 @@ export function ProgramFinder({
                 {p.title}
               </span>
               {p.active && (
-                <span className="shrink-0 rounded-[5px] bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-background">
+                <span className="shrink-0 rounded-[5px] bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-accent-foreground">
                   {t("programs.enrolled")}
                 </span>
               )}
@@ -166,7 +166,7 @@ export function ProgramFinder({
                 onClick={() => setLevel(null)}
                 className={`flex h-[30px] items-center rounded-full px-3 text-xs font-semibold transition-colors ${
                   level === null
-                    ? "bg-accent text-background"
+                    ? "bg-accent text-accent-foreground"
                     : "border border-line-strong text-muted hover:text-foreground"
                 }`}
               >
@@ -179,7 +179,7 @@ export function ProgramFinder({
                   onClick={() => setLevel(lv)}
                   className={`flex h-[30px] items-center rounded-full px-3 text-xs font-semibold transition-colors ${
                     level === lv
-                      ? "bg-accent text-background"
+                      ? "bg-accent text-accent-foreground"
                       : "border border-line-strong text-muted hover:text-foreground"
                   }`}
                 >
@@ -190,7 +190,7 @@ export function ProgramFinder({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={t("nav.searchPh")}
-                className="h-[30px] w-[180px] min-w-0 rounded-full border border-line-strong bg-page px-3 text-xs outline-none transition-colors focus:border-accent max-md:w-full"
+                className="h-[30px] w-[180px] min-w-0 rounded-full border border-line-strong bg-page px-3 text-xs outline-none transition-colors focus:border-gold max-md:w-full"
               />
             </span>
           </div>

@@ -109,7 +109,7 @@ export function InitialAvatar({
   return (
     <span
       aria-hidden
-      className="flex shrink-0 items-center justify-center rounded-full bg-accent font-extrabold text-background"
+      className="flex shrink-0 items-center justify-center rounded-full bg-accent font-extrabold text-accent-foreground"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
     >
       {(name.trim()[0] ?? "?").toUpperCase()}
@@ -118,18 +118,18 @@ export function InitialAvatar({
 }
 
 export const inputCls =
-  "h-[42px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm text-foreground outline-none transition-colors focus:border-accent";
+  "h-[42px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm text-foreground outline-none transition-colors focus:border-gold";
 
 export const labelCls = "flex flex-col gap-1.5 text-xs text-muted";
 
 export const btnPrimary =
-  "flex h-10 shrink-0 items-center justify-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background transition hover:brightness-110 disabled:opacity-40";
+  "flex h-10 shrink-0 items-center justify-center rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground transition hover:brightness-95 disabled:opacity-40";
 
 export const btnGhost =
   "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:border-line-strong disabled:opacity-40";
 
 export const btnAccentGhost =
-  "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-accent bg-highlight px-3.5 text-[13px] font-bold text-accent transition hover:brightness-125 disabled:opacity-40";
+  "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-accent bg-highlight px-3.5 text-[13px] font-bold text-gold transition hover:brightness-95 disabled:opacity-40";
 
 export const btnDanger =
   "flex h-[34px] shrink-0 items-center justify-center rounded-lg border border-danger-line-strong px-3.5 text-[13px] font-semibold text-danger transition-colors hover:bg-danger-card disabled:opacity-40";
