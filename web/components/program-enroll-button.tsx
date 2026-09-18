@@ -109,7 +109,7 @@ export function ProgramEnrollButton({
             {t("programs.stop")}
           </button>
         </div>
-        {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+        {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       </div>
     );
   }
@@ -198,7 +198,7 @@ export function ProgramEnrollButton({
               )}
             </p>
 
-            {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
+            {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
 
             <div className="mt-5 flex justify-end gap-2">
               <button

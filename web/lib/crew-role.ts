@@ -19,7 +19,7 @@ const TIER_CLASS: Record<TierColor, string> = {
   chalk: "bg-foreground/10 text-foreground/80 ring-1 ring-foreground/15",
   gray: "bg-background text-muted ring-1 ring-muted/25",
   green: "bg-emerald-400/15 text-emerald-400 ring-1 ring-emerald-400/30",
-  red: "bg-red-400/15 text-red-400 ring-1 ring-red-400/30",
+  red: "bg-danger/15 text-danger ring-1 ring-danger/30",
 };
 
 /** 등급 뱃지 클래스. 색은 크루가 고른다. */
@@ -59,7 +59,7 @@ const TIER_TEXT: Record<TierColor, string> = {
   chalk: "text-foreground/80",
   gray: "text-muted",
   green: "text-emerald-400",
-  red: "text-red-400",
+  red: "text-danger",
 };
 
 export function tierTextClass(color: string | null | undefined): string {
@@ -73,7 +73,7 @@ const TIER_BAR: Record<TierColor, string> = {
   chalk: "bg-foreground/70",
   gray: "bg-muted",
   green: "bg-emerald-400",
-  red: "bg-red-400",
+  red: "bg-danger",
 };
 
 export function tierBarClass(color: string | null | undefined): string {

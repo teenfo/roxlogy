@@ -130,7 +130,7 @@ export function Dialog({
         data-dialog-backdrop
         aria-label={closeLabel}
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-black/60"
+        className="absolute inset-0 cursor-default bg-[var(--scrim)]"
       />
       <div
         ref={panelRef}

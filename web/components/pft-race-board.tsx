@@ -140,7 +140,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
         <div className="flex min-w-0 flex-col gap-2 md:min-w-[280px]">
           <p className="flex items-center gap-2.5 text-xs font-extrabold tracking-[0.14em] text-accent">
             {t("pft.race.board")}
-            {data.race.crew && <span className="text-[#8a7a2a]">{data.race.crew}</span>}
+            {data.race.crew && <span className="text-gold-dim">{data.race.crew}</span>}
           </p>
           {/* 진행/종료 표시는 상단 바가 맡는다 — 여기에도 두면 한 화면에 두 번 뜬다 */}
           <div className="flex flex-wrap items-center gap-4">
@@ -161,7 +161,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             <li
               key={st.key}
               // 지표 카드(Stat)와 같은 치수 — 상단이 한 줄로 읽히려면 높이가 맞아야 한다
-              className="min-w-0 rounded-xl border border-black/10 px-4 py-3 text-center text-[#141414]"
+              className="min-w-0 rounded-xl border border-black/10 px-4 py-3 text-center text-background"
               style={{ background: PFT_COLORS[st.key] }}
               title={t(st.detail as DictKey) || undefined}
             >
@@ -193,16 +193,16 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           </div>
           {showCode && (
             <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
-              <span className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.codeLabel")}</span>
+              <span className="text-[11px] font-bold tracking-[0.06em] text-muted-3">{t("pft.race.codeLabel")}</span>
               <span className="flex h-[52px] items-center rounded-xl border border-line-strong bg-page px-5 font-mono text-2xl font-extrabold tracking-[0.32em]">
                 {data.race.code}
               </span>
-              <span className="text-[11px] text-[#8a7a2a]">{t("pft.race.joinUrlHint")}</span>
+              <span className="text-[11px] text-gold-dim">{t("pft.race.joinUrlHint")}</span>
             </div>
           )}
           {joinedMe && (
             <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
-              <span className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.youAreIn")}</span>
+              <span className="text-[11px] font-bold tracking-[0.06em] text-muted-3">{t("pft.race.youAreIn")}</span>
               <Link
                 href={raceHref}
                 className="flex h-[52px] items-center rounded-xl bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110"
@@ -213,7 +213,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           )}
           {!data.race.join_open && !joinedMe && (
             <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
-              <span className="max-w-[180px] text-center text-[11px] text-[#777]">{t("pft.race.staffAddedOnly")}</span>
+              <span className="max-w-[180px] text-center text-[11px] text-muted-3">{t("pft.race.staffAddedOnly")}</span>
             </div>
           )}
         </div>
@@ -234,7 +234,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             {entryGroups.map((g) => (
               <div key={g.wave ?? "none"} className="flex flex-col gap-1.5">
                 {grouped && (
-                  <p className="px-1 text-[11px] font-extrabold tracking-[0.06em] text-[#777]">
+                  <p className="px-1 text-[11px] font-extrabold tracking-[0.06em] text-muted-3">
                     {g.wave == null
                       ? t("pft.race.waveNone")
                       : t("pft.race.waveN", { n: g.wave })}
@@ -264,7 +264,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                             ? "bg-success"
                             : st === "running"
                               ? "bg-accent"
-                              : "bg-[#444]"
+                              : "bg-line-strongest"
                         }`}
                       />
                     </div>
@@ -276,7 +276,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               <div className="flex flex-col gap-1.5">
                 <p className="flex items-center gap-1.5 px-1 text-[11px] font-extrabold tracking-[0.06em] text-danger">
                   {t("pft.race.dnf")}
-                  <span className="text-[#777]">{outEntries.length}</span>
+                  <span className="text-muted-3">{outEntries.length}</span>
                 </p>
                 {outEntries.map((e) => (
                   <div key={e.entry_id} className="flex items-center gap-2 rounded-lg px-2 py-1.5">
@@ -304,7 +304,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                 {t("pft.race.finishedBoard")}
                 <span className={`${pill} bg-success-bg text-success`}>{finished.length}</span>
               </p>
-              <span className="hidden text-xs text-[#777] md:inline">{t("pft.race.badgeNote")}</span>
+              <span className="hidden text-xs text-muted-3 md:inline">{t("pft.race.badgeNote")}</span>
             </header>
             <div className="grid flex-1 gap-4 overflow-y-auto p-4 md:grid-cols-3">
               {(["gold", "silver", "bronze"] as const).map((b) => {
@@ -316,7 +316,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                       <span className="tabular text-xs opacity-80">{rowsOf.length}</span>
                     </p>
                     {rowsOf.length === 0 ? (
-                      <p className="rounded-lg border border-dashed border-[#2a2a2a] px-3 py-5 text-center text-[13px] text-muted">
+                      <p className="rounded-lg border border-dashed border-line-mid px-3 py-5 text-center text-[13px] text-muted">
                         —
                       </p>
                     ) : (
@@ -356,7 +356,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                 {running.length}
               </span>
             </p>
-            <span className="hidden text-xs text-[#777] md:inline">{t("pft.race.segHeader")}</span>
+            <span className="hidden text-xs text-muted-3 md:inline">{t("pft.race.segHeader")}</span>
           </header>
           <div className="flex flex-1 flex-col gap-2.5 p-3.5 md:px-4">
             {running.length === 0 ? (
@@ -378,7 +378,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             )}
             {/* 대기자 명단은 왼쪽 참가자 패널이 맡는다 — 여기서는 참가 안내만 */}
             {showCode && waiting.length > 0 && (
-              <div className="mt-auto rounded-[14px] border border-dashed border-[#333] px-[18px] py-3 text-[13px] text-[#777]">
+              <div className="mt-auto rounded-[14px] border border-dashed border-line-strong px-[18px] py-3 text-[13px] text-muted-3">
                 {t("pft.race.joinHint", { code: data.race.code })}
               </div>
             )}
@@ -393,13 +393,13 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               <span className={`${pill} bg-success-bg text-success`}>{finished.length}</span>
             </p>
             {pages > 1 && (
-              <span className="tabular text-xs text-[#777]" role="status">
+              <span className="tabular text-xs text-muted-3" role="status">
                 {t("pft.race.pageOf", { page: (page % pages) + 1, total: pages })}
               </span>
             )}
           </header>
           <div
-            className="grid grid-cols-[44px_minmax(0,1fr)_auto] gap-3.5 border-b border-[#1c1c1c] px-5 py-2 text-[11px] font-bold tracking-[0.06em] text-[#777] md:grid-cols-[52px_minmax(0,1fr)_auto_auto]"
+            className="grid grid-cols-[44px_minmax(0,1fr)_auto] gap-3.5 border-b border-line-soft px-5 py-2 text-[11px] font-bold tracking-[0.06em] text-muted-3 md:grid-cols-[52px_minmax(0,1fr)_auto_auto]"
             aria-hidden
           >
             <span>{t("pft.race.colRank")}</span>
@@ -418,7 +418,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               return (
                 <li
                   key={r.entry_id}
-                  className={`grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3.5 border-b border-[#1c1c1c] px-5 py-3 md:grid-cols-[52px_minmax(0,1fr)_auto_auto] motion-safe:animate-[rowin_.3s_ease-out] ${
+                  className={`grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3.5 border-b border-line-soft px-5 py-3 md:grid-cols-[52px_minmax(0,1fr)_auto_auto] motion-safe:animate-[rowin_.3s_ease-out] ${
                     isMe ? "bg-highlight" : ""
                   }`}
                 >
@@ -428,7 +428,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                         ? "border-accent bg-accent text-background"
                         : r.rank <= 3
                           ? "border-line-accent bg-highlight text-accent"
-                          : "border-[#333] text-muted"
+                          : "border-line-strong text-muted"
                     }`}
                   >
                     {r.rank}
@@ -451,7 +451,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 flex items-center gap-2 text-xs text-[#777]">
+                      <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-3">
                         {r.badge && (
                           <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-extrabold md:hidden ${badgeClass(r.badge)}`}>
                             {t(badgeDictKey(r.badge))}
@@ -480,7 +480,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                     >
                       {formatMs(r.total_ms)}
                     </span>
-                    <span className="tabular mt-0.5 block text-xs text-[#777]">
+                    <span className="tabular mt-0.5 block text-xs text-muted-3">
                       {r.rank === 1 ? t("pft.race.leader") : `+${fmtClock(gap)}`}
                     </span>
                   </span>
@@ -488,7 +488,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               );
             })}
           </ol>
-          <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 text-xs text-[#777]">
+          <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 text-xs text-muted-3">
             <span>
               {t("pft.race.badgeRule", {
                 gold: formatMs(PFT_CUTOFFS.under45.gold),
@@ -541,7 +541,7 @@ function Stat({
         tone === "accent" ? "border-line-accent bg-highlight" : "border-line bg-page"
       }`}
     >
-      <p className={`text-[11px] font-bold tracking-[0.06em] ${tone === "accent" ? "text-[#c9b34a]" : "text-[#777]"}`}>{label}</p>
+      <p className={`text-[11px] font-bold tracking-[0.06em] ${tone === "accent" ? "text-gold" : "text-muted-3"}`}>{label}</p>
       <p
         className={`tabular mt-1 text-[28px] font-extrabold leading-[1.1] ${
           tone === "accent" ? "text-accent" : tone === "success" ? "text-success" : ""
@@ -557,7 +557,7 @@ function Avatar({ name, size }: { name: string; size: number }) {
   return (
     <span
       aria-hidden
-      className="inline-flex shrink-0 items-center justify-center rounded-full font-extrabold text-[#111]"
+      className="inline-flex shrink-0 items-center justify-center rounded-full font-extrabold text-nav"
       style={{ width: size, height: size, background: avatarColor(name), fontSize: Math.round(size * 0.4) }}
     >
       {initialOf(name)}
@@ -587,7 +587,7 @@ function SplitStrip({
             />
             <span
               className={`tabular truncate text-center text-[11px] font-bold ${
-                ms == null ? "text-[#555]" : "text-[#c9c9c9]"
+                ms == null ? "text-muted-3" : "text-foreground-2"
               }`}
             >
               <span className="sr-only">{stationLabel(i)} </span>
@@ -660,7 +660,7 @@ function LiveRow({
             const width = done ? 100 : isCur && !closed ? (progress ?? 100) : 0;
             return (
               <div key={st.key} className="flex flex-col gap-1.5">
-                <div className="relative h-2.5 overflow-hidden rounded-[5px] bg-[#1c1c1c]">
+                <div className="relative h-2.5 overflow-hidden rounded-[5px] bg-line-soft">
                   <div
                     className={`h-full rounded-[5px] transition-[width] duration-500 ease-linear ${
                       isCur && progress == null ? "motion-safe:animate-pulse" : ""
@@ -669,8 +669,8 @@ function LiveRow({
                   />
                 </div>
                 <div className="tabular flex justify-between text-xs">
-                  <span className="truncate text-[#777]">{stationLabel(i)}</span>
-                  <span className={`font-bold ${done ? "text-[#c9c9c9]" : isCur && !closed ? "text-accent" : "text-[#555]"}`}>
+                  <span className="truncate text-muted-3">{stationLabel(i)}</span>
+                  <span className={`font-bold ${done ? "text-foreground-2" : isCur && !closed ? "text-accent" : "text-muted-3"}`}>
                     {done && ms != null ? formatMs(ms) : isCur && !closed ? fmtClock(curElapsed) : "—"}
                   </span>
                 </div>
@@ -680,7 +680,7 @@ function LiveRow({
         </div>
       </div>
       <div className="hidden min-w-[120px] text-right md:block">
-        <p className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.elapsedLabel")}</p>
+        <p className="text-[11px] font-bold tracking-[0.06em] text-muted-3">{t("pft.race.elapsedLabel")}</p>
         <p className="tabular text-4xl font-extrabold leading-[1.1]">{closed ? "—" : fmtClock(elapsed)}</p>
       </div>
     </div>

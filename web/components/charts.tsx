@@ -17,13 +17,16 @@ import { formatMs } from "@/lib/format";
 import { useI18n } from "@/components/i18n-provider";
 import { ChartFrame } from "@/components/chart-frame";
 
-// 차트 안에서 쓰는 리터럴 — globals.css 토큰과 같은 값 (recharts 는 CSS 변수를
-// 직접 못 받는다). card/line-mid/muted 에 맞춰 둔다.
-const SURFACE = "#141414";
-const GRID = "#2a2a2a";
-const INK_MUTED = "#9A9A96";
-const FAST = "#6ee7a0";
-const SLOW = "#ff8a8a";
+// recharts 는 이 값을 SVG 속성·인라인 style 로 그대로 넘기므로 CSS 변수가 통한다
+// (색을 '계산'하는 경로가 없다). 덕분에 globals.css 토큰 하나만 고치면 따라온다.
+const SURFACE = "var(--card)";
+const GRID = "var(--line-mid)";
+const INK_MUTED = "var(--muted)";
+const FAST = "var(--success)";
+const SLOW = "var(--danger)";
+/** 툴팁·커서처럼 반투명이 필요한 자리 */
+const CURSOR = "color-mix(in srgb, var(--foreground) 5%, transparent)";
+const TOOLTIP_LINE = "color-mix(in srgb, var(--foreground) 13%, transparent)";
 
 type TooltipPayload = {
   payload?: { name?: string; label?: string; ms?: number; kind?: string };
@@ -103,7 +106,7 @@ export function SegmentSplitBars({
             axisLine={false}
             width={44}
           />
-          <Tooltip content={<DarkTooltip />} cursor={{ fill: "#ffffff0d" }} />
+          <Tooltip content={<DarkTooltip />} cursor={{ fill: CURSOR }} />
           <Bar dataKey="ms" radius={[4, 4, 0, 0]} maxBarSize={22}>
             {data.map((d, i) => (
               <Cell key={i} fill={CHART_COLORS[d.kind]} />
@@ -394,8 +397,8 @@ export function ErgCurve({
         <Tooltip
           cursor={{ stroke: GRID }}
           contentStyle={{
-            background: "#141414",
-            border: "1px solid #ffffff22",
+            background: SURFACE,
+            border: `1px solid ${TOOLTIP_LINE}`,
             borderRadius: 6,
             fontSize: 12,
           }}
@@ -449,7 +452,7 @@ export function TrendBars({
           axisLine={false}
           width={52}
         />
-        <Tooltip content={<DarkTooltip />} cursor={{ fill: "#ffffff0d" }} />
+        <Tooltip content={<DarkTooltip />} cursor={{ fill: CURSOR }} />
         <Bar
           dataKey="ms"
           fill={CHART_COLORS.run}
@@ -492,8 +495,8 @@ export function StrokeForceChart({
           <Tooltip
             cursor={{ stroke: GRID }}
             contentStyle={{
-              background: "#141414",
-              border: "1px solid #ffffff22",
+              background: SURFACE,
+              border: `1px solid ${TOOLTIP_LINE}`,
               borderRadius: 6,
               fontSize: 12,
             }}
@@ -563,8 +566,8 @@ export function DriveChart({
           <Tooltip
             cursor={{ stroke: GRID }}
             contentStyle={{
-              background: "#141414",
-              border: "1px solid #ffffff22",
+              background: SURFACE,
+              border: `1px solid ${TOOLTIP_LINE}`,
               borderRadius: 6,
               fontSize: 12,
             }}
@@ -583,7 +586,7 @@ export function DriveChart({
             type="monotone"
             dataKey="recover"
             name={recoverLabel}
-            stroke="#35C26B"
+            stroke="var(--chart-green)"
             strokeWidth={2}
             dot={false}
           />
@@ -595,7 +598,7 @@ export function DriveChart({
           {driveLabel}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: "#35C26B" }} />
+          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: "var(--chart-green)" }} />
           {recoverLabel}
         </span>
       </div>

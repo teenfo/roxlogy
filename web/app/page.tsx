@@ -126,7 +126,7 @@ export default async function Landing({
           className="pointer-events-none absolute left-1/2 top-0 h-[600px] w-[900px] max-w-none -translate-x-1/2"
           style={{
             background:
-              "radial-gradient(ellipse, rgba(255,214,10,.10) 0%, transparent 60%)",
+              "radial-gradient(ellipse, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 60%)",
           }}
         />
         <div className="relative mx-auto grid w-full max-w-[1120px] items-center gap-14 px-6 pb-[72px] pt-24 max-md:gap-8 max-md:px-5 max-md:pb-10 max-md:pt-14 md:grid-cols-[1.1fr_0.9fr]">
@@ -165,7 +165,7 @@ export default async function Landing({
           </div>
 
           {/* 분석 카드 — 전부 가짜 수치 */}
-          <div className="flex flex-col gap-[18px] rounded-[18px] border border-line-mid bg-card p-[22px] shadow-[0_30px_80px_rgba(0,0,0,.6)]">
+          <div className="flex flex-col gap-[18px] rounded-[18px] border border-line-mid bg-card p-[22px] shadow-[var(--shadow-hero)]">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-[5px] bg-accent/15 px-[7px] py-[3px] text-xs font-bold text-accent-dim">
                 {t("landing.demoRace")}
@@ -250,7 +250,7 @@ export default async function Landing({
               aria-hidden
               className="flex h-10 w-10 items-center justify-center rounded-[10px] text-lg"
               style={{
-                background: ["var(--info-bg)", "#2a2500", "var(--success-bg)"][n - 1],
+                background: ["var(--info-bg)", "var(--gold-bg)", "var(--success-bg)"][n - 1],
                 color: [CHART_COLORS.run, "var(--accent-dim)", "var(--success)"][n - 1],
               }}
             >

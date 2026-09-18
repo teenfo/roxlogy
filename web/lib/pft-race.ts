@@ -174,13 +174,8 @@ export function segmentProgress(
   return Math.min(100, Math.round((currentElapsedMs / ref) * 100));
 }
 
-/** 아바타 색 — 이름 해시로 팔레트에서 고른다(보드 전용) */
-const AVATAR_PALETTE = ["#ffd60a", "#f4a261", "#8ecae6", "#b5e48c", "#e0aaff", "#ffafcc"];
-export function avatarColor(name: string): string {
-  let h = 0;
-  for (const ch of name) h = (h + ch.charCodeAt(0)) % 9973;
-  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
-}
+/** 아바타 색 — 크루 화면과 같은 팔레트·해시를 쓴다(lib/avatar-color.ts) */
+export { avatarColor } from "@/lib/avatar-color";
 
 export function initialOf(name: string): string {
   const s = name.trim();

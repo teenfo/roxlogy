@@ -38,10 +38,10 @@ export async function CrewExpenseMix({
 
   return (
     <div className="flex flex-col gap-2.5 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
-      <p className="text-[11px] font-extrabold tracking-[0.08em] text-[#777]">
+      <p className="text-[11px] font-extrabold tracking-[0.08em] text-muted-3">
         {t("crew.finExpenseMix", { period: periodLabel })}
       </p>
-      <span className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-[#1c1c1c]">
+      <span className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-line-soft">
         {parts.map((p) => (
           <span
             key={p.key}

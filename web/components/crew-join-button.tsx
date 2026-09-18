@@ -92,7 +92,7 @@ export function CrewJoinButton({
                   type="button"
                   onClick={leave}
                   disabled={busy}
-                  className="font-semibold text-red-400 disabled:opacity-50"
+                  className="font-semibold text-danger disabled:opacity-50"
                 >
                   {busy ? t("common.deleting") : t("crew.leaveConfirm")}
                 </button>
@@ -108,13 +108,13 @@ export function CrewJoinButton({
               <button
                 type="button"
                 onClick={() => setConfirming(true)}
-                className="text-xs text-muted hover:text-red-400"
+                className="text-xs text-muted hover:text-danger"
               >
                 {action}
               </button>
             ))}
         </div>
-        {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+        {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       </div>
     );
   }
@@ -129,7 +129,7 @@ export function CrewJoinButton({
       >
         {busy ? t("crew.joining") : t("crew.join")}
       </button>
-      {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+      {err && <p role="alert" className="text-xs text-danger">{err}</p>}
     </div>
   );
 }

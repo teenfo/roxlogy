@@ -306,7 +306,7 @@ export function CrewLedgerForm({
         <button
           type="button"
           onClick={openModal}
-          className="rounded-md px-2.5 py-2 text-left text-[13px] text-foreground hover:bg-[#222]"
+          className="rounded-md px-2.5 py-2 text-left text-[13px] text-foreground hover:bg-line"
         >
           {t("common.edit")}
         </button>
@@ -400,7 +400,7 @@ export function CrewLedgerDelete({
       type="button"
       onClick={del}
       disabled={busy}
-      className="-m-2 shrink-0 p-2 text-xs text-muted hover:text-red-400 disabled:opacity-40"
+      className="-m-2 shrink-0 p-2 text-xs text-muted hover:text-danger disabled:opacity-40"
       aria-label={t("crew.finDelete")}
     >
       ✕

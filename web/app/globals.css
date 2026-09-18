@@ -52,6 +52,52 @@
    * placeholder 는 muted-3, 비활성·장식 텍스트는 muted-2 를 쓴다. */
   --muted-2: #8c8c88;
   --muted-3: #808080;
+
+  /* ---- 디자인 리뉴얼 2단계(2026-09-18): 컴포넌트에 흩어져 있던 임의 hex 를 흡수 ----
+   * 값은 지금 쓰이던 것을 그대로 옮겼다. 라이트 전환은 다음 단계에서 이 값만 바꾼다.
+   * 토큰을 안 거치는 색이 남아 있으면 그 색은 테마를 따라오지 않는다. */
+
+  /* foreground 다음으로 밝은 본문 — 표의 값·강조 라벨 */
+  --foreground-2: #c9c9c9;
+  /* line-strong 보다 한 단계 센 보더 */
+  --line-strongest: #444444;
+
+  /* 경고·지출 계열(주황) */
+  --warn: #f4a261;
+  --warn-bg: #2a1a10;
+
+  /* 성공 계열 보강 */
+  --success-card: #101410;
+  --success-line: #1e3328;
+
+  /* 딤 골드 — 회비·PFT 배지. 브랜드 옐로(--accent)를 텍스트로 쓸 수 없는 자리를 맡는다 */
+  --gold: #c9b34a;
+  --gold-dim: #8a7a2a;
+  --gold-bg: #2a2500;
+  --gold-card: #161512;
+  --gold-line: #6b5a00;
+  --gold-line-soft: #3a3200;
+
+  /* 메달·등급 */
+  --medal-silver: #d9d9d9;
+  --medal-bronze: #c98150;
+  --medal-bronze-line: #6b3f22;
+  --tier-copper: #b87333;
+
+  /* 범주 팔레트 — 차트 시리즈·아바타·PFT 종목. 의미가 아니라 '구분'이 목적이라
+   * 순서가 고정이고, 같은 종류를 화면을 옮겨도 같은 색으로 잇는다. */
+  --cat-sky: #8ecae6;
+  --cat-lime: #b5e48c;
+  --cat-violet: #e0aaff;
+  --cat-pink: #ffafcc;
+  --chart-green: #35c26b;
+
+  /* 백드롭·그림자 — @theme 색이 아니라 알파가 든 값이라 var() 로 직접 쓴다.
+   * 밝은 테마에서는 검정 그림자를 그대로 쓰면 탁해지므로 여기 값만 바꾼다. */
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 12px 30px rgba(0, 0, 0, 0.5);
+  --shadow-menu: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-hero: 0 30px 80px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
@@ -91,6 +137,23 @@
   --color-danger-card: var(--danger-card);
   --color-muted-2: var(--muted-2);
   --color-muted-3: var(--muted-3);
+
+  --color-foreground-2: var(--foreground-2);
+  --color-line-strongest: var(--line-strongest);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-success-card: var(--success-card);
+  --color-success-line: var(--success-line);
+  --color-gold: var(--gold);
+  --color-gold-dim: var(--gold-dim);
+  --color-gold-bg: var(--gold-bg);
+  --color-gold-card: var(--gold-card);
+  --color-gold-line: var(--gold-line);
+  --color-gold-line-soft: var(--gold-line-soft);
+  --color-medal-silver: var(--medal-silver);
+  --color-medal-bronze: var(--medal-bronze);
+  --color-medal-bronze-line: var(--medal-bronze-line);
+  --color-tier-copper: var(--tier-copper);
 }
 
 /* 키보드 포커스 링 — 전역 (UI 감사 2026-09-12 P0).

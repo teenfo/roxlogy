@@ -29,8 +29,8 @@ const TONE: Record<string, string> = {
   crew_join_request: "bg-success-bg text-success",
   exercise_request: "bg-success-bg text-success",
   new_follower: "bg-success-bg text-success",
-  race_partner: "bg-[#2a1a10] text-[#f4a261]",
-  race_imported: "bg-[#2a1a10] text-[#f4a261]",
+  race_partner: "bg-warn-bg text-warn",
+  race_imported: "bg-warn-bg text-warn",
   test: "bg-label-bg text-label",
 };
 const FALLBACK_TONE = "bg-line text-foreground/75";

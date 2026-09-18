@@ -740,7 +740,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       // 버튼 색 = 지금 찍을 종목의 색. 6칸 바의 현재 칸과 같은 색이라
                       // 어느 종목을 찍는 중인지 색만으로 알아본다.
                       style={{ background: PFT_COLORS[PFT_STATIONS[current].key] }}
-                      className="mt-3 flex h-16 w-full flex-col items-center justify-center rounded-2xl text-[#141414] hover:brightness-110 active:brightness-95 disabled:opacity-40"
+                      className="mt-3 flex h-16 w-full flex-col items-center justify-center rounded-2xl text-background hover:brightness-110 active:brightness-95 disabled:opacity-40"
                     >
                       <span className="text-[11px] font-bold opacity-80">{t("pft.race.tapHint", { n: current + 1 })}</span>
                       <span className="text-xl font-black">{t("pft.race.staffTap", { station: stationLabel(current) })} ✓</span>

@@ -94,7 +94,7 @@ export default async function RunsPage() {
         </Link>
       </div>
 
-      {error && <p role="alert" className="mt-4 text-sm text-red-400">{error.message}</p>}
+      {error && <p role="alert" className="mt-4 text-sm text-danger">{error.message}</p>}
 
       {/* 1km 기준선 — 시뮬 저하율이 비교하는 값 */}
       <section className="mt-6 rounded-md bg-surface px-5 py-4">

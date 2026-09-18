@@ -284,11 +284,11 @@ export default async function SessionsPage({
       {pb && (
         <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <Card highlight className="px-4 py-3.5">
-            <p className="text-xs text-[#c9b34a]">{t("sessions.pb")}</p>
+            <p className="text-xs text-gold">{t("sessions.pb")}</p>
             <p className="tabular mt-1 text-[22px] font-extrabold text-accent">
               {formatMs(pb.ms)}
             </p>
-            <p className="mt-0.5 truncate text-xs text-[#8a7a2a]">
+            <p className="mt-0.5 truncate text-xs text-gold-dim">
               {[pb.event, pb.division && t(`division.${pb.division}` as Parameters<typeof t>[0])]
                 .filter(Boolean)
                 .join(" · ")}
@@ -433,7 +433,7 @@ export default async function SessionsPage({
                           : formatDate(sess.started_at, tag, tz)}
                       </span>
                       {isRace ? (
-                        <span className="shrink-0 rounded-md bg-[#2a2500] px-2 py-0.5 text-xs font-bold text-accent-dim">
+                        <span className="shrink-0 rounded-md bg-gold-bg px-2 py-0.5 text-xs font-bold text-accent-dim">
                           {t("sessions.race")}
                         </span>
                       ) : erg ? (

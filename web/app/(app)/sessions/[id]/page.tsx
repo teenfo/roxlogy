@@ -439,7 +439,7 @@ export default async function SessionDetailPage({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             {race ? (
-              <span className="rounded-md bg-[#2a2500] px-2 py-0.5 text-xs font-bold text-accent-dim">
+              <span className="rounded-md bg-gold-bg px-2 py-0.5 text-xs font-bold text-accent-dim">
                 {t("sessions.race")}
               </span>
             ) : isErg ? (
@@ -787,7 +787,7 @@ export default async function SessionDetailPage({
                 {isErg && spmCurve.length > 1 && (
                   <div className="mt-2">
                     <p className="text-xs text-muted">{t("sessions.spmCurve")}</p>
-                    <ErgCurve data={spmCurve} color="#35C26B" unit="spm" />
+                    <ErgCurve data={spmCurve} color="var(--chart-green)" unit="spm" />
                   </div>
                 )}
               </div>

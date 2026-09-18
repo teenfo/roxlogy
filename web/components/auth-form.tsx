@@ -211,7 +211,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           안 뜨는 브라우저(사파리 등)에서는 아래 버튼이 그대로 동작한다. */}
       <GoogleOneTap next={safeNext(searchParams.get("next")) ?? undefined} />
 
-      {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           {notice && <p role="status" className="text-sm text-track">{notice}</p>}
 
           <button

@@ -281,7 +281,7 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
         className={input}
       />
 
-      {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
 
       <button
         type="submit"
@@ -320,11 +320,11 @@ export function RunDeleteButton({ id }: { id: string }) {
         type="button"
         onClick={del}
         disabled={busy}
-        className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
+        className="text-xs text-muted hover:text-danger disabled:opacity-50"
       >
         {t("common.delete")}
       </button>
-      {err && <span className="ml-2 text-xs text-red-400">{err}</span>}
+      {err && <span className="ml-2 text-xs text-danger">{err}</span>}
     </span>
   );
 }

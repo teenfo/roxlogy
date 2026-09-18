@@ -11,7 +11,7 @@ export type WodType = (typeof WOD_TYPES)[number];
 
 const STYLE: Record<string, { chip: string; dot: string }> = {
   run: { chip: "bg-info-bg text-info", dot: "bg-info" },
-  strength: { chip: "bg-[#2a2500] text-accent-dim", dot: "bg-accent-dim" },
+  strength: { chip: "bg-gold-bg text-accent-dim", dot: "bg-accent-dim" },
   wod: { chip: "bg-success-bg text-success", dot: "bg-success" },
   race_sim: { chip: "bg-accent/15 text-accent", dot: "bg-accent" },
 };

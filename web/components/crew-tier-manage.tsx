@@ -31,7 +31,7 @@ function toFee(v: string): number | null {
 
 /** 카드 */
 const CARD = "overflow-hidden rounded-[14px] border border-line bg-card";
-const COL = "text-[11px] font-bold tracking-[0.06em] text-[#777]";
+const COL = "text-[11px] font-bold tracking-[0.06em] text-muted-3";
 
 /** ₩ 접두가 붙은 금액 칸 */
 function FeeInput({
@@ -48,7 +48,7 @@ function FeeInput({
   const { t } = useI18n();
   return (
     <span className="flex h-[34px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-accent">
-      <span aria-hidden className="px-2 text-xs text-[#666]">
+      <span aria-hidden className="px-2 text-xs text-muted-3">
         ₩
       </span>
       <input
@@ -85,7 +85,7 @@ function ColorPicker({
         aria-label={t("crew.tierColor")}
         aria-expanded={open}
         onClick={() => setOpen((p) => !p)}
-        className={`block h-7 w-7 rounded-full border-2 border-[#333] ${tierBadgeClass(color)} disabled:opacity-50`}
+        className={`block h-7 w-7 rounded-full border-2 border-line-strong ${tierBadgeClass(color)} disabled:opacity-50`}
       />
       {open && (
         <>
@@ -95,7 +95,7 @@ function ColorPicker({
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <span className="absolute left-0 top-9 z-20 flex gap-1.5 rounded-[10px] border border-[#333] bg-[#1a1a1a] p-2 shadow-[0_12px_30px_rgba(0,0,0,.5)]">
+          <span className="absolute left-0 top-9 z-20 flex gap-1.5 rounded-[10px] border border-line-strong bg-card-hover p-2 shadow-[var(--shadow-pop)]">
             {TIER_COLORS.map((c) => (
               <button
                 key={c}
@@ -106,7 +106,7 @@ function ColorPicker({
                   setOpen(false);
                 }}
                 className={`h-6 w-6 rounded-full border-2 ${tierBadgeClass(c)} ${
-                  color === c ? "border-foreground" : "border-[#333]"
+                  color === c ? "border-foreground" : "border-line-strong"
                 }`}
               />
             ))}
@@ -138,7 +138,7 @@ function Toggle({
       disabled={disabled}
       onClick={() => onChange(!on)}
       className={`relative h-6 w-10 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
-        on ? "bg-accent" : "bg-[#333]"
+        on ? "bg-accent" : "bg-line-strong"
       }`}
     >
       <span
@@ -305,7 +305,7 @@ export function CrewTierManage({
   // 그래서 DOM 순서가 곧 열 순서다.
   const cols =
     "lg:grid lg:grid-cols-[minmax(0,1.4fr)_70px_110px_106px_106px_70px_36px] lg:items-center lg:gap-3";
-  const cellLabel = "text-[11px] font-bold text-[#777] lg:hidden";
+  const cellLabel = "text-[11px] font-bold text-muted-3 lg:hidden";
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -361,7 +361,7 @@ export function CrewTierManage({
       )}
 
       <div className={CARD}>
-        <div className={`hidden ${cols} ${COL} border-b border-[#1c1c1c] px-[18px] py-2.5`} aria-hidden>
+        <div className={`hidden ${cols} ${COL} border-b border-line-soft px-[18px] py-2.5`} aria-hidden>
           <span>{t("crew.colTier")}</span>
           <span className="text-center">{t("crew.colMembers")}</span>
           <span className="text-center">{t("crew.tierFull")}</span>
@@ -377,7 +377,7 @@ export function CrewTierManage({
           return (
             <div
               key={x.id}
-              className={`${cols} border-b border-[#1c1c1c] px-[18px] py-3 hover:bg-card-hover`}
+              className={`${cols} border-b border-line-soft px-[18px] py-3 hover:bg-card-hover`}
             >
               <span className="flex min-w-0 items-center gap-2.5">
                 <ColorPicker
@@ -393,7 +393,7 @@ export function CrewTierManage({
                 <input
                   aria-label={t("crew.tierNamePh")}
                   size={1}
-                  className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2.5 text-sm font-semibold outline-none hover:border-[#333] hover:bg-page focus:border-accent focus:bg-page"
+                  className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2.5 text-sm font-semibold outline-none hover:border-line-strong hover:bg-page focus:border-accent focus:bg-page"
                   value={v.name}
                   maxLength={20}
                   disabled={busy != null}
@@ -451,7 +451,7 @@ export function CrewTierManage({
                     disabled={busy != null || x.is_default}
                     onClick={() => makeDefault(x)}
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                      x.is_default ? "border-accent" : "border-[#444] hover:border-muted"
+                      x.is_default ? "border-accent" : "border-line-strongest hover:border-muted"
                     }`}
                   >
                     {x.is_default && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
@@ -464,7 +464,7 @@ export function CrewTierManage({
                   title={n > 0 ? t("crew.tierDeleteNote") : undefined}
                   disabled={busy != null || x.is_default || n > 0}
                   onClick={() => remove(x)}
-                  className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm text-danger hover:bg-danger-card disabled:cursor-not-allowed disabled:text-[#444] disabled:hover:bg-transparent lg:ml-0 lg:justify-self-center"
+                  className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm text-danger hover:bg-danger-card disabled:cursor-not-allowed disabled:text-line-strongest disabled:hover:bg-transparent lg:ml-0 lg:justify-self-center"
                 >
                   ×
                 </button>
@@ -473,17 +473,17 @@ export function CrewTierManage({
           );
         })}
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#1c1c1c] px-[18px] py-3 text-xs text-muted">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-soft px-[18px] py-3 text-xs text-muted">
           <span>{t("crew.expectedMonthly")}</span>
           <strong className="tabular font-bold text-foreground">
             {won(expected)}{" "}
-            <span className="font-medium text-[#777]">
+            <span className="font-medium text-muted-3">
               · {t("crew.expectedMembers", { n: billable })}
             </span>
           </strong>
         </div>
 
-        <p className="flex flex-wrap gap-x-4 gap-y-1 px-[18px] pb-3 text-xs text-[#777]">
+        <p className="flex flex-wrap gap-x-4 gap-y-1 px-[18px] pb-3 text-xs text-muted-3">
           <span>● {t("crew.tierDefaultNote")}</span>
           <span>● {t("crew.tierDeleteNote")}</span>
           <span>● {t("crew.tierFeeHint")}</span>
@@ -514,7 +514,7 @@ export function CrewTierManage({
           type="button"
           onClick={() => void save()}
           disabled={busy != null || dirty.length === 0}
-          className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110 disabled:bg-[#2a2a2a] disabled:text-[#666]"
+          className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110 disabled:bg-line-mid disabled:text-muted-3"
         >
           {busy === "save" ? t("common.saving") : t("common.save")}
         </button>

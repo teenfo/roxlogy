@@ -70,9 +70,9 @@ export default async function PftLeaderboardPage({
     rank === 1
       ? "bg-accent text-background"
       : rank === 2
-        ? "bg-[#c9c9c9] text-background"
+        ? "bg-foreground-2 text-background"
         : rank === 3
-          ? "bg-[#b87333] text-background"
+          ? "bg-tier-copper text-background"
           : "bg-line text-muted";
 
   return (
@@ -158,7 +158,7 @@ export default async function PftLeaderboardPage({
                     isMe
                       ? "bg-highlight"
                       : r.rank === 1
-                        ? "bg-[#161512]"
+                        ? "bg-gold-card"
                         : "hover:bg-card-hover"
                   }`}
                 >

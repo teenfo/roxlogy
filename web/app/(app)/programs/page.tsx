@@ -218,7 +218,7 @@ export default async function ProgramsPage() {
           <div className="flex min-w-0 flex-col gap-3">
             <p className="flex flex-wrap items-center gap-x-2 text-xs font-extrabold tracking-[0.1em] text-accent">
               {t("programs.enrolled")}
-              <span className="font-semibold tracking-normal text-[#8a7a2a]">
+              <span className="font-semibold tracking-normal text-gold-dim">
                 {dateLabel(running.startDate)}
                 {running.endDate ? ` – ${dateLabel(running.endDate)}` : ""}
               </span>
@@ -267,7 +267,7 @@ export default async function ProgramsPage() {
             )}
             <Link
               href="/schedule"
-              className="text-xs font-semibold text-[#8a7a2a] hover:text-accent"
+              className="text-xs font-semibold text-gold-dim hover:text-accent"
             >
               {t("schedule.title")} →
             </Link>

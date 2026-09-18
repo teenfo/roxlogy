@@ -289,11 +289,11 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
             checked={f.disabled}
             onChange={(e) => set("disabled", e.target.checked)}
           />
-          <span className="font-semibold text-red-400">{t("admin.fDisabled")}</span>
+          <span className="font-semibold text-danger">{t("admin.fDisabled")}</span>
         </label>
       </div>
 
-      {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
       {msg && <p role="alert" className="mt-3 text-sm text-muted">{msg}</p>}
 
       <button

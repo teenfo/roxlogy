@@ -174,7 +174,7 @@ export function AdminExerciseEditor({
               <span className="text-xs text-track">{t("profile.saved")}</span>
             )}
             {state === "err" && (
-              <span className="text-xs text-red-400">{t("common.needLogin")}</span>
+              <span className="text-xs text-danger">{t("common.needLogin")}</span>
             )}
           </div>
         </div>

@@ -163,7 +163,7 @@ export function PftMeasureView({
         <>
           {/* 시계 카드 — 스크롤해도 항상 보이게 고정 */}
           <div
-            className={`sticky top-[72px] z-10 rounded-2xl border px-5 py-4 shadow-[0_12px_30px_rgba(0,0,0,.5)] max-md:top-[60px] ${
+            className={`sticky top-[72px] z-10 rounded-2xl border px-5 py-4 shadow-[var(--shadow-pop)] max-md:top-[60px] ${
               running ? "border-line-accent bg-highlight" : "border-line bg-card"
             }`}
           >
@@ -254,7 +254,7 @@ export function PftMeasureView({
                 <span
                   key={st.key}
                   className={`h-1.5 rounded-full ${
-                    i < splits.length ? "bg-success" : running && i === current ? "bg-accent" : "bg-[#2a2a2a]"
+                    i < splits.length ? "bg-success" : running && i === current ? "bg-accent" : "bg-line-mid"
                   }`}
                 />
               ))}
@@ -278,7 +278,7 @@ export function PftMeasureView({
                       ? "border-accent bg-highlight py-4"
                       : finished
                         ? "border-line bg-card py-3"
-                        : "border-[#1c1c1c] bg-card py-3 opacity-50"
+                        : "border-line-soft bg-card py-3 opacity-50"
                   }`}
                 >
                   <span
@@ -307,7 +307,7 @@ export function PftMeasureView({
                     <span className="text-right">
                       <span
                         className={`tabular block font-extrabold ${
-                          isCurrent ? "text-[26px] text-accent" : finished ? "text-base" : "text-base text-[#444]"
+                          isCurrent ? "text-[26px] text-accent" : finished ? "text-base" : "text-base text-line-strongest"
                         }`}
                       >
                         {ms == null ? "—" : finished ? formatMs(ms) : fmtClock(ms)}

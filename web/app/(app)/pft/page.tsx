@@ -230,7 +230,7 @@ export default async function PftPage() {
               <span className="text-xs font-extrabold tracking-[0.1em] text-accent">
                 MY BEST
               </span>
-              <span className="text-xs text-[#8a7a2a]">
+              <span className="text-xs text-gold-dim">
                 {formatDateShortYear(best.tested_on, tag, tz)}
                 {best.age != null && ` · ${t("pft.ageN", { n: best.age })}`}
               </span>
@@ -273,7 +273,7 @@ export default async function PftPage() {
                   {badgeScale(t, cuts, formatMs)}
                 </span>
               </div>
-              <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-[#2a2500]">
+              <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-gold-bg">
                 <span
                   className="absolute inset-y-0 left-0 bg-accent"
                   style={{ width: `${pctOf(cuts.gold)}%` }}

@@ -37,7 +37,7 @@ export function AdminUserActions({
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      {err && <span className="text-[10px] text-red-400">{err}</span>}
+      {err && <span className="text-[10px] text-danger">{err}</span>}
       <button
         type="button"
         disabled={busy}
@@ -57,7 +57,7 @@ export function AdminUserActions({
         className={`rounded-md border px-2.5 py-1 text-xs font-semibold disabled:opacity-40 ${
           disabled
             ? "border-track/40 text-track hover:bg-track/10"
-            : "border-red-400/40 text-red-400 hover:bg-red-400/10"
+            : "border-danger/40 text-danger hover:bg-danger/10"
         }`}
       >
         {disabled ? t("admin.enable") : t("admin.disable")}

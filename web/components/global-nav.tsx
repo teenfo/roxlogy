@@ -192,7 +192,7 @@ export function GlobalNav({
                   {(displayName.trim()[0] ?? "?").toUpperCase()}
                 </button>
                 {menu && (
-                  <div className="absolute right-0 top-11 z-50 w-52 overflow-hidden rounded-xl border border-line-mid bg-control shadow-[0_16px_40px_rgba(0,0,0,.5)]">
+                  <div className="absolute right-0 top-11 z-50 w-52 overflow-hidden rounded-xl border border-line-mid bg-control shadow-[var(--shadow-menu)]">
                     <Link
                       href="/settings/profile"
                       className="block px-4 py-2.5 text-sm hover:bg-card-hover"
@@ -232,7 +232,7 @@ export function GlobalNav({
 
       {/* 서브메뉴 드롭다운 (데스크톱·태블릿) */}
       {openItem && (
-        <div className="absolute left-1/2 top-[58px] z-50 hidden w-[min(640px,calc(100vw-3rem))] -translate-x-1/2 rounded-2xl border border-line-mid bg-control p-4 shadow-[0_16px_40px_rgba(0,0,0,.5)] md:block">
+        <div className="absolute left-1/2 top-[58px] z-50 hidden w-[min(640px,calc(100vw-3rem))] -translate-x-1/2 rounded-2xl border border-line-mid bg-control p-4 shadow-[var(--shadow-menu)] md:block">
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {openItem.children!.map((c) => (
               <Link

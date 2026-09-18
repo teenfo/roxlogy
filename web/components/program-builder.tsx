@@ -66,10 +66,10 @@ const WORKOUT_TYPES = ["wod", "run", "strength", "race_sim"] as const;
 const KNOWN_CATS = ["strength", "running", "conditioning", "mobility"];
 
 const CAT_CHIP: Record<string, string> = {
-  station: "bg-[#2a2500] text-accent-dim",
+  station: "bg-gold-bg text-accent-dim",
   running: "bg-info-bg text-info",
   conditioning: "bg-info-bg text-info",
-  strength: "bg-[#2a1a10] text-[#f4a261]",
+  strength: "bg-warn-bg text-warn",
   mobility: "bg-label-bg text-label",
 };
 
@@ -473,7 +473,7 @@ export function ProgramBuilder({
                   className={`flex h-[34px] shrink-0 items-center gap-2 rounded-full px-3 text-[13px] font-bold transition-colors ${
                     week === w
                       ? "bg-accent text-background"
-                      : "border border-line-strong text-[#c9c9c9] hover:border-muted/60"
+                      : "border border-line-strong text-foreground-2 hover:border-muted/60"
                   }`}
                 >
                   {t("programs.weekN", { n: w })}
@@ -486,14 +486,14 @@ export function ProgramBuilder({
                       const tone = !d.workout_templates.length
                         ? week === w
                           ? "bg-background/30"
-                          : "bg-[#333]"
+                          : "bg-line-strong"
                         : items > 0
                           ? week === w
                             ? "bg-background"
                             : "bg-accent"
                           : week === w
                             ? "bg-background/50"
-                            : "bg-[#8a7a2a]";
+                            : "bg-gold-dim";
                       return (
                         <span
                           key={d.id}
@@ -684,7 +684,7 @@ function DayCard({
     <section
       ref={ref}
       className={`overflow-hidden rounded-[14px] border bg-card ${
-        isRest ? "border-[#1c1c1c]" : "border-line"
+        isRest ? "border-line-soft" : "border-line"
       }`}
     >
       {/* 머리글 */}
@@ -883,7 +883,7 @@ function WorkoutCard({
   return (
     <div className="rounded-xl border border-line bg-page">
       {/* 머리글 */}
-      <div className="flex flex-wrap items-center gap-2.5 border-b border-[#1c1c1c] px-3.5 py-2.5">
+      <div className="flex flex-wrap items-center gap-2.5 border-b border-line-soft px-3.5 py-2.5">
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${wodTypeDot(w.type)}`} />
         <input
           value={title}
@@ -931,7 +931,7 @@ function WorkoutCard({
           {rows.map((it, i) => (
             <li
               key={it.id}
-              className="flex flex-wrap items-center gap-2.5 border-b border-[#161616] px-3.5 py-2 transition-colors last:border-b-0 hover:bg-[#111]"
+              className="flex flex-wrap items-center gap-2.5 border-b border-card-hover px-3.5 py-2 transition-colors last:border-b-0 hover:bg-nav"
             >
               <span className="tabular w-6 shrink-0 text-right text-xs font-bold text-muted-2">
                 {i + 1}
@@ -951,7 +951,7 @@ function WorkoutCard({
                 {targetParts(it.target, locale).map((part, j) => (
                   <span
                     key={j}
-                    className="tabular flex h-6 items-center rounded-md border border-line-mid bg-[#161616] px-1.5 text-xs font-bold"
+                    className="tabular flex h-6 items-center rounded-md border border-line-mid bg-card-hover px-1.5 text-xs font-bold"
                   >
                     {part}
                   </span>
@@ -1098,7 +1098,7 @@ function ExercisePicker({
             className="h-[38px] w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none placeholder:text-muted-3 focus:border-accent"
           />
           {draft.open && (
-            <div className="absolute inset-x-0 top-[42px] z-20 max-h-80 overflow-y-auto rounded-[10px] border border-[#333] bg-[#1a1a1a] shadow-[0_16px_40px_rgba(0,0,0,.6)]">
+            <div className="absolute inset-x-0 top-[42px] z-20 max-h-80 overflow-y-auto rounded-[10px] border border-line-strong bg-card-hover shadow-[var(--shadow-menu)]">
               {matches.map((ex, i) => (
                 <button
                   key={ex.id}
@@ -1153,7 +1153,7 @@ function ExercisePicker({
                 key={ex.id}
                 type="button"
                 onClick={() => choose(ex)}
-                className="flex h-[30px] items-center rounded-full border border-[#333] px-3 text-xs font-semibold text-muted transition-colors hover:border-muted hover:text-foreground"
+                className="flex h-[30px] items-center rounded-full border border-line-strong px-3 text-xs font-semibold text-muted transition-colors hover:border-muted hover:text-foreground"
               >
                 + {exName(ex)}
               </button>
@@ -1165,7 +1165,7 @@ function ExercisePicker({
       {picked && (
         <div className="grid grid-cols-2 gap-2 rounded-[10px] border border-line-accent bg-highlight p-2.5 md:grid-cols-[1.4fr_repeat(4,1fr)_1.4fr_auto]">
           <span className="col-span-2 flex min-w-0 flex-col justify-center md:col-span-1">
-            <span className="text-[10px] font-bold text-[#8a7a2a]">
+            <span className="text-[10px] font-bold text-gold-dim">
               {t("programs.selectedEx")}
             </span>
             <span className="truncate text-sm font-bold">{exName(picked)}</span>
@@ -1194,7 +1194,7 @@ function ExercisePicker({
                   }
                 }}
                 inputMode="decimal"
-                className="tabular h-9 min-w-0 rounded-lg border border-[#444] bg-page px-2 text-sm outline-none focus:border-accent"
+                className="tabular h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-accent"
               />
             </label>
           ))}
@@ -1211,7 +1211,7 @@ function ExercisePicker({
                 }
               }}
               maxLength={60}
-              className="h-9 min-w-0 rounded-lg border border-[#444] bg-page px-2 text-sm outline-none focus:border-accent"
+              className="h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-accent"
             />
           </label>
           <button

@@ -375,7 +375,7 @@ export default async function SchedulePage({
                     : d.isToday
                       ? "bg-accent"
                       : d.withWork.length
-                        ? "bg-[#2a2a2a]"
+                        ? "bg-line-mid"
                         : "bg-line-soft"
                 }`}
               />

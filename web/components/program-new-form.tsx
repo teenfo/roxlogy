@@ -25,7 +25,7 @@ const chip = (active: boolean) =>
   `flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-bold transition-colors ${
     active
       ? "bg-accent text-background"
-      : "border border-line-strong text-[#c9c9c9] hover:border-muted/60"
+      : "border border-line-strong text-foreground-2 hover:border-muted/60"
   }`;
 
 /**
@@ -220,7 +220,7 @@ export function ProgramNewForm() {
                     className={`flex h-11 flex-col items-center justify-center rounded-lg text-sm font-bold transition-colors max-md:h-10 ${
                       on
                         ? "bg-accent text-background"
-                        : "border border-line-strong text-[#c9c9c9] hover:border-muted/60"
+                        : "border border-line-strong text-foreground-2 hover:border-muted/60"
                     }`}
                   >
                     {dowLabel(tag, d)}
@@ -279,7 +279,7 @@ export function ProgramNewForm() {
               className={`flex h-[46px] items-center justify-center rounded-lg text-sm font-extrabold transition ${
                 valid && !pending
                   ? "bg-accent text-background hover:brightness-110"
-                  : "cursor-not-allowed bg-[#2a2a2a] text-muted-2"
+                  : "cursor-not-allowed bg-line-mid text-muted-2"
               }`}
             >
               {pending ? t("common.saving") : t("programs.createNext")}

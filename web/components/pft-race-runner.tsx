@@ -421,7 +421,7 @@ export function PftRaceRunner({
         ) : undefined
       }
       finishExtra={
-        <div className="mt-5 border-t border-[#3a3200] pt-4">
+        <div className="mt-5 border-t border-gold-line-soft pt-4">
           <p className="text-xs text-muted">
             {local.pending.length > 0
               ? t("pft.race.syncPending", { n: local.pending.length })

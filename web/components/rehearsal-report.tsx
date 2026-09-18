@@ -138,7 +138,7 @@ export function RehearsalReport({
                       {formatMs(r.actual!)}
                     </td>
                     <td
-                      className={`py-2 text-right font-mono ${gap <= 0 ? "text-track" : "text-red-400"}`}
+                      className={`py-2 text-right font-mono ${gap <= 0 ? "text-track" : "text-danger"}`}
                     >
                       {gap <= 0 ? "-" : "+"}
                       {formatMs(Math.abs(gap))}

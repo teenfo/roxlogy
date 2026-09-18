@@ -39,7 +39,7 @@ export function ShareToggle({ id, shared }: { id: string; shared: boolean }) {
       >
         {on ? t("share.shared") : t("share.share")}
       </button>
-      {err && <span className="text-xs text-red-400">{err}</span>}
+      {err && <span className="text-xs text-danger">{err}</span>}
     </span>
   );
 }

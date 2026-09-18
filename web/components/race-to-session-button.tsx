@@ -107,7 +107,7 @@ export function RaceToSessionButton({
       >
         {pending ? t("common.saving") : t("races.toSession")}
       </button>
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   );
 }

@@ -57,12 +57,12 @@ export default function NativeAuthPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#141414",
-        color: "#F4F4F2",
+        background: "var(--background)",
+        color: "var(--foreground)",
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <p style={{ fontSize: 14, color: "#9A9A96" }}>
+      <p style={{ fontSize: 14, color: "var(--muted)" }}>
         {failed ? t("auth.nativeFailed") : t("auth.nativeLoading")}
       </p>
     </div>

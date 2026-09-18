@@ -41,7 +41,7 @@ function RowMenu({ label, children }: { label: string; children: React.ReactNode
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <span className="absolute right-0 top-8 z-20 flex w-[160px] flex-col rounded-[10px] border border-[#333] bg-[#1a1a1a] p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]">
+          <span className="absolute right-0 top-8 z-20 flex w-[160px] flex-col rounded-[10px] border border-line-strong bg-card-hover p-1.5 shadow-[var(--shadow-pop)]">
             {children}
           </span>
         </>
@@ -187,11 +187,11 @@ export function CrewLedgerTable({
       aria-pressed={kind === k}
       onClick={() => setKind(k)}
       className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
-        kind === k ? "bg-accent text-background" : "text-[#c9c9c9] hover:text-foreground"
+        kind === k ? "bg-accent text-background" : "text-foreground-2 hover:text-foreground"
       }`}
     >
       {label}
-      <span className={`text-[11px] ${kind === k ? "text-[#6b5a00]" : "text-[#777]"}`}>{n}</span>
+      <span className={`text-[11px] ${kind === k ? "text-gold-line" : "text-muted-3"}`}>{n}</span>
     </button>
   );
 
@@ -261,7 +261,7 @@ export function CrewLedgerTable({
                     </span>
                   )}
                   {r.memo && (
-                    <span className="w-full truncate text-[11px] text-[#777]">{r.memo}</span>
+                    <span className="w-full truncate text-[11px] text-muted-3">{r.memo}</span>
                   )}
                 </li>
               ))}
@@ -307,7 +307,7 @@ export function CrewLedgerTable({
       </div>
 
       <div
-        className={`hidden ${cols} border-b border-[#1c1c1c] px-[18px] py-2 text-[11px] font-bold tracking-[0.06em] text-[#777] sm:grid`}
+        className={`hidden ${cols} border-b border-line-soft px-[18px] py-2 text-[11px] font-bold tracking-[0.06em] text-muted-3 sm:grid`}
       >
         <span>{t("crew.finColDate")}</span>
         <span>{t("crew.finColDesc")}</span>
@@ -322,15 +322,15 @@ export function CrewLedgerTable({
             type="button"
             onClick={() => setOpenKey(it.key)}
             aria-label={t("crew.finGroupOpen", { title: groupTitle(it) })}
-            className={`${cols} w-full border-b border-[#1c1c1c] px-[18px] py-2.5 text-left hover:bg-card-hover`}
+            className={`${cols} w-full border-b border-line-soft px-[18px] py-2.5 text-left hover:bg-card-hover`}
           >
             <span className="flex shrink-0 items-baseline gap-1 sm:flex-col sm:gap-0">
               <strong className="tabular text-sm font-extrabold">{day(it.date)}</strong>
-              <span className="text-xs text-[#666]">{weekday(it.date)}</span>
+              <span className="text-xs text-muted-3">{weekday(it.date)}</span>
             </span>
             <span className="min-w-0">
               <span className="block truncate text-sm font-semibold">{groupTitle(it)}</span>
-              <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#777]">
+              <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-3">
                 <span
                   className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${categoryBadgeClass(
                     it.rows[0].kind,
@@ -364,25 +364,25 @@ export function CrewLedgerTable({
                   {it.rows[0].kind === "income" ? "+" : "−"}
                   {won(it.amount)}
                 </span>
-                <span className="block text-[11px] text-[#777]">{t("crew.finGroupNoBalance")}</span>
+                <span className="block text-[11px] text-muted-3">{t("crew.finGroupNoBalance")}</span>
               </span>
-              <span aria-hidden className="hidden text-right text-[11px] text-[#666] sm:block">
+              <span aria-hidden className="hidden text-right text-[11px] text-muted-3 sm:block">
                 ›
               </span>
             </span>
           </button>
         ) : (
-        <div key={it.row.id} className={`${cols} border-b border-[#1c1c1c] px-[18px] py-2.5 hover:bg-card-hover`}>
+        <div key={it.row.id} className={`${cols} border-b border-line-soft px-[18px] py-2.5 hover:bg-card-hover`}>
           <span className="flex shrink-0 items-baseline gap-1 sm:flex-col sm:gap-0">
             <strong className="tabular text-sm font-extrabold">{day(it.row.entry_date)}</strong>
-            <span className="text-xs text-[#666]">{weekday(it.row.entry_date)}</span>
+            <span className="text-xs text-muted-3">{weekday(it.row.entry_date)}</span>
           </span>
 
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold">
               {it.row.source === "dues" ? t("crew.duesEntry", { detail: it.row.title }) : it.row.title}
             </span>
-            <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#777]">
+            <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-3">
               {/* 분류 배지 — 고른 값이 있으면 그걸, 없으면 회비/수입/지출로 떨어진다.
                   회비 확정으로 생긴 행은 category 가 비어 있어도 회비다. */}
               <span
@@ -436,7 +436,7 @@ export function CrewLedgerTable({
                 {it.row.kind === "income" ? "+" : "−"}
                 {won(it.row.amount)}
               </span>
-              <span className="tabular block text-[11px] text-[#777]">{won(it.row.balance)}</span>
+              <span className="tabular block text-[11px] text-muted-3">{won(it.row.balance)}</span>
             </span>
             {isStaff && !closed ? (
               <RowMenu label={t("crew.finRowMenu", { title: it.row.title })}>
@@ -452,13 +452,13 @@ export function CrewLedgerTable({
       )}
 
       {shown.length === 0 && (
-        <p className="px-[18px] py-10 text-center text-[13px] text-[#666]">
+        <p className="px-[18px] py-10 text-center text-[13px] text-muted-3">
           {t(rows.length ? "crew.finFilterEmpty" : "crew.finEmpty")}
         </p>
       )}
 
       {rows.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-inset px-[18px] py-3 text-xs text-[#777]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-inset px-[18px] py-3 text-xs text-muted-3">
           <span>
             {monthLabel} · {t("crew.finKindIncome")}{" "}
             <strong className="tabular text-success">+{won(income)}</strong> ·{" "}

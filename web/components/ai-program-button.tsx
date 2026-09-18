@@ -53,7 +53,7 @@ export function AiProgramButton() {
       {state === "exists" && (
         <p className="text-xs text-muted">{t("ai.program.exists")}</p>
       )}
-      {state === "error" && <p className="text-xs text-red-400">{t("ai.program.err")}</p>}
+      {state === "error" && <p className="text-xs text-danger">{t("ai.program.err")}</p>}
     </div>
   );
 }

@@ -24,7 +24,7 @@ import { InfoTip } from "@/components/info-tip";
 import { useI18n } from "@/components/i18n-provider";
 
 const TIER_STYLE: Record<string, string> = {
-  aggressive: "border-red-400/60 text-red-400",
+  aggressive: "border-danger/60 text-danger",
   challenging: "border-accent/60 text-accent",
   realistic: "border-track/60 text-track",
   comfortable: "border-muted/60 text-muted",
@@ -498,7 +498,7 @@ export function PredictForm({
                 </div>
                 <p
                   className={`mt-2 text-sm font-semibold ${
-                    check.reachable ? "text-track" : "text-amber-400"
+                    check.reachable ? "text-track" : "text-accent"
                   }`}
                 >
                   {check.reachable
@@ -754,7 +754,7 @@ export function PredictForm({
                 )}
               </div>
               {saveErr && (
-                <p className="mt-2 text-sm text-red-400">{saveErr}</p>
+                <p className="mt-2 text-sm text-danger">{saveErr}</p>
               )}
             </section>
           ) : !isLoggedIn ? (

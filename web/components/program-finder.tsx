@@ -53,7 +53,7 @@ export function ProgramFinder({
     <li key={p.id}>
       <Link
         href={`/programs/${p.id}`}
-        className="flex h-full flex-col gap-3 rounded-[14px] border border-line bg-card px-[18px] py-4 transition-colors hover:border-[#444] hover:bg-card-hover"
+        className="flex h-full flex-col gap-3 rounded-[14px] border border-line bg-card px-[18px] py-4 transition-colors hover:border-line-strongest hover:bg-card-hover"
       >
         <div className="flex items-start gap-2">
           <span className="min-w-0 flex-1">

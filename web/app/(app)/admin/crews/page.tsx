@@ -85,7 +85,7 @@ export default async function AdminCrewsPage() {
             </Link>
             <span
               className={`text-xs ${
-                c.status === "active" ? "text-track" : "text-red-400"
+                c.status === "active" ? "text-track" : "text-danger"
               }`}
             >
               {c.status}

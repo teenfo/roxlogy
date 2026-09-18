@@ -224,7 +224,7 @@ export function CrewMeetupForm({
               <span className="text-muted">{t("crew.feeExemptHint")}</span>
             </label>
           )}
-          {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+          {err && <p role="alert" className="text-xs text-danger">{err}</p>}
           <div className="flex gap-2">
             <button
               type="submit"
@@ -718,7 +718,7 @@ export function RacePlanForm({
             placeholder={t("crew.racePlanNotePh")}
             maxLength={80}
           />
-          {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+          {err && <p role="alert" className="text-xs text-danger">{err}</p>}
           <div className="flex gap-2">
             <button
               type="submit"
@@ -794,7 +794,7 @@ export function RacePlanForm({
                     placeholder={t("crew.racePlanNotePh")}
                     maxLength={80}
                   />
-                  {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+                  {err && <p role="alert" className="text-xs text-danger">{err}</p>}
                   <div className="flex gap-2">
                     <button
                       type="submit"
@@ -913,7 +913,7 @@ export function RacePlanForm({
                 {/* 3행 — 목표 상태 박스 */}
                 {p.goal_target_ms == null ? (
                   <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-line-accent bg-highlight px-3 py-2.5">
-                    <span className="min-w-0 flex-1 text-[13px] text-[#c9b34a]">
+                    <span className="min-w-0 flex-1 text-[13px] text-gold">
                       {t("race.goalNone")}
                     </span>
                     {p.role === "owner" && (
@@ -1097,7 +1097,7 @@ export function CrewEventMoreMenu({
           // 항목을 고르면 닫는다 — 메뉴가 열린 채로 남으면 뒤에서 뭐가
           // 바뀌었는지 안 보인다
           onClick={() => setOpen(false)}
-          className="absolute right-0 top-10 z-40 flex w-44 flex-col gap-0.5 rounded-[10px] border border-line-strong bg-control p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]"
+          className="absolute right-0 top-10 z-40 flex w-44 flex-col gap-0.5 rounded-[10px] border border-line-strong bg-control p-1.5 shadow-[var(--shadow-pop)]"
         >
           {children}
         </div>
@@ -1496,7 +1496,7 @@ export function CrewAttendanceCheck({
         {label}
         <span
           className={`tabular rounded-full px-1.5 text-xs font-bold ${
-            on ? "bg-[#6b5a00] text-accent" : "bg-line text-muted"
+            on ? "bg-gold-line text-accent" : "bg-line text-muted"
           }`}
         >
           {count}
@@ -1856,7 +1856,7 @@ export function CrewEventFeeToggle({
         <span>{t("crew.feeExempt")}</span>
       </label>
       {note && <span className="text-xs text-muted">{note}</span>}
-      {err && <span className="text-xs text-red-400">{err}</span>}
+      {err && <span className="text-xs text-danger">{err}</span>}
     </span>
   );
 }

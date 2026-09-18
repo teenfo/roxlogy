@@ -44,7 +44,7 @@ export default async function CrewLeaderboardPage({
       : rank === 2
         ? "bg-foreground/80 text-background"
         : rank === 3
-          ? "bg-[#b87333] text-background"
+          ? "bg-tier-copper text-background"
           : "bg-line text-muted";
 
   return (

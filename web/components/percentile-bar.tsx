@@ -45,7 +45,7 @@ export async function PercentileBar({
           {t("percentile.top", { pct: String(top) })}
         </span>
       </div>
-      <div className="relative mt-3 h-2 rounded-full bg-gradient-to-r from-track via-accent to-red-500/70">
+      <div className="relative mt-3 h-2 rounded-full bg-gradient-to-r from-track via-accent to-danger/70">
         <span
           className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground shadow"
           style={{ left: `${pos}%` }}

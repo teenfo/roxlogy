@@ -24,12 +24,12 @@ export const PFT_STATIONS = [
 /** 종목 색 — 스플릿 바·스플릿 카드가 같은 색을 써야 어느 종목이 오래 걸렸는지
  *  화면을 옮겨도 눈으로 잇는다. 런은 세션 차트의 런(--info)과 맞춘다. */
 export const PFT_COLORS: Record<string, string> = {
-  run: "#7dd3fc",
-  burpee: "#e0c53a",
-  lunge: "#b5e48c",
-  row: "#8ecae6",
-  pushup: "#f4a261",
-  wallball: "#e0aaff",
+  run: "var(--info)",
+  burpee: "var(--accent-dim)",
+  lunge: "var(--cat-lime)",
+  row: "var(--cat-sky)",
+  pushup: "var(--warn)",
+  wallball: "var(--cat-violet)",
 };
 
 export type PftStationKey = (typeof PFT_STATIONS)[number]["key"];
@@ -61,11 +61,11 @@ export function pftBadge(
 export function badgeClass(badge: string): string {
   switch (badge) {
     case "gold":
-      return "bg-[#2a2500] text-accent ring-1 ring-line-accent";
+      return "bg-gold-bg text-accent ring-1 ring-line-accent";
     case "silver":
-      return "bg-[#2a2a2a] text-[#d9d9d9] ring-1 ring-[#444]";
+      return "bg-line-mid text-medal-silver ring-1 ring-line-strongest";
     default:
-      return "bg-[#2a1a10] text-[#c98150] ring-1 ring-[#6b3f22]";
+      return "bg-warn-bg text-medal-bronze ring-1 ring-medal-bronze-line";
   }
 }
 
@@ -74,8 +74,8 @@ export function badgeText(badge: string): string {
   return badge === "gold"
     ? "text-accent"
     : badge === "silver"
-      ? "text-[#d9d9d9]"
-      : "text-[#c98150]";
+      ? "text-medal-silver"
+      : "text-medal-bronze";
 }
 
 /**

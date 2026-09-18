@@ -36,7 +36,7 @@ export const STATIONS: StationDef[] = [
  *  나란히 볼 때 같은 종류를 눈으로 잇지 못한다. globals.css 토큰과 맞춘다:
  *  런 = --info, 스테이션 = --accent-dim, 록스존 = 중립 회색. */
 export const CHART_COLORS = {
-  run: "#7dd3fc",
-  station: "#e0c53a",
-  roxzone: "#666666",
+  run: "var(--info)",
+  station: "var(--accent-dim)",
+  roxzone: "var(--muted-3)",
 } as const;

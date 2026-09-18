@@ -38,7 +38,7 @@ function Delta({ raceMs, trainMs }: { raceMs?: number; trainMs?: number }) {
   if (raceMs == null || trainMs == null)
     return <span className="text-muted">—</span>;
   const diff = raceMs - trainMs; // 음수 = 레이스가 빠름
-  const cls = diff <= 0 ? "text-track" : "text-red-400";
+  const cls = diff <= 0 ? "text-track" : "text-danger";
   return (
     <span className={`font-mono ${cls}`}>
       {diff <= 0 ? "-" : "+"}

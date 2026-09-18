@@ -56,7 +56,7 @@ export default async function AdminUserDetailPage({
           </span>
         )}
         {u.disabled && (
-          <span className="rounded bg-red-400/15 px-1.5 py-0.5 text-[10px] font-bold text-red-400">
+          <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-bold text-danger">
             {t("admin.flagDisabled")}
           </span>
         )}

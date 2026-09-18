@@ -510,7 +510,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           </p>
         )}
         {searchError && (
-          <p className="mt-2 text-xs text-red-400">{searchError}</p>
+          <p className="mt-2 text-xs text-danger">{searchError}</p>
         )}
 
         {/* ── 2단계: 결과 선택 */}
@@ -713,7 +713,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               </div>
             )}
 
-            {saveError && <p className="text-sm text-red-400">{saveError}</p>}
+            {saveError && <p className="text-sm text-danger">{saveError}</p>}
             <button
               onClick={handleSave}
               disabled={pending}
@@ -824,7 +824,7 @@ function ManualImport({
       >
         {t("raceNew.import.parseBtn")}
       </button>
-      {notice && <p role="status" className="mt-2 text-xs text-red-400">{notice}</p>}
+      {notice && <p role="status" className="mt-2 text-xs text-danger">{notice}</p>}
     </section>
   );
 }

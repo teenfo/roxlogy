@@ -72,7 +72,7 @@ export function FollowButton({ authorId }: { authorId: string }) {
       >
         {following ? t("feed.following") : t("feed.follow")}
       </button>
-      {err && <span className="text-xs text-red-400">{err}</span>}
+      {err && <span className="text-xs text-danger">{err}</span>}
     </span>
   );
 }

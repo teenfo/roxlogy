@@ -40,11 +40,11 @@ export function AdminCrewStatus({ crewId }: { crewId: string }) {
       <button
         onClick={() => setStatus("rejected")}
         disabled={busy}
-        className="rounded-md bg-surface px-3 py-1.5 text-xs text-red-400 disabled:opacity-50"
+        className="rounded-md bg-surface px-3 py-1.5 text-xs text-danger disabled:opacity-50"
       >
         {t("admin.reject")}
       </button>
-      {err && <span className="text-xs text-red-400">{err}</span>}
+      {err && <span className="text-xs text-danger">{err}</span>}
     </div>
   );
 }

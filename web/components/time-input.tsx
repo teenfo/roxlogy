@@ -32,7 +32,7 @@ export function TimeInput({
       }}
       onBlur={() => setTouched(true)}
       className={`w-20 rounded-md border bg-background px-2 py-1.5 text-right font-mono text-sm outline-none focus:border-accent ${
-        invalid ? "border-red-400" : "border-muted/30"
+        invalid ? "border-danger" : "border-muted/30"
       } ${className}`}
     />
   );

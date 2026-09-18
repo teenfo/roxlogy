@@ -1,3 +1,4 @@
+import { avatarColor } from "@/lib/avatar-color";
 import Link from "next/link";
 
 /**
@@ -126,21 +127,6 @@ export function SectionHead({
   );
 }
 
-/** 이니셜 아바타. 이름 해시로 색을 고정해 같은 사람은 늘 같은 색이 된다. */
-const AVATAR_COLORS = [
-  "#ffd500",
-  "#f4a261",
-  "#8ecae6",
-  "#b5e48c",
-  "#e0aaff",
-  "#ffafcc",
-];
-
-export function avatarColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
-}
 
 export function Avatar({
   name,
@@ -202,3 +188,4 @@ export function AvatarStack({
   );
 }
 
+export { avatarColor };

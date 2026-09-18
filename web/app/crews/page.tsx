@@ -81,7 +81,7 @@ export default async function CrewDirectoryPage() {
                 <li key={c.slug}>
                   <RowLink
                     href={`/crews/${c.slug}`}
-                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 rounded-2xl border border-line-accent bg-highlight px-6 py-5 transition-colors hover:border-[#8a7a2a] max-sm:grid-cols-[auto_minmax(0,1fr)]"
+                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 rounded-2xl border border-line-accent bg-highlight px-6 py-5 transition-colors hover:border-gold-dim max-sm:grid-cols-[auto_minmax(0,1fr)]"
                   >
                     {c.logo_url ? (
                       // eslint-disable-next-line @next/next/no-img-element

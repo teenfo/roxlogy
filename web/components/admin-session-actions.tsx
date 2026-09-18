@@ -62,7 +62,7 @@ export function AdminSessionActions({
         type="button"
         disabled={busy}
         onClick={softDelete}
-        className="rounded-md border border-red-400/40 px-2.5 py-1 text-xs font-semibold text-red-400 hover:bg-red-400/10 disabled:opacity-40"
+        className="rounded-md border border-danger/40 px-2.5 py-1 text-xs font-semibold text-danger hover:bg-danger/10 disabled:opacity-40"
       >
         {t("common.delete")}
       </button>

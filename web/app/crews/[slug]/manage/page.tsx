@@ -77,7 +77,7 @@ function Stat({
     <Card className="px-[18px] py-3.5">
       <p className="text-xs text-muted">{label}</p>
       <p className={`tabular mt-1 text-[26px] font-extrabold leading-tight ${cls}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-[#777]">{sub}</p>}
+      {sub && <p className="mt-0.5 text-xs text-muted-3">{sub}</p>}
     </Card>
   );
 }
@@ -342,7 +342,7 @@ export default async function CrewManagePage({
                       <li key={x.name} className="flex items-center gap-1.5">
                         <span className={`h-2 w-2 rounded-[2px] ${tierBarClass(x.color)}`} />
                         {x.name} <strong className="tabular">{x.count}</strong>
-                        <span className="text-[#777]">
+                        <span className="text-muted-3">
                           {stats.members ? Math.round((x.count / stats.members) * 100) : 0}%
                         </span>
                       </li>
@@ -385,7 +385,7 @@ export default async function CrewManagePage({
               </p>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="min-w-0 break-all text-sm font-semibold">
-                  {bankAccount || <span className="text-[#666]">{t("crew.bankAccountNone")}</span>}
+                  {bankAccount || <span className="text-muted-3">{t("crew.bankAccountNone")}</span>}
                 </span>
                 <Link
                   href={`/crews/${slug}/manage?tab=info`}

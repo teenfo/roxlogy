@@ -56,7 +56,7 @@ export function CrewUnpaidCard({
     <>
       <p className="text-xs text-muted">{t("crew.statUnpaid")}</p>
       <p
-        className={`mt-1 font-mono text-lg font-bold ${amount > 0 ? "text-red-400" : ""}`}
+        className={`mt-1 font-mono text-lg font-bold ${amount > 0 ? "text-danger" : ""}`}
       >
         {won(amount)}
       </p>
@@ -92,7 +92,7 @@ export function CrewUnpaidCard({
         <div className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="text-sm font-bold">{t("crew.unpaidTitle")}</h3>
-            <span className="font-mono text-sm font-bold text-red-400">
+            <span className="font-mono text-sm font-bold text-danger">
               {won(amount)}
             </span>
           </div>

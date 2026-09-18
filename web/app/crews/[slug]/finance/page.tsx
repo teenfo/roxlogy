@@ -278,7 +278,7 @@ export default async function CrewFinancePage({
           {t("crew.duesTodoSum", { n: unpaidPeople, amount: won(unpaidAmount) })}
         </p>
         {firstUnpaid && (
-          <p className="text-[13px] text-[#c9c9c9]">
+          <p className="text-[13px] text-foreground-2">
             {firstUnpaid.display_name} — {firstUnpaid.label}
           </p>
         )}
@@ -330,7 +330,7 @@ export default async function CrewFinancePage({
         ))}
       </dl>
       {bankAccount && (
-        <p className="break-all text-xs text-[#777]">{bankAccount}</p>
+        <p className="break-all text-xs text-muted-3">{bankAccount}</p>
       )}
       {isStaff && (
         <div className="flex flex-wrap gap-2">
@@ -384,7 +384,7 @@ export default async function CrewFinancePage({
           ) : (
             <span
               aria-hidden
-              className="flex h-[30px] w-[30px] items-center justify-center text-[#444]"
+              className="flex h-[30px] w-[30px] items-center justify-center text-line-strongest"
             >
               ›
             </span>
@@ -456,7 +456,7 @@ export default async function CrewFinancePage({
           <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-info md:text-[26px]">
             +{won(monthIncome)}
           </p>
-          <p className="mt-0.5 text-xs text-[#777]">
+          <p className="mt-0.5 text-xs text-muted-3">
             {t("crew.finIncomeSub", { dues: won(duesIncome), other: won(otherIncome) })}
           </p>
         </Card>
@@ -465,7 +465,7 @@ export default async function CrewFinancePage({
           <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-danger md:text-[26px]">
             −{won(monthExpense)}
           </p>
-          <p className="mt-0.5 text-xs text-[#777]">
+          <p className="mt-0.5 text-xs text-muted-3">
             {t("crew.finEntryN", { n: entries.filter((r) => r.kind === "expense").length })}
           </p>
         </Card>
@@ -479,14 +479,14 @@ export default async function CrewFinancePage({
             {monthNet >= 0 ? "+" : "−"}
             {won(Math.abs(monthNet))}
           </p>
-          <p className="mt-0.5 text-xs text-[#777]">{t("crew.finNetSub")}</p>
+          <p className="mt-0.5 text-xs text-muted-3">{t("crew.finNetSub")}</p>
         </Card>
         <Card highlight className="px-[18px] py-3.5">
-          <p className="text-xs text-[#c9b34a]">{t("crew.finBalance")}</p>
+          <p className="text-xs text-gold">{t("crew.finBalance")}</p>
           <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px] text-accent">
             {won(totalBalance)}
           </p>
-          <p className="mt-0.5 flex flex-wrap items-center justify-between gap-x-2 text-xs text-[#777]">
+          <p className="mt-0.5 flex flex-wrap items-center justify-between gap-x-2 text-xs text-muted-3">
             <span>
               {t("crew.finBalanceSub", { opening: won(bank?.opening_balance ?? 0) })}
             </span>
@@ -506,7 +506,7 @@ export default async function CrewFinancePage({
             "dues",
             t("crew.finTabDues"),
             unpaidCount ? (
-              <span className="rounded-full bg-[#3a1a1a] px-1.5 py-0.5 text-[10px] font-bold text-[#ff8a8a]">
+              <span className="rounded-full bg-danger-bg px-1.5 py-0.5 text-[10px] font-bold text-danger">
                 {t("crew.duesFltUnpaid")} {unpaidCount}
               </span>
             ) : null,
@@ -514,9 +514,9 @@ export default async function CrewFinancePage({
         {subTab(
           "ledger",
           t("crew.finTabLedger"),
-          <span className="text-[11px] text-[#777]">{entries.length}</span>,
+          <span className="text-[11px] text-muted-3">{entries.length}</span>,
         )}
-        <span className="ml-auto pb-2.5 text-xs text-[#777]">
+        <span className="ml-auto pb-2.5 text-xs text-muted-3">
           🔒 {t(isStaff ? "crew.finVisibility" : "crew.finVisibilityRead")}
         </span>
       </nav>
@@ -558,7 +558,7 @@ export default async function CrewFinancePage({
           {/* 이 달 청구 기준 — 등급이 곧 요금표다 */}
           {view === "dues" && tiers.length > 0 && (
             <div className="flex flex-col gap-2 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
-              <p className="text-[11px] font-extrabold tracking-[0.08em] text-[#777]">
+              <p className="text-[11px] font-extrabold tracking-[0.08em] text-muted-3">
                 {t("crew.duesBasis", { period: monthLabel })}
               </p>
               <dl className="flex flex-col gap-1 text-xs">

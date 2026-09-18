@@ -36,17 +36,17 @@ export function isDuesCategory(category: string | null | undefined): boolean {
 }
 
 export function categoryBadgeClass(kind: string, category: string | null): string {
-  if (isDuesCategory(category)) return "bg-[#2a2500] text-[#e0c53a]";
-  return kind === "income" ? "bg-[#0c2a3a] text-[#7dd3fc]" : "bg-[#2a1a10] text-[#f4a261]";
+  if (isDuesCategory(category)) return "bg-gold-bg text-accent-dim";
+  return kind === "income" ? "bg-info-bg text-info" : "bg-warn-bg text-warn";
 }
 
 /** 지출 구성 바 — 카테고리 순서대로 돌린다(색이 고정이라 달이 바뀌어도 같은 색) */
 export const EXPENSE_BAR_COLORS: Record<string, string> = {
-  venue: "#f4a261",
-  snack: "#8ecae6",
-  gear: "#e0aaff",
-  race: "#b5e48c",
-  other: "#ffafcc",
+  venue: "var(--warn)",
+  snack: "var(--cat-sky)",
+  gear: "var(--cat-violet)",
+  race: "var(--cat-lime)",
+  other: "var(--cat-pink)",
   /** 분류를 고르지 않은 옛 행 */
-  none: "#555555",
+  none: "var(--muted-3)",
 };

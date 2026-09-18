@@ -122,15 +122,15 @@ function SegmentCurve({
         y1={4}
         x2={myX}
         y2={curveH}
-        className="stroke-amber-400"
+        className="stroke-accent"
         strokeWidth="2"
       />
-      <circle cx={myX} cy={4} r="3" className="fill-amber-400" />
+      <circle cx={myX} cy={4} r="3" className="fill-accent" />
       <text
         x={myX}
         y={H - 4}
         textAnchor={myX > W - 55 ? "end" : myX < 55 ? "start" : "middle"}
-        className="fill-amber-400"
+        className="fill-accent"
         fontSize="10"
         fontWeight="bold"
       >
