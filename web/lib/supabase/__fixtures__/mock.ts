@@ -50,6 +50,14 @@ const TITLES = [
 /** 복수형 규칙에 안 걸리지만 배열(jsonb)인 컬럼들 */
 const ARRAY_COLS = new Set(["going", "waitlist", "roster", "lineup"]);
 
+/** 원소가 **객체**인 배열 컬럼. 문자열을 주면 화면이 `c.body.trim()` 같은 데서
+ *  터진다(2026-09-18: 크루 모임 상세·게시글 상세가 프로덕션에서만 죽던 원인).
+ *  `*_names` 처럼 문자열 배열인 컬럼과 구분해야 해서 목록으로 둔다. */
+const OBJECT_ARRAY_COLS = new Set([
+  "comments", "changes", "partners", "entries", "members", "attendees",
+  "posts", "items", "replies", "invites",
+]);
+
 /** 's' 로 끝나지만 배열이 아닌 컬럼들 — 배열로 만들면 오히려 화면이 깨진다 */
 const SCALAR_PLURALS = new Set([
   "status", "address", "progress", "notes", "weeks", "stats", "access",
@@ -72,7 +80,19 @@ function valueFor(col: string, i: number): unknown {
   if (c.endsWith("_curve") || c.endsWith("_series")) {
     return [0, 1, 2, 3, 4, 5].map((j) => [j * 60, 300 + ((i + j) % 5) * 8]);
   }
-  if (ARRAY_COLS.has(c)) return [0, 1, 2].map((j) => ({ user_id: uuid(i + j + 1), display_name: NAMES[(i + j) % NAMES.length], name: NAMES[(i + j) % NAMES.length] }));
+  if (ARRAY_COLS.has(c) || OBJECT_ARRAY_COLS.has(c)) {
+    return [0, 1, 2].map((j) => ({
+      id: uuid(i + j + 300),
+      user_id: uuid(i + j + 1),
+      author_id: uuid(i + j + 1),
+      display_name: NAMES[(i + j) % NAMES.length],
+      author_name: NAMES[(i + j) % NAMES.length],
+      name: NAMES[(i + j) % NAMES.length],
+      body: "픽스처 댓글입니다.",
+      status: "going",
+      created_at: `2026-09-0${((i + j) % 9) + 1}T09:30:00.000Z`,
+    }));
+  }
   // 복수형 컬럼(jsonb 배열·집계 이름 목록 등)은 배열로 준다. 스칼라를 주면
   // 화면에서 .map()·.slice() 를 돌다가 터진다 — 배열이면 최소한 비어 보일 뿐이다.
   if (c.endsWith("s") && !SCALAR_PLURALS.has(c) && !c.endsWith("ss") && !c.endsWith("_ms")) {
@@ -235,6 +255,17 @@ const RPC_OBJECTS: Record<string, string> = {
 /** jsonb·스칼라를 돌려주는 RPC — 모양을 지어내지 않고 안전한 기본값만 준다 */
 const RPC_SCALARS: Record<string, unknown> = {
   pft_race_can_manage: true,
+  // 크루 관리 통계 — jsonb 객체다. 문자열을 주면 stats.tiers 에서 터진다.
+  crew_member_stats: {
+    members: 26, pending: 3, joined_30d: 4,
+    tiers: [
+      { name: "정회원", color: "#ffd500", count: 12 },
+      { name: "준회원", color: "#8ecae6", count: 9 },
+      { name: "운영진", color: "#b5e48c", count: 2 },
+    ],
+    meetups_30d: 8, attend_30d: 64, attenders_30d: 21, trained_30d: 18,
+    unpaid_amount: 90000, unpaid_count: 3, waived_amount: 30000, unpaid_list: [],
+  },
   race_percentile: 42,
   // 보드는 다크로 남는 화면이라 캡쳐로 꼭 확인해야 한다 — 최소 구조를 채워 둔다
   pft_race_board: {
