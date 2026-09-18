@@ -191,7 +191,7 @@ export default async function ProgramsPage() {
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[30px] font-extrabold tracking-tight max-md:text-2xl">
+          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
             {t("programs.title")}
           </h1>
           <p className="mt-1 text-[15px] text-muted">{t("programs.desc")}</p>

@@ -20,7 +20,7 @@ export default async function AppLayout({
   if (profile?.disabled) {
     return (
       <main className="mx-auto max-w-md px-6 py-24 text-center">
-        <h1 className="text-xl font-bold">{t("suspended.title")}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("suspended.title")}</h1>
         <p className="mt-2 text-sm text-muted">{t("suspended.body")}</p>
         <SignOutForm
           className="mt-6"

@@ -37,7 +37,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <main>
-      <h1 className="text-xl font-bold">{t("admin.overviewTitle")}</h1>
+      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("admin.overviewTitle")}</h1>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {cards.map((c) => (
           <div key={c.label} className="rounded-md bg-surface px-4 py-4">

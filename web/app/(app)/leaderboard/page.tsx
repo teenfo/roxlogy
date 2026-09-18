@@ -60,7 +60,7 @@ export default async function LeaderboardPage({
 
   return (
     <main>
-      <h1 className="text-2xl font-bold">{t("leaderboard.title")}</h1>
+      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("leaderboard.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("leaderboard.desc")}</p>
 
       {!me?.leaderboard_opt_in && (

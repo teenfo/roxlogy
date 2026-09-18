@@ -91,7 +91,7 @@ export default async function SchedulePage({
   if (enrolls.length === 0) {
     return (
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-5">
-        <h1 className="text-[30px] font-extrabold tracking-tight max-md:text-2xl">
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
           {t("schedule.title")}
         </h1>
         <div className="rounded-[14px] border border-line bg-card px-6 py-10 text-center">
@@ -267,7 +267,7 @@ export default async function SchedulePage({
       {/* 헤더 — 프로그램과 현재 위치를 한 줄로 */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[30px] font-extrabold tracking-tight max-md:text-2xl">
+          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
             {t("schedule.title")}
           </h1>
           <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[15px] text-muted">

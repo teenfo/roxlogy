@@ -212,7 +212,7 @@ export default async function RaceDetailPage({
       </div>
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold">{race.event}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{race.event}</h1>
         <span className="font-mono text-3xl font-bold text-gold">
           {formatMs(race.total_time_ms)}
         </span>

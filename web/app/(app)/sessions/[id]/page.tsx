@@ -467,7 +467,7 @@ export default async function SessionDetailPage({
               })}
             </span>
           </div>
-          <h1 className="mt-2 truncate text-[26px] font-extrabold">
+          <h1 className="mt-2 truncate text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
             {race?.event ?? formatDate(session.started_at, tag, tz)}
           </h1>
           {race?.event && (

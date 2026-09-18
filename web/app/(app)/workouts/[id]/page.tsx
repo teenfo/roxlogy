@@ -195,7 +195,7 @@ export default async function WorkoutPage({
                   </span>
                 )}
               </p>
-              <h1 className="text-[28px] font-extrabold tracking-[-0.02em] [word-break:keep-all] max-md:text-2xl">
+              <h1 className="[word-break:keep-all] text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
                 {w.title}
               </h1>
               <p className="text-[13px] text-muted">

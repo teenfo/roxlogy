@@ -213,7 +213,7 @@ export function CrewLedgerTable({
               <h3 className="text-[15px] font-extrabold">{groupTitle(openGroup)}</h3>
               <span
                 className={`tabular text-sm font-bold ${
-                  openGroup.rows[0].kind === "income" ? "text-success" : ""
+                  openGroup.rows[0].kind === "income" ? "text-income" : "text-expense"
                 }`}
               >
                 {openGroup.rows[0].kind === "income" ? "+" : "−"}
@@ -358,7 +358,7 @@ export function CrewLedgerTable({
               <span className="text-right sm:block">
                 <span
                   className={`tabular block text-sm font-bold ${
-                    it.rows[0].kind === "income" ? "text-success" : ""
+                    it.rows[0].kind === "income" ? "text-income" : "text-expense"
                   }`}
                 >
                   {it.rows[0].kind === "income" ? "+" : "−"}
@@ -430,7 +430,7 @@ export function CrewLedgerTable({
             <span className="text-right sm:block">
               <span
                 className={`tabular block text-sm font-bold ${
-                  it.row.kind === "income" ? "text-success" : ""
+                  it.row.kind === "income" ? "text-income" : "text-expense"
                 }`}
               >
                 {it.row.kind === "income" ? "+" : "−"}
@@ -461,8 +461,8 @@ export function CrewLedgerTable({
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-inset px-[18px] py-3 text-xs text-muted-3">
           <span>
             {monthLabel} · {t("crew.finKindIncome")}{" "}
-            <strong className="tabular text-success">+{won(income)}</strong> ·{" "}
-            {t("crew.finKindExpense")} <strong className="tabular">−{won(expense)}</strong>
+            <strong className="tabular text-income">+{won(income)}</strong> ·{" "}
+            {t("crew.finKindExpense")} <strong className="tabular text-expense">−{won(expense)}</strong>
           </span>
           <span>
             {t("crew.finMonthEndBalance")}{" "}

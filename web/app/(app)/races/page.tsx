@@ -32,7 +32,7 @@ export default async function RacesPage() {
   return (
     <main>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("races.title")}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("races.title")}</h1>
         <div className="flex items-center gap-3">
           {!!races?.length && <ExportButton kind="races" />}
           <Link

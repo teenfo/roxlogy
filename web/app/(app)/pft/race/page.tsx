@@ -123,7 +123,7 @@ export default async function PftRaceListPage() {
         <Link href="/pft" className="text-[13px] text-muted hover:text-foreground">
           ← {t("pft.title")}
         </Link>
-        <h1 className="mt-2 text-[26px] font-extrabold">{t("pft.race.listTitle")}</h1>
+        <h1 className="mt-2 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("pft.race.listTitle")}</h1>
         <p className="mt-1 text-sm text-muted">{t("pft.race.listDesc")}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link href="/pft/race/join" className={btn}>

@@ -59,7 +59,7 @@ export default async function CrewPostPage({
           )}
           {canEditPost && <CrewPostActions slug={slug} postId={post.id} />}
         </div>
-        <h1 className="mt-2 text-2xl font-bold leading-snug">{post.title}</h1>
+        <h1 className="mt-2 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{post.title}</h1>
         <p className="mt-2 flex flex-wrap gap-x-3 text-xs text-muted">
           <Link href={`/u/${post.author_id}`} className="hover:text-gold">
             {post.author_name}

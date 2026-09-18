@@ -185,7 +185,7 @@ export default async function RacePlanPage({
                 </span>
               ))}
             </span>
-            <h1 className="text-[26px] font-extrabold tracking-[-0.02em] [word-break:keep-all] max-md:text-[22px]">
+            <h1 className="[word-break:keep-all] text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
               {plan.title}
             </h1>
             <p className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-foreground/80">

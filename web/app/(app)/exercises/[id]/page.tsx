@@ -127,7 +127,7 @@ export default async function ExerciseDetailPage({
         {t("exercises.back")}
       </Link>
 
-      <h1 className="mt-4 text-2xl font-bold">{primary}</h1>
+      <h1 className="mt-4 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{primary}</h1>
       <p className="mt-1 text-sm text-muted">{secondary}</p>
 
       {ytId ? (

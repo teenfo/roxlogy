@@ -8,7 +8,7 @@ export default async function NotFound() {
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-24">
       <Image src="/roxlogy-appicon.svg" alt="" width={72} height={72} />
       <div className="text-center">
-        <h1 className="text-2xl font-bold">{t("notFound.title")}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("notFound.title")}</h1>
         <p className="mt-2 text-sm text-muted">{t("notFound.desc")}</p>
       </div>
       <Link

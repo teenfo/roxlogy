@@ -98,7 +98,7 @@ export default async function AdminContentPage({
   return (
     <main className="flex flex-col gap-10">
       <section>
-        <h1 className="text-xl font-bold">{t("admin.exercisesTitle")}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("admin.exercisesTitle")}</h1>
         <p className="mt-1 text-sm text-muted">{t("admin.exercisesDesc")}</p>
         <form className="mt-4" action="/admin/content">
           <input

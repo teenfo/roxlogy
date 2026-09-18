@@ -28,7 +28,7 @@ export default async function CrewNewPostPage({
       >
         ← {t("crew.board")}
       </Link>
-      <h1 className="mt-2 text-2xl font-bold">{t("crew.newPost")}</h1>
+      <h1 className="mt-2 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("crew.newPost")}</h1>
       <CrewPostForm
         slug={slug}
         crewId={crew.id}

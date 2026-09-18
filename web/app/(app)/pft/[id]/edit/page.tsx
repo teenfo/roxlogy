@@ -32,7 +32,7 @@ export default async function PftEditPage({
       <Link href="/pft" className="text-sm text-muted hover:text-foreground">
         ← {t("pft.title")}
       </Link>
-      <h1 className="mt-3 text-2xl font-bold">{t("pft.editTitle")}</h1>
+      <h1 className="mt-3 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("pft.editTitle")}</h1>
       <div className="mt-5">
         <PftForm
           initial={data as PftResult}

@@ -104,7 +104,7 @@ export default async function AdminRacesPage() {
   return (
     <div className="flex min-w-0 flex-col gap-5">
       <div>
-        <h1 className="text-xl font-extrabold">{t("admin.racesTitle")}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("admin.racesTitle")}</h1>
         <p className="mt-1 text-sm text-muted">{t("admin.racesDesc")}</p>
       </div>
       {error || denied ? (

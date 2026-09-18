@@ -58,7 +58,7 @@ export default async function PublicProfilePage({
     <main>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{name}</h1>
+          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{name}</h1>
           {profile.division && (
             <p className="mt-1 text-sm text-muted">
               {t(`division.${profile.division}` as Parameters<typeof t>[0])}

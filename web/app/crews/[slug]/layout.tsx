@@ -74,7 +74,7 @@ export default async function CrewLayout({
             )}
             <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="min-w-0 truncate text-2xl font-black tracking-tight sm:text-3xl">
+              <h1 className="min-w-0 truncate text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
                 {/* 크루명 = 소개로 가는 링크 (소개 탭을 대신한다) */}
                 <Link href={`/crews/${slug}`} className="hover:text-gold">
                   {crew.name}

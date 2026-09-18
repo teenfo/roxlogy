@@ -83,7 +83,7 @@ export default async function RunsPage() {
     <main>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{t("run.title")}</h1>
+          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("run.title")}</h1>
           <p className="mt-1 text-sm text-muted">{t("run.desc")}</p>
         </div>
         <Link

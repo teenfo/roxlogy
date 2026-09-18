@@ -170,7 +170,7 @@ export default async function ProgramDetailPage({
               {` · ${program.is_public ? t("programs.public") : t("programs.private")}`}
             </span>
           </p>
-          <h1 className="text-[26px] font-extrabold leading-tight">{program.title}</h1>
+          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{program.title}</h1>
           <p className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-muted">
             <span>
               {t("programs.builderStats", {

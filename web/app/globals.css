@@ -69,6 +69,13 @@
   --foreground-2: #3a4049;
   --line-strongest: #c3cad4;
 
+  /* 회계 수입·지출 (스펙 §02: #448369 / #B56B66).
+   * 스펙 값은 흰 배경에서 4.47 / 3.99 라 KPI 같은 큰 글자(3:1)는 통과하지만
+   * 장부 행의 13~14px 금액은 4.5:1 을 못 넘긴다. 같은 색조로 명도만 내려
+   * 두 크기 모두에서 쓸 수 있게 했다. */
+  --income: #3f7a61;
+  --expense: #a85f5a;
+
   /* 경고·지출 계열 */
   --warn: #a35b41;
   --warn-bg: #fbefea;
@@ -157,6 +164,9 @@
   --muted-3: #808080;
   --foreground-2: #c9c9c9;
   --line-strongest: #444444;
+
+  --income: #6ee7a0;
+  --expense: #ff8a8a;
 
   --warn: #f4a261;
   --warn-bg: #2a1a10;
@@ -253,6 +263,8 @@
   --color-medal-bronze-line: var(--medal-bronze-line);
   --color-tier-copper: var(--tier-copper);
   --color-accent-foreground: var(--accent-foreground);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
 }
 
 /* 키보드 포커스 링 — 전역 (UI 감사 2026-09-12 P0).
@@ -269,6 +281,19 @@
 }
 :where(input, select, textarea):focus-visible {
   outline-offset: 0;
+}
+
+/* 모바일 입력은 16px 이상 — 그보다 작으면 iOS Safari 가 포커스할 때 화면을
+   확대해 버리고, 사용자가 손으로 되돌려야 한다. 스펙 모바일 §01·§09 가 1순위
+   보완 항목으로 지정했다. 컨트롤이 219개라 클래스로 일일이 붙이면 반드시
+   빠지는 곳이 생기므로 규칙 하나로 못 박는다.
+   (@layer 밖이라 Tailwind 유틸리티보다 우선한다 — 의도한 것이다.) */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 /* 숫자는 자리를 맞춘다 — 금액·기록·날짜가 표에서 흔들리지 않게 */

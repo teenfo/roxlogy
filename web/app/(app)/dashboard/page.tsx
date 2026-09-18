@@ -330,7 +330,7 @@ export default async function DashboardPage() {
     <main>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
             {profile?.display_name ?? user!.email}
           </h1>
           <p className="mt-1 text-sm text-muted">

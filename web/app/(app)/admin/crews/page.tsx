@@ -33,7 +33,7 @@ export default async function AdminCrewsPage() {
 
   return (
     <main>
-      <h1 className="text-xl font-bold">{t("admin.crewsTitle")}</h1>
+      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("admin.crewsTitle")}</h1>
 
       <h2 className="mt-5 text-sm font-semibold text-muted">
         {t("admin.crewsPending")} ({pending.length})

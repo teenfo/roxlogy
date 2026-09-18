@@ -47,7 +47,7 @@ export default async function AdminModerationPage() {
 
   return (
     <main>
-      <h1 className="text-xl font-bold">{t("admin.modTitle")}</h1>
+      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("admin.modTitle")}</h1>
       <p className="mt-1 text-sm text-muted">{t("admin.modDesc")}</p>
 
       <div className="mt-4 overflow-x-auto">

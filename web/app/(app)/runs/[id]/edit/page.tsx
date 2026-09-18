@@ -33,7 +33,7 @@ export default async function EditRunPage({
 
   return (
     <main>
-      <h1 className="text-2xl font-bold">{t("run.editTitle")}</h1>
+      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("run.editTitle")}</h1>
       <RunForm initial={data as Run} tz={tz} />
     </main>
   );

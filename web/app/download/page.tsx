@@ -39,7 +39,7 @@ export default async function DownloadPage() {
       </div>
 
       <section className="mx-auto w-full max-w-lg px-6 pb-24 pt-12">
-        <h1 className="text-3xl font-black tracking-tight">{t("download.title")}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("download.title")}</h1>
         <p className="mt-3 text-muted">{t("download.desc")}</p>
 
         {/* 안드로이드 */}

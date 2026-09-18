@@ -29,7 +29,7 @@ export default async function PftRaceNewPage() {
     <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
       <div>
         <Link href="/pft" className="text-sm text-muted hover:text-foreground">← {t("pft.title")}</Link>
-        <h1 className="mt-2 text-2xl font-extrabold tracking-tight">{t("pft.race.create")}</h1>
+        <h1 className="mt-2 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("pft.race.create")}</h1>
         <p className="mt-1 text-sm text-muted">{t("pft.race.createDesc")}</p>
       </div>
       {allowed ? (

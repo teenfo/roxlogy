@@ -131,7 +131,7 @@ export default async function EventDetailPage({
         </Link>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-black tracking-tight">{ev.name}</h1>
+          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{ev.name}</h1>
           {phaseBadge && (
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-bold ${phaseBadge[0]}`}

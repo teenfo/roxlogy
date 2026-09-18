@@ -36,7 +36,7 @@ export default async function GoalsPage() {
   return (
     <main>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("goals.title")}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("goals.title")}</h1>
         <Link
           href="/predict"
           className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"

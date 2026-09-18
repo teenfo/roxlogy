@@ -62,7 +62,7 @@ export default async function SessionComparePage() {
       <Link href="/sessions" className="text-sm text-muted hover:text-foreground">
         {t("sessions.title")}
       </Link>
-      <h1 className="mt-4 text-2xl font-bold">{t("compare.title")}</h1>
+      <h1 className="mt-4 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("compare.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("compare.desc")}</p>
 
       {sessions.length < 2 ? (

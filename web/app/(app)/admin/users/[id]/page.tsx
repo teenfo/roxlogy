@@ -47,7 +47,7 @@ export default async function AdminUserDetailPage({
       </Link>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-bold">
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
           {u.display_name ?? t("admin.noName")}
         </h1>
         {u.is_admin && (

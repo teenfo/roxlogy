@@ -64,7 +64,7 @@ export default async function SearchPage({
 
   return (
     <main>
-      <h1 className="text-2xl font-bold">{t("nav.search")}</h1>
+      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("nav.search")}</h1>
       <div className="mt-4 max-w-lg">
         <SearchBox initial={query} />
       </div>

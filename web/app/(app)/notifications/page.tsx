@@ -90,7 +90,7 @@ export default async function NotificationsPage() {
   return (
     <main>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{t("nav.notifications")}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("nav.notifications")}</h1>
         {unread > 0 && (
           <span className="rounded-full bg-sunday px-2 py-0.5 text-xs font-bold text-accent-foreground">
             {unread}

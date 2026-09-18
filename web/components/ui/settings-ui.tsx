@@ -118,18 +118,18 @@ export function InitialAvatar({
 }
 
 export const inputCls =
-  "h-[42px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm text-foreground outline-none transition-colors focus:border-gold";
+  "h-[42px] w-full min-w-0 rounded-lg border border-line-strong bg-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-3 focus:border-focus max-md:h-12";
 
 export const labelCls = "flex flex-col gap-1.5 text-xs text-muted";
 
 export const btnPrimary =
-  "flex h-10 shrink-0 items-center justify-center rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground transition hover:brightness-95 disabled:opacity-40";
+  "flex h-10 shrink-0 items-center justify-center rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground transition hover:brightness-95 disabled:opacity-40 max-md:h-12";
 
 export const btnGhost =
-  "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:border-line-strong disabled:opacity-40";
+  "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:border-line-strong disabled:opacity-40 max-md:h-11";
 
 export const btnAccentGhost =
-  "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-accent bg-highlight px-3.5 text-[13px] font-bold text-gold transition hover:brightness-95 disabled:opacity-40";
+  "flex h-[38px] shrink-0 items-center justify-center rounded-lg border border-line-accent bg-highlight px-3.5 text-[13px] font-bold text-gold transition hover:brightness-95 disabled:opacity-40 max-md:h-11";
 
 export const btnDanger =
-  "flex h-[34px] shrink-0 items-center justify-center rounded-lg border border-danger-line-strong px-3.5 text-[13px] font-semibold text-danger transition-colors hover:bg-danger-card disabled:opacity-40";
+  "flex h-[34px] shrink-0 items-center justify-center rounded-lg border border-danger-line-strong px-3.5 text-[13px] font-semibold text-danger transition-colors hover:bg-danger-card disabled:opacity-40 max-md:h-11";

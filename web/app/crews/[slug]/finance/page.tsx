@@ -356,7 +356,7 @@ export default async function CrewFinancePage({
     <main className="flex flex-col gap-5">
       {/* ── §0 월 헤더 ── */}
       <div className="flex flex-wrap items-center gap-3.5">
-        <h1 className="text-[22px] font-extrabold">{monthLabel}</h1>
+        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{monthLabel}</h1>
         <span
           className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
             closed ? "bg-line text-muted" : "bg-success-bg text-success"
@@ -453,7 +453,7 @@ export default async function CrewFinancePage({
       <section className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
         <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finIncome")}</p>
-          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-info md:text-[26px]">
+          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-income md:text-[26px]">
             +{won(monthIncome)}
           </p>
           <p className="mt-0.5 text-xs text-muted-3">
@@ -462,7 +462,7 @@ export default async function CrewFinancePage({
         </Card>
         <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finExpense")}</p>
-          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-danger md:text-[26px]">
+          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-expense md:text-[26px]">
             −{won(monthExpense)}
           </p>
           <p className="mt-0.5 text-xs text-muted-3">
@@ -473,7 +473,7 @@ export default async function CrewFinancePage({
           <p className="text-xs text-muted">{t("crew.finMonthNet")}</p>
           <p
             className={`tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px] ${
-              monthNet >= 0 ? "text-success" : "text-danger"
+              monthNet >= 0 ? "text-income" : "text-expense"
             }`}
           >
             {monthNet >= 0 ? "+" : "−"}

@@ -50,7 +50,7 @@ export default async function ProfileSettingsPage() {
 
         <div className="flex min-w-0 flex-col gap-5">
           <header>
-            <h1 className="text-3xl font-extrabold tracking-tight max-md:text-2xl">
+            <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
               {t("profile.title")}
             </h1>
             <p className="mt-1 text-[15px] text-muted">
