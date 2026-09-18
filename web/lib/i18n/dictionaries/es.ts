@@ -1772,6 +1772,12 @@ const es: Record<DictKey, string> = {
 
   "notFound.title": "Página no encontrada",
   "notFound.desc": "La dirección puede ser incorrecta o el registro fue eliminado.",
+  "error.title": "No se pudo cargar esta pantalla",
+  "error.desc": "Puede ser temporal. Inténtalo de nuevo.",
+  "error.retry": "Reintentar",
+  "error.globalTitle": "Algo salió mal",
+  "error.globalDesc": "Recarga la página. Si continúa, inténtalo de nuevo en unos minutos.",
+  "error.digest": "Código de error",
 
   "kind.run": "Carrera",
   "kind.station": "Estación",

@@ -23,6 +23,8 @@ import { createPortal } from "react-dom";
  * - "scroll": 긴 폼. 공간이 남으면 세로 중앙, 화면보다 길면 위에 붙어 스크롤(my-auto)
  * - "center": 짧은 확인창. 항상 중앙, 패널 안에서 스크롤
  * - "sheet": 모바일 바텀시트(md 미만 전용)
+ * - "adaptive": 768px 미만은 바텀시트, 그 이상은 중앙 모달 (스펙 §20).
+ *   같은 내용을 폭에 따라 다른 모양으로 낸다 — 호출부가 분기하지 않아도 된다.
  */
 export function Dialog({
   open,
@@ -38,7 +40,7 @@ export function Dialog({
   /** 대화상자의 접근 가능한 이름 — 제목 텍스트를 그대로 넘긴다 */
   label: string;
   children: ReactNode;
-  variant?: "scroll" | "center" | "sheet";
+  variant?: "scroll" | "center" | "sheet" | "adaptive";
   /** 패널(role=dialog 요소)에 붙는 클래스 — 폭·배경·패딩은 호출부가 정한다 */
   panelClassName?: string;
   /** 배경 버튼의 접근 가능한 이름(“닫기”). 시트에서 특히 중요 */
@@ -110,6 +112,8 @@ export function Dialog({
   const overlay =
     variant === "sheet"
       ? "fixed inset-0 z-50 md:hidden"
+      : variant === "adaptive"
+      ? "fixed inset-0 z-50 md:flex md:items-center md:justify-center md:p-4"
       : variant === "center"
         ? "fixed inset-0 z-50 flex items-center justify-center p-4"
         : "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-10";
@@ -117,7 +121,10 @@ export function Dialog({
   // .relative 가 .absolute 를 이겨서 바텀시트가 화면 위로 올라간다(2026-09-12 실제 버그).
   const panel =
     variant === "sheet"
-      ? "absolute inset-x-0 bottom-0 outline-none"
+      ? // 스펙 §20: 모바일 시트는 최대 85dvh, 넘치면 시트 안에서 스크롤
+        "absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto outline-none"
+      : variant === "adaptive"
+      ? "absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto outline-none md:relative md:inset-auto md:max-h-[calc(100dvh-2rem)] md:w-full"
       : variant === "center"
         ? "relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto outline-none"
         : "relative my-auto w-full text-left outline-none";
@@ -140,6 +147,14 @@ export function Dialog({
         tabIndex={-1}
         className={`${panel} ${panelClassName}`}
       >
+        {(variant === "sheet" || variant === "adaptive") && (
+          <div
+            aria-hidden
+            className={`mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-line-strong ${
+              variant === "adaptive" ? "md:hidden" : ""
+            }`}
+          />
+        )}
         {children}
       </div>
     </div>,

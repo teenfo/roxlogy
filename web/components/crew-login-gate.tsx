@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { getT } from "@/lib/i18n";
-import { Card } from "@/components/ui/crew-ui";
+import { AccessGate } from "@/components/ui/access-gate";
 
 /**
  * 로그인해야 볼 수 있는 크루 탭(멤버·리더보드)의 안내 카드.
@@ -11,16 +10,13 @@ import { Card } from "@/components/ui/crew-ui";
 export async function CrewLoginGate({ next }: { next: string }) {
   const { t } = await getT();
   return (
-    <Card className="px-6 py-12 text-center">
-      <p className="text-sm leading-relaxed text-muted [word-break:keep-all]">
-        {t("crew.loginToSee")}
-      </p>
-      <Link
-        href={`/login?next=${encodeURIComponent(next)}`}
-        className="mt-5 inline-flex h-10 items-center rounded-full bg-accent px-5 text-sm font-extrabold text-accent-foreground transition hover:brightness-95"
-      >
-        {t("common.login")}
-      </Link>
-    </Card>
+    <AccessGate
+      title={t("common.login")}
+      reason={t("crew.loginToSee")}
+      action={{
+        href: `/login?next=${encodeURIComponent(next)}`,
+        label: t("common.login"),
+      }}
+    />
   );
 }

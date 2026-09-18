@@ -12,6 +12,7 @@ import { CrewLedgerTable, type LedgerTableRow } from "@/components/crew-ledger-t
 import { CrewFinanceExport } from "@/components/crew-finance-export";
 import { CrewExpenseMix } from "@/components/crew-expense-mix";
 import { CrewDuesNotify } from "@/components/crew-dues-notify";
+import { AccessGate } from "@/components/ui/access-gate";
 import { Card } from "@/components/ui/crew-ui";
 import { CrewBankOpening } from "@/components/crew-bank-opening";
 import { CrewMonthClose } from "@/components/crew-month-close";
@@ -86,9 +87,11 @@ export default async function CrewFinancePage({
   if (!isFull) {
     return (
       <main>
-        <Card className="px-4 py-10 text-center">
-          <p className="text-sm text-muted">{t("crew.finFullOnly")}</p>
-        </Card>
+        <AccessGate
+          title={t("crew.financeTab")}
+          reason={t("crew.finFullOnly")}
+          action={{ href: `/crews/${slug}`, label: t("crew.about") }}
+        />
       </main>
     );
   }

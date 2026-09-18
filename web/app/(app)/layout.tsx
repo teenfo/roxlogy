@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { AppSidebar } from "@/components/app-sidebar";
+import { AccessGate } from "@/components/ui/access-gate";
 import { GlobalNav } from "@/components/global-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
 import { SignOutForm } from "@/components/sign-out-form";
@@ -19,11 +20,14 @@ export default async function AppLayout({
   // 비활성(정지) 계정: 앱 접근 차단
   if (profile?.disabled) {
     return (
-      <main className="mx-auto max-w-md px-6 py-24 text-center">
-        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("suspended.title")}</h1>
-        <p className="mt-2 text-sm text-muted">{t("suspended.body")}</p>
+      <main className="mx-auto w-full max-w-md px-6 py-24">
+        <AccessGate
+          tone="alert"
+          title={t("suspended.title")}
+          reason={t("suspended.body")}
+        />
         <SignOutForm
-          className="mt-6"
+          className="mt-6 text-center"
           buttonClassName="text-sm text-gold hover:underline"
           label={t("common.logout")}
         />

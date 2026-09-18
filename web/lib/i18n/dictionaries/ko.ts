@@ -1765,6 +1765,12 @@ const ko: Record<DictKey, string> = {
 
   "notFound.title": "페이지를 찾을 수 없습니다",
   "notFound.desc": "주소가 잘못되었거나 삭제된 기록일 수 있습니다.",
+  "error.title": "화면을 불러오지 못했습니다",
+  "error.desc": "일시적인 문제일 수 있습니다. 다시 시도해 보세요.",
+  "error.retry": "다시 시도",
+  "error.globalTitle": "문제가 생겼습니다",
+  "error.globalDesc": "페이지를 새로고침해 주세요. 계속되면 잠시 뒤에 다시 시도해 주세요.",
+  "error.digest": "오류 코드",
 
   "kind.run": "런",
   "kind.station": "스테이션",

@@ -18,6 +18,7 @@ import { formatDate } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
 import { getCachedProfile } from "@/lib/supabase/auth";
 import { Avatar, Card } from "@/components/ui/crew-ui";
+import { AccessGate } from "@/components/ui/access-gate";
 
 type EventComment = {
   id: string;
@@ -110,17 +111,12 @@ export default async function CrewEventPage({
         >
           ← {t("crew.schedTab")}
         </Link>
-        <div className="mt-6 rounded-xl border border-line bg-card px-5 py-10 text-center">
-          <p className="text-sm font-semibold">{t("crew.eventMembersOnly")}</p>
-          <p className="mx-auto mt-2 max-w-md text-xs text-muted">
-            {t("crew.eventMembersOnlyDesc", { crew: gate.crew })}
-          </p>
-          <Link
-            href={`/crews/${slug}`}
-            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95"
-          >
-            {t("crew.about")}
-          </Link>
+        <div className="mt-6">
+          <AccessGate
+            title={t("crew.eventMembersOnly")}
+            reason={t("crew.eventMembersOnlyDesc", { crew: gate.crew })}
+            action={{ href: `/crews/${slug}`, label: t("crew.about") }}
+          />
         </div>
       </main>
     );

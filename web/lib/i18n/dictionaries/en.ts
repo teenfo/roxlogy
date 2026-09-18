@@ -1783,6 +1783,12 @@ const en = {
   // 404
   "notFound.title": "Page not found",
   "notFound.desc": "The address may be wrong, or the record was deleted.",
+  "error.title": "We couldn't load this screen",
+  "error.desc": "This may be temporary. Try again.",
+  "error.retry": "Try again",
+  "error.globalTitle": "Something went wrong",
+  "error.globalDesc": "Please reload the page. If it keeps happening, try again shortly.",
+  "error.digest": "Error code",
 
   // 라벨: 세그먼트 종류 / 소스 / 디비전 / 페이싱
   "kind.run": "Run",
