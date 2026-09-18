@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
+import { Empty, PageHead, Panel } from "@/components/ui/app-ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -24,42 +24,35 @@ export default async function InsightsPage() {
 
   return (
     <main>
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold">{t("insights.title")}</h1>
-        <Link
-          href="/dashboard"
-          className="text-sm text-muted hover:text-foreground"
-        >
-          {t("races.back")}
-        </Link>
-      </div>
-      <p className="mt-1 text-sm text-muted">{t("insights.desc")}</p>
+      <PageHead
+        title={t("insights.title")}
+        description={t("insights.desc")}
+        back={{ href: "/dashboard", label: t("nav.dashboard") }}
+      />
 
       {!rows?.length ? (
-        <p className="mt-8 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("insights.empty")}
-        </p>
+        <Empty title={t("insights.title")} description={t("insights.empty")} />
       ) : (
-        <ul className="mt-6 flex flex-col gap-4">
+        <ul className="flex flex-col gap-4">
           {rows.map((r) => (
-            <li
-              key={r.id}
-              className="rounded-lg border border-gold/25 bg-surface p-5"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-gold">
-                  {t("ai.weekly.title")}
-                </h2>
-                {r.period_start && (
-                  <span className="text-xs text-muted">{r.period_start} ~</span>
-                )}
-              </div>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
-                {r.content}
-              </p>
-              <p className="mt-3 text-xs text-muted">
-                {t("ai.disclaimer")} · {r.model}
-              </p>
+            <li key={r.id}>
+              <Panel>
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-gold">
+                    {t("ai.weekly.title")}
+                  </h2>
+                  {r.period_start && (
+                    <span className="text-xs text-muted">{r.period_start} ~</span>
+                  )}
+                </div>
+                {/* 긴 글은 본문 16px / line-height 2, 최대 780px (스펙 §03) */}
+                <p className="mt-3 max-w-[780px] whitespace-pre-wrap text-base leading-[2]">
+                  {r.content}
+                </p>
+                <p className="mt-3 text-xs text-muted">
+                  {t("ai.disclaimer")} · {r.model}
+                </p>
+              </Panel>
             </li>
           ))}
         </ul>
