@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
+import { AppSidebar } from "@/components/app-sidebar";
 import { GlobalNav } from "@/components/global-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
 import { SignOutForm } from "@/components/sign-out-form";
@@ -38,20 +39,26 @@ export default async function AppLayout({
     .eq("user_id", user.id)
     .is("read_at", null);
 
+  // 스펙 §04 의 셸: 좌측 고정 사이드바 248px + 상단바 74px + 본문 최대 1600px.
+  // 사이드바는 md 미만에서 사라지고 그 자리를 하단 탭바가 맡는다(스펙 §15).
   return (
-    <>
-      <header className="sticky top-0 z-40 border-b border-line-soft bg-[var(--nav)]">
-        <GlobalNav
-          isAdmin={isAdmin}
-          displayName={profile?.display_name ?? "Athlete"}
-          unread={count ?? 0}
-        />
-      </header>
-      {/* 하단 탭바(모바일)에 가리지 않도록 아래 여백을 준다 */}
-      <div className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
-        {children}
+    <div className="flex min-h-dvh flex-1 flex-col md:pl-[248px]">
+      <AppSidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 border-b border-line bg-nav">
+          <GlobalNav
+            isAdmin={isAdmin}
+            displayName={profile?.display_name ?? "Athlete"}
+            unread={count ?? 0}
+            withSidebar
+          />
+        </header>
+        {/* 하단 탭바(모바일)에 가리지 않도록 아래 여백을 준다 */}
+        <div className="mx-auto w-full max-w-[1600px] flex-1 px-9 py-8 max-[1200px]:px-6 max-md:px-4 max-md:pb-28">
+          {children}
+        </div>
       </div>
       <MobileTabBar />
-    </>
+    </div>
   );
 }

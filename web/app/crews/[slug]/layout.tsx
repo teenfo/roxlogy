@@ -56,6 +56,8 @@ export default async function CrewLayout({
     <>
       <CrewHeader loginNext={`/crews/${slug}`} />
 
+      {/* 사이드바(fixed)만큼 본문을 민다 — 비로그인은 사이드바가 없다 */}
+      <div className={user ? "md:pl-[248px]" : ""}>
       <div className="mx-auto w-full max-w-[960px] flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         {/* 커버는 탭 화면에서만 — 모임 상세·게시글에서는 본문이 먼저다 */}
         {crew.cover_url && <CrewCover src={crew.cover_url} slug={slug} />}
@@ -116,6 +118,7 @@ export default async function CrewLayout({
         <CrewTabs tabs={tabs} />
 
         <div className="mt-6">{children}</div>
+      </div>
       </div>
     </>
   );

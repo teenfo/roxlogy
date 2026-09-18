@@ -88,6 +88,73 @@ export const NAV: NavItem[] = [
 ];
 
 /**
+ * 데스크톱 사이드바 그룹 (디자인 스펙 1.3 §04 · 감사보고서 §3).
+ *
+ * 모바일 하단 탭(`NAV`)과 **목록이 다르다** — 일부러 그렇다. 하단 탭은 5칸이라
+ * 자주 가는 곳만 담고(스펙 §15 가 그 5개를 확정했다), 사이드바는 화면이 넓으니
+ * 대시보드·분석 리포트까지 펼쳐 놓는다. 둘 다 이 파일 하나에서 나온다.
+ */
+export type NavGroup = {
+  key: string;
+  label: DictKey;
+  items: { href: string; label: DictKey; icon: string }[];
+};
+
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    key: "performance",
+    label: "nav.grpPerformance",
+    items: [
+      { href: "/dashboard", label: "nav.dashboard", icon: "gauge" },
+      { href: "/sessions", label: "nav.sessions", icon: "play" },
+      { href: "/races", label: "nav.races", icon: "flag" },
+      { href: "/goals", label: "nav.goals", icon: "goal" },
+      { href: "/insights", label: "nav.insights", icon: "diamond" },
+    ],
+  },
+  {
+    key: "training",
+    label: "nav.grpTraining",
+    items: [
+      { href: "/schedule", label: "nav.schedule", icon: "clock" },
+      { href: "/programs", label: "nav.programs", icon: "list" },
+      { href: "/runs", label: "nav.runs", icon: "run" },
+      { href: "/exercises", label: "nav.exercises", icon: "diamond" },
+      { href: "/pft", label: "nav.pft", icon: "target" },
+    ],
+  },
+  {
+    key: "community",
+    label: "nav.grpCommunity",
+    items: [
+      { href: "/events", label: "nav.events", icon: "clock" },
+      { href: "/crews", label: "nav.crews", icon: "crews" },
+      { href: "/leaderboard", label: "nav.leaderboard", icon: "rank" },
+      { href: "/feed", label: "nav.feed", icon: "feed" },
+    ],
+  },
+];
+
+/**
+ * 사이드바에서 지금 열려 있는 항목.
+ *
+ * 하위 경로까지 켜야 한다(`/sessions/123` 도 세션이다). 다만 `/` 로 자른
+ * 접두어 비교라 `/races` 가 `/races-foo` 를 먹지 않도록 경계를 확인한다.
+ * 가장 긴 일치를 고른다 — `/pft` 와 `/pft/race` 처럼 겹치는 항목이 있다.
+ */
+export function activeNavHref(pathname: string): string | null {
+  let best: string | null = null;
+  for (const g of NAV_GROUPS) {
+    for (const it of g.items) {
+      if (pathname === it.href || pathname.startsWith(`${it.href}/`)) {
+        if (!best || it.href.length > best.length) best = it.href;
+      }
+    }
+  }
+  return best;
+}
+
+/**
  * 비로그인 방문자에게 보여줄 메뉴 — 로그인 없이 열리는 페이지만 담는다.
  * NAV 를 그대로 쓰면 모든 탭이 /login 리다이렉트로 끝나 막다른 길이 된다.
  */

@@ -38,6 +38,8 @@ export default async function CrewDirectoryPage() {
     <>
       <CrewHeader loginNext="/crews" />
 
+      {/* 사이드바(fixed)만큼 본문을 민다 — 비로그인은 사이드바가 없다 */}
+      <div className={user ? "md:pl-[248px]" : ""}>
       <main className="mx-auto w-full max-w-[960px] flex-1 px-6 pb-20 pt-8 max-md:px-4 max-md:pb-28">
         {/* 헤더 */}
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -174,6 +176,7 @@ export default async function CrewDirectoryPage() {
           )}
         </section>
       </main>
+      </div>
     </>
   );
 }

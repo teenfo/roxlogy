@@ -123,6 +123,8 @@ export default async function EventDetailPage({
   return (
     <>
       <CrewHeader loginNext={`/events/${ev.id}`} />
+      {/* 사이드바(fixed)만큼 본문을 민다 — 비로그인은 사이드바가 없다 */}
+      <div className={user ? "md:pl-[248px]" : ""}>
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         <Link href="/events" className="text-sm text-muted hover:text-foreground">
           ← {t("nav.events")}
@@ -282,6 +284,7 @@ export default async function EventDetailPage({
           </p>
         )}
       </main>
+      </div>
     </>
   );
 }

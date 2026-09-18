@@ -18,12 +18,17 @@ export function GlobalNav({
   displayName,
   unread = 0,
   loginNext,
+  withSidebar = false,
 }: {
   isAdmin?: boolean;
   /** 없으면 비로그인 — 검색만 남기고 로그인 버튼을 보여준다 */
   displayName?: string | null;
   unread?: number;
   loginNext?: string;
+  /** 좌측 사이드바가 있는 셸인지. 있으면 데스크톱에서 로고·필 탭을 감춘다
+   *  — 같은 메뉴를 두 번 그리게 된다(스펙 §04). 모바일에는 사이드바가 없으므로
+   *  로고와 섹션명은 그대로 둔다. */
+  withSidebar?: boolean;
 }) {
   const { t } = useI18n();
   const pathname = usePathname();
@@ -108,11 +113,18 @@ export function GlobalNav({
 
   return (
     <div ref={wrap} className="relative">
-      <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-3 px-6 max-md:h-[52px] max-md:px-4">
+      <div
+        className={
+          withSidebar
+            ? // 스펙 §04: 상단바 74px / 좌우 36px, ≤600px 60px / 16px
+              "flex h-[74px] items-center gap-3 px-9 max-md:h-[60px] max-md:px-4"
+            : "mx-auto flex h-16 max-w-[1200px] items-center gap-3 px-6 max-md:h-[52px] max-md:px-4"
+        }
+      >
         {/* 로고 — 기존 마크를 그대로 쓴다 */}
         <Link
           href={loggedIn ? "/dashboard" : "/"}
-          className="flex shrink-0 items-center gap-2.5"
+          className={`flex shrink-0 items-center gap-2.5 ${withSidebar ? "md:hidden" : ""}`}
         >
           <Image
             src="/roxlogy-appicon.svg"
@@ -137,7 +149,9 @@ export function GlobalNav({
             로그인 상태의 5개는 좁은 화면에 안 들어가 하단 탭바로 간다. */}
         <nav
           className={`mx-auto items-center gap-1 rounded-full border border-line-mid bg-control p-1 ${
-            loggedIn
+            withSidebar
+              ? "hidden"
+              : loggedIn
               ? "hidden md:flex"
               : // 긴 로케일(es)에서도 페이지가 가로로 밀리지 않도록, 넘치면
                 // 필 바 안에서만 스크롤시킨다.
@@ -148,7 +162,13 @@ export function GlobalNav({
         </nav>
 
         {/* 우측 유틸 */}
-        <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
+        {/* 사이드바 셸에서는 데스크톱에 로고·필 탭이 없어서 md:ml-0 을 두면
+            유틸이 왼쪽으로 붙는다 — 그때는 계속 오른쪽 끝에 둔다. */}
+        <div
+          className={`ml-auto flex shrink-0 items-center gap-2 ${
+            withSidebar ? "" : "md:ml-0"
+          }`}
+        >
           {/* 검색은 (app) 그룹이라 비로그인이 누르면 로그인으로 튕긴다 */}
           {loggedIn && (
             <Link

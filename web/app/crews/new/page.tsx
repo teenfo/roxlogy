@@ -16,6 +16,8 @@ export default async function CrewNewPage() {
     <>
       <CrewHeader loginNext="/crews/new" />
 
+      {/* 사이드바(fixed)만큼 본문을 민다 — 비로그인은 사이드바가 없다 */}
+      <div className={user ? "md:pl-[248px]" : ""}>
       <main className="mx-auto w-full max-w-lg flex-1 px-6 py-8">
         <h1 className="text-3xl font-black tracking-tight">
           {t("crew.createTitle")}
@@ -33,6 +35,7 @@ export default async function CrewNewPage() {
           </p>
         )}
       </main>
+      </div>
     </>
   );
 }

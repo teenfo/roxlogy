@@ -1,5 +1,6 @@
 import { getRaceEvents } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { eventDateNote, eventPlace } from "@/lib/event-display";
 import { CrewHeader } from "@/components/crew-header";
 import { todayISOIn } from "@/lib/format";
@@ -45,7 +46,8 @@ export default async function EventsPage({
   searchParams: Promise<{ q?: string; region?: string }>;
 }) {
   const { q, region } = await searchParams;
-  const { t, tag, locale, tz } = await getT();
+  // 사이드바 여백 판정에 쓴다 — 로그인 사용자에게만 사이드바가 있다
+  const [{ t, tag, locale, tz }, user] = await Promise.all([getT(), getCachedUser()]);
 
   // 공개 대회 일정은 전역 캐시(1시간) — 검색·지역 필터는 메모리에서 처리
   const all = await getRaceEvents();
@@ -76,6 +78,8 @@ export default async function EventsPage({
           로그인 버튼이 보였다(상세 페이지는 이미 CrewHeader 를 쓰고 있었다). */}
       <CrewHeader loginNext="/events" />
 
+      {/* 사이드바(fixed)만큼 본문을 민다 — 비로그인은 사이드바가 없다 */}
+      <div className={user ? "md:pl-[248px]" : ""}>
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         <h1 className="text-3xl font-black tracking-tight">{t("events.title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("events.desc")}</p>
@@ -232,6 +236,7 @@ export default async function EventsPage({
           {t("events.disclaimer.after")}
         </p>
       </main>
+      </div>
     </>
   );
 }

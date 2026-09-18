@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
+import { AppSidebar } from "@/components/app-sidebar";
 import { GlobalNav } from "@/components/global-nav";
 import { MobileTabBar } from "@/components/mobile-tabbar";
 import { GoogleOneTap } from "@/components/google-one-tap";
@@ -26,12 +27,17 @@ export async function CrewHeader({ loginNext }: { loginNext: string }) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line-soft bg-[var(--nav)]">
+      {/* 로그인 상태에서만 사이드바 — 비로그인에게는 갈 수 없는 메뉴다 */}
+      {user && <AppSidebar />}
+      <header
+        className={`sticky top-0 z-40 border-b border-line bg-nav ${user ? "md:pl-[248px]" : ""}`}
+      >
         <GlobalNav
           isAdmin={profile?.is_admin === true}
           displayName={user ? (profile?.display_name ?? "Athlete") : null}
           unread={unread}
           loginNext={loginNext}
+          withSidebar={!!user}
         />
       </header>
       {/* 하단 탭바는 로그인 상태에서만 — 비로그인은 갈 수 없는 탭들이다 */}
