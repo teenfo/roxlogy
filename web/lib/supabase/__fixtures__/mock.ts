@@ -241,6 +241,8 @@ RPC_SHAPES.crew_board =
 RPC_SHAPES.crew_leaderboard =
   "rank, user_id, display_name, division, best_ms, session_count, last_at";
 RPC_SHAPES.crew_month_going_names = "event_id, names";
+RPC_SHAPES.crew_post_detail =
+  "id, category, title, body, image_urls, author_id, author_name, pinned, members_only, comment_count, like_count, liked_by_me, created_at, comments";
 RPC_SHAPES.crew_overview =
   "id, slug, name, tagline, description, logo_url, cover_url, location, home_gym, links, member_count, post_count, upcoming_count, my_role, my_status, crew_status";
 RPC_SHAPES.crew_roster =
