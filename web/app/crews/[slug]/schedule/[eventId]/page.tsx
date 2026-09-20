@@ -18,6 +18,8 @@ import { formatDate } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
 import { getCachedProfile } from "@/lib/supabase/auth";
 import { Avatar, Card } from "@/components/ui/crew-ui";
+import { getPublicEvent } from "@/lib/og/public-data";
+import { shareMetadata } from "@/lib/og/metadata";
 
 type EventComment = {
   id: string;
@@ -56,15 +58,10 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string; eventId: string }>;
 }) {
-  const { eventId } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase.rpc("crew_event_detail", { p_event: eventId });
-  const ev = ((data ?? []) as EventDetail[])[0];
-  if (!ev) return { title: "Roxlogy" };
-  return {
-    title: `${ev.title} — Roxlogy`,
-    description: ev.description?.slice(0, 160) ?? ev.location ?? undefined,
-  };
+  const { slug, eventId } = await params;
+  const ev = await getPublicEvent(slug, eventId);
+  if (!ev) return shareMetadata();
+  return shareMetadata(`${ev.title} — Roxlogy`, ev.description?.slice(0, 160) ?? ev.location ?? ev.crew.name);
 }
 
 export default async function CrewEventPage({

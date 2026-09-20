@@ -50,6 +50,9 @@ jobs:
         # 경고는 허용, 오류만 실패. 경고까지 막으려면 --max-warnings 0 을 붙일 것.
         run: npm run lint
 
+      - name: Design-gap regression tests
+        run: npm run test:design-gaps
+
       - name: Build (DB 없이)
         # 빌드는 DB 에 닿지 않아도 통과한다 — 페이지는 전부 cookies() 를 쓰는 동적
         # 렌더라 prerender 단계에서 Supabase 를 호출하지 않고, sitemap 은 env 누락·

@@ -1150,6 +1150,7 @@ const ko: Record<DictKey, string> = {
   "auth.confirmSent": "확인 메일을 보냈습니다. 메일함에서 인증을 완료해 주세요.",
   "auth.noAccount": "계정이 없나요?",
   "auth.haveAccount": "이미 계정이 있나요?",
+  "auth.oneTapUnavailable": "Google 빠른 로그인을 사용할 수 없습니다. 일반 로그인 버튼을 이용해 주세요.",
   "auth.google": "Google로 계속하기",
   "auth.or": "또는",
 

@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint"
+    "check": "npm run typecheck && npm run lint",
+    "test:design-gaps": "node --test tests/design-gaps.test.mjs",
+    "og:generate": "node scripts/render-og.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

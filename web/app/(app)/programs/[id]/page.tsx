@@ -84,7 +84,7 @@ export default async function ProgramDetailPage({
   if (!program) notFound();
 
   const isOwner = program.owner_id === user!.id;
-  // 소유자도 "남에게 어떻게 보이는지"를 볼 수 있어야 한다
+  // 미리보기 = 로그인한 비소유자 시점. 내 등록은 유지하고 편집 권한만 숨긴다.
   const readOnly = !isOwner || preview === "1";
 
   // 내 활성 등록 — 프로그램은 템플릿이고 날짜는 등록에 속한다 (own RLS)
@@ -187,7 +187,7 @@ export default async function ProgramDetailPage({
               <span className="text-success">· {t("programs.allWodsSet")}</span>
             ) : null}
           </p>
-          {isOwner && (
+          {!readOnly && (
             <ProgramBasicsEditor
               programId={program.id}
               title={program.title}
@@ -206,10 +206,10 @@ export default async function ProgramDetailPage({
             totalDays={totalDays}
           />
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-2 max-md:justify-between">
-            {!isOwner && (
+            {readOnly && (
               <CloneProgramButton programId={program.id} title={program.title} />
             )}
-            {isOwner && (
+            {!readOnly && (
               <DeleteButton kind="program" id={program.id} redirectTo="/programs" />
             )}
           </div>
@@ -240,7 +240,7 @@ export default async function ProgramDetailPage({
             <ProgramCalendarSubscribe
               programId={program.id}
               token={program.calendar_token}
-              isOwner={isOwner}
+              isOwner={!readOnly}
             />
           </p>
           <p className="mt-1 text-xs text-muted">{t("programs.subscribeHint")}</p>

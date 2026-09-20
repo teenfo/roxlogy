@@ -13,6 +13,8 @@ import type { DictKey } from "@/lib/i18n/dictionaries/en";
 import { Badge, Card, SectionHead } from "@/components/ui/crew-ui";
 import { CopyField } from "@/components/copy-field";
 import { todayISOIn } from "@/lib/format";
+import { getPublicCrew } from "@/lib/og/public-data";
+import { shareMetadata } from "@/lib/og/metadata";
 
 export async function generateMetadata({
   params,
@@ -20,12 +22,12 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const crew = await getCrew(slug);
-  if (!crew) return { title: "Crew" };
-  return {
-    title: `${crew.name} — ${crew.tagline ?? "Crew"}`,
-    description: crew.description?.slice(0, 160),
-  };
+  const crew = await getPublicCrew(slug);
+  if (!crew) return shareMetadata();
+  return shareMetadata(
+    `${crew.name} — ${crew.tagline ?? "Crew"}`,
+    crew.description?.slice(0, 160) ?? crew.tagline ?? undefined,
+  );
 }
 
 export default async function CrewHomePage({

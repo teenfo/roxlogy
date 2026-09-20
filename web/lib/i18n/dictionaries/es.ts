@@ -1150,6 +1150,7 @@ const es: Record<DictKey, string> = {
   "auth.confirmSent": "Correo de confirmación enviado. Verifica tu dirección para terminar.",
   "auth.noAccount": "¿No tienes cuenta?",
   "auth.haveAccount": "¿Ya tienes cuenta?",
+  "auth.oneTapUnavailable": "Google One Tap no está disponible. Usa el botón de inicio de sesión habitual.",
   "auth.google": "Continuar con Google",
   "auth.or": "o",
 

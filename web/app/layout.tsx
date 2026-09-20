@@ -4,9 +4,13 @@ import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { LocaleBoundary } from "@/components/locale-boundary";
 import { TzSync } from "@/components/tz-sync";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { SITE_URL } from "@/lib/site-url";
+import { shareMetadata } from "@/lib/og/metadata";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  ...shareMetadata(),
+  metadataBase: new URL(SITE_URL),
   title: "Roxlogy",
   description: "The science of hybrid racing",
   manifest: "/manifest.webmanifest",

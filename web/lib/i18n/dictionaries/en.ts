@@ -1153,6 +1153,7 @@ const en = {
   "auth.confirmSent": "Confirmation email sent. Please verify your address to finish.",
   "auth.noAccount": "No account yet?",
   "auth.haveAccount": "Already have an account?",
+  "auth.oneTapUnavailable": "Google One Tap is unavailable. Please use the regular sign-in button.",
   "auth.google": "Continue with Google",
   "auth.or": "or",
 
