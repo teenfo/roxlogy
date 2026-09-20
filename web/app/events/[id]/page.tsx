@@ -1,29 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight, ArrowUpRight, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { eventDateNote, eventPlace } from "@/lib/event-display";
 import { formatMs } from "@/lib/format";
-import {
-  getEventLiveDetail,
-  percentileWithin,
-} from "@/lib/hyrox-event-detail";
+import { dictLabel } from "@/lib/dict-label";
+import { getEventLiveDetail, percentileWithin } from "@/lib/hyrox-event-detail";
 import { Shell } from "@/components/rox/shell";
-import { Avatar } from "@/components/ui/crew-ui";
+import { Person } from "@/components/rox/person";
+import { Button } from "@/components/ui/button";
+import { Back, Chip, DataTable, Empty, Go, Hint, Panel } from "@/components/rox/ui";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("race_events")
-    .select("name, city")
-    .eq("id", id)
-    .maybeSingle();
+  const { data } = await supabase.from("race_events").select("name, city").eq("id", id).maybeSingle();
   return { title: data ? `${data.name} — Roxlogy` : "Roxlogy" };
 }
 
@@ -38,20 +31,19 @@ type Crewmate = {
   race_date: string;
 };
 
-export default async function EventDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+/**
+ * 대회 상세 — 시안 racing.tsx Events({id}) 그대로 (PORT_PLAN §3-d):
+ * Back · .rx-event-hero(킥커 · 도시 · 대회명·일정 · Chip 국가 + 장소) · two-col[ Panel "레이스 준비"(DataTable 항목/내용 ·
+ * Go 목표 · 공식 일정 · Hint) | Panel "같이 출전하는 크루"(.rx-person 행 · Go) ]. 디비전 결과(실측)는 우리 것이라 Panel + DataTable(§4).
+ */
+export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
   const [{ t, tag, locale }, user] = await Promise.all([getT(), getCachedUser()]);
 
   const { data: ev } = await supabase
     .from("race_events")
-    .select(
-      "id, name, city, api_city, country, region, venue, start_date, end_date, date_note, season, official_url",
-    )
+    .select("id, name, city, city_en, api_city, country, country_code, region, venue, start_date, end_date, date_note, season, official_url")
     .eq("id", id)
     .maybeSingle();
   if (!ev) notFound();
@@ -76,211 +68,141 @@ export default async function EventDetailPage({
           const one = Array.isArray(g) ? (g[0] ?? null) : (g ?? null);
           if (one) return one;
 
-          const { data } = await supabase
-            .from("goal_plans")
-            .select("target_total_ms, event_name")
-            .order("created_at", { ascending: false })
-            .limit(10);
+          const { data } = await supabase.from("goal_plans").select("target_total_ms, event_name").order("created_at", { ascending: false }).limit(10);
           const gs = (data ?? []) as MyGoal[];
           // 이 대회를 목표로 지정한 것 우선, 없으면 최근 목표
           return gs.find((x) => x.event_name?.startsWith(ev.name)) ?? gs[0] ?? null;
         })()
       : Promise.resolve(null),
     // 같은 대회에 나가는 크루원 — 나와 같은 크루인 사람만 내려온다(RPC 가 게이트)
-    user
-      ? supabase.rpc("race_event_crewmates", { p_event: id })
-      : Promise.resolve({ data: [] as Crewmate[] }),
+    user ? supabase.rpc("race_event_crewmates", { p_event: id }) : Promise.resolve({ data: [] as Crewmate[] }),
     // 이 대회로 등록해 둔 내 대회일정 — 있으면 그 상세로 건너갈 수 있게 한다.
-    // 위 셋과 서로 의존하지 않으므로 같은 블록에서 함께 기다린다(왕복 1회 절약).
-    user
-      ? supabase
-          .from("race_plans")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("race_event_id", id)
-          .order("race_date")
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+    user ? supabase.from("race_plans").select("id").eq("user_id", user.id).eq("race_event_id", id).order("race_date").limit(1).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const mates = (mateRows ?? []) as Crewmate[];
-
   const myPlanId = (myPlanRow as { id: string } | null)?.id ?? null;
 
-  const dateRange = ev.start_date
-    ? `${ev.start_date}${ev.end_date && ev.end_date !== ev.start_date ? ` ~ ${ev.end_date}` : ""}`
-    : (eventDateNote(t, ev, tag) ?? t("events.tbd"));
-
-  const phaseBadge =
-    live?.phase === "finished"
-      ? ["bg-track/15 text-track", t("events.phaseFinished")]
-      : live?.phase === "racing"
-        ? ["bg-accent/15 text-gold", t("events.phaseRacing")]
-        : live?.phase === "scheduled"
-          ? ["bg-surface text-muted", t("events.phaseScheduled")]
-          : null;
+  const dateRange = ev.start_date ? `${ev.start_date}${ev.end_date && ev.end_date !== ev.start_date ? ` — ${ev.end_date}` : ""}` : (eventDateNote(t, ev, tag) ?? t("events.tbd"));
+  const phase = live?.phase === "finished" ? t("events.phaseFinished") : live?.phase === "racing" ? t("events.phaseRacing") : live?.phase === "scheduled" ? t("events.phaseScheduled") : null;
+  const place = eventPlace(t, ev, locale);
+  const predictHref = `/predict?event=${encodeURIComponent(ev.name)}${ev.start_date ? `&date=${ev.start_date}` : ""}`;
+  // 크루별로 묶는다 — 시안의 "같이 출전하는 크루" 는 크루 단위다
+  const crews = new Map<string, { name: string; slug: string; mates: Crewmate[] }>();
+  for (const m of mates) {
+    const cur = crews.get(m.crew_slug) ?? { name: m.crew_name, slug: m.crew_slug, mates: [] };
+    cur.mates.push(m);
+    crews.set(m.crew_slug, cur);
+  }
 
   return (
     <Shell loginNext={`/events/${ev.id}`}>
-      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
-        <Link href="/events" className="text-sm text-muted hover:text-foreground">
-          ← {t("nav.events")}
-        </Link>
-
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{ev.name}</h1>
-          {phaseBadge && (
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-bold ${phaseBadge[0]}`}
-            >
-              {phaseBadge[1]}
-            </span>
-          )}
-        </div>
-        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-          <span>
-            {eventPlace(t, ev, locale)}
-          </span>
-          <span className="font-medium text-track">{dateRange}</span>
-          {ev.venue && <span>{ev.venue}</span>}
-          {ev.season && <span>{ev.season}</span>}
+      <Back href="/events" label={t("nav.events")} />
+      <div className="rx-event-hero">
+        <span>{(ev.season ?? "").toUpperCase() || "YOUR NEXT STARTING LINE"}</span>
+        <h1>{(ev.city_en ?? ev.city ?? ev.name).toUpperCase()}</h1>
+        <p>
+          {ev.name} · {dateRange}
         </p>
-        {live?.phase !== "finished" && live?.resultsDueOn && (
-          <p className="mt-1 text-xs text-muted">
-            {t("events.resultsDue", { date: live.resultsDueOn })}
-          </p>
-        )}
-        <div className="mt-3 flex flex-wrap gap-3">
-          {ev.official_url && (
-            <a
-              href={ev.official_url}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-gold"
-            >
-              {t("events.official")} ↗
-            </a>
-          )}
-          {myPlanId && (
-            <Link
-              href={`/schedule/race/${myPlanId}?from=${encodeURIComponent(`/events/${id}`)}`}
-              className="rounded-md border border-line-accent bg-highlight px-3 py-1.5 text-xs font-bold text-gold hover:brightness-95"
-            >
-              {t("race.myPlan")} →
-            </Link>
-          )}
-          <Link
-            href={`/predict?event=${encodeURIComponent(ev.name)}${ev.start_date ? `&date=${ev.start_date}` : ""}`}
-            className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground hover:brightness-95"
-          >
-            {t("events.setGoal")}
-          </Link>
+        <div>
+          <Chip tone="yellow">{ev.country_code === "KR" ? t("events.koreaBadge") : place}</Chip>
+          {phase && <Chip>{phase}</Chip>}
+          <span>
+            <MapPin size={16} />
+            {[ev.venue, place].filter(Boolean).join(" · ")}
+          </span>
         </div>
-
-        {/* 같이 나가는 크루원 — 로그인 + 같은 크루일 때만 내려온다 */}
-        {mates.length > 0 && (
-          <section className="mt-8">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-lg font-semibold">
-                {t("events.crewmates")}
-              </h2>
-              <span className="text-xs text-muted">
-                {t("events.crewmatesN", { n: mates.length })}
-              </span>
-            </div>
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-              {mates.map((m) => (
-                <li key={m.user_id}>
-                  <Link
-                    href={`/u/${m.user_id}`}
-                    className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 transition-colors hover:border-line-strong hover:bg-card-hover"
-                  >
-                    <Avatar name={m.display_name} size={36} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-bold">
-                        {m.display_name}
-                      </span>
-                      <span className="block truncate text-xs text-muted">
-                        {m.crew_name}
-                        {m.division
-                          ? ` · ${m.division.replace("_", " ").toUpperCase()}`
-                          : ""}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {/* 디비전 통계 (실측) */}
-        {live && live.divisions.length > 0 ? (
-          <section className="mt-8">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-lg font-semibold">{t("events.divStats")}</h2>
-              <span className="text-xs text-muted">
-                {t("events.finishers", {
-                  n: live.totalFinishers.toLocaleString(tag),
-                })}
-              </span>
-            </div>
-            <div className="mt-3 flex flex-col gap-2">
-              {live.divisions.map((d) => {
-                const myPct =
-                  goal?.target_total_ms != null
-                    ? percentileWithin(goal.target_total_ms, d)
-                    : null;
-                return (
-                  <div key={d.label} className="rounded-md bg-surface px-4 py-3">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <p className="text-sm font-semibold">{d.label}</p>
-                      <p className="text-xs text-muted">
-                        {t("events.finishers", { n: d.count.toLocaleString(tag) })}
-                      </p>
-                    </div>
-                    <div className="mt-2 grid grid-cols-3 gap-3 text-center">
-                      <div>
-                        <p className="text-xs text-muted">{t("events.median")}</p>
-                        <p className="font-mono text-sm font-bold">
-                          {formatMs(d.medianMs)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted">
-                          {t("events.midRange")}
-                        </p>
-                        <p className="font-mono text-sm">
-                          {formatMs(d.p25Ms)}–{formatMs(d.p75Ms)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted">{t("events.top10")}</p>
-                        <p className="font-mono text-sm text-track">
-                          {formatMs(d.p10Ms)}
-                        </p>
-                      </div>
-                    </div>
-                    {myPct != null && (
-                      <p className="mt-2 text-xs text-gold">
-                        🎯 {t("events.myGoalPct", {
-                          time: formatMs(goal!.target_total_ms),
-                          pct: myPct,
-                        })}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-muted">{t("events.statsNote")}</p>
-          </section>
-        ) : (
-          <p className="mt-8 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-            {t("events.noLive")}
-          </p>
-        )}
       </div>
+
+      <div className="rx-two-col">
+        <Panel title={t("events.goal")}>
+          <DataTable
+            headers={[t("crew.eventInfoHeader"), t("crew.eventInfoValue")]}
+            rows={[
+              [t("nav.events"), ev.name],
+              [t("crew.colWhen"), dateRange],
+              [t("crew.eventPlace"), [ev.venue, place].filter(Boolean).join(" · ")],
+              [t("events.goal"), goal ? formatMs(goal.target_total_ms) : "—"],
+            ]}
+          />
+          <div className="rx-actions">
+            <Go href={predictHref} primary>
+              {t("events.setGoal")}
+            </Go>
+            {myPlanId && <Go href={`/schedule/race/${myPlanId}?from=${encodeURIComponent(`/events/${id}`)}`}>{t("race.myPlan")}</Go>}
+            {ev.official_url && (
+              <Button asChild variant="outline">
+                <a href={ev.official_url} target="_blank" rel="noreferrer noopener">
+                  {t("events.official")} <ArrowUpRight size={16} />
+                </a>
+              </Button>
+            )}
+          </div>
+          <Hint>
+            {t("events.disclaimer.before")}
+            <a href="https://hyrox.com/find-my-race/" target="_blank" rel="noopener noreferrer">
+              {t("events.disclaimer.link")}
+            </a>
+            {t("events.disclaimer.after")}
+            {live?.phase !== "finished" && live?.resultsDueOn && ` · ${t("events.resultsDue", { date: live.resultsDueOn })}`}
+          </Hint>
+        </Panel>
+        <Panel title={t("events.crewmates")}>
+          {crews.size ? (
+            [...crews.values()].map((c) => (
+              <div key={c.slug}>
+                <div className="rx-crew-mini">
+                  <span className="rx-crew-mark">{c.name.slice(0, 2).toUpperCase()}</span>
+                  <div>
+                    <h3>{c.name}</h3>
+                    <p>{t("events.crewmatesN", { n: c.mates.length })}</p>
+                  </div>
+                </div>
+                {c.mates.map((m) => (
+                  <Link key={m.user_id} href={`/u/${m.user_id}`} style={{ display: "block", marginBottom: 12 }}>
+                    <Person name={m.display_name} note={m.division ? dictLabel(t, `division.${m.division}`, m.division) : undefined} />
+                  </Link>
+                ))}
+                <Go href={`/crews/${c.slug}/schedule`}>
+                  {t("crew.schedTab")} <ArrowRight size={16} />
+                </Go>
+              </div>
+            ))
+          ) : (
+            <Empty title={t("events.crewmatesN", { n: 0 })} description={t("crew.guestNote")} action={<Go href="/crews">{t("nav.crews")}</Go>} />
+          )}
+        </Panel>
+      </div>
+
+      {/* 디비전 통계 (실측) — 시안에 없음(§4): Panel + DataTable */}
+      {live && live.divisions.length > 0 ? (
+        <Panel title={t("events.divStats")} action={<span className="rx-muted">{t("events.finishers", { n: live.totalFinishers.toLocaleString(tag) })}</span>}>
+          <DataTable
+            headers={[t("events.divisionCol"), t("events.finishersCol"), t("events.median"), t("events.midRange"), t("events.top10"), t("events.goal")]}
+            rows={live.divisions.map((d) => {
+              const myPct = goal?.target_total_ms != null ? percentileWithin(goal.target_total_ms, d) : null;
+              return [
+                <b key="l">{d.label}</b>,
+                d.count.toLocaleString(tag),
+                <span key="m" className="rx-number">
+                  {formatMs(d.medianMs)}
+                </span>,
+                <span key="r" className="rx-number">
+                  {formatMs(d.p25Ms)}–{formatMs(d.p75Ms)}
+                </span>,
+                <span key="t" className="rx-number">
+                  {formatMs(d.p10Ms)}
+                </span>,
+                myPct != null ? <Chip key="g" tone="yellow">{t("events.myGoalPct", { time: formatMs(goal!.target_total_ms), pct: myPct })}</Chip> : <span key="g">—</span>,
+              ];
+            })}
+          />
+          <Hint>{t("events.statsNote")}</Hint>
+        </Panel>
+      ) : (
+        <Panel title={t("events.divStats")}>
+          <Empty title={t("events.noLive")} description={t("events.statsNote")} />
+        </Panel>
+      )}
     </Shell>
   );
 }

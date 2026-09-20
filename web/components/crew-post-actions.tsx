@@ -1,20 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Go } from "@/components/rox/ui";
 
 /** 게시글 수정·삭제 — 작성자 본인 또는 운영진에게만 렌더한다
- *  (서버는 crew_posts_update_own / crew_posts_delete_own 정책으로 보호). */
-export function CrewPostActions({
-  slug,
-  postId,
-}: {
-  slug: string;
-  postId: string;
-}) {
+ *  (서버는 crew_posts_update_own / crew_posts_delete_own 정책으로 보호).
+ *  시안 CrewBoard 의 "게시글 편집" Go 버튼 + 우리 삭제(§4). */
+export function CrewPostActions({ slug, postId }: { slug: string; postId: string }) {
   const { t } = useI18n();
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -25,10 +21,7 @@ export function CrewPostActions({
     setBusy(true);
     setErr(null);
     const supabase = createClient();
-    const { error } = await supabase
-      .from("crew_posts")
-      .delete()
-      .eq("id", postId);
+    const { error } = await supabase.from("crew_posts").delete().eq("id", postId);
     setBusy(false);
     if (error) return setErr(error.message);
     router.push(`/crews/${slug}/board`);
@@ -36,42 +29,28 @@ export function CrewPostActions({
   }
 
   return (
-    <span className="ml-auto flex items-center gap-3 text-xs">
-      <Link
-        href={`/crews/${slug}/board/${postId}/edit`}
-        className="text-muted hover:text-gold"
-      >
-        {t("common.edit")}
-      </Link>
+    <>
+      <Go href={`/crews/${slug}/board/${postId}/edit`}>{t("crew.editPost")}</Go>
       {confirming ? (
         <>
-          <button
-            type="button"
-            onClick={del}
-            disabled={busy}
-            className="font-semibold text-danger disabled:opacity-50"
-          >
+          <Button variant="outline" className="rx-pft-close" onClick={del} disabled={busy}>
             {busy ? t("common.deleting") : t("common.confirmDelete")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirming(false)}
-            className="text-muted"
-          >
+          </Button>
+          <Button variant="ghost" onClick={() => setConfirming(false)}>
             {t("common.cancel")}
-          </button>
+          </Button>
         </>
       ) : (
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          className="text-muted hover:text-danger"
-        >
+        <Button variant="ghost" onClick={() => setConfirming(true)}>
           {t("common.delete")}
-        </button>
+        </Button>
       )}
-      {err && <span className="text-danger">{err}</span>}
-    </span>
+      {err && (
+        <span role="alert" className="rx-error">
+          {err}
+        </span>
+      )}
+    </>
   );
 }
 
@@ -87,10 +66,7 @@ export function CrewCommentDelete({ commentId }: { commentId: string }) {
     setBusy(true);
     setErr(null);
     const supabase = createClient();
-    const { error } = await supabase
-      .from("crew_post_comments")
-      .delete()
-      .eq("id", commentId);
+    const { error } = await supabase.from("crew_post_comments").delete().eq("id", commentId);
     setBusy(false);
     if (error) return setErr(error.message);
     router.refresh();
@@ -98,16 +74,17 @@ export function CrewCommentDelete({ commentId }: { commentId: string }) {
 
   return (
     <>
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         type="button"
         onClick={del}
         disabled={busy}
         aria-label={t("common.delete")}
-        className="ml-auto -m-2 p-2 text-xs text-muted hover:text-danger disabled:opacity-50"
       >
         ✕
-      </button>
-      {err && <span className="text-xs text-danger">{err}</span>}
+      </Button>
+      {err && <span className="rx-error">{err}</span>}
     </>
   );
 }

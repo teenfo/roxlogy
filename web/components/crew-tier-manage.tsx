@@ -2,10 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { TIER_COLORS, tierBadgeClass, type TierColor } from "@/lib/crew-role";
+import { TIER_COLORS, tierBarColor, tierChipTone, type TierColor } from "@/lib/crew-role";
 import { duesErrText } from "@/lib/dues-error";
+import { won } from "@/lib/won";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Chip, Choice, DataTable, Field, Hint, Panel } from "@/components/rox/ui";
 
 export type CrewTier = {
   id: string;
@@ -22,132 +28,9 @@ export type CrewTier = {
 /** 등급별 활동 회원 수 — tier_id → 명 */
 export type TierCounts = Record<string, number>;
 
-const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
-
 function toFee(v: string): number | null {
   const n = parseInt(v.replace(/[^\d]/g, ""), 10);
   return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-/** 카드 */
-const CARD = "overflow-hidden rounded-[14px] border border-line bg-card";
-const COL = "text-[11px] font-bold tracking-[0.06em] text-muted-3";
-
-/** ₩ 접두가 붙은 금액 칸 */
-function FeeInput({
-  value,
-  onChange,
-  disabled,
-  label,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  disabled?: boolean;
-  label: string;
-}) {
-  const { t } = useI18n();
-  return (
-    <span className="flex h-[34px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-accent-line">
-      <span aria-hidden className="px-2 text-xs text-muted-3">
-        ₩
-      </span>
-      <input
-        aria-label={label}
-        className="tabular h-full min-w-0 flex-1 border-0 bg-transparent pr-2.5 text-right text-sm outline-none disabled:opacity-50"
-        value={value}
-        placeholder={t("crew.tierFeeNone2")}
-        inputMode="numeric"
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </span>
-  );
-}
-
-/** 등급 색 고르기 — 원을 누르면 팔레트가 뜬다. 배경 버튼으로 바깥 클릭을 받는다
- *  (document 리스너를 달지 않아도 되고 키보드로도 닫힌다). */
-function ColorPicker({
-  color,
-  onPick,
-  disabled,
-}: {
-  color: string;
-  onPick: (c: TierColor) => void;
-  disabled?: boolean;
-}) {
-  const { t } = useI18n();
-  const [open, setOpen] = useState(false);
-  return (
-    <span className="relative shrink-0">
-      <button
-        type="button"
-        disabled={disabled}
-        aria-label={t("crew.tierColor")}
-        aria-expanded={open}
-        onClick={() => setOpen((p) => !p)}
-        className={`block h-7 w-7 rounded-full border-2 border-line-strong ${tierBadgeClass(color)} disabled:opacity-50`}
-      />
-      {open && (
-        <>
-          <button
-            type="button"
-            aria-label={t("common.close")}
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-10 cursor-default"
-          />
-          <span className="absolute left-0 top-9 z-20 flex gap-1.5 rounded-[10px] border border-line-strong bg-card-hover p-2 shadow-[var(--shadow-pop)]">
-            {TIER_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                aria-label={c}
-                onClick={() => {
-                  onPick(c);
-                  setOpen(false);
-                }}
-                className={`h-6 w-6 rounded-full border-2 ${tierBadgeClass(c)} ${
-                  color === c ? "border-foreground" : "border-line-strong"
-                }`}
-              />
-            ))}
-          </span>
-        </>
-      )}
-    </span>
-  );
-}
-
-/** 40×24 토글 */
-function Toggle({
-  on,
-  onChange,
-  label,
-  disabled,
-}: {
-  on: boolean;
-  onChange: (next: boolean) => void;
-  label: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!on)}
-      className={`relative h-6 w-10 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
-        on ? "bg-accent" : "bg-line-strong"
-      }`}
-    >
-      <span
-        className={`absolute top-[3px] h-[18px] w-[18px] rounded-full transition-[left] ${
-          on ? "left-[19px] bg-background" : "left-[3px] bg-muted"
-        }`}
-      />
-    </button>
-  );
 }
 
 /** 변경분만 모아 저장하는 편집 상태. 원본과 다른 행만 update 한다. */
@@ -167,25 +50,12 @@ function useDraft<T extends Record<string, unknown>>(tiers: CrewTier[], pick: (x
 }
 
 /**
- * 회원 등급 · 회비 — 운영진 전용. 등급이 곧 요금표라 한 표에서 다 다룬다:
- * 이름·색·정회원 권한·월회비·회차비·기본 등급·삭제.
- *
- * 한때 등급 탭과 회비 탭으로 나눠 뒀는데(2026-09-14), 나눠도 **등급 목록 자체가
- * 두 탭에 다 있어서** "이름은 등급 탭, 금액은 회비 탭" 이라는 같은 혼선이 남았다.
- * 표를 하나로 되돌리고 탭도 합쳤다 — 고칠 곳이 한 군데면 헷갈릴 일이 없다.
- *
- * 이름·색·권한·금액은 로컬로 모았다가 "저장"으로 한 번에 쓴다(표에서 칸마다 저장하면
- * 클릭 한 번이 요청 하나가 된다). 기본 등급 지정과 삭제는 단발 동작이라 즉시 처리한다.
+ * 회원 등급 · 회비 — 시안 crew.tsx Manage(회비 기준) 그대로 (PORT_PLAN §3-e):
+ * Panel "회원 등급별 회비"[ DataTable[등급 · 월 회비(Input) · 회차비(Input) …] · Hint · 버튼 ].
+ * 등급 이름·색·정회원 권한·기본 등급·삭제·인원은 우리 열이라 같은 표에 더한다(§4).
+ * 이름·색·권한·금액은 로컬로 모았다가 "저장"으로 한 번에 쓴다.
  */
-export function CrewTierManage({
-  crewId,
-  tiers,
-  counts = {},
-}: {
-  crewId: string;
-  tiers: CrewTier[];
-  counts?: TierCounts;
-}) {
+export function CrewTierManage({ crewId, tiers, counts = {} }: { crewId: string; tiers: CrewTier[]; counts?: TierCounts }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -206,14 +76,8 @@ export function CrewTierManage({
   const dirty = d.changed(active);
 
   // 이번 달 예상 월 회비 청구 = Σ(월회비 × 그 등급 활동 인원). 저장 전 값으로 미리 센다.
-  const expected = active.reduce(
-    (a, x) => a + (toFee(d.valueOf(x).monthly) ?? 0) * (counts[x.id] ?? 0),
-    0,
-  );
-  const billable = active.reduce(
-    (a, x) => a + (toFee(d.valueOf(x).monthly) != null ? (counts[x.id] ?? 0) : 0),
-    0,
-  );
+  const expected = active.reduce((a, x) => a + (toFee(d.valueOf(x).monthly) ?? 0) * (counts[x.id] ?? 0), 0);
+  const billable = active.reduce((a, x) => a + (toFee(d.valueOf(x).monthly) != null ? (counts[x.id] ?? 0) : 0), 0);
 
   async function save() {
     setBusy("save");
@@ -247,7 +111,6 @@ export function CrewTierManage({
     if (!name.trim()) return;
     setBusy("add");
     setErr(null);
-    // 금액은 비워 두고 만든다 — 만든 뒤 표에서 채운다
     const { error } = await createClient().from("crew_member_tiers").insert({
       crew_id: crewId,
       name: name.trim(),
@@ -281,244 +144,110 @@ export function CrewTierManage({
     setErr(null);
     const supabase = createClient();
     if (cur && cur.id !== tier.id) {
-      const { error } = await supabase
-        .from("crew_member_tiers")
-        .update({ is_default: false })
-        .eq("id", cur.id);
+      const { error } = await supabase.from("crew_member_tiers").update({ is_default: false }).eq("id", cur.id);
       if (error) {
         setBusy(null);
         return setErr(duesErrText(t, error.message));
       }
     }
-    const { error } = await supabase
-      .from("crew_member_tiers")
-      .update({ is_default: true })
-      .eq("id", tier.id);
+    const { error } = await supabase.from("crew_member_tiers").update({ is_default: true }).eq("id", tier.id);
     setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
   }
 
-  // 좁은 화면에서는 7열이 들어가지 않아 이름 칸이 몇 픽셀로 찌그러진다(390px 확인).
-  // 그래서 모바일은 이름 / 멤버·권한 / 금액 / 기본·삭제로 쌓고, lg 부터 한 줄 표가 된다.
-  // 각 줄은 `lg:contents` 로 격자에서 사라져 자식들이 그대로 표의 칸이 된다 —
-  // 그래서 DOM 순서가 곧 열 순서다.
-  const cols =
-    "lg:grid lg:grid-cols-[minmax(0,1.4fr)_70px_110px_106px_106px_70px_36px] lg:items-center lg:gap-3";
-  const cellLabel = "text-[11px] font-bold text-muted-3 lg:hidden";
+  const colorOptions = TIER_COLORS.map((c) => [c, c] as [string, string]);
 
   return (
-    <div className="flex flex-col gap-3.5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 max-w-xl">
-          <h2 className="text-lg font-extrabold">{t("crew.tierTitle")}</h2>
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">{t("crew.tierDesc")}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setAdding((p) => !p)}
-          className="h-[38px] shrink-0 rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground hover:brightness-95"
-        >
-          + {t("crew.tierAdd")}
-        </button>
-      </div>
-
+    <Panel
+      title={t("crew.tierFeesTitle")}
+      action={
+        <Button variant="outline" size="sm" type="button" onClick={() => setAdding((p) => !p)}>
+          <Plus size={14} />
+          {t("crew.tierAdd")}
+        </Button>
+      }
+    >
+      <p>{t("crew.tierDesc")}</p>
       {err && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="rx-error">
           {err}
         </p>
       )}
-
       {adding && (
-        <form onSubmit={add} className={`${CARD} flex flex-wrap items-center gap-2.5 p-[18px]`}>
-          <ColorPicker color={color} onPick={setColor} />
-          <input
-            // size 를 줄이지 않으면 input 의 기본 폭(약 300px)이 부모의 min-content 를
-            // 밀어 올려 좁은 화면에서 페이지가 가로로 넘친다 — flex-1 은 이걸 못 막는다
-            size={1}
-            className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t("crew.tierNamePh")}
-            maxLength={20}
-            autoFocus
-          />
-          <button
-            type="submit"
-            disabled={busy != null || !name.trim()}
-            className="h-10 rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground disabled:opacity-40"
-          >
-            {t("crew.tierAdd")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setAdding(false)}
-            className="h-10 px-2 text-sm text-muted hover:text-foreground"
-          >
-            {t("common.cancel")}
-          </button>
+        <form onSubmit={add} style={{ marginTop: 16 }}>
+          <div className="rx-form-grid">
+            <Field label={t("crew.tierNamePh")}>
+              <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} autoFocus />
+            </Field>
+            <Field label={t("crew.tierColor")}>
+              <Choice label={t("crew.tierColor")} value={color} onChange={(v) => setColor(v as TierColor)} options={colorOptions} />
+            </Field>
+          </div>
+          <div className="rx-actions">
+            <Button type="submit" className="rx-primary" disabled={busy != null || !name.trim()}>
+              {t("crew.tierAdd")}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setAdding(false)}>
+              {t("common.cancel")}
+            </Button>
+          </div>
         </form>
       )}
 
-      <div className={CARD}>
-        <div className={`hidden ${cols} ${COL} border-b border-line-soft px-[18px] py-2.5`} aria-hidden>
-          <span>{t("crew.colTier")}</span>
-          <span className="text-center">{t("crew.colMembers")}</span>
-          <span className="text-center">{t("crew.tierFull")}</span>
-          <span className="text-right">{t("crew.tierMonthly")}</span>
-          <span className="text-right">{t("crew.tierSession")}</span>
-          <span className="text-center">{t("crew.colDefault")}</span>
-          <span />
-        </div>
-
-        {active.map((x) => {
+      <DataTable
+        headers={[t("crew.colTier"), t("crew.colMembers"), t("crew.tierFull"), t("crew.tierMonthly"), t("crew.tierSession"), t("crew.colDefault"), ""]}
+        rows={active.map((x) => {
           const v = d.valueOf(x);
           const n = counts[x.id] ?? 0;
-          return (
-            <div
-              key={x.id}
-              className={`${cols} border-b border-line-soft px-[18px] py-3 hover:bg-card-hover`}
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <ColorPicker
-                  color={v.color}
-                  disabled={busy != null}
-                  onPick={(c) => d.set(x.id, { color: c }, x)}
-                />
-                <span
-                  className={`hidden shrink-0 rounded-[5px] px-2 py-[3px] text-[11px] font-bold lg:inline ${tierBadgeClass(v.color)}`}
-                >
-                  {v.name || x.name}
-                </span>
-                <input
-                  aria-label={t("crew.tierNamePh")}
-                  size={1}
-                  className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2.5 text-sm font-semibold outline-none hover:border-line-strong hover:bg-page focus:border-accent-line focus:bg-page"
-                  value={v.name}
-                  maxLength={20}
-                  disabled={busy != null}
-                  onChange={(e) => d.set(x.id, { name: e.target.value }, x)}
-                />
-              </span>
-
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 pl-[38px] lg:contents">
-                <span className="tabular flex items-center gap-1.5 text-sm font-bold lg:justify-center">
-                  <span className={cellLabel}>{t("crew.colMembers")}</span>
-                  {n}
-                </span>
-
-                <span className="flex items-center gap-1.5 lg:justify-center">
-                  <span className={cellLabel}>{t("crew.tierFull")}</span>
-                  <Toggle
-                    on={v.is_full_member}
-                    disabled={busy != null}
-                    label={t("crew.tierFull")}
-                    onChange={(next) => d.set(x.id, { is_full_member: next }, x)}
-                  />
-                </span>
-              </div>
-
-              {/* 금액 — 좁은 화면에서는 제 줄을 쓴다. ₩ 칸 둘이 들어가야 한다 */}
-              <div className="mt-2 grid grid-cols-2 gap-2 pl-[38px] lg:contents">
-                <span className="flex min-w-0 flex-col gap-1 lg:block">
-                  <span className={cellLabel}>{t("crew.tierMonthly")}</span>
-                  <FeeInput
-                    label={`${x.name} ${t("crew.tierMonthly")}`}
-                    value={v.monthly}
-                    disabled={busy != null}
-                    onChange={(nv) => d.set(x.id, { monthly: nv }, x)}
-                  />
-                </span>
-                <span className="flex min-w-0 flex-col gap-1 lg:block">
-                  <span className={cellLabel}>{t("crew.tierSession")}</span>
-                  <FeeInput
-                    label={`${x.name} ${t("crew.tierSession")}`}
-                    value={v.session}
-                    disabled={busy != null}
-                    onChange={(nv) => d.set(x.id, { session: nv }, x)}
-                  />
-                </span>
-              </div>
-
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 pl-[38px] lg:contents">
-                <span className="flex items-center gap-1.5 lg:justify-center">
-                  <span className={cellLabel}>{t("crew.colDefault")}</span>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={x.is_default}
-                    aria-label={t("crew.tierMakeDefault")}
-                    disabled={busy != null || x.is_default}
-                    onClick={() => makeDefault(x)}
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                      x.is_default ? "border-accent-line" : "border-line-strongest hover:border-line-strong"
-                    }`}
-                  >
-                    {x.is_default && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
-                  </button>
-                </span>
-
-                <button
-                  type="button"
-                  aria-label={t("crew.tierDelete")}
-                  title={n > 0 ? t("crew.tierDeleteNote") : undefined}
-                  disabled={busy != null || x.is_default || n > 0}
-                  onClick={() => remove(x)}
-                  className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm text-danger hover:bg-danger-card disabled:cursor-not-allowed disabled:text-line-strongest disabled:hover:bg-transparent lg:ml-0 lg:justify-self-center"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          );
+          return [
+            <span key="n" className="rx-actions" style={{ flexWrap: "nowrap" }}>
+              <span aria-hidden style={{ width: 10, height: 10, borderRadius: 3, background: tierBarColor(v.color), flexShrink: 0 }} />
+              <Input aria-label={t("crew.tierNamePh")} value={v.name} maxLength={20} disabled={busy != null} onChange={(e) => d.set(x.id, { name: e.target.value }, x)} style={{ minWidth: 110 }} />
+              <Choice label={t("crew.tierColor")} value={v.color} onChange={(c) => d.set(x.id, { color: c }, x)} options={colorOptions} />
+            </span>,
+            <strong key="c" className="rx-number">
+              {n}
+            </strong>,
+            <Switch key="f" checked={v.is_full_member} disabled={busy != null} aria-label={t("crew.tierFull")} onCheckedChange={(next) => d.set(x.id, { is_full_member: next }, x)} />,
+            <Input key="m" type="number" min="0" aria-label={`${x.name} ${t("crew.tierMonthly")}`} value={v.monthly} placeholder={t("crew.tierFeeNone2")} disabled={busy != null} onChange={(e) => d.set(x.id, { monthly: e.target.value }, x)} style={{ width: 120 }} />,
+            <Input key="s" type="number" min="0" aria-label={`${x.name} ${t("crew.tierSession")}`} value={v.session} placeholder={t("crew.tierFeeNone2")} disabled={busy != null} onChange={(e) => d.set(x.id, { session: e.target.value }, x)} style={{ width: 120 }} />,
+            <span key="d">
+              {x.is_default ? (
+                <Chip tone={tierChipTone(v.color)}>{t("crew.colDefault")}</Chip>
+              ) : (
+                <Button variant="ghost" size="sm" type="button" disabled={busy != null} onClick={() => makeDefault(x)}>
+                  {t("crew.tierMakeDefault")}
+                </Button>
+              )}
+            </span>,
+            <Button key="x" variant="ghost" size="sm" type="button" aria-label={t("crew.tierDelete")} title={n > 0 ? t("crew.tierDeleteNote") : undefined} disabled={busy != null || x.is_default || n > 0} onClick={() => remove(x)}>
+              ×
+            </Button>,
+          ];
         })}
-
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-soft px-[18px] py-3 text-xs text-muted">
-          <span>{t("crew.expectedMonthly")}</span>
-          <strong className="tabular font-bold text-foreground">
-            {won(expected)}{" "}
-            <span className="font-medium text-muted-3">
-              · {t("crew.expectedMembers", { n: billable })}
-            </span>
-          </strong>
-        </div>
-
-        <p className="flex flex-wrap gap-x-4 gap-y-1 px-[18px] pb-3 text-xs text-muted-3">
-          <span>● {t("crew.tierDefaultNote")}</span>
-          <span>● {t("crew.tierDeleteNote")}</span>
-          <span>● {t("crew.tierFeeHint")}</span>
-        </p>
+      />
+      <div className="rx-finance-ledger-total">
+        <span>{t("crew.expectedMonthly")}</span>
+        <strong>
+          {won(expected)} <small className="rx-muted">· {t("crew.expectedMembers", { n: billable })}</small>
+        </strong>
       </div>
-
-      {archived.length > 0 && (
-        <p className="text-xs text-muted">
-          {t("crew.tierArchivedList")}: {archived.map((x) => x.name).join(", ")}
-        </p>
-      )}
-
-      <div className="flex items-center justify-end gap-3">
-        <span className="text-[13px] text-muted">
-          {dirty.length > 0 ? t("crew.unsavedN", { n: dirty.length }) : t("crew.noChanges")}
-        </span>
+      <Hint>
+        {t("crew.tierDefaultNote")} · {t("crew.tierDeleteNote")} · {t("crew.tierFeeHint")}
+        {archived.length > 0 && ` · ${t("crew.tierArchivedList")}: ${archived.map((x) => x.name).join(", ")}`}
+      </Hint>
+      <div className="rx-actions">
+        <span className="rx-muted">{dirty.length > 0 ? t("crew.unsavedN", { n: dirty.length }) : t("crew.noChanges")}</span>
         {dirty.length > 0 && (
-          <button
-            type="button"
-            onClick={d.reset}
-            disabled={busy != null}
-            className="h-10 rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
-          >
+          <Button variant="outline" type="button" onClick={d.reset} disabled={busy != null}>
             {t("crew.revert")}
-          </button>
+          </Button>
         )}
-        <button
-          type="button"
-          onClick={() => void save()}
-          disabled={busy != null || dirty.length === 0}
-          className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-accent-foreground hover:brightness-95 disabled:bg-line-mid disabled:text-muted-3"
-        >
+        <Button className="rx-primary" type="button" onClick={() => void save()} disabled={busy != null || dirty.length === 0}>
           {busy === "save" ? t("common.saving") : t("common.save")}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Panel>
   );
 }

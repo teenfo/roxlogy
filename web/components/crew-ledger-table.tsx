@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { MoreHorizontal } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
 import { CrewLedgerDelete, CrewLedgerForm, type LedgerEntry } from "@/components/crew-ledger-form";
 import { CrewLedgerSettle } from "@/components/crew-ledger-settle";
-import { Dialog } from "@/components/ui/dialog";
-import { categoryBadgeClass, categoryDictKey, isDuesCategory } from "@/lib/ledger-category";
+import { RoxDialog } from "@/components/rox/dialog";
+import { categoryDictKey, isDuesCategory } from "@/lib/ledger-category";
+import { won } from "@/lib/won";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Chip, Choice, DataTable, Empty, Find, Hint, Panel } from "@/components/rox/ui";
 
 /** 러닝 잔액까지 붙인 장부 행 */
 export type LedgerTableRow = LedgerEntry & {
@@ -16,32 +21,19 @@ export type LedgerTableRow = LedgerEntry & {
   dues_group: string | null;
 };
 
-const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
-
-/** ⋯ 행 메뉴 — 바깥을 덮는 버튼으로 바깥 클릭을 받는다(document 리스너 없이) */
-function RowMenu({ label, children }: { label: string; children: React.ReactNode }) {
+/** ⋯ 행 메뉴 — 바깥을 덮는 버튼으로 바깥 클릭을 받는다(document 리스너 없이). 시안에 없는 최소 규칙 */
+export function RowMenu({ label, children }: { label: string; children: ReactNode }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   return (
-    <span className="relative shrink-0">
-      <button
-        type="button"
-        aria-label={label}
-        aria-expanded={open}
-        onClick={() => setOpen((p) => !p)}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-base leading-none text-muted hover:bg-card-hover hover:text-foreground"
-      >
-        ⋯
-      </button>
+    <span className="rx-row-menu">
+      <Button variant="ghost" size="sm" type="button" aria-label={label} aria-expanded={open} onClick={() => setOpen((p) => !p)}>
+        <MoreHorizontal size={16} />
+      </Button>
       {open && (
         <>
-          <button
-            type="button"
-            aria-label={t("common.close")}
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-10 cursor-default"
-          />
-          <span className="absolute right-0 top-8 z-20 flex w-[160px] flex-col rounded-[10px] border border-line-strong bg-card-hover p-1.5 shadow-[var(--shadow-pop)]">
+          <button type="button" aria-label={t("common.close")} onClick={() => setOpen(false)} className="rx-row-menu-scrim" />
+          <span className="rx-row-menu-list" onClick={() => setOpen(false)}>
             {children}
           </span>
         </>
@@ -51,14 +43,11 @@ function RowMenu({ label, children }: { label: string; children: React.ReactNode
 }
 
 /**
- * 수입·지출 장부 표 (디자인 시안 §2-a).
+ * 수입·지출 장부 표 — 시안 finance.tsx 의 "거래 장부" Panel 그대로 (PORT_PLAN §3-e):
+ * Panel(action N개 항목)[ .rx-toolbar(Find · Choice 전체/수입/지출) · DataTable[기준일 · 거래 내용 · 금액] ·
+ * Empty · .rx-finance-ledger-total · Hint ]. 금액 아래 러닝 잔액, 회비 묶음 행, ⋯ 행 메뉴는 우리 것(§4).
  *
- * 날짜별 카드로 쪼개져 있던 목록을 한 장의 표로 모으고, 금액 아래에 **러닝 잔액**을
- * 적는다. 잔액은 필터와 무관하게 전체 거래 기준이라 필터를 걸어도 값이 흔들리지
- * 않는다(서버가 계산해 `balance` 로 넘겨준다).
- *
- * 종류 필터와 검색은 클라이언트에서 한다 — 예전엔 `?k=` 링크라 칩 한 번이 서버
- * 왕복 하나였다. 통장 반영 토글은 시안대로 행 2행 배지로 남겨 둔다.
+ * 잔액은 필터와 무관하게 전체 거래 기준이라 필터를 걸어도 값이 흔들리지 않는다(서버가 계산해 `balance` 로 넘겨준다).
  */
 export function CrewLedgerTable({
   rows,
@@ -84,47 +73,27 @@ export function CrewLedgerTable({
   // 회비 입금 묶어 보기 — 21명 월회비를 한 번에 확정하면 장부에 21줄이 생기는데,
   // 장부를 읽는 사람에게 그건 거래 21건이 아니라 "9월 월회비 21명" 한 건이다.
   const [grouped, setGrouped] = useState(true);
-  /** 세부 내역을 연 묶음의 키 — 접힌 줄을 누르면 안에 뭐가 들었는지 본다 */
+  /** 세부 내역을 연 묶음의 키 */
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   const q = query.trim().toLowerCase();
   const shown = rows.filter(
     (r) =>
       (kind === "all" || r.kind === kind) &&
-      (!q ||
-        r.title.toLowerCase().includes(q) ||
-        (r.memo ?? "").toLowerCase().includes(q)),
+      (!q || r.title.toLowerCase().includes(q) || (r.memo ?? "").toLowerCase().includes(q)),
   );
 
   // 합계는 달 전체 기준을 유지한다 — 필터를 걸었다고 이 달 수입이 바뀌면 다른 숫자다
   const income = rows.filter((r) => r.kind === "income").reduce((a, r) => a + r.amount, 0);
   const expense = rows.filter((r) => r.kind === "expense").reduce((a, r) => a + r.amount, 0);
-  // 월말 잔액 = 이 달 가장 최근 거래의 러닝 잔액
-  const monthEnd = rows[0]?.balance ?? 0;
+  const net = income - expense;
 
-  const day = (iso: string) => Number(iso.slice(8, 10));
-  const weekday = (iso: string) =>
-    new Date(`${iso}T00:00:00`).toLocaleDateString(locale, { weekday: "short" });
-  const fullDate = (iso: string) =>
-    new Date(`${iso}T00:00:00`).toLocaleDateString(locale, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
   const shortDate = (iso: string) =>
-    new Date(`${iso}T00:00:00`).toLocaleDateString(locale, {
-      month: "numeric",
-      day: "numeric",
-    });
+    new Date(`${iso}T00:00:00`).toLocaleDateString(locale, { month: "numeric", day: "numeric" });
+  const fullDate = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" });
 
-  /** 묶는 단위는 **분류 + 날짜**다.
-   *  - 분류로 묶는다: 장부를 읽을 때 궁금한 건 "그날 장소 대여로 얼마"지 영수증
-   *    한 장 한 장이 아니다. 회비도 월회비·회차비가 따로 분류라 섞이지 않는다.
-   *  - 날짜를 키에 넣는다: 분류만 보면 여러 날에 걸친 것(월회비를 6일에 8명,
-   *    13일에 2명 확정)이 한 줄로 접히면서 6일 돈이 13일로 올라간다. 장부에서
-   *    날짜를 옮기는 건 그냥 틀린 값이다.
-   *  분류가 비었지만 회차 키가 있는 옛 회비 행(마감된 달은 소급하지 않았다)은
-   *  회차 키로 묶어 준다 — 안 그러면 그 달만 낱개로 늘어진다. */
+  /** 묶는 단위는 **분류 + 날짜**다(같은 날 같은 분류만 접는다 — 날짜를 옮기면 그냥 틀린 값이다). */
   const groupKey = (r: LedgerTableRow) => {
     const axis = r.category ?? r.dues_group;
     return axis ? `${axis}|${r.entry_date}` : null;
@@ -136,7 +105,6 @@ export function CrewLedgerTable({
   }
   const hasGroups = [...groupCount.values()].some((n) => n > 1);
 
-  /** 표에 그릴 것 — 낱개 행이거나, 같은 날 같은 회차를 접은 한 줄 */
   type Item =
     | { type: "row"; row: LedgerTableRow }
     | { type: "group"; key: string; rows: LedgerTableRow[]; amount: number; date: string };
@@ -163,313 +131,171 @@ export function CrewLedgerTable({
     for (const r of shown) items.push({ type: "row", row: r });
   }
 
-  /** 묶음 제목은 분류 이름이다. 분류가 없는 옛 회비 행만 장부 제목에서 뽑는다
-   *  — 제목이 "<청구 이름> — <회원 이름>" 꼴이라 앞부분이 회차 이름이다. */
   const groupTitle = (g: Extract<Item, { type: "group" }>) => {
     const head = g.rows[0];
     if (head.category) return t(categoryDictKey(head.category));
     return head.title.split(" — ")[0] || head.title;
   };
-
-  /** 모달에 띄울 묶음. 필터가 바뀌어 사라졌으면 null 이라 모달도 닫힌다. */
   const openGroup = openKey
-    ? (items.find((i) => i.type === "group" && i.key === openKey) as
-        | Extract<Item, { type: "group" }>
-        | undefined)
+    ? (items.find((i) => i.type === "group" && i.key === openKey) as Extract<Item, { type: "group" }> | undefined)
     : undefined;
 
-  const cols =
-    "grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2.5 sm:grid-cols-[44px_minmax(0,1fr)_120px_28px] sm:gap-3";
-  const seg = (k: typeof kind, label: string, n: number) => (
-    <button
-      key={k}
-      type="button"
-      aria-pressed={kind === k}
-      onClick={() => setKind(k)}
-      className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
-        kind === k ? "bg-accent text-accent-foreground" : "text-foreground-2 hover:text-foreground"
-      }`}
-    >
-      {label}
-      <span className={`text-[11px] ${kind === k ? "text-gold-line" : "text-muted-3"}`}>{n}</span>
-    </button>
+  const kindChip = (k: "income" | "expense") => (
+    <Chip tone={k === "income" ? "blue" : "yellow"}>{t(k === "income" ? "crew.finKindIncome" : "crew.finKindExpense")}</Chip>
   );
+  const settledChip = (r: LedgerTableRow) =>
+    isStaff && !closed ? (
+      <CrewLedgerSettle
+        id={r.id}
+        entryDate={r.entry_date}
+        settledOn={r.settled_on}
+        label={r.settled_on ? t("crew.finSettledOn", { date: shortDate(r.settled_on) }) : null}
+      />
+    ) : r.settled_on ? (
+      <Chip tone="green">{t("crew.finSettledOn", { date: shortDate(r.settled_on) })}</Chip>
+    ) : (
+      <Chip>{t("crew.finUnsettledBadge")}</Chip>
+    );
 
-  return (
-    <div className="overflow-hidden rounded-[14px] border border-line bg-card">
-      {/* 묶인 줄을 누르면 안에 든 거래를 그대로 펼쳐 보여 준다 — 체크를 끄지 않고도
-          누가·얼마를 확인하고 바로 고치거나 지울 수 있어야 한다. */}
-      <Dialog
-        open={!!openGroup}
-        onClose={() => setOpenKey(null)}
-        label={openGroup ? groupTitle(openGroup) : ""}
-        closeLabel={t("common.close")}
-        variant="center"
-        panelClassName="max-w-lg rounded-2xl border border-line bg-card text-foreground"
-      >
-        {openGroup && (
-          <div className="px-5 py-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="text-[15px] font-extrabold">{groupTitle(openGroup)}</h3>
-              <span
-                className={`tabular text-sm font-bold ${
-                  openGroup.rows[0].kind === "income" ? "text-income" : "text-expense"
-                }`}
-              >
-                {openGroup.rows[0].kind === "income" ? "+" : "−"}
-                {won(openGroup.amount)}
+  const tableRows = items.map((it) =>
+    it.type === "group"
+      ? [
+          <span key="d" className="rx-finance-date">
+            {it.date.slice(5).replace("-", ".")}
+          </span>,
+          <div key="e" className="rx-finance-entry">
+            <b>{groupTitle(it)}</b>
+            <div>
+              {kindChip(it.rows[0].kind)}
+              <span>
+                {t(
+                  isDuesCategory(it.rows[0].category) || it.rows[0].dues_group ? "crew.finGroupOf" : "crew.finGroupOfN",
+                  { n: it.rows.length },
+                )}
               </span>
-            </div>
-            <p className="mt-0.5 text-xs text-muted">
-              {fullDate(openGroup.date)} ·{" "}
-              {t(
-                isDuesCategory(openGroup.rows[0].category) || openGroup.rows[0].dues_group
-                  ? "crew.finGroupOf"
-                  : "crew.finGroupOfN",
-                { n: openGroup.rows.length },
-              )}
-            </p>
-
-            <ul className="mt-3 flex max-h-[55vh] flex-col gap-1.5 overflow-y-auto">
-              {openGroup.rows.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg bg-inset px-3 py-2"
-                >
-                  {/* 회비 행 제목은 "<청구 이름> — <회원 이름>" 이라 뒷부분이 사람이다.
-                      묶음 제목이 앞부분을 이미 말하고 있으니 여기선 뒤만 남긴다. */}
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">
-                    {r.title.includes(" — ") ? r.title.split(" — ").slice(1).join(" — ") : r.title}
-                  </span>
-                  <span
-                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                      r.settled_on ? "bg-success-bg text-success" : "bg-label-bg text-label"
-                    }`}
-                  >
-                    {r.settled_on
-                      ? t("crew.finSettledOn", { date: shortDate(r.settled_on) })
-                      : t("crew.finUnsettledBadge")}
-                  </span>
-                  <span className="tabular shrink-0 text-[13px] font-bold">{won(r.amount)}</span>
-                  {/* 묶음 안에서 바로 고친다 — 접힌 줄 하나가 사람 21명이라
-                      "펴서 보기"로 돌아가 그 사람을 다시 찾게 하면 손이 너무 많이 간다.
-                      ⋯ 메뉴 대신 아이콘을 쓰는 건 목록이 스크롤되기 때문이다(잘린다). */}
-                  {isStaff && !closed && (
-                    <span className="flex shrink-0 items-center gap-1 self-center">
-                      <CrewLedgerForm crewId={crewId} today={today} entry={r} trigger="icon" />
-                      <CrewLedgerDelete id={r.id} />
-                    </span>
-                  )}
-                  {r.memo && (
-                    <span className="w-full truncate text-[11px] text-muted-3">{r.memo}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setOpenKey(null)}
-                className="rounded-lg bg-control px-4 py-1.5 text-xs font-semibold"
-              >
-                {t("common.close")}
-              </button>
-            </div>
-          </div>
-        )}
-      </Dialog>
-
-      <div className="flex flex-wrap items-center gap-2.5 border-b border-line px-[18px] py-3.5">
-        <div className="flex flex-wrap gap-1 rounded-full border border-line-mid bg-page p-[3px]">
-          {seg("all", t("crew.finKindAll"), rows.length)}
-          {seg("income", t("crew.finKindIncome"), rows.filter((r) => r.kind === "income").length)}
-          {seg("expense", t("crew.finKindExpense"), rows.filter((r) => r.kind === "expense").length)}
-        </div>
-        {hasGroups && (
-          <label className="flex cursor-pointer items-center gap-1.5 text-[13px] text-muted hover:text-foreground">
-            <input
-              type="checkbox"
-              checked={grouped}
-              onChange={(e) => setGrouped(e.target.checked)}
-              className="h-4 w-4 cursor-pointer accent-accent"
-            />
-            {t("crew.finGroupDues")}
-          </label>
-        )}
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          size={1}
-          placeholder={t("crew.finSearch")}
-          className="ml-auto h-[34px] w-[180px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-accent-line"
-        />
-      </div>
-
-      <div
-        className={`hidden ${cols} border-b border-line-soft px-[18px] py-2 text-[11px] font-bold tracking-[0.06em] text-muted-3 sm:grid`}
-      >
-        <span>{t("crew.finColDate")}</span>
-        <span>{t("crew.finColDesc")}</span>
-        <span className="text-right">{t("crew.finColAmount")}</span>
-        <span />
-      </div>
-
-      {items.map((it) =>
-        it.type === "group" ? (
-          <button
-            key={it.key}
-            type="button"
-            onClick={() => setOpenKey(it.key)}
-            aria-label={t("crew.finGroupOpen", { title: groupTitle(it) })}
-            className={`${cols} w-full border-b border-line-soft px-[18px] py-2.5 text-left hover:bg-card-hover`}
-          >
-            <span className="flex shrink-0 items-baseline gap-1 sm:flex-col sm:gap-0">
-              <strong className="tabular text-sm font-extrabold">{day(it.date)}</strong>
-              <span className="text-xs text-muted-3">{weekday(it.date)}</span>
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold">{groupTitle(it)}</span>
-              <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-3">
-                <span
-                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${categoryBadgeClass(
-                    it.rows[0].kind,
-                    it.rows[0].category ?? (it.rows[0].dues_group ? "dues_monthly" : null),
-                  )}`}
-                >
-                  {it.rows[0].kind === "income"
-                    ? t("crew.finKindIncome")
-                    : t("crew.finKindExpense")}
-                </span>
-                <span>
-                  {t(
-                    isDuesCategory(it.rows[0].category) || it.rows[0].dues_group
-                      ? "crew.finGroupOf"
-                      : "crew.finGroupOfN",
-                    { n: it.rows.length },
-                  )}
-                </span>
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-1.5 sm:contents">
-              {/* 잔액은 적지 않는다 — 회차 행들 사이에 다른 거래가 끼어 있을 수 있어
-                  (회원 한 명씩 월회비→회차비 순으로 확정하면 실제로 그렇다) 한 줄에
-                  걸어 둘 "이 시점의 잔액"이라는 게 없다. 낱개로 펴면 행마다 보인다. */}
-              <span className="text-right sm:block">
-                <span
-                  className={`tabular block text-sm font-bold ${
-                    it.rows[0].kind === "income" ? "text-income" : "text-expense"
-                  }`}
-                >
-                  {it.rows[0].kind === "income" ? "+" : "−"}
-                  {won(it.amount)}
-                </span>
-                <span className="block text-[11px] text-muted-3">{t("crew.finGroupNoBalance")}</span>
-              </span>
-              <span aria-hidden className="hidden text-right text-[11px] text-muted-3 sm:block">
+              <Button variant="ghost" size="sm" type="button" onClick={() => setOpenKey(it.key)} aria-label={t("crew.finGroupOpen", { title: groupTitle(it) })}>
                 ›
-              </span>
-            </span>
-          </button>
-        ) : (
-        <div key={it.row.id} className={`${cols} border-b border-line-soft px-[18px] py-2.5 hover:bg-card-hover`}>
-          <span className="flex shrink-0 items-baseline gap-1 sm:flex-col sm:gap-0">
-            <strong className="tabular text-sm font-extrabold">{day(it.row.entry_date)}</strong>
-            <span className="text-xs text-muted-3">{weekday(it.row.entry_date)}</span>
-          </span>
-
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">
-              {it.row.source === "dues" ? t("crew.duesEntry", { detail: it.row.title }) : it.row.title}
-            </span>
-            <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-3">
-              {/* 분류 배지 — 고른 값이 있으면 그걸, 없으면 회비/수입/지출로 떨어진다.
-                  회비 확정으로 생긴 행은 category 가 비어 있어도 회비다. */}
-              <span
-                className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${categoryBadgeClass(
-                  it.row.kind,
-                  it.row.category ?? (it.row.source === "dues" ? "dues" : null),
-                )}`}
-              >
+              </Button>
+            </div>
+          </div>,
+          <strong key="a" className={it.rows[0].kind === "income" ? "rx-income" : "rx-expense"}>
+            {it.rows[0].kind === "income" ? "+" : "−"}
+            {won(it.amount)}
+            <small className="rx-block rx-muted">{t("crew.finGroupNoBalance")}</small>
+          </strong>,
+        ]
+      : [
+          <span key="d" className="rx-finance-date">
+            {it.row.entry_date.slice(5).replace("-", ".")}
+          </span>,
+          <div key="e" className="rx-finance-entry">
+            <b>{it.row.source === "dues" ? t("crew.duesEntry", { detail: it.row.title }) : it.row.title}</b>
+            <div>
+              {kindChip(it.row.kind)}
+              <span>
                 {it.row.category
                   ? t(categoryDictKey(it.row.category))
                   : it.row.source === "dues"
                     ? t("crew.finBadgeDues")
-                    : t(it.row.kind === "income" ? "crew.finKindIncome" : "crew.finKindExpense")}
+                    : t("crew.finCatNone")}
               </span>
-              {it.row.method && (
-                <span className="shrink-0 rounded bg-line px-1.5 py-0.5 text-[10px] font-bold text-foreground/75">
-                  {t(`crew.finMethod.${it.row.method}` as DictKey)}
-                </span>
-              )}
-              {isStaff ? (
-                <CrewLedgerSettle
-                  id={it.row.id}
-                  entryDate={it.row.entry_date}
-                  settledOn={it.row.settled_on}
-                  label={
-                    it.row.settled_on ? t("crew.finSettledOn", { date: shortDate(it.row.settled_on) }) : null
-                  }
-                />
-              ) : (
-                <span
-                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                    it.row.settled_on ? "bg-success-bg text-success" : "bg-label-bg text-label"
-                  }`}
-                >
-                  {it.row.settled_on
-                    ? t("crew.finSettledOn", { date: shortDate(it.row.settled_on) })
-                    : t("crew.finUnsettledBadge")}
-                </span>
-              )}
-              {it.row.memo && <span className="min-w-0 truncate">{it.row.memo}</span>}
-            </span>
-          </span>
-
-          <span className="flex shrink-0 items-center gap-1.5 sm:contents">
-            <span className="text-right sm:block">
-              <span
-                className={`tabular block text-sm font-bold ${
-                  it.row.kind === "income" ? "text-income" : "text-expense"
-                }`}
-              >
-                {it.row.kind === "income" ? "+" : "−"}
-                {won(it.row.amount)}
-              </span>
-              <span className="tabular block text-[11px] text-muted-3">{won(it.row.balance)}</span>
-            </span>
-            {isStaff && !closed ? (
+              {it.row.method && <span>{t(`crew.finMethod.${it.row.method}` as DictKey)}</span>}
+              {settledChip(it.row)}
+            </div>
+            {it.row.memo && <p>{it.row.memo}</p>}
+          </div>,
+          <span key="a" className="rx-actions" style={{ flexWrap: "nowrap", justifyContent: "flex-end" }}>
+            <strong className={it.row.kind === "income" ? "rx-income" : "rx-expense"}>
+              {it.row.kind === "income" ? "+" : "−"}
+              {won(it.row.amount)}
+              <small className="rx-block rx-muted">{won(it.row.balance)}</small>
+            </strong>
+            {isStaff && !closed && (
               <RowMenu label={t("crew.finRowMenu", { title: it.row.title })}>
                 <CrewLedgerForm crewId={crewId} today={today} entry={it.row} trigger="menu" />
-                <CrewLedgerDelete id={it.row.id} variant="menu" />
+                <CrewLedgerDelete id={it.row.id} />
               </RowMenu>
-            ) : (
-              <span className="hidden sm:block" />
             )}
-          </span>
+          </span>,
+        ],
+  );
+
+  return (
+    <Panel title={t("crew.finLedgerTitle")} action={<span className="rx-muted">{t("crew.finItemsN", { n: shown.length })}</span>}>
+      <RoxDialog
+        open={!!openGroup}
+        onOpenChange={(v) => !v && setOpenKey(null)}
+        title={openGroup ? groupTitle(openGroup) : ""}
+        description={
+          openGroup
+            ? `${fullDate(openGroup.date)} · ${t(
+                isDuesCategory(openGroup.rows[0].category) || openGroup.rows[0].dues_group
+                  ? "crew.finGroupOf"
+                  : "crew.finGroupOfN",
+                { n: openGroup.rows.length },
+              )}`
+            : undefined
+        }
+      >
+        {openGroup && (
+          <DataTable
+            headers={[t("crew.finColDesc"), t("crew.finSettledLabel"), t("crew.finAmount")]}
+            rows={openGroup.rows.map((r) => [
+              <span key="t">{r.title.includes(" — ") ? r.title.split(" — ").slice(1).join(" — ") : r.title}</span>,
+              <span key="s">{settledChip(r)}</span>,
+              <span key="a" className="rx-actions" style={{ flexWrap: "nowrap", justifyContent: "flex-end" }}>
+                <strong className="rx-number">{won(r.amount)}</strong>
+                {isStaff && !closed && (
+                  <>
+                    <CrewLedgerForm crewId={crewId} today={today} entry={r} trigger="icon" />
+                    <CrewLedgerDelete id={r.id} />
+                  </>
+                )}
+              </span>,
+            ])}
+          />
+        )}
+      </RoxDialog>
+
+      <div className="rx-toolbar">
+        <Find value={query} onChange={setQuery} placeholder={t("crew.finSearch")} />
+        <div className="rx-actions">
+          {hasGroups && (
+            <label className="rx-check" style={{ margin: 0 }}>
+              <Checkbox checked={grouped} onCheckedChange={(v) => setGrouped(v === true)} />
+              {t("crew.finGroupDues")}
+            </label>
+          )}
+          <Choice
+            label={t("crew.finKindAll")}
+            value={kind}
+            onChange={(v) => setKind(v as typeof kind)}
+            options={[
+              ["all", t("crew.finKindAll")],
+              ["income", t("crew.finKindIncome")],
+              ["expense", t("crew.finKindExpense")],
+            ]}
+          />
         </div>
-        ),
+      </div>
+      {tableRows.length ? (
+        <DataTable headers={[t("crew.finColDate"), t("crew.finColDesc"), t("crew.finAmount")]} rows={tableRows} />
+      ) : (
+        <Empty title={t(rows.length ? "crew.finFilterEmpty" : "crew.finEmpty")} description={t("crew.finSearch")} />
       )}
-
-      {shown.length === 0 && (
-        <p className="px-[18px] py-10 text-center text-[13px] text-muted-3">
-          {t(rows.length ? "crew.finFilterEmpty" : "crew.finEmpty")}
-        </p>
-      )}
-
       {rows.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-inset px-[18px] py-3 text-xs text-muted-3">
-          <span>
-            {monthLabel} · {t("crew.finKindIncome")}{" "}
-            <strong className="tabular text-income">+{won(income)}</strong> ·{" "}
-            {t("crew.finKindExpense")} <strong className="tabular text-expense">−{won(expense)}</strong>
-          </span>
-          <span>
-            {t("crew.finMonthEndBalance")}{" "}
-            <strong className="tabular text-foreground">{won(monthEnd)}</strong>
-          </span>
+        <div className="rx-finance-ledger-total">
+          <span>{t("crew.finLedgerTotal", { period: monthLabel })}</span>
+          <strong className={net >= 0 ? "rx-income" : "rx-expense"}>
+            {net >= 0 ? "+" : "−"}
+            {won(net)}
+          </strong>
         </div>
       )}
-    </div>
+      <Hint>
+        {t("crew.finKindIncome")} +{won(income)} · {t("crew.finKindExpense")} −{won(expense)} · {t("crew.finMonthEndBalance")}{" "}
+        {won(rows[0]?.balance ?? 0)}
+      </Hint>
+    </Panel>
   );
 }

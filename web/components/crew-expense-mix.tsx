@@ -1,18 +1,23 @@
 import { getT } from "@/lib/i18n";
-import {
-  EXPENSE_BAR_COLORS,
-  categoryDictKey,
-  LEDGER_CATEGORIES,
-} from "@/lib/ledger-category";
+import { EXPENSE_BAR_COLORS, categoryDictKey, LEDGER_CATEGORIES } from "@/lib/ledger-category";
+import { won } from "@/lib/won";
+import { Panel } from "@/components/rox/ui";
 
-const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
+/** 지출 구성 색 — 시안 SpendingMix 의 5색(CSS 변수 대신 hex, 범례 사각과 바가 같은 값) */
+const TONES: Record<string, string> = {
+  venue: "#8297cf",
+  snack: "#d2bd44",
+  gear: "#63a090",
+  race: "#bb7055",
+  other: "#69727f",
+  none: "#b7c0c9",
+};
 
 /**
- * 이 달 지출 구성 (디자인 시안 §2-b).
+ * 이 달 지출 구성 — 시안 finance.tsx SpendingMix 그대로 (Panel.rx-finance-mix · .rx-finance-mix-bar · ul).
  *
  * 분류별 합계를 한 줄 바로 쌓고 범례에 이름·금액을 적는다 — 색만으로 구분하지 않는다.
  * 순서는 `LEDGER_CATEGORIES` 고정이라 달이 바뀌어도 같은 분류가 같은 색을 쓴다.
- * 지출이 없으면 카드 자체를 그리지 않는다(빈 바는 정보가 없다).
  */
 export async function CrewExpenseMix({
   rows,
@@ -24,7 +29,6 @@ export async function CrewExpenseMix({
   const { t } = await getT();
   const expenses = rows.filter((r) => r.kind === "expense");
   const total = expenses.reduce((a, r) => a + r.amount, 0);
-  if (total === 0) return null;
 
   const sums = new Map<string, number>();
   for (const r of expenses) {
@@ -37,37 +41,35 @@ export async function CrewExpenseMix({
     .filter((p) => p.amount > 0);
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
-      <p className="text-[11px] font-extrabold tracking-[0.08em] text-muted-3">
-        {t("crew.finExpenseMix", { period: periodLabel })}
-      </p>
-      <span className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-line-soft">
-        {parts.map((p) => (
-          <span
-            key={p.key}
-            className="h-full"
-            style={{
-              width: `${(p.amount / total) * 100}%`,
-              background: EXPENSE_BAR_COLORS[p.key],
-            }}
-          />
-        ))}
-      </span>
-      <ul className="flex flex-col gap-1 text-xs">
-        {parts.map((p) => (
-          <li key={p.key} className="flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className="h-2 w-2 shrink-0 rounded-[2px]"
-              style={{ background: EXPENSE_BAR_COLORS[p.key] }}
-            />
-            <span className="min-w-0 truncate text-muted">
-              {p.key === "none" ? t("crew.finCatNone") : t(categoryDictKey(p.key))}
-            </span>
-            <span className="tabular ml-auto shrink-0 font-semibold">{won(p.amount)}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Panel title={t("crew.finExpenseMix", { period: periodLabel })} className="rx-finance-mix">
+      {total > 0 ? (
+        <>
+          <div className="rx-finance-mix-bar" aria-hidden="true">
+            {parts.map((p) => (
+              <span
+                key={p.key}
+                style={{
+                  width: `${(p.amount / total) * 100}%`,
+                  background: TONES[p.key] ?? EXPENSE_BAR_COLORS[p.key],
+                }}
+              />
+            ))}
+          </div>
+          <ul>
+            {parts.map((p) => (
+              <li key={p.key}>
+                <span>
+                  <i style={{ background: TONES[p.key] ?? EXPENSE_BAR_COLORS[p.key] }} />
+                  {p.key === "none" ? t("crew.finCatNone") : t(categoryDictKey(p.key))}
+                </span>
+                <strong>{won(p.amount)}</strong>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p>{t("crew.finEmpty")}</p>
+      )}
+    </Panel>
   );
 }

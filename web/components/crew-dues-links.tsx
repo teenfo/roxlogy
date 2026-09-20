@@ -2,8 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { won } from "@/lib/won";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Chip, DataTable, Field, Hint, Panel, Segments } from "@/components/rox/ui";
 
 export type DuesAudience = "all" | "member" | "associate";
 
@@ -15,20 +20,15 @@ export type DuesLink = {
   audience: DuesAudience;
 };
 
-const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 // url 은 선택 — 비어 있거나 http(s) 여야 한다
 const urlOk = (v: string) => v.trim() === "" || /^https?:\/\//i.test(v.trim());
 
-/** 회비 납부 링크 관리 — 스태프 전용. 카카오페이 송금 링크 등을 명칭과 함께
- *  여러 개 등록하고, 링크마다 표시 대상(전체/정회원/일반회원)을 지정한다.
- *  소개 탭에서는 RLS 가 본인 등급에 해당하는 링크만 내려준다. */
-export function CrewDuesLinksManage({
-  crewId,
-  items,
-}: {
-  crewId: string;
-  items: DuesLink[];
-}) {
+/**
+ * 회비 납부 링크 관리 — 스태프 전용. 시안에 없는 우리 기능이라 Panel + DataTable + Field 로만 그린다(§4).
+ * 카카오페이 송금 링크 등을 명칭과 함께 여러 개 등록하고, 링크마다 표시 대상(전체/정회원/일반회원)을
+ * 지정한다. 소개 탭에서는 RLS 가 본인 등급에 해당하는 링크만 내려준다.
+ */
+export function CrewDuesLinksManage({ crewId, items }: { crewId: string; items: DuesLink[] }) {
   const { t } = useI18n();
   const router = useRouter();
   const [label, setLabel] = useState("");
@@ -48,11 +48,6 @@ export function CrewDuesLinksManage({
     all: t("crew.duesAudAll"),
     member: t("crew.duesAudMember"),
     associate: t("crew.duesAudAssociate"),
-  };
-  const audBadge: Record<DuesAudience, string> = {
-    all: "bg-background text-muted",
-    member: "bg-track/15 text-track",
-    associate: "bg-accent/15 text-gold",
   };
 
   const parseAmount = (v: string) => {
@@ -74,10 +69,7 @@ export function CrewDuesLinksManage({
       audience,
     });
     setBusy(false);
-    if (error) {
-      setErr(error.message);
-      return;
-    }
+    if (error) return setErr(error.message);
     setLabel("");
     setUrl("");
     setAmount("");
@@ -110,10 +102,7 @@ export function CrewDuesLinksManage({
       })
       .eq("id", editId);
     setBusy(false);
-    if (error) {
-      setErr(error.message);
-      return;
-    }
+    if (error) return setErr(error.message);
     setEditId(null);
     router.refresh();
   }
@@ -127,16 +116,7 @@ export function CrewDuesLinksManage({
     router.refresh();
   }
 
-  const field =
-    "h-[38px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line";
-  const pill = (on: boolean) =>
-    `h-7 rounded-full px-2.5 text-xs font-bold ${
-      on ? "bg-accent text-accent-foreground" : "border border-line-strong bg-control text-muted hover:text-foreground"
-    }`;
-  const iconBtn =
-    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line-strong text-xs disabled:opacity-40";
-
-  /** 추가·수정이 같은 칸을 쓴다 — 수정은 행이 폼으로 바뀐다 */
+  /** 추가·수정이 같은 칸을 쓴다 — 수정은 표 아래 같은 폼으로 열린다 */
   const fields = (
     v: { label: string; url: string; amount: string; audience: DuesAudience },
     on: {
@@ -147,175 +127,108 @@ export function CrewDuesLinksManage({
     },
   ) => (
     <>
-      <input
-        className={field}
-        value={v.label}
-        onChange={(e) => on.label(e.target.value)}
-        placeholder={t("crew.duesLabelPh")}
-        maxLength={60}
-        aria-label={t("crew.duesLabelPh")}
-      />
-      <div className="grid grid-cols-[minmax(0,1fr)_110px] gap-2">
-        <input
-          className={field}
-          value={v.url}
-          onChange={(e) => on.url(e.target.value)}
-          placeholder={t("crew.duesUrlPh")}
-          maxLength={500}
-          inputMode="url"
-          aria-label={t("crew.duesUrlPh")}
+      <div className="rx-form-grid">
+        <Field label={t("crew.duesLabelPh")}>
+          <Input value={v.label} onChange={(e) => on.label(e.target.value)} maxLength={60} />
+        </Field>
+        <Field label={`${t("crew.duesAmountPh")} (₩)`}>
+          <Input value={v.amount} onChange={(e) => on.amount(e.target.value)} inputMode="numeric" />
+        </Field>
+      </div>
+      <Field label={t("crew.duesUrlPh")}>
+        <Input value={v.url} onChange={(e) => on.url(e.target.value)} maxLength={500} inputMode="url" placeholder="https://" />
+      </Field>
+      <Field label={t("crew.duesAudience")}>
+        <Segments
+          label={t("crew.duesAudience")}
+          value={v.audience}
+          onChange={(x) => on.audience(x as DuesAudience)}
+          options={(["all", "member", "associate"] as const).map((a) => [a, audLabel[a]] as [string, string])}
         />
-        <span className="flex h-[38px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-accent-line">
-          <span aria-hidden className="px-2 text-xs text-muted-3">
-            ₩
-          </span>
-          <input
-            className="tabular h-full min-w-0 flex-1 border-0 bg-transparent pr-2.5 text-right text-sm outline-none"
-            value={v.amount}
-            onChange={(e) => on.amount(e.target.value)}
-            placeholder={t("crew.duesAmountPh")}
-            inputMode="numeric"
-            aria-label={t("crew.duesAmountPh")}
-          />
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-muted">{t("crew.duesAudience")}</span>
-        {(["all", "member", "associate"] as const).map((a) => (
-          <button
-            key={a}
-            type="button"
-            aria-pressed={v.audience === a}
-            onClick={() => on.audience(a)}
-            className={pill(v.audience === a)}
-          >
-            {audLabel[a]}
-          </button>
-        ))}
-      </div>
+      </Field>
     </>
   );
 
+  const editing = items.find((l) => l.id === editId) ?? null;
+
   return (
-    <div className="overflow-hidden rounded-[14px] border border-line bg-card">
-      <div className="border-b border-line px-[18px] py-3.5">
-        <p className="text-[15px] font-extrabold">{t("crew.duesTitle")}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted-3">{t("crew.duesHint")}</p>
-      </div>
-
-      <div className="flex flex-col">
-        {items.map((l) =>
-          editId === l.id ? (
-            <form
-              key={l.id}
-              onSubmit={saveEdit}
-              className="flex flex-col gap-2.5 border-b border-line-soft bg-inset px-[18px] py-3.5"
-            >
-              {fields(
-                { label: eLabel, url: eUrl, amount: eAmount, audience: eAudience },
-                { label: setELabel, url: setEUrl, amount: setEAmount, audience: setEAudience },
+    <Panel title={t("crew.duesTitle")}>
+      <p>{t("crew.duesHint")}</p>
+      {items.length ? (
+        <DataTable
+          headers={[t("crew.duesLinkCol"), t("crew.duesAudience"), t("crew.finAmount"), ""]}
+          rows={items.map((l) => [
+            <span key="l">
+              <b>{l.label}</b>
+              {l.url ? (
+                <small className="rx-block rx-muted">
+                  <a href={l.url} target="_blank" rel="noreferrer noopener">
+                    {l.url}
+                  </a>
+                </small>
+              ) : (
+                <small className="rx-block rx-muted">{t("crew.duesNoLink")}</small>
               )}
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={busy || !eLabel.trim() || !urlOk(eUrl)}
-                  className="h-9 rounded-lg bg-accent px-4 text-xs font-extrabold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-                >
-                  {t("common.save")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditId(null)}
-                  className="h-9 px-2 text-xs text-muted hover:text-foreground"
-                >
-                  {t("common.cancel")}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div
-              key={l.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-line-soft px-[18px] py-3"
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-sm font-bold">{l.label}</span>
-                  {l.amount != null && (
-                    <span className="tabular text-[13px] font-bold text-gold">
-                      {won(l.amount)}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-[3px] flex min-w-0 items-center gap-2 text-xs text-muted-3">
-                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${audBadge[l.audience]}`}>
-                    {audLabel[l.audience]}
-                  </span>
-                  {l.url ? (
-                    <a
-                      href={l.url}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="truncate hover:text-gold hover:underline"
-                    >
-                      {l.url}
-                    </a>
-                  ) : (
-                    <span className="truncate">{t("crew.duesNoLink")}</span>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => startEdit(l)}
-                  disabled={busy}
-                  aria-label={t("common.edit")}
-                  className={`${iconBtn} text-foreground-2 hover:border-line-strong`}
-                >
-                  ✎
-                </button>
-                <button
-                  type="button"
-                  onClick={() => del(l.id)}
-                  disabled={busy}
-                  aria-label={t("common.delete")}
-                  className={`${iconBtn} text-danger hover:bg-danger-card`}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ),
-        )}
-        {items.length === 0 && (
-          <p className="px-[18px] py-6 text-center text-[13px] text-muted-3">
-            {t("crew.duesLinksEmpty")}
-          </p>
-        )}
-      </div>
+            </span>,
+            <Chip key="a" tone={l.audience === "member" ? "blue" : l.audience === "associate" ? "yellow" : "neutral"}>
+              {audLabel[l.audience]}
+            </Chip>,
+            <strong key="m" className="rx-number">
+              {l.amount != null ? won(l.amount) : "—"}
+            </strong>,
+            <span key="x" className="rx-actions" style={{ flexWrap: "nowrap", justifyContent: "flex-end" }}>
+              <Button variant="ghost" size="sm" type="button" disabled={busy} onClick={() => startEdit(l)}>
+                {t("common.edit")}
+              </Button>
+              <Button variant="ghost" size="sm" type="button" disabled={busy} onClick={() => del(l.id)}>
+                {t("common.delete")}
+              </Button>
+            </span>,
+          ])}
+        />
+      ) : (
+        <Hint>{t("crew.duesLinksEmpty")}</Hint>
+      )}
 
-      <form
-        onSubmit={add}
-        className="flex flex-col gap-2.5 border-t border-line bg-inset px-[18px] py-4"
-      >
-        <p className="text-xs font-bold text-muted">{t("crew.newLink")}</p>
-        {fields(
-          { label, url, amount, audience },
-          { label: setLabel, url: setUrl, amount: setAmount, audience: setAudience },
-        )}
-        {err && (
-          <p role="alert" className="text-xs text-danger">
-            {err}
-          </p>
-        )}
-        <button
-          type="submit"
-          disabled={busy || !label.trim() || !urlOk(url)}
-          className="h-[38px] self-start rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-        >
-          + {t("crew.duesAdd")}
-        </button>
-      </form>
-    </div>
+      {editing ? (
+        <form onSubmit={saveEdit} style={{ marginTop: 20 }}>
+          <div className="rx-section-label">{t("common.edit")} · {editing.label}</div>
+          {fields(
+            { label: eLabel, url: eUrl, amount: eAmount, audience: eAudience },
+            { label: setELabel, url: setEUrl, amount: setEAmount, audience: setEAudience },
+          )}
+          {err && (
+            <p role="alert" className="rx-error">
+              {err}
+            </p>
+          )}
+          <div className="rx-actions">
+            <Button type="submit" className="rx-primary" disabled={busy || !eLabel.trim() || !urlOk(eUrl)}>
+              {t("common.save")}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setEditId(null)}>
+              {t("common.cancel")}
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <form onSubmit={add} style={{ marginTop: 20 }}>
+          <div className="rx-section-label">{t("crew.newLink")}</div>
+          {fields(
+            { label, url, amount, audience },
+            { label: setLabel, url: setUrl, amount: setAmount, audience: setAudience },
+          )}
+          {err && (
+            <p role="alert" className="rx-error">
+              {err}
+            </p>
+          )}
+          <Button type="submit" variant="outline" disabled={busy || !label.trim() || !urlOk(url)}>
+            <Plus size={15} />
+            {t("crew.duesAdd")}
+          </Button>
+        </form>
+      )}
+    </Panel>
   );
 }

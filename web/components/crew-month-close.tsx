@@ -2,8 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/rox/ui";
 
 /**
  * 월 마감 — 그 달의 회비 청구와 장부를 잠근다.
@@ -36,11 +39,8 @@ export function CrewMonthClose({
   const [err, setErr] = useState<string | null>(null);
 
   async function close() {
-    const warn = unpaidCount
-      ? `${t("crew.finCloseUnpaid", { n: unpaidCount })}\n\n`
-      : "";
-    if (!window.confirm(warn + t("crew.finCloseConfirm", { period: periodLabel })))
-      return;
+    const warn = unpaidCount ? `${t("crew.finCloseUnpaid", { n: unpaidCount })}\n\n` : "";
+    if (!window.confirm(warn + t("crew.finCloseConfirm", { period: periodLabel }))) return;
     setBusy(true);
     setErr(null);
     const supabase = createClient();
@@ -56,8 +56,7 @@ export function CrewMonthClose({
   }
 
   async function reopen() {
-    if (!window.confirm(t("crew.finReopenConfirm", { period: periodLabel })))
-      return;
+    if (!window.confirm(t("crew.finReopenConfirm", { period: periodLabel }))) return;
     setBusy(true);
     setErr(null);
     const { error } = await createClient()
@@ -71,23 +70,19 @@ export function CrewMonthClose({
   }
 
   return (
-    <span className="flex items-center gap-2">
+    <>
       {closedOn && (
-        <span className="flex h-9 shrink-0 items-center rounded-[10px] bg-label-bg px-2.5 text-xs font-bold text-label">
-          🔒 {t("crew.finClosedBadge")}
-        </span>
+        <Chip>
+          <Lock size={12} />
+          {t("crew.finClosedBadge")}
+        </Chip>
       )}
       {canEdit && (
-        <button
-          type="button"
-          onClick={closedOn ? reopen : close}
-          disabled={busy}
-          className="flex h-9 shrink-0 items-center rounded-[10px] border border-line-strong bg-control px-3 text-sm font-semibold transition-colors hover:border-line-strong disabled:opacity-40"
-        >
+        <Button variant="outline" type="button" onClick={closedOn ? reopen : close} disabled={busy}>
           {busy ? "…" : closedOn ? t("crew.finReopen") : t("crew.finClose")}
-        </button>
+        </Button>
       )}
-      {err && <span className="text-xs text-danger">{err}</span>}
-    </span>
+      {err && <span className="rx-error">{err}</span>}
+    </>
   );
 }

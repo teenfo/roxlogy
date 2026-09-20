@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
+/** 게시글 댓글 입력 — 시안 crew.tsx CrewBoard 의 댓글 줄(.rx-actions Input + Button) 그대로 */
 export function CrewCommentForm({ postId }: { postId: string }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -36,25 +39,24 @@ export function CrewCommentForm({ postId }: { postId: string }) {
   }
 
   return (
-    <>
-    <form onSubmit={submit} className="mt-4 flex gap-2">
-      <input
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder={t("crew.commentPlaceholder")}
-        maxLength={500}
-        size={1}
-        className="h-[42px] min-w-0 flex-1 rounded-[10px] border border-line-strong bg-card px-3 text-sm outline-none transition-colors placeholder:text-muted-3 focus:border-focus max-md:h-12"
-      />
-      <button
-        type="submit"
-        disabled={busy || !body.trim()}
-        className="h-[42px] shrink-0 rounded-[10px] border border-line-strong bg-card px-4 text-sm font-semibold transition hover:bg-card-hover disabled:opacity-50 max-md:h-12"
-      >
-        {t("crew.commentSubmit")}
-      </button>
+    <form onSubmit={submit}>
+      <div className="rx-actions">
+        <Input
+          aria-label={t("crew.commentPlaceholder")}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder={t("crew.commentPlaceholder")}
+          maxLength={500}
+        />
+        <Button type="submit" disabled={busy || !body.trim()}>
+          {t("crew.commentSubmit")}
+        </Button>
+      </div>
+      {err && (
+        <p role="alert" className="rx-error">
+          {err}
+        </p>
+      )}
     </form>
-    {err && <p role="alert" className="mt-1 text-xs text-danger">{err}</p>}
-    </>
   );
 }

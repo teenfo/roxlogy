@@ -4,10 +4,19 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Choice, Field, Hint, Panel } from "@/components/rox/ui";
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
 
-/** 새 크루 생성 — pending 으로 생성되고 관리자 승인 후 공개된다. */
+/**
+ * 새 크루 생성 — 시안 crew.tsx Crews(create) 그대로 (PORT_PLAN §3-e):
+ * form > Panel "크루 기본 정보"[ .rx-form-grid(이름·주소·활동 지역·가입 방식) · 소개 Textarea · 버튼 ].
+ * pending 으로 생성되고 관리자 승인 후 공개된다.
+ */
 export function CrewCreateForm() {
   const { t } = useI18n();
   const router = useRouter();
@@ -53,9 +62,7 @@ export function CrewCreateForm() {
       .select("id, slug")
       .single();
     if (error || !crew) {
-      setErr(
-        error?.code === "23505" ? t("crew.slugTaken") : (error?.message ?? "error"),
-      );
+      setErr(error?.code === "23505" ? t("crew.slugTaken") : (error?.message ?? "error"));
       setBusy(false);
       return;
     }
@@ -70,101 +77,63 @@ export function CrewCreateForm() {
     router.refresh();
   }
 
-  const input =
-    "w-full rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
-  const label = "mt-4 block text-xs text-muted";
-
   return (
-    <form onSubmit={submit} className="mt-6">
-      <label className={label}>{t("crew.fName")}</label>
-      <input
-        className={input}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        maxLength={40}
-        required
-      />
-
-      <label className={label}>{t("crew.fSlug")}</label>
-      <input
-        className={input}
-        value={slug}
-        onChange={(e) => setSlug(e.target.value.toLowerCase().trim())}
-        placeholder="my-crew"
-        maxLength={30}
-        required
-      />
-      {slug && !slugOk && (
-        <p className="mt-1 text-xs text-danger">{t("crew.slugHint")}</p>
-      )}
-
-      <label className={label}>{t("crew.fTagline")}</label>
-      <input
-        className={input}
-        value={tagline}
-        onChange={(e) => setTagline(e.target.value)}
-        maxLength={60}
-      />
-
-      <label className={label}>{t("crew.fDesc")}</label>
-      <textarea
-        className={`${input} min-h-24`}
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        maxLength={2000}
-      />
-
-      <label className={label}>{t("crew.fLocation")}</label>
-      <input
-        className={input}
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        maxLength={60}
-      />
-
-      <label className={label}>{t("crew.fPolicy")}</label>
-      <div className="mt-1 flex gap-2">
-        {(
-          [
-            ["open", t("crew.policyOpen")],
-            ["approval", t("crew.policyApproval")],
-            ["invite", t("crew.policyInvite")],
-          ] as const
-        ).map(([v, lbl]) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setJoinPolicy(v)}
-            className={`rounded-full px-3 py-1.5 text-xs ${
-              joinPolicy === v
-                ? "bg-accent font-bold text-accent-foreground"
-                : "bg-surface text-muted hover:text-foreground"
-            }`}
-          >
-            {lbl}
-          </button>
-        ))}
-      </div>
-
-      <label className="mt-4 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={isPublic}
-          onChange={(e) => setIsPublic(e.target.checked)}
-        />
-        {t("crew.fPublic")}
-      </label>
-
-      {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
-
-      <button
-        type="submit"
-        disabled={busy || !name.trim() || !slugOk}
-        className="mt-6 w-full rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-      >
-        {t("crew.submitCreate")}
-      </button>
-      <p className="mt-2 text-center text-xs text-muted">{t("crew.createDesc")}</p>
+    <form onSubmit={submit}>
+      <Panel title={t("crew.basicInfo")}>
+        <div className="rx-form-grid">
+          <Field label={`${t("crew.fName")} *`}>
+            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} required />
+          </Field>
+          <Field label={`${t("crew.fSlug")} *`}>
+            <Input
+              value={slug}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().trim())}
+              placeholder="my-crew"
+              maxLength={30}
+              required
+            />
+          </Field>
+          <Field label={t("crew.fLocation")}>
+            <Input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={60} />
+          </Field>
+          <Field label={t("crew.fPolicy")}>
+            <Choice
+              label={t("crew.fPolicy")}
+              value={joinPolicy}
+              onChange={(v) => setJoinPolicy(v as typeof joinPolicy)}
+              options={[
+                ["approval", t("crew.policyApproval")],
+                ["open", t("crew.policyOpen")],
+                ["invite", t("crew.policyInvite")],
+              ]}
+            />
+          </Field>
+        </div>
+        {slug && !slugOk && <p className="rx-error">{t("crew.slugHint")}</p>}
+        <Field label={t("crew.fTagline")}>
+          <Input value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={60} />
+        </Field>
+        <Field label={t("crew.fDesc")}>
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={2000}
+          />
+        </Field>
+        <label className="rx-check">
+          <Checkbox checked={isPublic} onCheckedChange={(v) => setIsPublic(v === true)} />
+          {t("crew.fPublic")}
+        </label>
+        {err && (
+          <p role="alert" className="rx-error">
+            {err}
+          </p>
+        )}
+        <Button className="rx-primary" type="submit" disabled={busy || !name.trim() || !slugOk}>
+          {busy ? t("common.saving") : t("crew.submitCreate")}
+        </Button>
+        <Hint>{t("crew.createDesc")}</Hint>
+      </Panel>
     </form>
   );
 }

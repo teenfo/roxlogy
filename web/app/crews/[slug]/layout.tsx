@@ -19,19 +19,9 @@ import { Chip, Go } from "@/components/rox/ui";
  * 시안에 없는 것(캡쳐 보고 대상, PORT_PLAN §4): 커버 이미지, 가입 버튼, 승인 대기 배지,
  * 관리 탭의 대기 신청 수. 탭은 권한에 따라 회계(정회원)·관리(운영진)만 붙는다.
  */
-export default async function CrewLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode;
-  params: Promise<{ slug: string }>;
-}) {
+export default async function CrewLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [crew, user, { t }] = await Promise.all([
-    getCrew(slug),
-    getCachedUser(),
-    getT(),
-  ]);
+  const [crew, user, { t }] = await Promise.all([getCrew(slug), getCachedUser(), getT()]);
   if (!crew) notFound();
 
   const base = `/crews/${slug}`;
@@ -52,22 +42,13 @@ export default async function CrewLayout({
   let pending = 0;
   if (staff) {
     const supabase = await createClient();
-    const { count, error } = await supabase
-      .from("crew_members")
-      .select("user_id", { count: "exact", head: true })
-      .eq("crew_id", crew.id)
-      .eq("status", "pending");
+    const { count, error } = await supabase.from("crew_members").select("user_id", { count: "exact", head: true }).eq("crew_id", crew.id).eq("status", "pending");
     pending = error ? 0 : (count ?? 0);
-    tabs.push([
-      pending > 0 ? `${t("crew.manage")} ${pending}` : t("crew.manage"),
-      `${base}/manage`,
-    ]);
+    tabs.push([pending > 0 ? `${t("crew.manage")} ${pending}` : t("crew.manage"), `${base}/manage`]);
   }
 
   const meta = [crew.location, crew.home_gym].filter(Boolean).join(" · ");
-  const sub = [`${crew.member_count} ${t("crew.members")}`, crew.tagline]
-    .filter(Boolean)
-    .join(" · ");
+  const sub = [`${crew.member_count} ${t("crew.members")}`, crew.tagline].filter(Boolean).join(" · ");
 
   return (
     <Shell loginNext={base}>
@@ -83,11 +64,8 @@ export default async function CrewLayout({
         </Link>
         <div>
           <h1>
-            {crew.name}{" "}
-            {member && <Chip tone="green">{t("crew.joinedBadge")}</Chip>}
-            {crew.crew_status === "pending" && (
-              <Chip tone="yellow">{t("crew.pendingBadge")}</Chip>
-            )}
+            {crew.name} {member && <Chip tone="green">{t("crew.joinedBadge")}</Chip>}
+            {crew.crew_status === "pending" && <Chip tone="yellow">{t("crew.pendingBadge")}</Chip>}
           </h1>
           <p>
             {meta}
@@ -100,19 +78,15 @@ export default async function CrewLayout({
             <Settings size={16} />
             {t("crew.manage")}
           </Go>
-        ) : crew.crew_status === "active" ? (
-          <div className="ml-auto">
-            <CrewJoinButton
-              slug={slug}
-              status={crew.my_status}
-              role={crew.my_role}
-              loggedIn={!!user}
-            />
-          </div>
         ) : (
-          <p className="ml-auto max-w-48 text-xs text-muted-foreground">
-            {t("crew.pendingNote")}
-          </p>
+          /* 시안의 "크루 관리" 자리 — 가입 버튼은 시안에 없다(§4). 헤더 우측 정렬은 마지막 자식 규칙과 같게 */
+          <div style={{ marginLeft: "auto" }}>
+            {crew.crew_status === "active" ? (
+              <CrewJoinButton slug={slug} status={crew.my_status} role={crew.my_role} loggedIn={!!user} />
+            ) : (
+              <Chip tone="yellow">{t("crew.pendingNote")}</Chip>
+            )}
+          </div>
         )}
       </div>
       <CrewNavTabs items={tabs} />

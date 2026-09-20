@@ -17,8 +17,8 @@ import {
 import { formatDate } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
 import { getCachedProfile } from "@/lib/supabase/auth";
-import { Avatar, Card } from "@/components/ui/crew-ui";
 import { AccessGate } from "@/components/ui/access-gate";
+import { Back, Chip, DataTable, Empty, Hint, PageHead, Panel } from "@/components/rox/ui";
 
 type EventComment = {
   id: string;
@@ -52,11 +52,7 @@ type EventDetail = {
 };
 
 /** 카톡·인스타에 붙였을 때 제목·설명이 보이도록 */
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string; eventId: string }>;
-}) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; eventId: string }> }) {
   const { eventId } = await params;
   const supabase = await createClient();
   const { data } = await supabase.rpc("crew_event_detail", { p_event: eventId });
@@ -68,11 +64,13 @@ export async function generateMetadata({
   };
 }
 
-export default async function CrewEventPage({
-  params,
-}: {
-  params: Promise<{ slug: string; eventId: string }>;
-}) {
+/**
+ * 모임 상세 — 시안 crew.tsx CrewSchedule(id) 그대로 (PORT_PLAN §3-e):
+ * Back · PageHead(제목, 일시·장소) · two-col[ Panel "모임 소개"(Chip · .rx-lead · DataTable 안내/내용 · Hint)
+ * | Panel "내 참석 여부"(Segments · .rx-lead 참석 N명 · Hint) ] · Panel "댓글 N"(.rx-actions Input+Button · .rx-note-row).
+ * 공유·운영진 ⋯ 메뉴는 PageHead action 에, 출석 체크 카드는 시안에 없어 Panel 로만(§4).
+ */
+export default async function CrewEventPage({ params }: { params: Promise<{ slug: string; eventId: string }> }) {
   const { slug, eventId } = await params;
   const [crew, { t, tag, tz }] = await Promise.all([getCrew(slug), getT()]);
   if (!crew) notFound();
@@ -84,9 +82,7 @@ export default async function CrewEventPage({
   // 공유 링크로 들어온 사람 처리. 안 보인다고 곧장 404 를 내면 정회원 전용
   // 모임 링크를 받은 사람은 이유도 모른 채 막힌다 — 사유를 구분한다.
   if (!ev || ev.slug !== slug) {
-    const { data: gateRow } = await supabase.rpc("crew_event_gate", {
-      p_event: eventId,
-    });
+    const { data: gateRow } = await supabase.rpc("crew_event_gate", { p_event: eventId });
     const gate = gateRow as {
       slug: string;
       crew: string;
@@ -98,27 +94,14 @@ export default async function CrewEventPage({
     if (!gate || gate.slug !== slug) notFound();
     // 로그인만 하면 될 수 있다 → 로그인 후 이 링크로 돌아온다
     if (!gate.logged_in) {
-      redirect(
-        `/login?next=${encodeURIComponent(`/crews/${slug}/schedule/${eventId}`)}`,
-      );
+      redirect(`/login?next=${encodeURIComponent(`/crews/${slug}/schedule/${eventId}`)}`);
     }
     // 로그인은 했는데 정회원이 아니다 → 로그인시켜도 소용없으니 이유를 보여준다
     return (
-      <main>
-        <Link
-          href={`/crews/${slug}/schedule`}
-          className="text-sm text-muted hover:text-foreground"
-        >
-          ← {t("crew.schedTab")}
-        </Link>
-        <div className="mt-6">
-          <AccessGate
-            title={t("crew.eventMembersOnly")}
-            reason={t("crew.eventMembersOnlyDesc", { crew: gate.crew })}
-            action={{ href: `/crews/${slug}`, label: t("crew.about") }}
-          />
-        </div>
-      </main>
+      <>
+        <Back href={`/crews/${slug}/schedule`} label={t("crew.schedTab")} />
+        <AccessGate title={t("crew.eventMembersOnly")} reason={t("crew.eventMembersOnlyDesc", { crew: gate.crew })} action={{ href: `/crews/${slug}`, label: t("crew.about") }} />
+      </>
     );
   }
 
@@ -127,121 +110,46 @@ export default async function CrewEventPage({
   const shareUrl = `${siteUrl()}/crews/${slug}/schedule/${eventId}`;
   // 출석 명단 — 크루원만 (RPC 가 비회원에게는 빈 결과를 준다)
   const [{ data: attRows }, profile] = await Promise.all([
-    isMember
-      ? supabase.rpc("crew_event_attendance", { p_event: eventId })
-      : Promise.resolve({ data: [] as AttendanceRow[] }),
+    isMember ? supabase.rpc("crew_event_attendance", { p_event: eventId }) : Promise.resolve({ data: [] as AttendanceRow[] }),
     getCachedProfile(),
   ]);
   const attendance = (attRows ?? []) as AttendanceRow[];
 
   const startsAt = new Date(ev.starts_at);
-  const when = startsAt.toLocaleString(tag, {
-    dateStyle: "full",
-    timeStyle: "short",
-    timeZone: tz,
-  });
-  // 날짜 블록 — 월/일/요일을 모임 시간대(tz) 기준으로 쪼갠다
-  const dpart = (opt: Intl.DateTimeFormatOptions) =>
-    startsAt.toLocaleDateString(tag, { ...opt, timeZone: tz });
-  // 한국어는 day:"numeric" 이 "13일" 을 준다 — 큰 숫자 칸에서 "일" 이 아래로 줄바꿈된다.
-  // 월·요일이 위아래에 이미 있으니 날짜 칸은 숫자만 쓴다(다른 로케일은 원래 숫자만).
-  const dayOnly = dpart({ day: "numeric" }).replace(/\D/g, "") || dpart({ day: "numeric" });
+  const when = startsAt.toLocaleString(tag, { dateStyle: "full", timeStyle: "short", timeZone: tz });
   const started = startsAt <= new Date();
 
   // 무응답 = 크루원 중 어떤 응답도 하지 않은 사람. 음수가 되지 않게 막는다.
-  const answered =
-    ev.going.length + ev.maybe_names.length + ev.declined_names.length;
+  const answered = ev.going.length + ev.maybe_names.length + ev.declined_names.length;
   const noReply = Math.max(0, crew.member_count - answered);
-  const checked = attendance.filter((r) => r.checked_in).length;
 
-  const badges: { label: string; cls: string }[] = [];
-  if (ev.closed_at)
-    badges.push({ label: t("crew.closed"), cls: "bg-line text-muted" });
-  if (ev.members_only)
-    badges.push({ label: t("crew.fullOnly"), cls: "bg-label-bg text-label" });
-  if (ev.fee_exempt)
-    badges.push({ label: t("crew.feeExempt"), cls: "bg-label-bg text-label" });
-  if (ev.capacity)
-    badges.push({
-      label: t("crew.capacityN", { n: ev.capacity }),
-      cls: "bg-accent/15 text-accent-dim",
-    });
-
-  const tally: { label: string; value: number; cls?: string }[] = [
-    { label: t("crew.rsvpGoing"), value: ev.going.length, cls: "text-success" },
-    { label: t("crew.rsvpMaybe"), value: ev.maybe_names.length },
-    { label: t("crew.rsvpDeclined"), value: ev.declined_names.length },
+  const state = ev.closed_at ? t("crew.closed") : started ? t("crew.attendCheckTab") : t("crew.nextMeetup");
+  const infoRows: [string, string][] = [
+    [t("crew.colWhen"), when],
+    ...(ev.location ? [[t("crew.eventPlace"), ev.location] as [string, string]] : []),
+    [t("crew.eventAudience"), ev.members_only ? t("crew.fullOnly") : t("crew.allMembers")],
+    [t("crew.eventFee"), ev.fee_exempt ? t("crew.feeNone") : t("crew.feeByTier")],
+    ...(ev.capacity ? [[t("crew.capacityN", { n: ev.capacity }), `${ev.going.length} / ${ev.capacity}`] as [string, string]] : []),
   ];
-  if (isMember) tally.push({ label: t("crew.rsvpNone"), value: noReply });
-  if (ev.waitlist_names.length)
-    tally.push({
-      label: t("crew.rsvpWaitlisted"),
-      value: ev.waitlist_names.length,
-      cls: "text-gold",
-    });
+  const tally = [
+    `${t("crew.rsvpGoing")} ${ev.going.length}`,
+    `${t("crew.rsvpMaybe")} ${ev.maybe_names.length}`,
+    `${t("crew.rsvpDeclined")} ${ev.declined_names.length}`,
+    ...(isMember ? [`${t("crew.rsvpNone")} ${noReply}`] : []),
+    ...(ev.waitlist_names.length ? [`${t("crew.rsvpWaitlisted")} ${ev.waitlist_names.length}`] : []),
+  ].join(" · ");
 
   return (
-    <main className="flex flex-col gap-3.5">
-      {/* 히어로 — 날짜 블록 · 제목/메타 · 운영진 액션 */}
-      <section className="overflow-hidden rounded-2xl border border-line-mid bg-card">
-        <div className="grid grid-cols-[84px_minmax(0,1fr)_auto] items-start gap-5 px-6 py-[22px] max-md:grid-cols-[64px_minmax(0,1fr)] max-md:gap-4 max-md:px-4">
-          <div className="flex flex-col items-center border-r border-line-mid pr-4">
-            <span className="text-xs font-semibold text-muted">
-              {dpart({ month: "short" })}
-            </span>
-            <span className="tabular whitespace-nowrap text-[40px] font-extrabold leading-none max-md:text-[32px]">
-              {dayOnly}
-            </span>
-            <span className="text-[13px] font-semibold text-muted">
-              {dpart({ weekday: "short" })}
-            </span>
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-2.5">
-            {badges.length > 0 && (
-              <span className="flex flex-wrap gap-1.5">
-                {badges.map((b) => (
-                  <span
-                    key={b.label}
-                    className={`rounded-[5px] px-2 py-[3px] text-xs font-bold ${b.cls}`}
-                  >
-                    {b.label}
-                  </span>
-                ))}
-              </span>
-            )}
-            <h2 className="text-[26px] font-extrabold tracking-[-0.02em] [word-break:keep-all] max-md:text-[22px]">
-              {ev.title}
-            </h2>
-            <p className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-foreground/80">
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden className="text-muted">
-                  ◷
-                </span>
-                {when}
-              </span>
-              {ev.location && (
-                <span className="flex items-center gap-1.5">
-                  <span aria-hidden className="text-muted">
-                    ◎
-                  </span>
-                  {ev.location}
-                </span>
-              )}
-            </p>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-1.5 max-md:col-span-2 max-md:justify-end">
-            {/* 목록으로 — 상단에 따로 두는 것보다 액션들과 한 줄에 있는 편이 찾기 쉽다 */}
-            <Link
-              href={`/crews/${slug}/schedule`}
-              className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-line-strong"
-            >
-              ← {t("crew.schedTab")}
-            </Link>
+    <>
+      <Back href={`/crews/${slug}/schedule`} label={t("crew.schedTab")} />
+      <PageHead
+        title={ev.title}
+        description={[when, ev.location].filter(Boolean).join(" · ")}
+        action={
+          <div className="rx-actions" style={{ marginTop: 0 }}>
             <CrewEventShare url={shareUrl} title={ev.title} />
             {ev.is_staff && (
-              /* 수정·종료·취소를 ⋯ 하나로. 수정 폼은 열면 오버레이로 뜬다 */
+              /* 수정·종료·취소를 ⋯ 하나로. 수정 폼은 열면 RoxDialog 로 뜬다 */
               <CrewEventStaffActions
                 event={{
                   id: ev.id,
@@ -258,102 +166,40 @@ export default async function CrewEventPage({
               </CrewEventStaffActions>
             )}
           </div>
-        </div>
-
-        {/* 지표 행 */}
-        <div className="grid grid-cols-2 divide-x divide-line border-t border-line sm:grid-cols-3">
-          <div className="px-6 py-3.5 max-md:px-4">
-            <p className="text-xs text-muted">{t("crew.rsvpGoing")}</p>
-            <p className="tabular mt-0.5 text-[22px] font-extrabold max-md:text-lg">
-              {ev.going.length}
-              <span className="text-sm font-bold text-muted">
-                {" / "}
-                {crew.member_count}
-              </span>
-            </p>
+        }
+      />
+      <div className="rx-two-col">
+        <Panel title={t("crew.meetupInfo")}>
+          <div className="rx-actions" style={{ marginTop: 0 }}>
+            <Chip tone={ev.closed_at ? "neutral" : "yellow"}>{state}</Chip>
+            {ev.members_only && <Chip tone="blue">{t("crew.fullOnly")}</Chip>}
+            {ev.fee_exempt && <Chip tone="blue">{t("crew.feeExempt")}</Chip>}
           </div>
-          {isMember && (
-            <div className="px-6 py-3.5 max-md:px-4">
-              <p className="text-xs text-muted">{t("crew.attendCheckTab")}</p>
-              <p className="tabular mt-0.5 text-[22px] font-extrabold text-gold max-md:text-lg">
-                {checked}
-                <span className="text-sm font-bold text-muted">
-                  {" / "}
-                  {ev.going.length}
-                </span>
-              </p>
-            </div>
-          )}
-          <div className="px-6 py-3.5 max-md:px-4 max-sm:col-span-2 max-sm:border-t max-sm:border-line">
-            <p className="text-xs text-muted">{t("crew.feeLabel")}</p>
-            <p className="mt-0.5 text-[15px] font-bold text-label max-md:text-sm">
-              {ev.fee_exempt ? t("crew.feeNone") : t("crew.feeByTier")}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 소개 + 내 참석 — 모바일은 내 참석이 먼저(주 행동이다) */}
-      <div
-        className={`grid items-start gap-3.5 ${
-          ev.description ? "md:grid-cols-[minmax(0,1fr)_300px]" : ""
-        }`}
-      >
-        {ev.description && (
-          <Card className="px-[22px] py-5 max-md:order-2 max-md:px-4">
-            <h3 className="text-[15px] font-extrabold">
-              {t("crew.eventAbout")}
-            </h3>
-            <p className="mt-2 whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground/85 [word-break:keep-all]">
+          {ev.description && (
+            <p className="rx-lead" style={{ whiteSpace: "pre-wrap" }}>
               {ev.description}
             </p>
-          </Card>
-        )}
-
-        <Card className="flex flex-col gap-3 px-5 py-[18px] max-md:order-1 md:sticky md:top-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-[15px] font-extrabold">
-              {t("crew.rsvpSummary")}
-            </h3>
-            {ev.closed_at && (
-              <span className="ml-auto text-xs text-muted">
-                {t("crew.closed")}
-              </span>
-            )}
-          </div>
-
+          )}
+          <DataTable headers={[t("crew.eventInfoHeader"), t("crew.eventInfoValue")]} rows={infoRows.map(([k, v]) => [k, <span key={k} className="rx-wrap">{v}</span>])} />
+          <Hint>{tally}</Hint>
+        </Panel>
+        <Panel title={t("crew.rsvpSummary")}>
           {isMember ? (
             <>
-              <CrewRsvpButtons
-                eventId={ev.id}
-                myStatus={ev.my_status}
-                closed={ev.closed_at != null}
-              />
-              {ev.closed_at && (
-                <p className="text-xs text-muted">{t("crew.closedNote")}</p>
-              )}
+              <CrewRsvpButtons eventId={ev.id} myStatus={ev.my_status} closed={ev.closed_at != null} />
+              <p className="rx-lead">{t("crew.goingN", { n: ev.going.length })}</p>
+              {ev.closed_at && <Hint>{t("crew.closedNote")}</Hint>}
             </>
           ) : (
-            <p className="text-[13px] text-muted">{t("crew.membersOnlyRsvp")}</p>
+            <>
+              <p className="rx-lead">{t("crew.goingN", { n: ev.going.length })}</p>
+              <Hint>{t("crew.membersOnlyRsvp")}</Hint>
+            </>
           )}
-
-          <ul className="flex flex-col gap-2 border-t border-line pt-3">
-            {tally.map((row) => (
-              <li
-                key={row.label}
-                className="flex items-center justify-between text-[13px]"
-              >
-                <span className="text-muted">{row.label}</span>
-                <span className={`tabular font-bold ${row.cls ?? ""}`}>
-                  {row.value}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        </Panel>
       </div>
 
-      {/* 참석 명단 · 출석 체크 */}
+      {/* 참석 명단 · 출석 체크 — 시안에 없음(§4) */}
       {isMember ? (
         <CrewAttendanceCheck
           eventId={ev.id}
@@ -364,93 +210,42 @@ export default async function CrewEventPage({
           memberCount={crew.member_count}
           waitlistNames={ev.waitlist_names}
           feeExempt={ev.fee_exempt}
-          settings={
-            ev.is_staff ? (
-              <CrewEventFeeToggle
-                eventId={ev.id}
-                feeExempt={ev.fee_exempt}
-                membersOnly={ev.members_only}
-              />
-            ) : undefined
-          }
+          settings={ev.is_staff ? <CrewEventFeeToggle eventId={ev.id} feeExempt={ev.fee_exempt} membersOnly={ev.members_only} /> : undefined}
         />
       ) : (
         /* 비회원은 참석 명단만 (등급은 RPC 가 비워서 준다) */
-        <Card className="px-[22px] py-5 max-md:px-4">
-          <h3 className="text-[15px] font-extrabold">
-            {t("crew.goingList")} ({ev.going.length}
-            {ev.capacity ? `/${ev.capacity}` : ""})
-          </h3>
+        <Panel title={`${t("crew.goingList")} (${ev.going.length}${ev.capacity ? `/${ev.capacity}` : ""})`}>
           {ev.going.length ? (
-            <ul className="mt-3 flex flex-wrap gap-1.5">
+            <div className="rx-actions" style={{ marginTop: 0 }}>
               {ev.going.map((g, i) => (
-                <li
-                  key={i}
-                  className="rounded-full bg-page px-3 py-1 text-[13px] font-medium"
-                >
-                  {g.name}
-                </li>
+                <Chip key={i}>{g.name}</Chip>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p className="mt-3 text-[13px] text-muted">—</p>
+            <Empty title={t("crew.rsvpEmpty")} description={t("crew.goingListNote")} />
           )}
-        </Card>
+        </Panel>
       )}
 
       {/* 댓글 — 허용된 모임만. 입력은 크루원, 권한은 RLS 가 최종 강제 */}
       {ev.comments_allowed && (
-        <Card className="flex flex-col gap-3.5 px-[22px] py-[18px] max-md:px-4">
-          <h3 className="flex items-baseline gap-2 text-[15px] font-extrabold">
-            {t("crew.comments")}
-            <span className="text-[13px] font-normal text-muted">
-              {ev.comments.length}
-            </span>
-          </h3>
-
-          {isMember ? (
-            <CrewEventCommentForm
-              eventId={ev.id}
-              myName={profile?.display_name ?? "Athlete"}
-            />
-          ) : (
-            <p className="text-center text-xs text-muted">
-              {t("crew.memberOnly")}
-            </p>
-          )}
-
+        <Panel title={`${t("crew.comments")} ${ev.comments.length}`}>
+          {isMember ? <CrewEventCommentForm eventId={ev.id} myName={profile?.display_name ?? "Athlete"} /> : <Hint>{t("crew.memberOnly")}</Hint>}
           {ev.comments.length ? (
-            <ul className="flex flex-col">
-              {ev.comments.map((c) => (
-                <li
-                  key={c.id}
-                  className="flex gap-2.5 border-t border-line-soft py-3"
-                >
-                  <Avatar name={c.author_name} size={28} />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-baseline gap-2">
-                      <Link
-                        href={`/u/${c.author_id}`}
-                        className="text-[13px] font-bold hover:text-gold"
-                      >
-                        {c.author_name}
-                      </Link>
-                      <span className="text-xs text-muted">
-                        {formatDate(c.created_at, tag, tz)}
-                      </span>
-                    </p>
-                    <p className="mt-1 whitespace-pre-line text-sm">{c.body}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            ev.comments.map((c) => (
+              <p className="rx-note-row" key={c.id}>
+                <b>
+                  <Link href={`/u/${c.author_id}`}>{c.author_name}</Link> · {formatDate(c.created_at, tag, tz)}
+                </b>
+                <br />
+                {c.body}
+              </p>
+            ))
           ) : (
-            <p className="rounded-[10px] border border-dashed border-line-strong px-4 py-6 text-center text-[13px] text-muted">
-              {t("crew.noComments")}
-            </p>
+            <Hint>{t("crew.noComments")}</Hint>
           )}
-        </Card>
+        </Panel>
       )}
-    </main>
+    </>
   );
 }

@@ -825,6 +825,10 @@ svg {
   overflow: auto;
   margin: 12px 0;
 }
+/* 기록 행 끝값(D-day·시간)은 한 줄로 — 좁은 화면에서 "Past / race" 로 갈라졌다 */
+.rx-record-row > strong { white-space: nowrap; }
+/* 긴 문장 셀 — 표 셀은 기본 nowrap 이라 날짜·주소 같은 값은 풀어 준다 */
+.rx-panel [data-slot="table-cell"] .rx-wrap { white-space: normal; }
 .rx-panel [data-slot="table-cell"] small {
   font-size: 12px;
 }
@@ -5238,6 +5242,27 @@ button:focus-visible {
 .rx-live-brand > img {
   border-radius: 7px;
 }
+/* 크루 등급·권한 칩 톤 — 크루가 고른 색 6종. 시안 칩 규격 위에 색만 얹는다 */
+.rx-chip.tier-yellow { background: #fcf5d5; color: #82701f; }
+.rx-chip.tier-blue { background: #e3f0f6; color: #2f5f76; }
+.rx-chip.tier-chalk { background: #eceff2; color: #46515e; }
+.rx-chip.tier-gray { background: #f0f3f6; color: #69727f; }
+.rx-chip.tier-green { background: #e4f1ec; color: #2f6b52; }
+.rx-chip.tier-red { background: #fbe9e7; color: #a33f36; }
+/* 크루 찾기 카드의 아트 칸 — 시안은 "LOOP 8" 두 줄 고정. 우리는 앞글자 + 이름 */
+.rx-crew-art > span > b { display: block; }
+.rx-crew-art.small b { font-size: 88px; letter-spacing: -6px; }
+/* 표 안 사람 칸(멤버·리더보드) — 이름 아래 보조줄 */
+.rx-person > span > small { display: block; font-size: 12px; color: #87919e; margin-top: 2px; }
+/* 회계 표의 ⋯ 행 메뉴 — 시안에는 없어 최소 규칙만 */
+.rx-row-menu { position: relative; display: inline-block; }
+.rx-row-menu > .rx-row-menu-scrim { position: fixed; inset: 0; z-index: 10; cursor: default; background: transparent; border: 0; }
+.rx-row-menu > .rx-row-menu-list {
+  position: absolute; right: 0; top: 36px; z-index: 20; display: flex; flex-direction: column; gap: 2px;
+  min-width: 160px; padding: 6px; background: #fff; border: 1px solid #dfe5eb; border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(20, 24, 28, 0.12);
+}
+.rx-row-menu-list > button { justify-content: flex-start; }
 /* 상단바 알림 아이콘의 미확인 점 */
 .rx-top-actions > a {
   position: relative;

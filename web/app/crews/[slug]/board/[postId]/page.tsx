@@ -6,24 +6,19 @@ import { getT } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
 import { CrewLikeButton } from "@/components/crew-like-button";
 import { CrewCommentForm } from "@/components/crew-comment-form";
-import {
-  CrewPostActions,
-  CrewCommentDelete,
-} from "@/components/crew-post-actions";
+import { CrewPostActions, CrewCommentDelete } from "@/components/crew-post-actions";
 import { getCachedUser } from "@/lib/supabase/auth";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { Back, Chip, Hint, Panel } from "@/components/rox/ui";
 
-export default async function CrewPostPage({
-  params,
-}: {
-  params: Promise<{ slug: string; postId: string }>;
-}) {
+/**
+ * 게시글 상세 — 시안 crew.tsx CrewBoard(상세) 그대로 (PORT_PLAN §3-e):
+ * Back · Panel[ Chip 말머리 · h1.rx-article-title · p.rx-muted 작성자·날짜 · article.rx-prose · Go 편집 · 좋아요 ]
+ * · Panel "댓글 N"[ .rx-actions(Input · Button) · .rx-note-row ].
+ */
+export default async function CrewPostPage({ params }: { params: Promise<{ slug: string; postId: string }> }) {
   const { slug, postId } = await params;
-  const [crew, user, { t, tag, tz }] = await Promise.all([
-    getCrew(slug),
-    getCachedUser(),
-    getT(),
-  ]);
+  const [crew, user, { t, tag, tz }] = await Promise.all([getCrew(slug), getCachedUser(), getT()]);
   if (!crew) notFound();
 
   const supabase = await createClient();
@@ -36,91 +31,47 @@ export default async function CrewPostPage({
   const canEditPost = !!user && (post.author_id === user.id || isStaff);
 
   return (
-    <main>
-      <Link
-        href={`/crews/${slug}/board`}
-        className="text-xs text-muted hover:text-gold"
-      >
-        ← {t("crew.board")}
-      </Link>
-
-      <article className="mt-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-line-strongest px-2 py-0.5 text-[10px] text-muted">
-            {t(`crew.cat.${post.category}` as DictKey)}
-          </span>
-          {post.pinned && (
-            <span className="text-[10px] font-bold text-gold">PIN</span>
-          )}
-          {post.members_only && (
-            <span className="rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-bold text-track">
-              {t("crew.fullOnly")}
-            </span>
-          )}
-          {canEditPost && <CrewPostActions slug={slug} postId={post.id} />}
+    <>
+      <Back href={`/crews/${slug}/board`} label={t("crew.board")} />
+      <Panel>
+        <div className="rx-actions" style={{ marginTop: 0 }}>
+          <Chip tone={post.category === "notice" ? "yellow" : "neutral"}>{t(`crew.cat.${post.category}` as DictKey)}</Chip>
+          {post.pinned && <Chip tone="yellow">📌</Chip>}
+          {post.members_only && <Chip tone="blue">{t("crew.fullOnly")}</Chip>}
         </div>
-        <h1 className="mt-2 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{post.title}</h1>
-        <p className="mt-2 flex flex-wrap gap-x-3 text-xs text-muted">
-          <Link href={`/u/${post.author_id}`} className="hover:text-gold">
-            {post.author_name}
-          </Link>
-          <span>{formatDate(post.created_at, tag, tz)}</span>
+        <h1 className="rx-article-title">{post.title}</h1>
+        <p className="rx-muted">
+          <Link href={`/u/${post.author_id}`}>{post.author_name}</Link> · {formatDate(post.created_at, tag, tz)}
         </p>
-
         {post.body && (
-          <div className="mt-6 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
+          <article className="rx-prose" style={{ whiteSpace: "pre-line" }}>
             {post.body}
-          </div>
+          </article>
         )}
-
-        <div className="mt-6 flex items-center gap-3 border-t border-surface pt-4">
-          <CrewLikeButton
-            postId={post.id}
-            initialLiked={post.liked_by_me}
-            initialCount={post.like_count}
-            canLike={canInteract}
-          />
+        <div className="rx-actions">
+          {canEditPost && <CrewPostActions slug={slug} postId={post.id} />}
+          <CrewLikeButton postId={post.id} initialLiked={post.liked_by_me} initialCount={post.like_count} canLike={canInteract} />
         </div>
-      </article>
+      </Panel>
 
-      <section className="mt-8">
-        <h2 className="text-sm font-bold">
-          {t("crew.comments")}{" "}
-          <span className="text-muted">{post.comments.length}</span>
-        </h2>
-
-        {!!post.comments.length && (
-          <ul className="mt-3 flex flex-col gap-px overflow-hidden rounded-md bg-muted/20">
-            {post.comments.map((c) => (
-              <li key={c.id} className="bg-card px-4 py-3">
-                <div className="flex items-baseline gap-2">
-                  <Link
-                    href={`/u/${c.author_id}`}
-                    className="text-xs font-semibold hover:text-gold"
-                  >
-                    {c.author_name}
-                  </Link>
-                  <span className="text-xs text-muted">
-                    {formatDate(c.created_at, tag, tz)}
-                  </span>
-                  {!!user && (c.author_id === user.id || isStaff) && (
-                    <CrewCommentDelete commentId={c.id} />
-                  )}
-                </div>
-                <p className="mt-1 whitespace-pre-line text-sm">{c.body}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {canInteract ? (
-          <CrewCommentForm postId={post.id} />
-        ) : (
-          <p className="mt-4 text-center text-xs text-muted">
-            {t("crew.memberOnly")}
+      <Panel title={`${t("crew.comments")} ${post.comments.length}`}>
+        {canInteract ? <CrewCommentForm postId={post.id} /> : <Hint>{t("crew.memberOnly")}</Hint>}
+        {post.comments.map((c) => (
+          <p className="rx-note-row" key={c.id}>
+            <b>
+              <Link href={`/u/${c.author_id}`}>{c.author_name}</Link> · {formatDate(c.created_at, tag, tz)}
+            </b>
+            {!!user && (c.author_id === user.id || isStaff) && (
+              <>
+                {" "}
+                <CrewCommentDelete commentId={c.id} />
+              </>
+            )}
+            <br />
+            {c.body}
           </p>
-        )}
-      </section>
-    </main>
+        ))}
+      </Panel>
+    </>
   );
 }

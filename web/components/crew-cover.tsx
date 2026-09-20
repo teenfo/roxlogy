@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 
 /**
- * 크루 커버 이미지 — 탭 화면에서만 보여준다.
+ * 크루 커버 이미지 — 탭 화면에서만 보여준다(시안에 없는 우리 자산, PORT_PLAN §4).
  *
  * 모임 상세·게시글처럼 한 단계 더 들어간 화면에서는 첫 화면을 배너가 다 먹어
  * 정작 읽으러 온 내용이 스크롤 아래로 밀린다. 로고 + 크루명 헤더는 그대로
@@ -25,7 +25,14 @@ export function CrewCover({ src, slug }: { src: string; slug: string }) {
     <img
       src={src}
       alt=""
-      className="mb-6 h-36 w-full rounded-md object-cover sm:h-52"
+      style={{
+        display: "block",
+        width: "100%",
+        height: 180,
+        objectFit: "cover",
+        borderRadius: 14,
+        marginBottom: 24,
+      }}
     />
   );
 }

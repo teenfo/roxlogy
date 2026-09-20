@@ -2,23 +2,29 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { DIVISIONS } from "@/lib/divisions";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { Dialog } from "@/components/ui/dialog";
 import { dictLabel } from "@/lib/dict-label";
 import { duesErrText } from "@/lib/dues-error";
 import { formatMs as fmtMs } from "@/lib/format";
-import { Avatar } from "@/components/ui/crew-ui";
-import {
-  crewRoleBadgeClass,
-  crewRoleDictKey,
-  isStaffRole,
-  tierBadgeClass,
-} from "@/lib/crew-role";
+import { won } from "@/lib/won";
+import { crewRoleChipTone, crewRoleDictKey, isStaffRole, tierChipTone } from "@/lib/crew-role";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { RoxDialog } from "@/components/rox/dialog";
+import { Person } from "@/components/rox/person";
+import { RowMenu } from "@/components/crew-ledger-table";
+import { Chip, Choice, DataTable, Empty, Field, Hint, Panel, RecordRow, Segments } from "@/components/rox/ui";
 
-const input =
-  "w-full min-w-0 rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
+/**
+ * 크루 일정 폼·버튼 묶음 — 시안 crew.tsx CrewSchedule 의 프리미티브(Segments·Panel·Input·Button·
+ * RowLink)로만 그린다 (PORT_PLAN §3-e). 모임 등록·대회일정·출석 체크·설정 토글은 시안에 없는 우리
+ * 기능이라 RoxDialog·DataTable·Checkbox·RowMenu 로 감싼다(§4). Supabase 호출은 전부 그대로다.
+ */
 
 /** 모임 등록 — 스태프 전용. crew_events RLS(is_crew_staff)가 권한을 강제한다. */
 export type MeetupEditable = {
@@ -68,19 +74,13 @@ export function CrewMeetupForm({
     else setOpenState(next);
   };
   const [title, setTitle] = useState(event?.title ?? "");
-  const [when, setWhen] = useState(
-    event ? toLocalInput(event.starts_at) : "",
-  );
+  const [when, setWhen] = useState(event ? toLocalInput(event.starts_at) : "");
   const [location, setLocation] = useState(event?.location ?? "");
   const [desc, setDesc] = useState(event?.description ?? "");
-  const [capacity, setCapacity] = useState(
-    event?.capacity != null ? String(event.capacity) : "",
-  );
+  const [capacity, setCapacity] = useState(event?.capacity != null ? String(event.capacity) : "");
   const [feeExempt, setFeeExempt] = useState(false);
   const [membersOnly, setMembersOnly] = useState(false);
-  const [commentsAllowed, setCommentsAllowed] = useState(
-    event?.comments_allowed ?? true,
-  );
+  const [commentsAllowed, setCommentsAllowed] = useState(event?.comments_allowed ?? true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -90,10 +90,7 @@ export function CrewMeetupForm({
     setBusy(true);
     setErr(null);
     const supabase = createClient();
-    const cap =
-      /^\d+$/.test(capacity.trim()) && parseInt(capacity, 10) > 0
-        ? parseInt(capacity, 10)
-        : null;
+    const cap = /^\d+$/.test(capacity.trim()) && parseInt(capacity, 10) > 0 ? parseInt(capacity, 10) : null;
     // 정원을 늘리면 대기자 자동 승급은 crew_events 트리거가 처리한다
     const common = {
       title: title.trim(),
@@ -139,117 +136,139 @@ export function CrewMeetupForm({
     <>
       {/* 제어형이면 트리거는 부모(⋯ 메뉴)가 그린다 */}
       {!controlled && (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground hover:brightness-95"
-        >
-          {editing ? t("common.edit") : `+ ${t("crew.meetupAdd")}`}
-        </button>
+        <Button type="button" className="rx-primary" onClick={() => setOpen(true)}>
+          {editing ? (
+            t("common.edit")
+          ) : (
+            <>
+              <Plus size={16} />
+              {t("crew.meetupAdd")}
+            </>
+          )}
+        </Button>
       )}
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        label={heading}
-        closeLabel={t("common.cancel")}
-        panelClassName="max-w-lg"
-      >
-        <form onSubmit={save} className="flex w-full flex-col gap-2 rounded-md bg-surface p-4">
-          <p className="text-sm font-semibold">{heading}</p>
-          <input
-            className={input}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t("crew.meetupTitlePh")}
-            maxLength={80}
-          />
-          <input
-            type="datetime-local"
-            className={input}
-            value={when}
-            onChange={(e) => setWhen(e.target.value)}
-          />
-          <input
-            className={input}
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder={t("crew.meetupLocationPh")}
-            maxLength={80}
-          />
-          <textarea
-            className={`${input} min-h-16`}
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-            placeholder={t("crew.meetupDescPh")}
-            maxLength={1000}
-          />
-          <input
-            className={input}
-            value={capacity}
-            onChange={(e) => setCapacity(e.target.value)}
-            placeholder={t("crew.meetupCapacityPh")}
-            inputMode="numeric"
-            maxLength={4}
-          />
+      <RoxDialog open={open} onOpenChange={setOpen} title={heading}>
+        <form onSubmit={save}>
+          <Field label={t("crew.meetupTitlePh")}>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("crew.meetupTitlePh")} maxLength={80} required />
+          </Field>
+          <div className="rx-form-grid">
+            <Field label={t("crew.colWhen")}>
+              <Input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} required />
+            </Field>
+            <Field label={t("crew.meetupLocationPh")}>
+              <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("crew.meetupLocationPh")} maxLength={80} />
+            </Field>
+          </div>
+          <Field label={t("crew.meetupDescPh")}>
+            <Textarea rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t("crew.meetupDescPh")} maxLength={1000} />
+          </Field>
+          <Field label={t("crew.meetupCapacityPh")}>
+            <Input value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder={t("crew.meetupCapacityPh")} inputMode="numeric" maxLength={4} />
+          </Field>
           {!editing && (
-            <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-              <input
-                type="checkbox"
-                checked={membersOnly}
-                onChange={(e) => setMembersOnly(e.target.checked)}
-                className="h-4 w-4 accent-accent"
-              />
-              <span>{t("crew.fullOnly")}</span>
-              <span className="text-muted">{t("crew.fullOnlyMeetupHint")}</span>
+            <label className="rx-check">
+              <Checkbox checked={membersOnly} onCheckedChange={(v) => setMembersOnly(v === true)} />
+              <span>
+                {t("crew.fullOnly")} <small className="rx-muted">{t("crew.fullOnlyMeetupHint")}</small>
+              </span>
             </label>
           )}
-          <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-            <input
-              type="checkbox"
-              checked={commentsAllowed}
-              onChange={(e) => setCommentsAllowed(e.target.checked)}
-              className="h-4 w-4 accent-accent"
-            />
+          <label className="rx-check">
+            <Checkbox checked={commentsAllowed} onCheckedChange={(v) => setCommentsAllowed(v === true)} />
             <span>{t("crew.allowComments")}</span>
           </label>
           {!editing && (
-            <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-              <input
-                type="checkbox"
-                checked={feeExempt}
-                onChange={(e) => setFeeExempt(e.target.checked)}
-                className="h-4 w-4 accent-accent"
-              />
-              <span>{t("crew.feeExempt")}</span>
-              <span className="text-muted">{t("crew.feeExemptHint")}</span>
+            <label className="rx-check">
+              <Checkbox checked={feeExempt} onCheckedChange={(v) => setFeeExempt(v === true)} />
+              <span>
+                {t("crew.feeExempt")} <small className="rx-muted">{t("crew.feeExemptHint")}</small>
+              </span>
             </label>
           )}
-          {err && <p role="alert" className="text-xs text-danger">{err}</p>}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={busy || !title.trim() || !when}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-            >
-              {editing ? t("common.save") : t("crew.meetupCreate")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
-            >
+          {err && (
+            <p role="alert" className="rx-error">
+              {err}
+            </p>
+          )}
+          <div className="rx-actions">
+            <Button type="submit" className="rx-primary" disabled={busy || !title.trim() || !when}>
+              {busy ? t("common.saving") : editing ? t("common.save") : t("crew.meetupCreate")}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {t("common.cancel")}
-            </button>
+            </Button>
           </div>
         </form>
-      </Dialog>
+      </RoxDialog>
+    </>
+  );
+}
+
+const bibOk = (v: string) => v.trim() === "" || /^\d{4,8}$/.test(v.trim());
+
+/** 대회일정 공통 입력 칸 — 등록·수정이 같은 칸·같은 검증을 쓴다. */
+function RacePlanFields({
+  title,
+  setTitle,
+  date,
+  setDate,
+  division,
+  setDivision,
+  bib,
+  setBib,
+  note,
+  setNote,
+  titleField,
+}: {
+  title: string;
+  setTitle: (v: string) => void;
+  date: string;
+  setDate: (v: string) => void;
+  division: string;
+  setDivision: (v: string) => void;
+  bib: string;
+  setBib: (v: string) => void;
+  note: string;
+  setNote: (v: string) => void;
+  /** 제목 칸을 밖에서 그릴 때(공식 대회 검색) — 생략하면 기본 제목 칸 */
+  titleField?: React.ReactNode;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
+      {titleField ?? (
+        <Field label={t("crew.racePlanTitlePh")}>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("crew.racePlanTitlePh")} maxLength={80} required />
+        </Field>
+      )}
+      <Field label={t("crew.colWhen")}>
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+      </Field>
+      <div className="rx-form-grid">
+        <Field label={t("crew.racePlanDivisionPh")}>
+          <Choice
+            label={t("crew.racePlanDivisionPh")}
+            value={division || "none"}
+            onChange={(v) => setDivision(v === "none" ? "" : v)}
+            options={[["none", t("crew.racePlanDivisionPh")], ...DIVISIONS.map((d) => [d, t(`division.${d}` as Parameters<typeof t>[0])] as [string, string])]}
+          />
+        </Field>
+        <Field label={t("crew.racePlanBibPh")}>
+          <Input value={bib} onChange={(e) => setBib(e.target.value)} placeholder={t("crew.racePlanBibPh")} maxLength={8} inputMode="numeric" />
+        </Field>
+      </div>
+      <Hint>{t("crew.racePlanBibHint")}</Hint>
+      <Field label={t("crew.racePlanNotePh")}>
+        <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("crew.racePlanNotePh")} maxLength={80} />
+      </Field>
     </>
   );
 }
 
 /**
- * 내 대회일정 상세의 편집 — 목록의 인라인 수정과 같은 필드·같은 검증을 쓴다.
- * 펼치면 오버레이로 띄운다(입력이 여러 줄이라 카드 안에서는 눌린다).
+ * 내 대회일정 상세의 편집 — 목록과 같은 필드·같은 검증을 쓴다.
+ * 펼치면 RoxDialog 로 띄운다(입력이 여러 줄이라 카드 안에서는 눌린다).
  * 삭제하면 돌아갈 계획이 없으므로 일정 목록으로 보낸다.
  */
 export function RacePlanEditor({
@@ -303,10 +322,7 @@ export function RacePlanEditor({
     if (!window.confirm(t("crew.racePlanDelConfirm"))) return;
     setBusy(true);
     setErr(null);
-    const { error } = await createClient()
-      .from("race_plans")
-      .delete()
-      .eq("id", plan.id);
+    const { error } = await createClient().from("race_plans").delete().eq("id", plan.id);
     setBusy(false);
     if (error) return setErr(error.message);
     router.push(backHref);
@@ -314,103 +330,39 @@ export function RacePlanEditor({
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex h-9 items-center rounded-lg border border-line-strong bg-control px-4 text-[13px] font-semibold transition-colors hover:border-line-strong"
-      >
+    <span className="rx-actions" style={{ marginTop: 0 }}>
+      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
         {t("common.edit")}
-      </button>
-      <button
-        type="button"
-        onClick={del}
-        disabled={busy}
-        className="flex h-9 items-center rounded-lg border border-danger-line-strong px-4 text-[13px] font-semibold text-danger transition-colors hover:bg-danger-card disabled:opacity-40"
-      >
+      </Button>
+      <Button type="button" variant="ghost" className="rx-pft-close" onClick={del} disabled={busy}>
         {t("common.delete")}
-      </button>
-      {err && <p role="alert" className="w-full text-xs text-danger">{err}</p>}
-
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        label={t("crew.racePlanAdd")}
-        closeLabel={t("common.cancel")}
-        panelClassName="max-w-lg"
-      >
+      </Button>
+      {err && (
+        <span role="alert" className="rx-error">
+          {err}
+        </span>
+      )}
+      <RoxDialog open={open} onOpenChange={setOpen} title={t("common.edit")}>
         {open && (
-          <div>
-            <form
-              onSubmit={save}
-              className="flex w-full flex-col gap-2 rounded-md bg-surface p-4"
-            >
-              <p className="text-sm font-semibold">{t("crew.racePlanAdd")}</p>
-              <input
-                className={input}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t("crew.racePlanTitlePh")}
-                maxLength={80}
-              />
-              <input
-                type="date"
-                className={input}
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <select
-                  className={input}
-                  value={division}
-                  onChange={(e) => setDivision(e.target.value)}
-                >
-                  <option value="">{t("crew.racePlanDivisionPh")}</option>
-                  {DIVISIONS.map((d) => (
-                    <option key={d} value={d}>
-                      {t(`division.${d}` as Parameters<typeof t>[0])}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  className={input}
-                  value={bib}
-                  onChange={(e) => setBib(e.target.value)}
-                  placeholder={t("crew.racePlanBibPh")}
-                  maxLength={8}
-                  inputMode="numeric"
-                />
-              </div>
-              <p className="text-xs text-muted">{t("crew.racePlanBibHint")}</p>
-              <input
-                className={input}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder={t("crew.racePlanNotePh")}
-                maxLength={80}
-              />
-              {err && <p role="alert" className="text-xs text-danger">{err}</p>}
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={busy || !title.trim() || !date}
-                  className="rounded-md bg-track px-4 py-2 text-sm font-bold text-accent-foreground disabled:opacity-40"
-                >
-                  {t("common.save")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
-                >
-                  {t("common.cancel")}
-                </button>
-              </div>
-            </form>
-          </div>
+          <form onSubmit={save}>
+            <RacePlanFields {...{ title, setTitle, date, setDate, division, setDivision, bib, setBib, note, setNote }} />
+            {err && (
+              <p role="alert" className="rx-error">
+                {err}
+              </p>
+            )}
+            <div className="rx-actions">
+              <Button type="submit" className="rx-primary" disabled={busy || !title.trim() || !date || !bibOk(bib)}>
+                {busy ? t("common.saving") : t("common.save")}
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                {t("common.cancel")}
+              </Button>
+            </div>
+          </form>
         )}
-      </Dialog>
-    </>
+      </RoxDialog>
+    </span>
   );
 }
 
@@ -441,8 +393,6 @@ export type MyRacePlan = {
   goal_roxzone_ms: number | null;
 };
 
-const bibOk = (v: string) => v.trim() === "" || /^\d{4,8}$/.test(v.trim());
-
 type RaceEventRow = {
   id: string;
   name: string;
@@ -454,7 +404,10 @@ type RaceEventRow = {
 /** 내 대회 참가 일정 — 본인이 등록·수정·삭제한다 (race_plans, own RLS).
  *  크루 전용이 아니다: 개인 일정 화면(/schedule)과 크루 일정표 양쪽에서 쓴다.
  *  공식 대회(race_events)를 검색해 고르면 이름·날짜가 채워지고 대회에 연결되며,
- *  목록에 없는 대회는 입력한 이름 그대로 등록된다. */
+ *  목록에 없는 대회는 입력한 이름 그대로 등록된다.
+ *
+ *  목록은 시안 training.tsx "내 레이스 일정" 의 RowLink(RecordRow) 그대로 — 제목 · 날짜·디비전 · D-day.
+ *  수정·삭제는 상세(RacePlanEditor)에서 한다(목록 인라인 수정은 시안에 없어 뺐다, §4). */
 export function RacePlanForm({
   myPlans,
   part,
@@ -479,13 +432,6 @@ export function RacePlanForm({
   const [note, setNote] = useState("");
   const [eventId, setEventId] = useState<string | null>(null);
   const [events, setEvents] = useState<RaceEventRow[] | null>(null);
-  // 인라인 수정 — BIB 는 대회 직전 발급되는 경우가 많아 나중에 채운다
-  const [editId, setEditId] = useState<string | null>(null);
-  const [eTitle, setETitle] = useState("");
-  const [eDate, setEDate] = useState("");
-  const [eDivision, setEDivision] = useState("");
-  const [eBib, setEBib] = useState("");
-  const [eNote, setENote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -498,10 +444,7 @@ export function RacePlanForm({
       .from("race_events")
       .select("id, name, city, city_en, start_date")
       // 오늘 이후 + 최근 30일(막 끝난 대회를 뒤늦게 등록하는 경우)
-      .gte(
-        "start_date",
-        new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
-      )
+      .gte("start_date", new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10))
       .order("start_date", { ascending: true })
       .limit(100);
     setEvents((data ?? []) as RaceEventRow[]);
@@ -512,13 +455,7 @@ export function RacePlanForm({
   const term = title.trim().toLowerCase();
   const matches =
     !eventId && term.length >= 1 && events
-      ? events
-          .filter((e) =>
-            [e.name, e.city, e.city_en ?? ""].some((v) =>
-              v.toLowerCase().includes(term),
-            ),
-          )
-          .slice(0, 8)
+      ? events.filter((e) => [e.name, e.city, e.city_en ?? ""].some((v) => v.toLowerCase().includes(term))).slice(0, 8)
       : [];
 
   function pickEvent(e: RaceEventRow) {
@@ -562,415 +499,104 @@ export function RacePlanForm({
     router.refresh();
   }
 
-  function startEdit(p: MyRacePlan) {
-    setEditId(p.id);
-    setETitle(p.title);
-    setEDate(p.race_date);
-    setEDivision(p.division ?? "");
-    setEBib(p.bib ?? "");
-    setENote(p.note ?? "");
-    setErr(null);
-  }
-
-  async function saveEdit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editId || !eTitle.trim() || !eDate || !bibOk(eBib)) return;
-    setBusy(true);
-    setErr(null);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("race_plans")
-      .update({
-        title: eTitle.trim(),
-        race_date: eDate,
-        division: eDivision.trim() || null,
-        bib: eBib.trim() || null,
-        note: eNote.trim() || null,
-      })
-      .eq("id", editId);
-    setBusy(false);
-    if (error) {
-      setErr(error.message);
-      return;
-    }
-    setEditId(null);
-    router.refresh();
-  }
-
-  async function del(id: string) {
-    if (!window.confirm(t("crew.racePlanDelConfirm"))) return;
-    const supabase = createClient();
-    const { error } = await supabase.from("race_plans").delete().eq("id", id);
-    if (error) return setErr(error.message);
-    router.refresh();
-  }
-
   const showTrigger = part !== "list";
   const showList = part !== "trigger";
   // 상세에서 "뒤로"가 온 곳을 가리키도록 현재 경로를 실어 보낸다.
   // 같은 목록이 내 일정과 크루 일정 두 곳에 있어서, 상세는 어디서 왔는지
   // 스스로 알 수 없다.
-  const planHref = (id: string) =>
-    `/schedule/race/${id}?from=${encodeURIComponent(pathname)}`;
+  const planHref = (id: string) => `/schedule/race/${id}?from=${encodeURIComponent(pathname)}`;
+  const dateLabel = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(tag, { month: "long", day: "numeric", weekday: "short" });
 
   return (
-    <div className="flex flex-col gap-2">
+    <>
       {showTrigger && (
-        <button
-          type="button"
-          onClick={openForm}
-          className="self-start rounded-md bg-surface px-3 py-1.5 text-xs font-semibold text-track hover:brightness-95"
-        >
-          + {t("crew.racePlanAdd")}
-        </button>
-      )}
-      {/* 등록 폼은 입력이 여러 줄이라 툴바 칸에서는 눌린다 — 오버레이로 띄운다 */}
-      <Dialog
-        open={showTrigger && open}
-        onClose={() => setOpen(false)}
-        label={t("crew.racePlanAdd")}
-        closeLabel={t("common.cancel")}
-        panelClassName="max-w-lg"
-      >
-        {showTrigger && open && (
-          <div>
-        <form onSubmit={save} className="flex w-full flex-col gap-2 rounded-md bg-surface p-4">
-          <p className="text-sm font-semibold">{t("crew.racePlanAdd")}</p>
-          {/* 공식 대회 검색 — 자유 입력처럼 보이면 검색 기능을 아무도 못 찾는다.
-              라벨과 안내로 "검색해서 고르는 칸"임을 드러낸다. */}
-          <label className="flex flex-col gap-1 text-xs text-muted">
-            {t("crew.racePlanSearch")}
-            <input
-              className={input}
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setEventId(null); // 직접 수정하면 공식 대회 연결 해제
-              }}
-              placeholder={t("crew.racePlanTitlePh")}
-              maxLength={80}
-              autoComplete="off"
-            />
-          </label>
-          {matches.length > 0 && (
-            <ul className="flex flex-col gap-1 rounded-md bg-background p-2">
-              {matches.map((ev) => (
-                <li key={ev.id}>
-                  <button
-                    type="button"
-                    onClick={() => pickEvent(ev)}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-surface"
-                  >
-                    <span className="truncate font-semibold">{ev.name}</span>
-                    <span className="text-muted">{ev.city}</span>
-                    {ev.start_date && (
-                      <span className="ml-auto shrink-0 font-mono text-muted">
-                        {ev.start_date}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {eventId ? (
-            <p className="text-xs text-track">✓ {t("crew.racePlanLinked")}</p>
-          ) : (
-            title.trim().length >= 1 &&
-            events !== null &&
-            matches.length === 0 && (
-              <p className="text-xs text-muted">{t("crew.racePlanNoMatch")}</p>
-            )
-          )}
-          <input
-            type="date"
-            className={input}
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-          <div className="flex gap-2">
-            <select
-              className={input}
-              value={division}
-              onChange={(e) => setDivision(e.target.value)}
-            >
-              <option value="">{t("crew.racePlanDivisionPh")}</option>
-              {DIVISIONS.map((d) => (
-                <option key={d} value={d}>
-                  {t(`division.${d}` as Parameters<typeof t>[0])}
-                </option>
-              ))}
-            </select>
-            <input
-              className={input}
-              value={bib}
-              onChange={(e) => setBib(e.target.value)}
-              placeholder={t("crew.racePlanBibPh")}
-              maxLength={8}
-              inputMode="numeric"
-            />
-          </div>
-          <p className="text-xs text-muted">{t("crew.racePlanBibHint")}</p>
-          <input
-            className={input}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={t("crew.racePlanNotePh")}
-            maxLength={80}
-          />
-          {err && <p role="alert" className="text-xs text-danger">{err}</p>}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={busy || !title.trim() || !date}
-              className="rounded-md bg-track px-4 py-2 text-sm font-bold text-accent-foreground disabled:opacity-40"
-            >
-              {t("common.save")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
-            >
-              {t("common.cancel")}
-            </button>
-          </div>
-        </form>
-          </div>
-        )}
-      </Dialog>
-      {showList && myPlans.length > 0 && (
-        <ul
-          className={`grid gap-2.5 ${
-            myPlans.length > 1 ? "sm:grid-cols-2" : "max-w-[480px]"
-          }`}
-        >
-          {myPlans.map((p) =>
-            editId === p.id ? (
-              <li key={p.id}>
-                <form
-                  onSubmit={saveEdit}
-                  className="flex flex-col gap-2 rounded-md bg-surface p-3 ring-1 ring-accent-line/40"
-                >
-                  <input
-                    className={input}
-                    value={eTitle}
-                    onChange={(e) => setETitle(e.target.value)}
-                    placeholder={t("crew.racePlanTitlePh")}
-                    maxLength={80}
-                  />
-                  <input
-                    type="date"
-                    className={input}
-                    value={eDate}
-                    onChange={(e) => setEDate(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <select
-                      className={input}
-                      value={eDivision}
-                      onChange={(e) => setEDivision(e.target.value)}
-                    >
-                      <option value="">{t("crew.racePlanDivisionPh")}</option>
-                      {DIVISIONS.map((d) => (
-                        <option key={d} value={d}>
-                          {t(`division.${d}` as Parameters<typeof t>[0])}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      className={input}
-                      value={eBib}
-                      onChange={(e) => setEBib(e.target.value)}
-                      placeholder={t("crew.racePlanBibPh")}
-                      maxLength={8}
-                      inputMode="numeric"
-                    />
-                  </div>
-                  <input
-                    className={input}
-                    value={eNote}
-                    onChange={(e) => setENote(e.target.value)}
-                    placeholder={t("crew.racePlanNotePh")}
-                    maxLength={80}
-                  />
-                  {err && <p role="alert" className="text-xs text-danger">{err}</p>}
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      disabled={busy || !eTitle.trim() || !eDate || !bibOk(eBib)}
-                      className="rounded-md bg-track px-4 py-1.5 text-xs font-bold text-accent-foreground disabled:opacity-40"
-                    >
-                      {t("common.save")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditId(null)}
-                      className="rounded-md px-3 py-1.5 text-xs text-muted hover:text-foreground"
-                    >
-                      {t("common.cancel")}
-                    </button>
-                  </div>
-                </form>
-              </li>
-            ) : (
-              <li
-                key={p.id}
-                className="flex flex-col gap-2.5 rounded-[14px] border border-dashed border-line-strong px-[18px] py-4"
-              >
-                {/* 1행 — 배지·D-day·액션 */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="shrink-0 rounded-md border border-line-accent px-2 py-0.5 text-[10px] font-extrabold tracking-[0.06em] text-gold">
-                    MY RACE
-                  </span>
-                  {(() => {
-                    const d = Math.round(
-                      (Date.parse(p.race_date) - Date.parse(today)) / 86400000,
-                    );
-                    if (d < 0) return null;
-                    return (
-                      <span className="tabular shrink-0 rounded-md bg-line px-2 py-0.5 text-xs font-bold text-foreground/80">
-                        D-{d}
-                      </span>
-                    );
-                  })()}
-                  {p.bib && (
-                    <span className="tabular shrink-0 rounded-md bg-info-bg px-2 py-0.5 text-[10px] font-bold text-info">
-                      BIB {p.bib}
-                    </span>
-                  )}
-                  {/* 초대받은 계획은 남의 것이다 — 수정·삭제 대신 응답 */}
-                  {p.role === "owner" ? (
-                    <span className="ml-auto flex shrink-0 items-center gap-2.5 text-xs text-muted">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(p)}
-                        className="hover:text-gold"
-                      >
-                        {t("common.edit")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => del(p.id)}
-                        className="hover:text-danger"
-                      >
-                        {t("common.delete")}
-                      </button>
-                    </span>
-                  ) : (
-                    <a
-                      href={planHref(p.id)}
-                      className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${
-                        p.my_status === "pending"
-                          ? "bg-accent text-accent-foreground"
-                          : "bg-line text-muted"
-                      }`}
-                    >
-                      {p.my_status === "pending"
-                        ? t("race.partnerRespond")
-                        : t("race.byOwner", { name: p.owner_name })}
-                    </a>
-                  )}
-                </div>
-
-                {/* 2행 — 대회명·날짜·디비전·파트너 */}
-                <div className="min-w-0">
-                  <a
-                    href={planHref(p.id)}
-                    className="block truncate text-[17px] font-extrabold hover:text-gold"
-                  >
-                    {p.title}
-                  </a>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
-                    <span className="tabular">
-                      {new Date(`${p.race_date}T00:00:00`).toLocaleDateString(
-                        tag,
-                        { year: "numeric", month: "long", day: "numeric", weekday: "short" },
+        <>
+          <Button type="button" variant="outline" onClick={openForm}>
+            <Plus size={16} />
+            {t("crew.racePlanAdd")}
+          </Button>
+          {/* 등록 폼은 입력이 여러 줄이라 툴바 칸에서는 눌린다 — RoxDialog 로 띄운다 */}
+          <RoxDialog open={open} onOpenChange={setOpen} title={t("crew.racePlanAdd")}>
+            {open && (
+              <form onSubmit={save}>
+                <RacePlanFields
+                  {...{ title, setTitle, date, setDate, division, setDivision, bib, setBib, note, setNote }}
+                  titleField={
+                    <>
+                      {/* 공식 대회 검색 — 자유 입력처럼 보이면 검색 기능을 아무도 못 찾는다.
+                          라벨과 안내로 "검색해서 고르는 칸"임을 드러낸다. */}
+                      <Field label={t("crew.racePlanSearch")}>
+                        <Input
+                          value={title}
+                          onChange={(e) => {
+                            setTitle(e.target.value);
+                            setEventId(null); // 직접 수정하면 공식 대회 연결 해제
+                          }}
+                          placeholder={t("crew.racePlanTitlePh")}
+                          maxLength={80}
+                          autoComplete="off"
+                          required
+                        />
+                      </Field>
+                      {matches.length > 0 && (
+                        <div className="rx-actions" style={{ marginTop: 0, flexDirection: "column", alignItems: "stretch", gap: 2 }}>
+                          {matches.map((ev) => (
+                            <Button key={ev.id} type="button" variant="ghost" size="sm" onClick={() => pickEvent(ev)} style={{ justifyContent: "flex-start" }}>
+                              <b>{ev.name}</b>
+                              <span className="rx-muted">{ev.city}</span>
+                              {ev.start_date && <span className="rx-muted">{ev.start_date}</span>}
+                            </Button>
+                          ))}
+                        </div>
                       )}
-                    </span>
-                    {p.division && (
-                      <span>
-                        · {dictLabel(t, `division.${p.division}`, p.division)}
-                      </span>
-                    )}
-                    {p.partners.map((pt) => (
-                      <span
-                        key={pt.user_id}
-                        className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${
-                          pt.status === "accepted"
-                            ? "bg-success-bg text-success"
-                            : pt.status === "declined"
-                              ? "bg-danger-bg text-danger"
-                              : "bg-label-bg text-label"
-                        }`}
-                      >
-                        {pt.name}
-                      </span>
-                    ))}
+                      {eventId ? (
+                        <Hint>✓ {t("crew.racePlanLinked")}</Hint>
+                      ) : (
+                        title.trim().length >= 1 && events !== null && matches.length === 0 && <Hint>{t("crew.racePlanNoMatch")}</Hint>
+                      )}
+                    </>
+                  }
+                />
+                {err && (
+                  <p role="alert" className="rx-error">
+                    {err}
                   </p>
-                </div>
-
-                {/* 3행 — 목표 상태 박스 */}
-                {p.goal_target_ms == null ? (
-                  <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-line-accent bg-highlight px-3 py-2.5">
-                    <span className="min-w-0 flex-1 text-[13px] text-gold">
-                      {t("race.goalNone")}
-                    </span>
-                    {p.role === "owner" && (
-                      <a
-                        href={`/predict?event=${encodeURIComponent(p.title)}&date=${p.race_date}`}
-                        className="shrink-0 text-[13px] font-bold text-gold hover:underline"
-                      >
-                        {t("events.setGoal")} →
-                      </a>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-[10px] border border-line bg-page px-3 py-2.5">
-                    <span className="shrink-0">
-                      <span className="block text-xs text-muted">
-                        {t("race.goalTitle")}
-                      </span>
-                      <span className="tabular block text-lg font-extrabold text-gold">
-                        {fmtMs(p.goal_target_ms)}
-                      </span>
-                    </span>
-                    <span className="tabular ml-auto flex flex-wrap gap-x-3 text-xs text-muted">
-                      {p.goal_run_ms != null && (
-                        <span>
-                          {t("landing.m.run")}{" "}
-                          <b className="text-info">{fmtMs(p.goal_run_ms)}</b>
-                        </span>
-                      )}
-                      {p.goal_station_ms != null && (
-                        <span>
-                          {t("landing.m.station")}{" "}
-                          <b className="text-accent-dim">
-                            {fmtMs(p.goal_station_ms)}
-                          </b>
-                        </span>
-                      )}
-                      {p.goal_roxzone_ms != null && (
-                        <span>
-                          {t("landing.m.roxzone")}{" "}
-                          <b className="text-foreground/85">
-                            {fmtMs(p.goal_roxzone_ms)}
-                          </b>
-                        </span>
-                      )}
-                    </span>
-                  </div>
                 )}
-              </li>
-            ),
-          )}
-        </ul>
+                <div className="rx-actions">
+                  <Button type="submit" className="rx-primary" disabled={busy || !title.trim() || !date || !bibOk(bib)}>
+                    {busy ? t("common.saving") : t("common.save")}
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                    {t("common.cancel")}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </RoxDialog>
+        </>
       )}
-    </div>
+      {showList &&
+        myPlans.map((p) => {
+          const d = Math.round((Date.parse(p.race_date) - Date.parse(today)) / 86400000);
+          const partnerNote = p.partners.map((pt) => `${pt.name}${pt.status === "accepted" ? " ✓" : pt.status === "declined" ? " ✕" : ""}`).join(", ");
+          const note = [
+            dateLabel(p.race_date),
+            p.division ? dictLabel(t, `division.${p.division}`, p.division) : null,
+            p.bib ? `BIB ${p.bib}` : null,
+            p.role === "partner" ? t("race.byOwner", { name: p.owner_name }) : partnerNote || null,
+            p.goal_target_ms == null ? t("race.goalNone") : `${t("race.goalTitle")} ${fmtMs(p.goal_target_ms)}`,
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          const end = p.role === "partner" && p.my_status === "pending" ? <Chip tone="yellow">{t("race.partnerRespond")}</Chip> : d >= 0 ? `D–${d}` : t("race.past");
+          return <RecordRow key={p.id} href={planHref(p.id)} title={p.title} note={note} end={end} />;
+        })}
+    </>
   );
 }
 
-/** 모임 참석 체크 — going/maybe/declined 업서트. 멤버만 (RLS is_crew_member). */
+/** 모임 참석 체크 — going/maybe/declined 업서트. 멤버만 (RLS is_crew_member).
+ *  시안 CrewSchedule 상세의 "내 참석 여부" Segments(참석·미정·불참) 그대로. */
 export function CrewRsvpButtons({
   eventId,
   myStatus,
@@ -987,6 +613,7 @@ export function CrewRsvpButtons({
   const [err, setErr] = useState<string | null>(null);
 
   async function set(status: "going" | "maybe" | "declined") {
+    if (busy || closed) return;
     setBusy(true);
     setErr(null);
     const supabase = createClient();
@@ -995,122 +622,48 @@ export function CrewRsvpButtons({
       setBusy(false);
       return;
     }
-    const { error } = await supabase
-      .from("crew_event_rsvps")
-      .upsert(
-        { event_id: eventId, user_id: u.user.id, status },
-        { onConflict: "event_id,user_id" },
-      );
+    const { error } = await supabase.from("crew_event_rsvps").upsert({ event_id: eventId, user_id: u.user.id, status }, { onConflict: "event_id,user_id" });
     setBusy(false);
     if (error) setErr(error.message);
     else router.refresh();
   }
 
-  // 정원 초과로 참석 신청이 대기로 전환된 상태 — 참석 버튼을 대기 스타일로
+  // 정원 초과로 참석 신청이 대기로 전환된 상태 — 참석 칸을 대기로 표시
   const waitlisted = myStatus === "waitlisted";
-  const opts = [
-    ["going", waitlisted ? `⏳ ${t("crew.rsvpWaitlisted")}` : t("crew.rsvpGoing")],
-    ["maybe", t("crew.rsvpMaybe")],
-    ["declined", t("crew.rsvpDeclined")],
-  ] as const;
-
-  // 상태별 색을 유지한다 — "불참"이 선택됐다고 옐로로 칠하면 뜻이 뒤집힌다.
-  const activeCls: Record<string, string> = {
-    going: "bg-accent text-accent-foreground",
-    maybe: "bg-accent-dim/20 text-accent-dim ring-1 ring-accent-dim/40",
-    declined: "bg-danger-bg text-danger ring-1 ring-danger-line-strong",
-  };
+  const value = waitlisted ? "going" : (myStatus ?? "");
+  const label = (s: string) => t(s === "going" ? "crew.rsvpGoing" : s === "maybe" ? "crew.rsvpMaybe" : s === "declined" ? "crew.rsvpDeclined" : "crew.rsvpNone");
 
   return (
-    <div>
-      <div className="grid grid-cols-3 gap-1.5">
-        {opts.map(([v, label]) => {
-          const on = myStatus === v || (v === "going" && waitlisted);
-          return (
-            <button
-              key={v}
-              type="button"
-              disabled={busy || closed}
-              onClick={() => set(v)}
-              className={`flex h-10 items-center justify-center rounded-lg px-2 text-sm font-bold transition-colors disabled:opacity-50 ${
-                on
-                  ? waitlisted && v === "going"
-                    ? "bg-accent/25 text-gold ring-1 ring-accent-line/50"
-                    : activeCls[v]
-                  : "border border-line-mid bg-control text-foreground/75 hover:border-line-strong hover:text-foreground"
-              }`}
-            >
-              {on && v === "going" && !waitlisted ? `✓ ${label}` : label}
-            </button>
-          );
-        })}
-      </div>
-      {waitlisted && (
-        <p className="mt-2 text-xs text-gold">{t("crew.waitlistNote")}</p>
+    <div aria-busy={busy} style={closed ? { opacity: 0.6, pointerEvents: "none" } : undefined}>
+      <Segments
+        label={t("crew.rsvpSummary")}
+        value={value}
+        onChange={(v) => set(v as "going" | "maybe" | "declined")}
+        options={[
+          ["going", waitlisted ? `⏳ ${t("crew.rsvpWaitlisted")}` : t("crew.rsvpGoing")],
+          ["maybe", t("crew.rsvpMaybe")],
+          ["declined", t("crew.rsvpDeclined")],
+        ]}
+      />
+      <Hint>{t("crew.rsvpNow", { v: waitlisted ? t("crew.rsvpWaitlisted") : label(value) })}</Hint>
+      {waitlisted && <Hint>{t("crew.waitlistNote")}</Hint>}
+      {err && (
+        <p role="alert" className="rx-error">
+          {err}
+        </p>
       )}
-      {err && <p role="alert" className="mt-2 text-xs text-danger">{err}</p>}
     </div>
   );
 }
 
-/** 모임 상세 우측 상단 "⋯" 드롭다운. 종료·취소처럼 자주 쓰지 않는 운영진
- *  액션을 히어로 밖으로 내보내되 한 번의 클릭 거리에 둔다. */
-export function CrewEventMoreMenu({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const wrap = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  return (
-    <div ref={wrap} className="relative">
-      <button
-        type="button"
-        aria-label={label}
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-line-strong bg-control text-muted transition-colors hover:border-line-strong hover:text-foreground"
-      >
-        ⋯
-      </button>
-      {open && (
-        <div
-          // 항목을 고르면 닫는다 — 메뉴가 열린 채로 남으면 뒤에서 뭐가
-          // 바뀌었는지 안 보인다
-          onClick={() => setOpen(false)}
-          className="absolute right-0 top-10 z-40 flex w-44 flex-col gap-0.5 rounded-[10px] border border-line-strong bg-control p-1.5 shadow-[var(--shadow-pop)]"
-        >
-          {children}
-        </div>
-      )}
-    </div>
-  );
+/** 모임 상세 우측 상단 "⋯" 드롭다운 — 장부 행 메뉴(RowMenu)와 같은 모양. */
+export function CrewEventMoreMenu({ label, children }: { label: string; children: React.ReactNode }) {
+  return <RowMenu label={label}>{children}</RowMenu>;
 }
 
 /**
  * 모임 상세의 운영진 액션 묶음 — ⋯ 메뉴에 수정·종료·취소를 모은다.
- *
- * 수정 폼은 입력이 여러 줄이라 메뉴 안이나 히어로 우측 칸에 그리면 눌린다.
- * 열면 화면 가운데 오버레이로 띄운다.
+ * 수정 폼은 입력이 여러 줄이라 메뉴 안에서는 눌린다 — CrewMeetupForm 이 RoxDialog 로 띄운다.
  */
 export function CrewEventStaffActions({
   event,
@@ -1123,43 +676,22 @@ export function CrewEventStaffActions({
   const { t } = useI18n();
   const [edit, setEdit] = useState(false);
 
-  useEffect(() => {
-    if (!edit) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setEdit(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [edit]);
-
   return (
     <>
       <CrewEventMoreMenu label={t("crew.eventSettings")}>
-        <button
-          type="button"
-          onClick={() => setEdit(true)}
-          className="w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors hover:bg-card-hover"
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEdit(true)}>
           {t("common.edit")}
-        </button>
+        </Button>
         {children}
       </CrewEventMoreMenu>
-
-      <Dialog
-        open={edit}
-        onClose={() => setEdit(false)}
-        label={t("common.edit")}
-        closeLabel={t("common.cancel")}
-        panelClassName="max-w-lg"
-      >
-        {edit && <CrewMeetupForm event={event} open onOpenChange={setEdit} />}
-      </Dialog>
+      {edit && <CrewMeetupForm event={event} open onOpenChange={setEdit} />}
     </>
   );
 }
 
 /** 모임 댓글 입력 — 크루원 전용, 댓글 허용 모임에만 렌더된다.
- *  권한(멤버·comments_allowed·members_only)은 RLS 가 최종 강제. */
+ *  권한(멤버·comments_allowed·members_only)은 RLS 가 최종 강제.
+ *  시안 CrewSchedule 상세의 댓글 줄(.rx-actions[Input · Button]) 그대로. */
 export function CrewEventCommentForm({
   eventId,
   myName,
@@ -1186,9 +718,7 @@ export function CrewEventCommentForm({
       setBusy(false);
       return setErr(t("common.needLogin"));
     }
-    const { error } = await supabase
-      .from("crew_event_comments")
-      .insert({ event_id: eventId, author_id: u.user.id, body: text });
+    const { error } = await supabase.from("crew_event_comments").insert({ event_id: eventId, author_id: u.user.id, body: text });
     setBusy(false);
     if (error) return setErr(error.message);
     setBody("");
@@ -1196,34 +726,24 @@ export function CrewEventCommentForm({
   }
 
   return (
-    <>
-      <form
-        onSubmit={submit}
-        className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-2.5 max-sm:grid-cols-[32px_minmax(0,1fr)_auto]"
-      >
-        <Avatar name={myName} size={36} className="max-sm:h-8 max-sm:w-8" />
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder={t("crew.commentPlaceholder")}
-          maxLength={500}
-          rows={2}
-          className="w-full min-w-0 resize-y rounded-lg border border-line-strong bg-page px-3 py-2 text-sm outline-none transition-colors focus:border-accent-line"
-        />
-        <button
-          type="submit"
-          disabled={busy || !body.trim()}
-          className="flex h-10 shrink-0 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground transition hover:brightness-95 disabled:opacity-40"
-        >
-          {t("crew.commentSubmit")}
-        </button>
-      </form>
-      {err && <p role="alert" className="mt-1 text-xs text-danger">{err}</p>}
-    </>
+    <form onSubmit={submit} className="rx-actions" style={{ flexWrap: "nowrap" }}>
+      <span className="rx-avatar" aria-hidden>
+        {(myName.trim()[0] ?? "?").toUpperCase()}
+      </span>
+      <Input aria-label={t("crew.commentPlaceholder")} value={body} onChange={(e) => setBody(e.target.value)} placeholder={t("crew.commentPlaceholder")} maxLength={500} />
+      <Button type="submit" className="rx-primary" disabled={busy || !body.trim()}>
+        {t("crew.commentSubmit")}
+      </Button>
+      {err && (
+        <span role="alert" className="rx-error">
+          {err}
+        </span>
+      )}
+    </form>
   );
 }
 
-/** 모임 취소 — 스태프 전용 soft cancel. */
+/** 모임 취소 — 스태프 전용 soft cancel. ⋯ 메뉴 항목. */
 export function CrewMeetupCancel({ eventId, slug }: { eventId: string; slug: string }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -1235,10 +755,7 @@ export function CrewMeetupCancel({ eventId, slug }: { eventId: string; slug: str
     setBusy(true);
     setErr(null);
     const supabase = createClient();
-    const { error } = await supabase
-      .from("crew_events")
-      .update({ cancelled_at: new Date().toISOString() })
-      .eq("id", eventId);
+    const { error } = await supabase.from("crew_events").update({ cancelled_at: new Date().toISOString() }).eq("id", eventId);
     setBusy(false);
     if (error) return setErr(error.message);
     router.push(`/crews/${slug}/schedule`);
@@ -1247,15 +764,10 @@ export function CrewMeetupCancel({ eventId, slug }: { eventId: string; slug: str
 
   return (
     <>
-      <button
-        type="button"
-        onClick={cancel}
-        disabled={busy}
-        className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-danger transition-colors hover:bg-danger-card disabled:opacity-50"
-      >
+      <Button type="button" variant="ghost" size="sm" className="rx-pft-close" onClick={cancel} disabled={busy}>
         {t("crew.meetupCancel")}
-      </button>
-      {err && <span className="px-3 text-xs text-danger">{err}</span>}
+      </Button>
+      {err && <span className="rx-error">{err}</span>}
     </>
   );
 }
@@ -1274,10 +786,6 @@ export type AttendanceRow = {
   charge_status: "pending" | "reported" | "confirmed" | "waived" | null;
 };
 
-/** 모임 출석 체크 — 운영진만 토글할 수 있다(권한은 crew_event_check_in RPC 가 강제).
- *  RSVP(오겠다)와 출석(실제로 왔다)은 별개라, 신청하지 않은 워크인도 체크된다. */
-const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
-
 /**
  * 출석자 인스타 핸들 복사 — 모임 사진에 태그할 때 한 줄로 붙여 넣는다.
  *
@@ -1293,9 +801,7 @@ export function CrewEventInstaCopy({ eventId }: { eventId: string }) {
   async function copy() {
     setBusy(true);
     setNote(null);
-    const { data, error } = await createClient().rpc("crew_event_instagrams", {
-      p_event: eventId,
-    });
+    const { data, error } = await createClient().rpc("crew_event_instagrams", { p_event: eventId });
     setBusy(false);
     if (error) return setNote(error.message);
     const rows = (data ?? []) as { display_name: string; instagram: string | null }[];
@@ -1311,26 +817,17 @@ export function CrewEventInstaCopy({ eventId }: { eventId: string }) {
       return;
     }
     const missing = rows.length - handles.length;
-    setNote(
-      missing > 0
-        ? t("crew.instaCopiedSome", { n: handles.length, missing })
-        : t("crew.instaCopied", { n: handles.length }),
-    );
+    setNote(missing > 0 ? t("crew.instaCopiedSome", { n: handles.length, missing }) : t("crew.instaCopied", { n: handles.length }));
     window.setTimeout(() => setNote(null), 4000);
   }
 
   return (
-    <span className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={copy}
-        disabled={busy}
-        className="flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-line-strong disabled:opacity-40"
-      >
+    <>
+      <Button type="button" variant="outline" size="sm" onClick={copy} disabled={busy}>
         {t("crew.instaCopy")}
-      </button>
-      {note && <span className="text-xs text-muted">{note}</span>}
-    </span>
+      </Button>
+      {note && <span className="rx-muted">{note}</span>}
+    </>
   );
 }
 
@@ -1340,7 +837,8 @@ export type GoingEntry = { name: string; tier: string | null; color: string | nu
 type RsvpTab = "attend" | "going" | "maybe" | "declined" | "none";
 
 /**
- * 참석 명단 · 출석 체크 통합 카드 (2026-09 핸드오프).
+ * 참석 명단 · 출석 체크 통합 카드 — 시안에 없는 화면(§4).
+ * Panel[ Segments(탭) · Hint · DataTable[.rx-person · 회차비 · 출석] · Empty ] 로만 그린다.
  *
  * 두 목록은 서로 다른 것을 본다 — 명단은 "오겠다고 한 사람"(RSVP), 출석은
  * "실제로 온 사람"이다. 둘을 한 카드의 탭으로 묶되 섞지 않는다.
@@ -1383,11 +881,7 @@ export function CrewAttendanceCheck({
     setBusy(userId);
     setErr(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("crew_event_check_in", {
-      p_event: eventId,
-      p_user: userId,
-      p_present: present,
-    });
+    const { error } = await supabase.rpc("crew_event_check_in", { p_event: eventId, p_user: userId, p_present: present });
     setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
@@ -1396,22 +890,14 @@ export function CrewAttendanceCheck({
   /** 참석자 전원 출석 — 정기 모임에서 한 명씩 누르는 게 대부분 낭비다.
    *  이미 체크된 사람은 건너뛰고, 한 건이라도 실패하면 거기서 멈추고 알린다. */
   async function checkAllGoing() {
-    const targets = rows.filter(
-      (r) =>
-        !r.checked_in &&
-        (r.rsvp_status === "going" || r.rsvp_status === "waitlisted"),
-    );
+    const targets = rows.filter((r) => !r.checked_in && (r.rsvp_status === "going" || r.rsvp_status === "waitlisted"));
     if (!targets.length) return;
     if (!window.confirm(t("crew.checkAllConfirm", { n: targets.length }))) return;
     setBusy("all");
     setErr(null);
     const supabase = createClient();
     for (const r of targets) {
-      const { error } = await supabase.rpc("crew_event_check_in", {
-        p_event: eventId,
-        p_user: r.user_id,
-        p_present: true,
-      });
+      const { error } = await supabase.rpc("crew_event_check_in", { p_event: eventId, p_user: r.user_id, p_present: true });
       if (error) {
         setBusy(null);
         setErr(duesErrText(t, error.message));
@@ -1428,10 +914,7 @@ export function CrewAttendanceCheck({
   async function settle(chargeId: string, confirmed: boolean) {
     setBusy(chargeId);
     setErr(null);
-    const { error } = await createClient().rpc(
-      confirmed ? "unconfirm_dues_charge" : "confirm_dues_charge",
-      { p_charge: chargeId },
-    );
+    const { error } = await createClient().rpc(confirmed ? "unconfirm_dues_charge" : "confirm_dues_charge", { p_charge: chargeId });
     setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
@@ -1446,357 +929,191 @@ export function CrewAttendanceCheck({
   const present = rows.filter((r) => r.checked_in);
   // 불참 = 참석하겠다고 해 놓고 출석 체크가 안 된 사람. 모임이 시작하기
   // 전에는 아직 안 온 것일 뿐이라 불참으로 세지 않는다.
-  const noShow = rows.filter(
-    (r) =>
-      !r.checked_in &&
-      (r.rsvp_status === "going" || r.rsvp_status === "waitlisted"),
-  );
+  const noShow = rows.filter((r) => !r.checked_in && (r.rsvp_status === "going" || r.rsvp_status === "waitlisted"));
 
   // 출석 탭 기본은 참석 신청자 + 이미 체크된 사람. 나머지 크루원은 접어 둔다 —
   // 워크인 체크가 필요할 때만 펼치면 된다.
-  const rsvpd = rows.filter(
-    (r) =>
-      r.checked_in ||
-      r.rsvp_status === "going" ||
-      r.rsvp_status === "waitlisted",
-  );
+  const rsvpd = rows.filter((r) => r.checked_in || r.rsvp_status === "going" || r.rsvp_status === "waitlisted");
   const rest = rows.filter((r) => !rsvpd.includes(r));
   const shown = showAll ? [...rsvpd, ...rest] : rsvpd;
 
   // 이 모임의 회차비 현황 — 현장에서 얼마 받았고 얼마 남았는지
-  const due = rows.filter(
-    (r) =>
-      r.charge_id &&
-      (r.charge_status === "pending" || r.charge_status === "reported"),
-  );
-  const paidSum = rows
-    .filter((r) => r.charge_status === "confirmed")
-    .reduce((a, r) => a + (r.charge_amount ?? 0), 0);
+  const due = rows.filter((r) => r.charge_id && (r.charge_status === "pending" || r.charge_status === "reported"));
+  const paidSum = rows.filter((r) => r.charge_status === "confirmed").reduce((a, r) => a + (r.charge_amount ?? 0), 0);
   const dueSum = due.reduce((a, r) => a + (r.charge_amount ?? 0), 0);
 
-  const rsvpLabel = (status: string | null) => {
-    if (status === "going") return [t("crew.rsvpGoing"), "text-success"];
-    if (status === "waitlisted") return [t("crew.rsvpWaitlisted"), "text-gold"];
-    if (status === "maybe") return [t("crew.rsvpMaybe"), "text-accent-dim"];
-    if (status === "declined") return [t("crew.rsvpDeclined"), "text-danger"];
-    return [t("crew.rsvpNone"), "text-muted"];
+  const rsvpChip = (status: string | null) => {
+    if (status === "going") return <Chip tone="green">{t("crew.rsvpGoing")}</Chip>;
+    if (status === "waitlisted") return <Chip tone="yellow">{t("crew.rsvpWaitlisted")}</Chip>;
+    if (status === "maybe") return <Chip tone="blue">{t("crew.rsvpMaybe")}</Chip>;
+    if (status === "declined") return <Chip tone="red">{t("crew.rsvpDeclined")}</Chip>;
+    return <Chip>{t("crew.rsvpNone")}</Chip>;
   };
+  const roleChip = (r: AttendanceRow) => (isStaffRole(r.role) ? <Chip tone={crewRoleChipTone(r.role)}>{t(crewRoleDictKey(r.role))}</Chip> : undefined);
 
-  const tabBtn = (key: RsvpTab, label: string, count: number) => {
-    const on = tab === key;
-    return (
-      <button
-        key={key}
-        type="button"
-        onClick={() => setTab(key)}
-        className={`flex h-[30px] items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
-          on ? "bg-accent text-accent-foreground" : "text-muted hover:text-foreground"
-        }`}
-      >
-        {label}
-        <span
-          className={`tabular rounded-full px-1.5 text-xs font-bold ${
-            on ? "bg-gold-line text-gold" : "bg-line text-muted"
-          }`}
-        >
-          {count}
-        </span>
-      </button>
-    );
-  };
-
-  const rowCls =
-    "grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line-soft px-[22px] py-3 transition-colors hover:bg-card-hover max-md:px-4";
+  const tabNote =
+    tab === "attend"
+      ? feeExempt
+        ? t("crew.feeExemptNote")
+        : t("crew.attendTabNote")
+      : tab === "going"
+        ? t("crew.goingListNote")
+        : tab === "maybe"
+          ? t("crew.maybeListNote")
+          : tab === "declined"
+            ? t("crew.declinedListNote")
+            : t("crew.noneListNote");
+  const listRows = tab === "maybe" ? maybeRows : tab === "declined" ? declinedRows : noneRows;
 
   return (
-    <div className="overflow-hidden rounded-[14px] border border-line bg-card">
-      {/* 헤더 — 탭 + 운영진 설정 */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-line px-[22px] py-3 max-md:px-4">
-        <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-line-mid bg-page p-[3px]">
-          {/* 크루원도 탭을 다 본다 — 출석 탭이 읽기 전용일 뿐이다 */}
-          {tabBtn("attend", t("crew.attendCheckTab"), present.length)}
-          {tabBtn("going", t("crew.rsvpGoing"), going.length)}
-          {tabBtn("maybe", t("crew.rsvpMaybe"), maybeRows.length)}
-          {tabBtn("declined", t("crew.rsvpDeclined"), declinedRows.length)}
-          {tabBtn("none", t("crew.rsvpNone"), noneRows.length)}
-        </div>
-
-        {(settings || tab === "attend") && (
-          <div className="ml-auto flex flex-wrap items-center gap-3 max-md:ml-0 max-md:w-full max-md:justify-end">
-            {settings && (
-              <span className="flex items-center gap-2.5">
-                <span className="text-xs text-muted">
-                  {t("crew.eventSettings")}
-                </span>
-                {settings}
-              </span>
-            )}
-            {canEdit && tab === "attend" && noShow.length > 0 && (
-              <button
-                type="button"
-                onClick={checkAllGoing}
-                disabled={busy != null}
-                className="flex h-8 items-center rounded-lg border border-line-accent bg-highlight px-3 text-[13px] font-bold text-gold transition hover:brightness-95 disabled:opacity-40"
-              >
+    <Panel
+      title={t("crew.goingList")}
+      action={
+        settings ? (
+          <span className="rx-actions" style={{ marginTop: 0 }}>
+            <span className="rx-muted">{t("crew.eventSettings")}</span>
+            {settings}
+          </span>
+        ) : undefined
+      }
+    >
+      <div className="rx-toolbar">
+        {/* 크루원도 탭을 다 본다 — 출석 탭이 읽기 전용일 뿐이다 */}
+        <Segments
+          label={t("crew.goingList")}
+          value={tab}
+          onChange={(v) => setTab(v as RsvpTab)}
+          options={[
+            ["attend", `${t("crew.attendCheckTab")} ${present.length}`],
+            ["going", `${t("crew.rsvpGoing")} ${going.length}`],
+            ["maybe", `${t("crew.rsvpMaybe")} ${maybeRows.length}`],
+            ["declined", `${t("crew.rsvpDeclined")} ${declinedRows.length}`],
+            ["none", `${t("crew.rsvpNone")} ${noneRows.length}`],
+          ]}
+        />
+        {tab === "attend" && (canEdit || present.length > 0) && (
+          <span className="rx-actions" style={{ marginTop: 0 }}>
+            {canEdit && noShow.length > 0 && (
+              <Button type="button" variant="outline" size="sm" onClick={checkAllGoing} disabled={busy != null}>
                 {t("crew.checkAllGoing")}
-              </button>
+              </Button>
             )}
-            {tab === "attend" && present.length > 0 && (
-              <CrewEventInstaCopy eventId={eventId} />
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 힌트 행 */}
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-line-soft px-[22px] py-2.5 text-[13px] text-muted max-md:px-4">
-        <span className="[word-break:keep-all]">
-          {tab === "attend"
-            ? feeExempt
-              ? t("crew.feeExemptNote")
-              : t("crew.attendTabNote")
-            : tab === "going"
-              ? t("crew.goingListNote")
-              : tab === "maybe"
-                ? t("crew.maybeListNote")
-                : tab === "declined"
-                  ? t("crew.declinedListNote")
-                  : t("crew.noneListNote")}
-        </span>
-        {/* 출석 집계는 출석 탭에서만 — 응답 명단 탭에서는 다른 이야기다 */}
-        {canEdit && tab === "attend" && (
-          <span className="tabular shrink-0">
-            {t("crew.attendCounted", {
-              n: present.length,
-              total: memberCount || rows.length,
-            })}
-            {started && noShow.length > 0 && (
-              <span className="ml-2 text-danger">
-                {t("crew.attendNoShow", { n: noShow.length })}
-              </span>
-            )}
+            {present.length > 0 && <CrewEventInstaCopy eventId={eventId} />}
           </span>
         )}
       </div>
 
+      <Hint>
+        {tabNote}
+        {/* 출석 집계는 출석 탭에서만 — 응답 명단 탭에서는 다른 이야기다 */}
+        {canEdit && tab === "attend" && (
+          <>
+            {" · "}
+            {t("crew.attendCounted", { n: present.length, total: memberCount || rows.length })}
+            {started && noShow.length > 0 && <span className="rx-error"> {t("crew.attendNoShow", { n: noShow.length })}</span>}
+          </>
+        )}
+      </Hint>
+
       {/* 회차비 수납 요약 — 운영진만, 청구가 있을 때만 */}
       {canEdit && (paidSum > 0 || dueSum > 0) && (
-        <p className="border-b border-line-soft px-[22px] py-2 text-xs max-md:px-4">
-          <span className="text-muted">{t("crew.attendFeeTitle")} </span>
-          <span className="tabular font-bold text-info">{won(paidSum)}</span>
-          <span className="text-muted"> · </span>
-          <span className="tabular font-bold text-gold">{won(dueSum)}</span>
-          <span className="text-muted"> {t("crew.attendFeeDue")}</span>
+        <p>
+          <span className="rx-muted">{t("crew.attendFeeTitle")} </span>
+          <strong className="rx-income">{won(paidSum)}</strong>
+          <span className="rx-muted"> · </span>
+          <strong className="rx-expense">{won(dueSum)}</strong>
+          <span className="rx-muted"> {t("crew.attendFeeDue")}</span>
         </p>
       )}
 
       {err && (
-        <p className="border-b border-line-soft px-[22px] py-2 text-xs text-danger max-md:px-4">
+        <p role="alert" className="rx-error">
           {err}
         </p>
       )}
 
-      {/* 출석 체크 탭 — 운영진은 토글, 크루원은 읽기 전용 */}
       {tab === "attend" ? (
+        /* 출석 체크 탭 — 운영진은 토글, 크루원은 읽기 전용 */
         <>
-          <ul className="grid sm:grid-cols-2">
-            {shown.map((r) => {
-              const [label, cls] = rsvpLabel(r.rsvp_status);
-              const dim =
-                !r.checked_in &&
-                r.rsvp_status !== "going" &&
-                r.rsvp_status !== "waitlisted";
-              return (
-                <li
-                  key={r.user_id}
-                  className={`${rowCls} ${dim ? "opacity-60" : ""}`}
-                >
-                  <Avatar name={r.display_name} size={36} />
-                  <span className="min-w-0">
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="truncate text-[15px] font-bold">
-                        {r.display_name}
-                      </span>
-                      {isStaffRole(r.role) && (
-                        <span
-                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${crewRoleBadgeClass(r.role)}`}
-                        >
-                          {t(crewRoleDictKey(r.role))}
-                        </span>
-                      )}
-                    </span>
-                    <span className={`mt-0.5 block text-xs ${cls}`}>
-                      {label}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    {/* 회차비 — 청구가 있을 때만. 무료 행사·회차비 없는 등급은 안 뜬다 */}
-                    {canEdit &&
-                      r.charge_id &&
-                      r.charge_amount != null &&
-                      (r.charge_status === "waived" ? (
-                        <span className="rounded-md bg-label-bg px-2 py-1 text-xs font-bold text-label">
-                          {t("crew.duesWaived")}
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={busy != null}
-                          onClick={() =>
-                            settle(r.charge_id!, r.charge_status === "confirmed")
-                          }
-                          className={`tabular rounded-md px-2 py-1 text-xs font-bold disabled:opacity-50 ${
-                            r.charge_status === "confirmed"
-                              ? "bg-info-bg text-info"
-                              : "bg-page text-gold ring-1 ring-line-accent"
-                          }`}
-                        >
-                          {r.charge_status === "confirmed" ? "✓ " : ""}
-                          {won(r.charge_amount)}
-                        </button>
-                      ))}
-                    <button
-                      type="button"
-                      disabled={!canEdit || busy != null}
-                      onClick={() => toggle(r.user_id, !r.checked_in)}
-                      className={`flex h-8 items-center rounded-lg px-2.5 text-[13px] font-bold transition-colors disabled:opacity-100 ${
-                        r.checked_in
-                          ? "bg-accent text-accent-foreground"
-                          : "border border-line-strong text-muted"
-                      } ${canEdit ? "disabled:opacity-50" : "cursor-default"}`}
-                    >
-                      {r.checked_in
-                        ? `✓ ${t("crew.attendPresent")}`
-                        : t("crew.attendMark")}
-                    </button>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          {!shown.length && (
-            <p className="px-[22px] py-8 text-center text-[13px] text-muted max-md:px-4">
-              {t("crew.attendNoRsvp")}
-            </p>
+          {shown.length > 0 ? (
+            <DataTable
+              headers={[t("crew.colMember"), canEdit ? t("crew.eventFee") : "", t("crew.attendCheckTab")]}
+              rows={shown.map((r) => [
+                <Person key="p" name={r.display_name} note={rsvpChip(r.rsvp_status)} chip={roleChip(r)} />,
+                // 회차비 — 청구가 있을 때만. 무료 행사·회차비 없는 등급은 안 뜬다
+                canEdit && r.charge_id && r.charge_amount != null ? (
+                  r.charge_status === "waived" ? (
+                    <Chip key="f" tone="blue">
+                      {t("crew.duesWaived")}
+                    </Chip>
+                  ) : (
+                    <Button key="f" type="button" size="sm" variant={r.charge_status === "confirmed" ? "default" : "outline"} className={r.charge_status === "confirmed" ? "rx-primary" : ""} disabled={busy != null} onClick={() => settle(r.charge_id!, r.charge_status === "confirmed")}>
+                      {r.charge_status === "confirmed" ? "✓ " : ""}
+                      {won(r.charge_amount)}
+                    </Button>
+                  )
+                ) : (
+                  <span key="f" />
+                ),
+                canEdit ? (
+                  <Button key="a" type="button" size="sm" variant={r.checked_in ? "default" : "outline"} className={r.checked_in ? "rx-primary" : ""} disabled={busy != null} onClick={() => toggle(r.user_id, !r.checked_in)}>
+                    {r.checked_in ? `✓ ${t("crew.attendPresent")}` : t("crew.attendMark")}
+                  </Button>
+                ) : (
+                  <Chip key="a" tone={r.checked_in ? "green" : "neutral"}>
+                    {r.checked_in ? t("crew.attendPresent") : "—"}
+                  </Chip>
+                ),
+              ])}
+            />
+          ) : (
+            <Empty title={t("crew.attendNoRsvp")} description={t("crew.attendTabNote")} />
           )}
           {canEdit && rest.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="w-full px-[22px] py-3 text-[13px] font-bold text-gold hover:underline max-md:px-4"
-            >
-              {showAll
-                ? t("crew.attendHideOthers")
-                : t("crew.attendShowOthers", { n: rest.length })}
-            </button>
+            <div className="rx-actions">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
+                {showAll ? t("crew.attendHideOthers") : t("crew.attendShowOthers", { n: rest.length })}
+              </Button>
+            </div>
           )}
         </>
       ) : tab !== "going" ? (
         /* 미정 · 불참 · 무응답 명단 — 셋이 같은 모양이라 한 곳에서 그린다.
            이름을 보여 주는 게 목적이다(개수만으로는 누구에게 물어볼지 모른다). */
-        <>
-          <ul className="grid sm:grid-cols-2">
-            {(tab === "maybe"
-              ? maybeRows
-              : tab === "declined"
-                ? declinedRows
-                : noneRows
-            ).map((r) => {
-              const [label, cls] = rsvpLabel(r.rsvp_status);
-              return (
-                <li key={r.user_id} className={rowCls}>
-                  <Avatar name={r.display_name} size={36} />
-                  <span className="min-w-0">
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="truncate text-[15px] font-bold">
-                        {r.display_name}
-                      </span>
-                      {isStaffRole(r.role) && (
-                        <span
-                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${crewRoleBadgeClass(r.role)}`}
-                        >
-                          {t(crewRoleDictKey(r.role))}
-                        </span>
-                      )}
-                    </span>
-                    <span className={`mt-0.5 block text-xs ${cls}`}>{label}</span>
-                  </span>
-                  <span />
-                </li>
-              );
-            })}
-          </ul>
-          {!(tab === "maybe"
-            ? maybeRows
-            : tab === "declined"
-              ? declinedRows
-              : noneRows
-          ).length && (
-            <p className="px-[22px] py-8 text-center text-[13px] text-muted max-md:px-4">
-              {t("crew.rsvpEmpty")}
-            </p>
-          )}
-        </>
+        listRows.length > 0 ? (
+          <DataTable headers={[t("crew.colMember"), t("crew.rsvpSummary")]} rows={listRows.map((r) => [<Person key="p" name={r.display_name} chip={roleChip(r)} />, rsvpChip(r.rsvp_status)])} />
+        ) : (
+          <Empty title={t("crew.rsvpEmpty")} description={tabNote} />
+        )
       ) : (
         /* 참석 명단 탭 — 등급 배지 (크루원에게만 채워져 온다) */
         <>
-          <ul className="grid sm:grid-cols-2">
-            {going.map((g, i) => (
-              <li key={i} className={rowCls}>
-                <Avatar name={g.name} size={36} />
-                <span className="min-w-0">
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <span className="truncate text-[15px] font-bold">
-                      {g.name}
-                    </span>
-                    {g.tier && (
-                      <span
-                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${tierBadgeClass(g.color)}`}
-                      >
-                        {g.tier}
-                      </span>
-                    )}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-success">
-                    {t("crew.rsvpGoing")}
-                  </span>
-                </span>
-                <span />
-              </li>
-            ))}
-          </ul>
-          {!going.length && (
-            <p className="px-[22px] py-8 text-center text-[13px] text-muted max-md:px-4">
-              —
-            </p>
+          {going.length > 0 ? (
+            <DataTable
+              headers={[t("crew.colMember"), t("crew.colTier")]}
+              rows={going.map((g) => [<Person key="p" name={g.name} />, g.tier ? <Chip key="t" tone={tierChipTone(g.color)}>{g.tier}</Chip> : <span key="t">—</span>])}
+            />
+          ) : (
+            <Empty title={t("crew.rsvpEmpty")} description={t("crew.goingListNote")} />
           )}
           {waitlistNames.length > 0 && (
-            <p className="px-[22px] py-3 text-[13px] text-gold max-md:px-4">
-              ⏳ {t("crew.waitlistTitle")} ({waitlistNames.length}):{" "}
-              {waitlistNames.join(", ")}
-            </p>
+            <Hint>
+              ⏳ {t("crew.waitlistTitle")} ({waitlistNames.length}): {waitlistNames.join(", ")}
+            </Hint>
           )}
         </>
       )}
-    </div>
+    </Panel>
   );
 }
 
-/** 모임 설정 토글 — 운영진 전용.
+/** 모임 설정 토글 — 운영진 전용. 시안 .rx-check(Checkbox + 문구) 두 줄.
  *  · 무료 행사: 켜면 그 모임의 미납 회차비를 즉시 회수하고, 끄면 그 달을 다시
  *    대사해 출석분 청구를 되살린다 (확정분은 그대로).
  *  · 정회원 전용: 켜면 정회원 권한이 없는 등급에게 모임이 아예 안 보인다.
  *    이미 신청·출석한 기록은 지우지 않는다 — 실제로 있었던 일이고, 지우면
  *    출석 통계와 회차비 청구의 근거가 사라진다. */
-export function CrewEventFeeToggle({
-  eventId,
-  feeExempt,
-  membersOnly,
-}: {
-  eventId: string;
-  feeExempt: boolean;
-  membersOnly: boolean;
-}) {
+export function CrewEventFeeToggle({ eventId, feeExempt, membersOnly }: { eventId: string; feeExempt: boolean; membersOnly: boolean }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -1808,10 +1125,7 @@ export function CrewEventFeeToggle({
     setBusy("fee");
     setErr(null);
     setNote(null);
-    const { error } = await createClient().rpc("set_event_fee_exempt", {
-      p_event: eventId,
-      p_on: on,
-    });
+    const { error } = await createClient().rpc("set_event_fee_exempt", { p_event: eventId, p_on: on });
     setBusy(null);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
@@ -1822,10 +1136,7 @@ export function CrewEventFeeToggle({
     setBusy("members");
     setErr(null);
     setNote(null);
-    const { data, error } = await createClient().rpc("set_event_members_only", {
-      p_event: eventId,
-      p_on: on,
-    });
+    const { data, error } = await createClient().rpc("set_event_members_only", { p_event: eventId, p_on: on });
     setBusy(null);
     if (error) return setErr(duesErrText(t, error.message));
     const hidden = (data as { hidden_from?: number } | null)?.hidden_from ?? 0;
@@ -1834,33 +1145,20 @@ export function CrewEventFeeToggle({
   }
 
   return (
-    <span className="flex flex-wrap items-center gap-3">
-      <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-        <input
-          type="checkbox"
-          checked={membersOnly}
-          disabled={busy != null}
-          onChange={(e) => toggleMembers(e.target.checked)}
-          className="h-4 w-4 accent-accent"
-        />
+    <span className="rx-actions" style={{ marginTop: 0 }}>
+      <label className="rx-check" style={{ margin: 0 }}>
+        <Checkbox checked={membersOnly} disabled={busy != null} onCheckedChange={(v) => toggleMembers(v === true)} />
         <span>{t("crew.fullOnly")}</span>
       </label>
-      <label className="flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-        <input
-          type="checkbox"
-          checked={feeExempt}
-          disabled={busy != null}
-          onChange={(e) => toggleFee(e.target.checked)}
-          className="h-4 w-4 accent-accent"
-        />
+      <label className="rx-check" style={{ margin: 0 }}>
+        <Checkbox checked={feeExempt} disabled={busy != null} onCheckedChange={(v) => toggleFee(v === true)} />
         <span>{t("crew.feeExempt")}</span>
       </label>
-      {note && <span className="text-xs text-muted">{note}</span>}
-      {err && <span className="text-xs text-danger">{err}</span>}
+      {note && <span className="rx-muted">{note}</span>}
+      {err && <span className="rx-error">{err}</span>}
     </span>
   );
 }
-
 
 /** 모임 링크 공유 — 외부(카톡·인스타)에서 바로 타고 들어올 수 있게.
  *  Web Share API 가 있으면 시스템 공유 시트를, 없으면 클립보드 복사로 떨어진다.
@@ -1890,27 +1188,16 @@ export function CrewEventShare({ url, title }: { url: string; title: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={share}
-      className="flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-line-strong"
-    >
+    <Button type="button" variant="outline" onClick={share}>
       {done ? t("crew.shareCopied") : t("crew.shareLink")}
-    </button>
+    </Button>
   );
 }
 
-
 /** 모임 종료 — 운영진 전용. 종료하면 크루원은 참석 여부를 더 바꿀 수 없다
  *  (DB RLS 가 막는다). 취소와 달리 모임은 그대로 보이고, 운영진은 종료 뒤에도
- *  출석을 고칠 수 있다 — 종료 시점의 오타를 되돌릴 방법이 있어야 한다. */
-export function CrewEventClose({
-  eventId,
-  closed,
-}: {
-  eventId: string;
-  closed: boolean;
-}) {
+ *  출석을 고칠 수 있다 — 종료 시점의 오타를 되돌릴 방법이 있어야 한다. ⋯ 메뉴 항목. */
+export function CrewEventClose({ eventId, closed }: { eventId: string; closed: boolean }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -1920,10 +1207,7 @@ export function CrewEventClose({
     if (!closed && !window.confirm(t("crew.closeConfirm"))) return;
     setBusy(true);
     setErr(null);
-    const { error } = await createClient().rpc("set_event_closed", {
-      p_event: eventId,
-      p_on: !closed,
-    });
+    const { error } = await createClient().rpc("set_event_closed", { p_event: eventId, p_on: !closed });
     setBusy(false);
     if (error) setErr(duesErrText(t, error.message));
     else router.refresh();
@@ -1931,39 +1215,24 @@ export function CrewEventClose({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={toggle}
-        disabled={busy}
-        className="w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors hover:bg-card-hover disabled:opacity-50"
-      >
+      <Button type="button" variant="ghost" size="sm" onClick={toggle} disabled={busy}>
         {closed ? t("crew.reopen") : t("crew.close")}
-      </button>
-      {err && <span className="px-3 text-xs text-danger">{err}</span>}
+      </Button>
+      {err && <span className="rx-error">{err}</span>}
     </>
   );
 }
 
 /**
- * 일정 목록용 한 버튼 참석 토글 (디자인 핸드오프).
+ * 일정 목록용 한 버튼 참석 토글.
  * 상세의 CrewRsvpButtons(참석/미정/불참 3지선다)와 달리 목록에서는 참석 여부만
  * 빠르게 바꾼다. 참석을 끄면 응답 자체를 지운다 — 목록에서 끈 것을 "불참 선언"
  * 으로 기록하면 불참 명단이 사실과 달라진다.
  *
- * 미정·불참으로 답해 둔 경우에는 그 답을 칩으로 함께 보여준다. 예전에는
- * 무응답과 똑같이 "참석하기" 만 떠서, 이미 답한 사실이 화면에서 사라지고
- * 버튼을 누르면 그 답이 조용히 참석으로 덮였다.
- * 종료된 모임은 비활성 (최종 차단은 DB RLS).
+ * 미정·불참으로 답해 둔 경우에는 그 답을 칩으로 함께 보여준다.
+ * 종료된 모임은 칩만 (최종 차단은 DB RLS).
  */
-export function CrewRsvpToggle({
-  eventId,
-  myStatus,
-  closed = false,
-}: {
-  eventId: string;
-  myStatus: string | null;
-  closed?: boolean;
-}) {
+export function CrewRsvpToggle({ eventId, myStatus, closed = false }: { eventId: string; myStatus: string | null; closed?: boolean }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -1983,15 +1252,8 @@ export function CrewRsvpToggle({
     }
     const { error } =
       going || waitlisted
-        ? await supabase
-            .from("crew_event_rsvps")
-            .delete()
-            .eq("event_id", eventId)
-            .eq("user_id", u.user.id)
-        : await supabase.from("crew_event_rsvps").upsert(
-            { event_id: eventId, user_id: u.user.id, status: "going" },
-            { onConflict: "event_id,user_id" },
-          );
+        ? await supabase.from("crew_event_rsvps").delete().eq("event_id", eventId).eq("user_id", u.user.id)
+        : await supabase.from("crew_event_rsvps").upsert({ event_id: eventId, user_id: u.user.id, status: "going" }, { onConflict: "event_id,user_id" });
     setBusy(false);
     if (error) setErr(error.message);
     else router.refresh();
@@ -2001,43 +1263,16 @@ export function CrewRsvpToggle({
   const answered = myStatus === "maybe" || myStatus === "declined";
 
   if (closed) {
-    return (
-      <span className="inline-flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong px-3 text-xs font-semibold text-muted">
-        {going ? t("crew.rsvpDone") : t("crew.rsvpMissed")}
-      </span>
-    );
+    return <Chip>{going ? t("crew.rsvpDone") : t("crew.rsvpMissed")}</Chip>;
   }
 
   return (
-    <span className="flex flex-col items-end gap-1">
-      {answered && (
-        <span
-          className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${
-            myStatus === "declined"
-              ? "bg-danger-bg text-danger"
-              : "bg-accent-dim/20 text-accent-dim"
-          }`}
-        >
-          {t(myStatus === "declined" ? "crew.rsvpDeclined" : "crew.rsvpMaybe")}
-        </span>
-      )}
-      <button
-        type="button"
-        onClick={toggle}
-        disabled={busy}
-        className={`inline-flex h-[34px] shrink-0 items-center rounded-lg px-3.5 text-xs font-bold transition-colors disabled:opacity-50 ${
-          going || waitlisted
-            ? "border border-line-accent bg-highlight text-gold"
-            : "bg-accent text-accent-foreground hover:brightness-95"
-        }`}
-      >
-        {waitlisted
-          ? `⏳ ${t("crew.rsvpWaitlisted")}`
-          : going
-            ? `✓ ${t("crew.rsvpGoing")}`
-            : t("crew.rsvpJoin")}
-      </button>
-      {err && <span className="text-[10px] text-danger">{err}</span>}
+    <span className="rx-actions" style={{ marginTop: 0, flexWrap: "nowrap" }}>
+      {answered && <Chip tone={myStatus === "declined" ? "red" : "blue"}>{t(myStatus === "declined" ? "crew.rsvpDeclined" : "crew.rsvpMaybe")}</Chip>}
+      <Button type="button" size="sm" variant={going || waitlisted ? "outline" : "default"} className={going || waitlisted ? "" : "rx-primary"} onClick={toggle} disabled={busy}>
+        {waitlisted ? `⏳ ${t("crew.rsvpWaitlisted")}` : going ? `✓ ${t("crew.rsvpGoing")}` : t("crew.rsvpJoin")}
+      </Button>
+      {err && <span className="rx-error">{err}</span>}
     </span>
   );
 }

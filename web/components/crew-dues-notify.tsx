@@ -4,6 +4,8 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { duesErrText } from "@/lib/dues-error";
+import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/rox/ui";
 
 type Result = { targets: number; sent: number; recent: number; optout: number };
 
@@ -54,20 +56,15 @@ export function CrewDuesNotify({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => void send()}
-        disabled={busy}
-        className="flex h-9 items-center justify-center rounded-lg border border-danger-line px-3 text-[13px] font-bold text-danger hover:bg-danger-card disabled:opacity-50"
-      >
+      <Button variant="outline" className="rx-pft-close" type="button" onClick={() => void send()} disabled={busy}>
         {busy ? t("crew.duesNotifySending") : t("crew.duesNotify")}
-      </button>
+      </Button>
       {err && (
-        <p role="alert" className="text-xs text-danger">
+        <p role="alert" className="rx-error">
           {err}
         </p>
       )}
-      {msg && <p className="text-xs text-foreground-2">{msg}</p>}
+      {msg && <Hint>{msg}</Hint>}
     </>
   );
 }

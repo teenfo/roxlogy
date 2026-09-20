@@ -4,9 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 
 /**
- * 장부 한 줄의 통장 반영 표시 — 운영진만 누를 수 있다.
+ * 장부 한 줄의 통장 반영 표시 — 시안 장부 행의 "미정산" Chip 자리. 운영진만 누를 수 있다.
  *
  * 등록할 때 반영일을 아는 경우는 드물다(카드는 며칠 뒤에 빠진다). 그래서
  * 나중에 통장을 보고 표시할 수 있어야 한다. 기본값은 그 거래일 — 현금·이체는
@@ -34,10 +37,7 @@ export function CrewLedgerSettle({
   async function set(value: string | null) {
     setBusy(true);
     setErr(null);
-    const { error } = await createClient()
-      .from("crew_ledger")
-      .update({ settled_on: value })
-      .eq("id", id);
+    const { error } = await createClient().from("crew_ledger").update({ settled_on: value }).eq("id", id);
     setBusy(false);
     if (error) return setErr(error.message);
     setOpen(false);
@@ -51,7 +51,7 @@ export function CrewLedgerSettle({
         onClick={() => set(null)}
         disabled={busy}
         title={t("crew.finUnsettleHint")}
-        className="rounded-md bg-success-bg px-1.5 py-0.5 text-xs font-bold text-success disabled:opacity-40"
+        className="rx-chip green"
       >
         {label}
       </button>
@@ -60,40 +60,28 @@ export function CrewLedgerSettle({
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-md bg-label-bg px-1.5 py-0.5 text-xs font-bold text-label transition-colors hover:bg-accent hover:text-accent-foreground"
-      >
+      <button type="button" onClick={() => setOpen(true)} className="rx-chip">
         {t("crew.finUnsettledBadge")}
       </button>
     );
   }
 
   return (
-    <span className="flex flex-wrap items-center gap-1.5">
-      <input
+    <span className="rx-actions">
+      <Input
         type="date"
+        aria-label={t("crew.finSettledLabel")}
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        className="h-7 rounded-md border border-line-strong bg-page px-1.5 text-xs outline-none focus:border-accent-line"
+        style={{ width: 150, height: 30 }}
       />
-      <button
-        type="button"
-        onClick={() => set(date || entryDate)}
-        disabled={busy}
-        className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-accent-foreground disabled:opacity-40"
-      >
+      <Button size="sm" className="rx-primary" type="button" onClick={() => set(date || entryDate)} disabled={busy}>
         {t("crew.finSettle")}
-      </button>
-      <button
-        type="button"
-        onClick={() => setOpen(false)}
-        className="text-xs text-muted hover:text-foreground"
-      >
+      </Button>
+      <Button size="sm" variant="ghost" type="button" onClick={() => setOpen(false)}>
         {t("common.cancel")}
-      </button>
-      {err && <span className="text-[10px] text-danger">{err}</span>}
+      </Button>
+      {err && <span className="rx-error">{err}</span>}
     </span>
   );
 }
@@ -152,16 +140,11 @@ export function CrewLedgerSettleMonth({
   if (count === 0) return null;
 
   return (
-    <span className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={run}
-        disabled={busy}
-        className="flex h-8 shrink-0 items-center rounded-lg border border-line-accent bg-highlight px-3 text-[13px] font-bold text-gold transition hover:brightness-95 disabled:opacity-40"
-      >
+    <>
+      <Button variant="outline" className="rx-wide" type="button" onClick={run} disabled={busy}>
         {t("crew.finSettleAll", { n: count })}
-      </button>
-      {err && <span className="text-xs text-danger">{err}</span>}
-    </span>
+      </Button>
+      {err && <span className="rx-error">{err}</span>}
+    </>
   );
 }

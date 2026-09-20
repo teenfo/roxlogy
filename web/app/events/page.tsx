@@ -1,49 +1,36 @@
+import Link from "next/link";
+import { ArrowRight, Flag } from "lucide-react";
 import { getRaceEvents } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
 import { eventDateNote, eventPlace } from "@/lib/event-display";
 import { Shell } from "@/components/rox/shell";
 import { todayISOIn } from "@/lib/format";
-import { RowLink } from "@/components/row-link";
+import { QueryChoice, QueryFind } from "@/components/rox/query-filters";
+import { Chip, Empty, Hint, PageHead, Panel, RecordRow } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
   return { title: t("meta.events"), description: t("events.desc") };
 }
 
-const REGIONS = [
-  "asia",
-  "europe",
-  "north_america",
-  "south_america",
-  "africa",
-  "oceania",
-] as const;
+const REGIONS = ["asia", "europe", "north_america", "south_america", "africa", "oceania"] as const;
 
-function formatRange(
-  start: string | null,
-  end: string | null,
-  note: string | null,
-  tag: string,
-  tbd: string,
-) {
+function formatRange(start: string | null, end: string | null, note: string | null, tag: string, tbd: string) {
   if (!start) return note ?? tbd;
   const s = new Date(start);
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(tag, { year: "numeric", month: "long", day: "numeric" });
+  const fmt = (d: Date) => d.toLocaleDateString(tag, { year: "numeric", month: "long", day: "numeric" });
   if (!end || end === start) return fmt(s);
   const e = new Date(end);
-  const sameMonth =
-    s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
-  return sameMonth
-    ? `${fmt(s)} – ${e.getDate()}`
-    : `${fmt(s)} – ${fmt(e)}`;
+  const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
+  return sameMonth ? `${fmt(s)} – ${e.getDate()}` : `${fmt(s)} – ${fmt(e)}`;
 }
 
-export default async function EventsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; region?: string }>;
-}) {
+/**
+ * 대회 일정 — 시안 racing.tsx Events() 그대로 (PORT_PLAN §3-d):
+ * PageHead · Panel[.rx-toolbar(Find · Choice 지역)] · .rx-two-col 의 .rx-event-card · Empty · Hint.
+ * 검색·지역은 서버 필터(?q=·?region=)라 QueryFind·QueryChoice. 지난 대회는 시안에 없어 Panel + RowLink 로(§4).
+ */
+export default async function EventsPage({ searchParams }: { searchParams: Promise<{ q?: string; region?: string }> }) {
   const { q, region } = await searchParams;
   const { t, tag, locale, tz } = await getT();
 
@@ -51,182 +38,72 @@ export default async function EventsPage({
   const all = await getRaceEvents();
   const term = q?.trim().toLowerCase();
   const events = all.filter((e) => {
-    if (region && (REGIONS as readonly string[]).includes(region) && e.region !== region)
-      return false;
+    if (region && (REGIONS as readonly string[]).includes(region) && e.region !== region) return false;
     if (!term) return true;
     // 검색은 한국어·영문 표기 양쪽에 매칭 (Seoul / 서울 둘 다 찾히도록)
-    return [e.name, e.city, e.city_en, e.country, e.country_code].some((v) =>
-      (v ?? "").toLowerCase().includes(term),
-    );
+    return [e.name, e.city, e.city_en, e.country, e.country_code].some((v) => (v ?? "").toLowerCase().includes(term));
   });
 
   const today = todayISOIn(tz);
-  // 끝난 날 = end_date, 없으면 start_date. 예전엔 end_date 가 비면 무조건
-  // "다가오는" 쪽에 뒀는데, 그래서 6월에 끝난 대회가 9월에도 위에 남아 있었다.
-  // 날짜가 아예 없는 대회(일정 미정)만 다가오는 쪽 맨 뒤에 남는다.
-  const endOf = (e: { start_date: string | null; end_date: string | null }) =>
-    e.end_date ?? e.start_date;
+  // 끝난 날 = end_date, 없으면 start_date. 날짜가 아예 없는 대회(일정 미정)만 다가오는 쪽 맨 뒤에 남는다.
+  const endOf = (e: { start_date: string | null; end_date: string | null }) => e.end_date ?? e.start_date;
   const upcoming = events.filter((e) => !endOf(e) || endOf(e)! >= today);
   const past = events.filter((e) => endOf(e) && endOf(e)! < today);
+  const range = (e: (typeof all)[number]) => formatRange(e.start_date, e.end_date, eventDateNote(t, e, tag), tag, t("events.tbd"));
 
   return (
     <Shell loginNext="/events">
-      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
-        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("events.title")}</h1>
-        <p className="mt-1 text-sm text-muted">{t("events.desc")}</p>
+      <PageHead title={t("events.title")} description={t("events.desc")} />
+      <Panel>
+        <div className="rx-toolbar">
+          <QueryFind param="q" value={q ?? ""} placeholder={t("events.searchPh")} />
+          <QueryChoice label={t("events.region")} param="region" value={region && (REGIONS as readonly string[]).includes(region) ? region : "all"} options={[["all", t("events.allRegions")], ...REGIONS.map((r) => [r, t(`events.region.${r}`)] as [string, string])]} />
+        </div>
+      </Panel>
 
-        <form method="get" className="mt-6 flex flex-wrap gap-3">
-          <input
-            type="search"
-            name="q"
-            defaultValue={q ?? ""}
-            placeholder={t("events.searchPh")}
-            className="min-w-52 flex-1 rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
-          />
-          <select
-            name="region"
-            defaultValue={region ?? ""}
-            className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
-          >
-            <option value="">{t("events.allRegions")}</option>
-            {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {t(`events.region.${r}`)}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95"
-          >
-            {t("common.search")}
-          </button>
-        </form>
+      {!upcoming.length && !past.length ? (
+        <Empty title={t("events.noResults")} description={t("events.desc")} />
+      ) : (
+        <>
+          {upcoming.length > 0 && (
+            <div className="rx-two-col">
+              {upcoming.map((e) => (
+                <Link className="rx-event-card" href={`/events/${e.id}`} key={e.id}>
+                  <div>
+                    <span>{e.season ?? t("events.upcoming")}</span>
+                    <h2>{(e.city_en ?? e.city ?? e.name).toUpperCase()}</h2>
+                    <Flag size={62} />
+                  </div>
+                  <section>
+                    <Chip tone={e.country_code === "KR" ? "yellow" : "neutral"}>{e.country_code === "KR" ? t("events.koreaBadge") : eventPlace(t, e, locale)}</Chip>
+                    <h3>{e.name}</h3>
+                    <p>{range(e)}</p>
+                    <span>
+                      {[e.venue, e.region ? t(`events.region.${e.region}` as Parameters<typeof t>[0]) : null].filter(Boolean).join(" · ") || eventPlace(t, e, locale)}
+                      <ArrowRight size={22} />
+                    </span>
+                  </section>
+                </Link>
+              ))}
+            </div>
+          )}
+          {past.length > 0 && (
+            <Panel title={t("events.past")}>
+              {past.map((e) => (
+                <RecordRow key={e.id} href={`/events/${e.id}`} title={e.name} note={eventPlace(t, e, locale)} end={range(e)} />
+              ))}
+            </Panel>
+          )}
+        </>
+      )}
 
-        {!upcoming.length && !past.length ? (
-          <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-            {t("events.noResults")}
-          </p>
-        ) : (
-          <>
-            {upcoming.length > 0 && (
-              <section className="mt-8">
-                <h2 className="text-lg font-semibold">{t("events.upcoming")}</h2>
-                <ul className="mt-3 flex flex-col gap-2">
-                  {upcoming.map((e) => (
-                    <li
-                      key={e.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-surface px-4 py-3.5"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold">
-                          <RowLink
-                            href={`/events/${e.id}`}
-                            className="hover:text-gold hover:underline"
-                          >
-                            {e.name}
-                          </RowLink>
-                          {e.country_code === "KR" && (
-                            <span className="ml-2 rounded border border-accent-line/60 px-1.5 py-0.5 text-xs text-gold">
-                              {t("events.koreaBadge")}
-                            </span>
-                          )}
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted">
-                          {eventPlace(t, e, locale)}
-                          {e.venue ? ` · ${e.venue}` : ""}
-                          {e.region
-                            ? ` · ${t(`events.region.${e.region}` as Parameters<typeof t>[0])}`
-                            : ""}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm">
-                          {formatRange(
-                            e.start_date,
-                            e.end_date,
-                            eventDateNote(t, e, tag),
-                            tag,
-                            t("events.tbd"),
-                          )}
-                        </p>
-                        <div className="mt-1 flex items-center justify-end gap-3">
-                          {e.official_url && (
-                            <a
-                              href={e.official_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-gold hover:underline"
-                            >
-                              {t("events.official")}
-                            </a>
-                          )}
-                          <RowLink
-                            href={`/predict?event=${encodeURIComponent(e.name)}${
-                              e.start_date ? `&date=${e.start_date}` : ""
-                            }`}
-                            className="rounded-md border border-accent-line/50 px-2.5 py-1 text-xs font-semibold text-gold hover:bg-accent/10"
-                          >
-                            {t("events.setGoal")}
-                          </RowLink>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
-            {past.length > 0 && (
-              <section className="mt-8">
-                <h2 className="text-lg font-semibold text-muted">
-                  {t("events.past")}
-                </h2>
-                <ul className="mt-3 flex flex-col gap-2">
-                  {past.map((e) => (
-                    <li
-                      key={e.id}
-                      className="flex items-center justify-between rounded-md bg-card px-4 py-3 text-muted"
-                    >
-                      <span className="text-sm">
-                        <RowLink
-                          href={`/events/${e.id}`}
-                          className="hover:text-gold hover:underline"
-                        >
-                          {e.name}
-                        </RowLink>{" "}
-                        — {e.city}, {e.country}
-                      </span>
-                      <span className="text-xs">
-                        {formatRange(
-                          e.start_date,
-                          e.end_date,
-                          e.date_note,
-                          tag,
-                          t("events.tbd"),
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-          </>
-        )}
-
-        <p className="mt-8 text-xs text-muted">
-          {t("events.disclaimer.before")}
-          <a
-            href="https://hyrox.com/find-my-race/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gold hover:underline"
-          >
-            {t("events.disclaimer.link")}
-          </a>
-          {t("events.disclaimer.after")}
-        </p>
-      </div>
+      <Hint>
+        {t("events.disclaimer.before")}
+        <a href="https://hyrox.com/find-my-race/" target="_blank" rel="noopener noreferrer">
+          {t("events.disclaimer.link")}
+        </a>
+        {t("events.disclaimer.after")}
+      </Hint>
     </Shell>
   );
 }

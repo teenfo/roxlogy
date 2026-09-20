@@ -79,3 +79,27 @@ const TIER_BAR: Record<TierColor, string> = {
 export function tierBarClass(color: string | null | undefined): string {
   return TIER_BAR[(color ?? "gray") as TierColor] ?? TIER_BAR.gray;
 }
+
+/** 시안 .rx-chip 에 얹는 등급 색 톤 — `tier-<color>` 클래스(globals.css 우리 확장). */
+export function tierChipTone(color: string | null | undefined): string {
+  const c = (color ?? "gray") as TierColor;
+  return `tier-${TIER_COLORS.includes(c) ? c : "gray"}`;
+}
+
+/** 권한(리더·부리더) 칩 톤 — 등급과 섞이지 않게 고정 */
+export function crewRoleChipTone(role: string): string {
+  return role === "owner" ? "tier-yellow" : role === "coach" ? "tier-blue" : role === "member" ? "tier-chalk" : "tier-gray";
+}
+
+/** 등급 색을 면(바·범례)으로 쓰는 곳의 실제 색 */
+export function tierBarColor(color: string | null | undefined): string {
+  const map: Record<TierColor, string> = {
+    yellow: "#e4cd3e",
+    blue: "#8fc8dc",
+    chalk: "#9aa4ae",
+    gray: "#c9d0d8",
+    green: "#63a090",
+    red: "#c9736b",
+  };
+  return map[(color ?? "gray") as TierColor] ?? map.gray;
+}

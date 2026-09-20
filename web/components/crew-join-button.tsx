@@ -4,10 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Chip, Go } from "@/components/rox/ui";
 
 /** 크루 가입/탈퇴 — join_crew RPC 는 open 정책이면 즉시 active, 아니면 pending.
  *  탈퇴·신청 취소는 crew_members 본인 행 삭제(crew_members_leave_self 정책).
- *  리더는 위임 전에는 탈퇴할 수 없다(서버 트리거로도 막힘). */
+ *  리더는 위임 전에는 탈퇴할 수 없다(서버 트리거로도 막힘).
+ *  시안에는 없는 우리 기능 — 시안 버튼·칩으로만 그린다(PORT_PLAN §4). */
 export function CrewJoinButton({
   slug,
   status,
@@ -46,10 +49,7 @@ export function CrewJoinButton({
       setBusy(false);
       return setErr(t("common.needLogin"));
     }
-    const { data: crewId, error: idErr } = await supabase.rpc(
-      "crew_id_by_slug",
-      { p_slug: slug },
-    );
+    const { data: crewId, error: idErr } = await supabase.rpc("crew_id_by_slug", { p_slug: slug });
     if (idErr || !crewId) {
       setBusy(false);
       return setErr(idErr?.message ?? t("crew.leaveFailed"));
@@ -65,71 +65,49 @@ export function CrewJoinButton({
     router.refresh();
   }
 
-  if (!loggedIn)
-    return (
-      <a
-        href={`/login?next=/crews/${slug}`}
-        className="rounded-md border border-accent-line/50 px-4 py-2 text-sm font-semibold text-gold hover:bg-accent/10"
-      >
-        {t("crew.loginToJoin")}
-      </a>
-    );
+  if (!loggedIn) return <Go href={`/login?next=/crews/${slug}`}>{t("crew.loginToJoin")}</Go>;
 
   if (status === "active" || status === "pending") {
     const isOwner = role === "owner";
-    const label = status === "active" ? t("crew.joined") : t("crew.pending");
-    const action = status === "active" ? t("crew.leave") : t("crew.cancelJoin");
     return (
-      <div className="flex flex-col items-end gap-1">
-        <div className="flex items-center gap-2">
-          <span className="rounded-md border border-line-strongest px-4 py-2 text-sm font-semibold text-muted">
-            {label}
+      <div className="rx-actions">
+        <Chip tone={status === "active" ? "green" : "yellow"}>
+          {status === "active" ? t("crew.joined") : t("crew.pending")}
+        </Chip>
+        {!isOwner &&
+          (confirming ? (
+            <>
+              <Button variant="outline" size="sm" className="rx-pft-close" onClick={leave} disabled={busy}>
+                {busy ? t("common.deleting") : t("crew.leaveConfirm")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>
+                {t("common.cancel")}
+              </Button>
+            </>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setConfirming(true)}>
+              {status === "active" ? t("crew.leave") : t("crew.cancelJoin")}
+            </Button>
+          ))}
+        {err && (
+          <span role="alert" className="rx-error">
+            {err}
           </span>
-          {!isOwner &&
-            (confirming ? (
-              <span className="flex items-center gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={leave}
-                  disabled={busy}
-                  className="font-semibold text-danger disabled:opacity-50"
-                >
-                  {busy ? t("common.deleting") : t("crew.leaveConfirm")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirming(false)}
-                  className="text-muted"
-                >
-                  {t("common.cancel")}
-                </button>
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirming(true)}
-                className="text-xs text-muted hover:text-danger"
-              >
-                {action}
-              </button>
-            ))}
-        </div>
-        {err && <p role="alert" className="text-xs text-danger">{err}</p>}
+        )}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <button
-        type="button"
-        onClick={join}
-        disabled={busy}
-        className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-      >
+    <div className="rx-actions">
+      <Button className="rx-primary" onClick={join} disabled={busy}>
         {busy ? t("crew.joining") : t("crew.join")}
-      </button>
-      {err && <p role="alert" className="text-xs text-danger">{err}</p>}
+      </Button>
+      {err && (
+        <span role="alert" className="rx-error">
+          {err}
+        </span>
+      )}
     </div>
   );
 }

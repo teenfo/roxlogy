@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
 
-/** 작성자 팔로우/언팔로우 토글 — 팔로우 상태를 로드 후 반영 */
+/** 작성자 팔로우/언팔로우 토글 — 시안 account.tsx Profile(members) 의 outline 버튼(aria-pressed) 그대로 */
 export function FollowButton({ authorId }: { authorId: string }) {
   const { t } = useI18n();
   const [following, setFollowing] = useState<boolean | null>(null);
@@ -43,14 +44,8 @@ export function FollowButton({ authorId }: { authorId: string }) {
     }
     // 실패했는데 상태를 뒤집으면 화면과 서버가 어긋난 채로 남는다
     const { error } = following
-      ? await supabase
-          .from("follows")
-          .delete()
-          .eq("follower_id", user.id)
-          .eq("followee_id", authorId)
-      : await supabase
-          .from("follows")
-          .insert({ follower_id: user.id, followee_id: authorId });
+      ? await supabase.from("follows").delete().eq("follower_id", user.id).eq("followee_id", authorId)
+      : await supabase.from("follows").insert({ follower_id: user.id, followee_id: authorId });
     setBusy(false);
     if (error) return setErr(error.message);
     setErr(null);
@@ -59,20 +54,18 @@ export function FollowButton({ authorId }: { authorId: string }) {
 
   if (following === null) return null;
   return (
-    <span className="inline-flex flex-col items-end gap-1">
-      <button
+    <span className="rx-actions">
+      <Button
+        variant={following ? "outline" : "default"}
+        className={following ? "" : "rx-primary"}
         type="button"
         onClick={toggle}
         disabled={busy}
-        className={`rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${
-          following
-            ? "border-line-strongest text-muted hover:border-foreground"
-            : "border-accent-line text-gold hover:brightness-95"
-        }`}
+        aria-pressed={following}
       >
         {following ? t("feed.following") : t("feed.follow")}
-      </button>
-      {err && <span className="text-xs text-danger">{err}</span>}
+      </Button>
+      {err && <span className="rx-error">{err}</span>}
     </span>
   );
 }

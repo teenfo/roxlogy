@@ -6,6 +6,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { POST_CATEGORIES, type PostCategory } from "@/lib/crew-types";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Choice, Field, Hint, Panel } from "@/components/rox/ui";
 
 export type EditablePost = {
   id: string;
@@ -15,8 +20,11 @@ export type EditablePost = {
   members_only: boolean;
 };
 
-/** 새 글 작성 / 기존 글 수정 — 공지는 운영자·코치만 노출.
- *  edit 가 주어지면 수정 모드(작성자·운영진만 진입 가능, RLS 로도 보호). */
+/**
+ * 새 글 작성 / 기존 글 수정 — 시안 crew.tsx CrewBoard(new/edit) 그대로 (PORT_PLAN §3-e):
+ * form > Panel[ Field 말머리 Choice · Field 제목 · Field 내용 Textarea · .rx-check 정회원 · 버튼 ].
+ * 공지는 운영자·코치만 노출. edit 가 주어지면 수정 모드(작성자·운영진만, RLS 로도 보호).
+ */
 export function CrewPostForm({
   slug,
   crewId,
@@ -30,18 +38,14 @@ export function CrewPostForm({
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const [category, setCategory] = useState<PostCategory>(
-    edit?.category ?? "free",
-  );
+  const [category, setCategory] = useState<PostCategory>(edit?.category ?? "free");
   const [title, setTitle] = useState(edit?.title ?? "");
   const [body, setBody] = useState(edit?.body ?? "");
   const [membersOnly, setMembersOnly] = useState(edit?.members_only ?? false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const categories = POST_CATEGORIES.filter(
-    (c) => c !== "notice" || isStaff,
-  );
+  const categories = POST_CATEGORIES.filter((c) => c !== "notice" || isStaff);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,12 +68,7 @@ export function CrewPostForm({
       members_only: membersOnly,
     };
     const { data, error } = edit
-      ? await supabase
-          .from("crew_posts")
-          .update(fields)
-          .eq("id", edit.id)
-          .select("id")
-          .single()
+      ? await supabase.from("crew_posts").update(fields).eq("id", edit.id).select("id").single()
       : await supabase
           .from("crew_posts")
           .insert({ crew_id: crewId, author_id: user.id, ...fields })
@@ -84,86 +83,43 @@ export function CrewPostForm({
     router.refresh();
   }
 
-  const field =
-    "w-full rounded-md border border-line-mid bg-surface px-3 py-2 text-sm outline-none focus:border-accent-line";
-
   return (
-    <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
-      <div>
-        <label className="mb-1.5 block text-xs text-muted">
-          {t("crew.postCategory")}
+    <form onSubmit={submit}>
+      <Panel>
+        <Field label={t("crew.postCategory")}>
+          <Choice
+            label={t("crew.postCategory")}
+            value={category}
+            onChange={(v) => setCategory(v as PostCategory)}
+            options={categories.map((c) => [c, t(`crew.cat.${c}` as DictKey)] as [string, string])}
+          />
+        </Field>
+        <Field label={`${t("crew.postTitle")} *`}>
+          <Input
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={120}
+            placeholder={t("crew.postTitle")}
+          />
+        </Field>
+        <Field label={`${t("crew.postBody")} *`}>
+          <Textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} />
+        </Field>
+        <label className="rx-check">
+          <Checkbox checked={membersOnly} onCheckedChange={(v) => setMembersOnly(v === true)} />
+          {t("crew.fullOnly")}
         </label>
-        <div className="flex flex-wrap gap-2">
-          {categories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCategory(c)}
-              className={`rounded-full border px-3 py-1 text-xs ${
-                category === c
-                  ? "border-accent-line text-gold"
-                  : "border-line-strongest text-muted hover:border-foreground"
-              }`}
-            >
-              {t(`crew.cat.${c}` as DictKey)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="crew-post-title" className="mb-1.5 block text-xs text-muted">
-          {t("crew.postTitle")}
-        </label>
-        <input
-          id="crew-post-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={120}
-          required
-          className={field}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="crew-post-body" className="mb-1.5 block text-xs text-muted">
-          {t("crew.postBody")}
-        </label>
-        <textarea
-          id="crew-post-body"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          rows={10}
-          className={`${field} resize-y`}
-        />
-      </div>
-
-      <label className="flex cursor-pointer items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={membersOnly}
-          onChange={(e) => setMembersOnly(e.target.checked)}
-          className="h-4 w-4 accent-accent"
-        />
-        <span>{t("crew.fullOnly")}</span>
-        <span className="text-xs text-muted">{t("crew.fullOnlyPostHint")}</span>
-      </label>
-
-      {err && <p role="alert" className="text-sm text-danger">{err}</p>}
-
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={busy || !title.trim()}
-          className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-        >
-          {busy
-            ? t("crew.publishing")
-            : edit
-              ? t("common.save")
-              : t("crew.publish")}
-        </button>
-      </div>
+        <Hint>{t("crew.fullOnlyPostHint")}</Hint>
+        {err && (
+          <p role="alert" className="rx-error">
+            {err}
+          </p>
+        )}
+        <Button className="rx-primary" type="submit" disabled={busy || !title.trim()}>
+          {busy ? t("crew.publishing") : edit ? t("common.save") : t("crew.publish")}
+        </Button>
+      </Panel>
     </form>
   );
 }

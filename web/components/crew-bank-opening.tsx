@@ -4,9 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { RoxDialog } from "@/components/rox/dialog";
+import { Field } from "@/components/rox/ui";
 
 /**
- * 통장 기초 잔액 — 운영진만.
+ * 통장 기초 잔액 — 시안 Finance BankSummary 의 "기초 잔액 설정" Dialog 그대로(RoxDialog). 운영진만.
  *
  * 통장 잔고를 계산하려면 시작점이 필요하다. 장부를 쓰기 시작한 시점의 통장
  * 잔액을 한 번 적어 두면, 이후로는 "통장에 찍힌" 거래만 더해 잔고가 따라간다.
@@ -54,56 +58,39 @@ export function CrewBankOpening({
     router.refresh();
   }
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex h-8 shrink-0 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-line-strong"
-      >
-        {t("crew.finOpeningEdit")}
-      </button>
-    );
-  }
-
   return (
-    <form
-      onSubmit={save}
-      className="flex flex-wrap items-end gap-2 rounded-lg border border-line bg-page px-3 py-2.5"
-    >
-      <label className="flex flex-col gap-1 text-xs text-muted">
-        {t("crew.finOpening")}
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          inputMode="numeric"
-          className="tabular h-9 w-32 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-accent-line"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted">
-        {t("crew.finOpeningOn")}
-        <input
-          type="date"
-          value={on}
-          onChange={(e) => setOn(e.target.value)}
-          className="h-9 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-accent-line"
-        />
-      </label>
-      <button
-        type="submit"
-        disabled={busy}
-        className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-accent-foreground disabled:opacity-40"
+    <>
+      <Button variant="outline" className="rx-wide" type="button" onClick={() => setOpen(true)}>
+        {t("crew.finOpeningSet")}
+      </Button>
+      <RoxDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t("crew.finOpeningSet")}
+        description={t("crew.finOpeningEdit")}
       >
-        {t("common.save")}
-      </button>
-      <button
-        type="button"
-        onClick={() => setOpen(false)}
-        className="flex h-9 items-center px-2 text-[13px] text-muted hover:text-foreground"
-      >
-        {t("common.cancel")}
-      </button>
-      {err && <span className="w-full text-xs text-danger">{err}</span>}
-    </form>
+        <form onSubmit={save}>
+          <Field label={`${t("crew.finOpening")} (₩)`}>
+            <Input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              inputMode="numeric"
+              required
+            />
+          </Field>
+          <Field label={t("crew.finOpeningOn")}>
+            <Input type="date" value={on} onChange={(e) => setOn(e.target.value)} />
+          </Field>
+          {err && (
+            <p role="alert" className="rx-error">
+              {err}
+            </p>
+          )}
+          <Button type="submit" className="rx-primary rx-wide" disabled={busy}>
+            {busy ? t("common.saving") : t("common.save")}
+          </Button>
+        </form>
+      </RoxDialog>
+    </>
   );
 }
