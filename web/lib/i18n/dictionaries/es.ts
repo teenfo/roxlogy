@@ -22,6 +22,9 @@ const es: Record<DictKey, string> = {
   "common.home": "Ir al inicio",
   "auth.nativeLoading": "Iniciando sesión…",
   "auth.nativeFailed": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+  "auth.nativeWaiting": "Leyendo la sesión de la app…",
+  "auth.nativeDone": "Sesión iniciada. Te llevamos allí…",
+  "auth.nativeRetry": "Ir a iniciar sesión",
   "common.needLogin": "Debes iniciar sesión.",
   "common.analysisPending": "Análisis pendiente",
 

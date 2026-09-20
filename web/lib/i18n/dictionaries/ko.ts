@@ -22,6 +22,9 @@ const ko: Record<DictKey, string> = {
   "common.home": "홈으로",
   "auth.nativeLoading": "로그인 중…",
   "auth.nativeFailed": "로그인 처리에 실패했습니다. 다시 시도해 주세요.",
+  "auth.nativeWaiting": "앱 세션을 읽는 중…",
+  "auth.nativeDone": "로그인되었습니다. 이동합니다…",
+  "auth.nativeRetry": "로그인 화면으로",
   "common.needLogin": "로그인이 필요합니다.",
   "common.analysisPending": "분석 대기중",
 

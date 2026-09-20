@@ -22,6 +22,9 @@ const en = {
   "common.home": "Go home",
   "auth.nativeLoading": "Signing in…",
   "auth.nativeFailed": "Sign-in failed. Please try again.",
+  "auth.nativeWaiting": "Reading the app session…",
+  "auth.nativeDone": "Signed in. Taking you there…",
+  "auth.nativeRetry": "Go to sign in",
   "common.needLogin": "You need to be logged in.",
   "common.analysisPending": "Analysis pending",
 
