@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { FollowButton } from "@/components/follow-button";
-import { RowLink } from "@/components/row-link";
+import { QueryFind } from "@/components/rox/query-filters";
+import { Person } from "@/components/rox/person";
+import { Empty, Go, Hint, PageHead, Panel } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -16,64 +19,36 @@ type Member = {
   is_following: boolean;
 };
 
-export default async function MembersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
+/**
+ * 멤버 찾기 — 시안 account.tsx Profile({members}) 그대로 (PORT_PLAN §3-f):
+ * PageHead("함께하는 선수들") · Panel[ Find · .rx-switch-row(.rx-person + Go 프로필 보기 | Button 팔로우) · Hint ].
+ * 검색은 서버 필터(?q=)라 QueryFind. 팔로워·공유 수는 우리 정보라 이름 아래 작은 줄로(§4).
+ */
+export default async function MembersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const supabase = await createClient();
-  const { t } = await getT();
+  const [{ t }, user] = await Promise.all([getT(), getCachedUser()]);
 
-  const { data } = await supabase.rpc("discover_members", {
-    p_search: q ?? null,
-  });
+  const { data } = await supabase.rpc("discover_members", { p_search: q ?? null });
   const members = (data ?? []) as Member[];
 
   return (
-    <main>
-      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("members.title")}</h1>
-      <p className="mt-1 text-sm text-muted">{t("members.desc")}</p>
-
-      <form className="mt-4" action="/members">
-        <input
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder={t("members.searchPh")}
-          className="w-full max-w-sm rounded-md border border-line-mid bg-surface px-3 py-2 text-sm outline-none focus:border-accent-line"
-        />
-      </form>
-
-      {!members.length ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {q ? t("members.emptySearch") : t("members.empty")}
-        </p>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-2">
-          {members.map((m) => (
-            <li
-              key={m.id}
-              className="flex items-center justify-between gap-3 rounded-md bg-surface px-4 py-3"
-            >
-              <div className="min-w-0">
-                <RowLink
-                  href={`/u/${m.id}`}
-                  className="text-sm font-semibold hover:text-gold"
-                >
-                  {m.display_name}
-                </RowLink>
-                <p className="mt-0.5 text-xs text-muted">
-                  {t("members.followers", { n: m.follower_count })}
-                  {m.shared_count > 0
-                    ? ` · ${t("members.shared", { n: m.shared_count })}`
-                    : ""}
-                </p>
-              </div>
-              <FollowButton authorId={m.id} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+    <>
+      <PageHead title={t("members.hero")} description={t("members.heroDesc")} />
+      <Panel>
+        <QueryFind param="q" value={q ?? ""} placeholder={t("members.searchPh")} />
+        {members.length ? (
+          members.map((m) => (
+            <div className="rx-switch-row" key={m.id}>
+              <Person name={m.display_name} note={`${t("members.followers", { n: m.follower_count })}${m.shared_count > 0 ? ` · ${t("members.shared", { n: m.shared_count })}` : ""}`} />
+              {m.id === user?.id ? <Go href={`/u/${m.id}`}>{t("members.viewProfile")}</Go> : <FollowButton authorId={m.id} />}
+            </div>
+          ))
+        ) : (
+          <Empty title={q ? t("members.emptySearch") : t("members.empty")} description={t("members.desc")} />
+        )}
+        <Hint>{t("members.desc")}</Hint>
+      </Panel>
+    </>
   );
 }

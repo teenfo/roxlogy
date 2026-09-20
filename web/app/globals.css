@@ -4376,9 +4376,6 @@ button:focus-visible {
   gap: 10px;
   margin-top: 24px;
 }
-.rx-mobile-tabs {
-  display: none;
-}
 .rx-more-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4836,46 +4833,6 @@ button:focus-visible {
   .rx-auth-card {
     padding: 28px;
   }
-  .rx-mobile-tabs {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-    z-index: 40;
-    background: #fffffffa;
-    border-top: 1px solid #dce3eb;
-    box-shadow: 0 -5px 20px #20334606;
-  }
-  .rx-mobile-tabs > a,
-  .rx-mobile-tabs > button {
-    min-height: 48px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    color: #68788a;
-    border-radius: 9px;
-    padding: 5px 2px;
-    min-width: 0;
-  }
-  .rx-mobile-tabs span {
-    font-size: 12px;
-    line-height: 1.35;
-    text-align: center;
-    overflow-wrap: anywhere;
-  }
-  .rx-mobile-tabs a[aria-current="page"] {
-    color: #665819;
-    background: #fbf4cf;
-    font-weight: 700;
-  }
-  .rx-shell {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom));
-  }
   .rx-topbar {
     flex-wrap: wrap;
     height: auto !important;
@@ -5084,19 +5041,6 @@ button:focus-visible {
   margin: 0 auto 16px;
   border-radius: 4px;
 }
-.rx-native-tabs {
-  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-}
-.rx-mobile-tabs span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
-.rx-mobile-tabs button[aria-current="page"] {
-  color: #20201b;
-  background: #fff8c7;
-}
 .rx-checker {
   align-self: start;
   background-color: #555;
@@ -5129,9 +5073,6 @@ button:focus-visible {
 .rx-completion input[type="range"] {
   width: 100%;
   min-height: 44px;
-}
-.rx-native-tabs span {
-  font-size: 10px;
 }
 @media (max-width: 767px) {
   .rx-custom-dialog {

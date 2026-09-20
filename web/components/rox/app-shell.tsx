@@ -5,9 +5,11 @@
  * docs/design/PORT_PLAN.md §2.
  *
  * 사이드바(15.5rem · 3그룹 14항목 · 푸터에 내 크루+프로필) · 상단바(트리거 ·
- * MY WORKSPACE · 언어 · 검색 · 알림 · 아바타) · .rx-main · .rx-footer · 모바일 하단 탭.
+ * MY WORKSPACE · 언어 · 검색 · 알림 · 아바타) · .rx-main · .rx-footer.
  *
  * 시안과 다른 곳(브랜드 예외·실데이터뿐):
+ *   - 시안의 모바일 하단 탭(MobileNavigation)은 넣지 않는다 — 768px 미만에서
+ *     사이드바가 드로어로 바뀌어 같은 메뉴가 두 번 보이고 서로 겹쳤다(2026-09-20 제거)
  *   - .rx-brand 는 노란 사각 "R." 대신 링 마크 img (PORT_PLAN §1-b)
  *   - 메뉴 항목·라벨은 lib/nav.ts NAV_GROUPS + i18n (시안은 한국어 하드코딩)
  *   - 푸터 크루·프로필은 실데이터. 크루가 없으면 "크루 찾기"
@@ -53,7 +55,6 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { NAV_GROUPS, activeNavHref } from "@/lib/nav";
 import type { ShellCrew } from "@/lib/shell";
 import { crewInitials } from "@/lib/crew-types";
-import { MobileNavigation } from "./mobile-navigation";
 
 /** 시안 rox-app.tsx 의 아이콘 배정 — href 기준 */
 const ICONS: Record<string, typeof Activity> = {
@@ -194,7 +195,6 @@ export function AppShell({
           <span />
         </footer>
       </SidebarInset>
-      <MobileNavigation />
       <Toaster richColors />
     </SidebarProvider>
   );

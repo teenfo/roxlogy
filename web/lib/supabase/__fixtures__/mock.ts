@@ -245,6 +245,9 @@ RPC_SHAPES.crew_post_detail =
   "id, category, title, body, image_urls, author_id, author_name, pinned, members_only, comment_count, like_count, liked_by_me, created_at, comments";
 RPC_SHAPES.crew_overview =
   "id, slug, name, tagline, description, logo_url, cover_url, location, home_gym, links, member_count, post_count, upcoming_count, my_role, my_status, crew_status";
+RPC_SHAPES.leaderboard_overall = "rank, display_name, division, best_ms";
+RPC_SHAPES.leaderboard_station = RPC_SHAPES.leaderboard_overall;
+RPC_SHAPES.discover_members = "id, display_name, shared_count, follower_count, is_following";
 RPC_SHAPES.crew_roster =
   "user_id, display_name, email, division, role, joined_at, session_count, attend_count, attend_paid_count, tier_id, tier_name, tier_color";
 

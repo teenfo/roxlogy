@@ -5,6 +5,9 @@ import { getT } from "@/lib/i18n";
 import { formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { DIVISIONS } from "@/lib/divisions";
+import { QueryChoice, QuerySegments } from "@/components/rox/query-filters";
+import { Person } from "@/components/rox/person";
+import { Chip, DataTable, Empty, Hint, PageHead, Panel } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -18,142 +21,72 @@ type Row = {
   best_ms: number;
 };
 
-export default async function LeaderboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ division?: string; station?: string }>;
-}) {
+/**
+ * 커뮤니티 리더보드 — 시안 crew.tsx Leaderboard() 그대로 (PORT_PLAN §3-d):
+ * PageHead("함께 뛰는 기록") · Panel "총 완주 시간"(action Choice 디비전)[ DataTable[순위 · 선수 · 디비전 · 최고 기록] · Empty · Hint ].
+ * 종합/스테이션 8 보드는 우리 것이라 Panel 위 Segments(?station=)로, 리더보드 참여 안내는 rx-notice 로(§4).
+ */
+export default async function LeaderboardPage({ searchParams }: { searchParams: Promise<{ division?: string; station?: string }> }) {
   const { division, station } = await searchParams;
   const supabase = await createClient();
   const { t } = await getT();
   const user = await getCachedUser();
 
-  const div =
-    division && (DIVISIONS as readonly string[]).includes(division)
-      ? division
-      : null;
+  const div = division && (DIVISIONS as readonly string[]).includes(division) ? division : null;
   const stationDef = STATIONS.find((s) => s.key === station) ?? null;
 
-  const { data: rows } = stationDef
-    ? await supabase.rpc("leaderboard_station", {
-        p_exercise: stationDef.exerciseId,
-        p_division: div,
-      })
-    : await supabase.rpc("leaderboard_overall", { p_division: div });
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("leaderboard_opt_in")
-    .eq("id", user!.id)
-    .single();
-
+  const [{ data: rows }, { data: me }] = await Promise.all([
+    stationDef ? supabase.rpc("leaderboard_station", { p_exercise: stationDef.exerciseId, p_division: div }) : supabase.rpc("leaderboard_overall", { p_division: div }),
+    supabase.from("profiles").select("leaderboard_opt_in").eq("id", user!.id).single(),
+  ]);
   const board = (rows ?? []) as Row[];
-  const linkFor = (params: { division?: string; station?: string }) => {
-    const qp = new URLSearchParams();
-    const d = params.division ?? div ?? "";
-    const st = params.station ?? station ?? "";
-    if (d) qp.set("division", d);
-    if (st) qp.set("station", st);
-    const s = qp.toString();
-    return `/leaderboard${s ? `?${s}` : ""}`;
-  };
+  const divLabel = (d: string) => t(`division.${d}` as Parameters<typeof t>[0]);
 
   return (
-    <main>
-      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("leaderboard.title")}</h1>
-      <p className="mt-1 text-sm text-muted">{t("leaderboard.desc")}</p>
-
+    <>
+      <PageHead title={t("leaderboard.hero")} description={t("leaderboard.desc")} />
       {!me?.leaderboard_opt_in && (
-        <p className="mt-4 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm text-muted">
-          {t("leaderboard.optInPrompt")}{" "}
-          <Link
-            href="/settings/profile"
-            className="text-gold hover:underline"
-          >
-            {t("leaderboard.optInLink")}
-          </Link>
-        </p>
-      )}
-
-      {/* 보드 선택: 종합 + 스테이션 8 */}
-      <div className="mt-6 flex flex-wrap gap-2">
-        <Link
-          href={linkFor({ station: "" })}
-          className={`rounded-full border px-3 py-1 text-xs ${!stationDef ? "border-accent-line text-gold" : "border-line-strongest text-muted hover:border-foreground"}`}
-        >
-          {t("leaderboard.overall")}
-        </Link>
-        {STATIONS.map((s) => (
-          <Link
-            key={s.key}
-            href={linkFor({ station: s.key })}
-            className={`rounded-full border px-3 py-1 text-xs ${stationDef?.key === s.key ? "border-accent-line text-gold" : "border-line-strongest text-muted hover:border-foreground"}`}
-          >
-            {t(`station.${s.key}` as Parameters<typeof t>[0])}
-          </Link>
-        ))}
-      </div>
-
-      {/* 디비전 필터 */}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Link
-          href={linkFor({ division: "" })}
-          className={`text-xs ${!div ? "font-semibold text-foreground" : "text-muted hover:text-foreground"}`}
-        >
-          {t("leaderboard.allDivisions")}
-        </Link>
-        {DIVISIONS.map((d) => (
-          <Link
-            key={d}
-            href={linkFor({ division: d })}
-            className={`text-xs ${div === d ? "font-semibold text-foreground" : "text-muted hover:text-foreground"}`}
-          >
-            {t(`division.${d}`)}
-          </Link>
-        ))}
-      </div>
-
-      {!board.length ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("leaderboard.empty")}
-        </p>
-      ) : (
-        <div className="mt-6 overflow-x-auto rounded-md bg-surface">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-background text-left text-xs text-muted">
-                <th className="px-4 py-2 font-normal">#</th>
-                <th className="px-4 py-2 font-normal">{t("leaderboard.athlete")}</th>
-                <th className="px-4 py-2 font-normal">{t("leaderboard.division")}</th>
-                <th className="px-4 py-2 text-right font-normal">
-                  {t("leaderboard.best")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {board.map((r) => (
-                <tr
-                  key={`${r.rank}-${r.display_name}`}
-                  className="border-b border-background/60"
-                >
-                  <td className="px-4 py-2.5 font-mono text-muted">{r.rank}</td>
-                  <td className="px-4 py-2.5">{r.display_name}</td>
-                  <td className="px-4 py-2.5 text-muted">
-                    {r.division
-                      ? t(`division.${r.division}` as Parameters<typeof t>[0])
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-mono font-semibold">
-                    {formatMs(r.best_ms)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="rx-notice">
+          <div>
+            <b>{t("leaderboard.optInPrompt")}</b>
+            <p>
+              <Link href="/settings/profile">{t("leaderboard.optInLink")}</Link>
+            </p>
+          </div>
         </div>
       )}
-
-      <p className="mt-3 text-xs text-muted">{t("leaderboard.privacyNote")}</p>
-    </main>
+      {/* 보드 선택: 종합 + 스테이션 8 — 서버 필터라 주소(?station=)로 */}
+      <QuerySegments
+        label={t("leaderboard.board")}
+        param="station"
+        value={stationDef?.key ?? "all"}
+        options={[["all", t("leaderboard.overall")], ...STATIONS.map((s) => [s.key, t(`station.${s.key}` as Parameters<typeof t>[0])] as [string, string])]}
+      />
+      <Panel
+        title={stationDef ? t(`station.${stationDef.key}` as Parameters<typeof t>[0]) : t("crew.lbTotal")}
+        action={<QueryChoice label={t("leaderboard.division")} param="division" value={div ?? "all"} options={[["all", t("leaderboard.allDivisions")], ...DIVISIONS.map((d) => [d, divLabel(d)] as [string, string])]} />}
+      >
+        {board.length ? (
+          <DataTable
+            headers={[t("crew.lbRank"), t("leaderboard.athlete"), t("leaderboard.division"), t("leaderboard.best")]}
+            rows={board.map((r) => [
+              <span key="rank" className={`rx-rank rank-${r.rank - 1}`}>
+                {r.rank}
+              </span>,
+              <Person key="p" name={r.display_name} />,
+              <Chip key="d">{r.division ? divLabel(r.division) : "—"}</Chip>,
+              <strong key="t" className="rx-number">
+                {formatMs(r.best_ms)}
+              </strong>,
+            ])}
+          />
+        ) : (
+          <Empty title={t("leaderboard.empty")} description={t("leaderboard.desc")} />
+        )}
+        <Hint>
+          {t("crew.lbSummary", { n: board.length })} · {t("leaderboard.privacyNote")}
+        </Hint>
+      </Panel>
+    </>
   );
 }

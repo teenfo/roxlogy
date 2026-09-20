@@ -75,7 +75,9 @@ Track Blue 도 흰 배경 **3.83:1** 이라 **비텍스트(선·아이콘)까지
   `CLAUDE.md` 성능 규칙이 `RowLink`·`loading.tsx`·`Promise.all` 을 요구한다.
 - **Dialog**: `components/ui/dialog.tsx` 를 시그니처째 보존한다(스펙 §20 도 동일하게 명시).
   shadcn Dialog/Sheet 를 도입하지 않는다.
-- **모바일 하단 탭**: 현재 5탭 + 네이티브 Watch 구성 유지(스펙 §15 와 일치).
+- **모바일 하단 탭**: 넣지 않는다(2026-09-20 결정). 시안·스펙 §15 는 768px 미만에서 하단 5탭을 두지만,
+  우리 셸은 같은 폭에서 사이드바가 드로어로 바뀌어 메뉴가 두 번 보이고 하단 탭이 드로어와 겹쳤다.
+  드로어(상단바 트리거) 하나만 남긴다. 네이티브 Watch 탭이 열던 `/watch` 는 라우트만 남아 있다(아래 "화면 점검").
 - **폰트**: Pretendard 자체 호스팅(92조각 서브셋) 유지. 시안은 폰트 파일을 포함하지 않는다.
 - **상태**: Supabase 서버가 source of truth. 시안의 localStorage/sessionStorage 프로토타입 계약은
   가져오지 않는다.
@@ -170,8 +172,8 @@ Track Blue 도 흰 배경 **3.83:1** 이라 **비텍스트(선·아이콘)까지
 `charts` · `workout-checklist` · `race-edit-form` · `exercise-drills` · `program-new-form` · `record-card-button` ·
 `percentile-bar` · `distribution-curve` · `workout-sets` · `program-basics-editor` · `ai-insight` · `chart-frame` ·
 `delete-button` · `program-calendar-subscribe` · `goal-delete-button` · `ai-program-button` · `clone-program-button` ·
-`export-button` · `google-one-tap` · `info-tip` · `locale-switcher` · `race-to-session-button` · `run-form` · `share-toggle` ·
-`app/(app)/leaderboard/page.tsx` · `app/(app)/members/page.tsx`
+`export-button` · `google-one-tap` · `info-tip` · `locale-switcher` · `race-to-session-button` · `run-form` · `share-toggle`
+(`app/(app)/leaderboard/page.tsx` · `app/(app)/members/page.tsx` 는 2026-09-20 화면 점검에서 시안 마크업으로 다시 그렸다)
 
 삭제한 옛 모듈: `components/ui/app-ui.tsx` · `app-filters.tsx` · `crew-ui.tsx` · `settings-ui.tsx` · `nav-icon.tsx` ·
 `settings-nav.tsx` · `search-box.tsx`. 남은 것은 `components/rox/*`(셸·계약·다이얼로그·필터·사람 행·관리자 머리)와
@@ -188,6 +190,29 @@ Track Blue 도 흰 배경 **3.83:1** 이라 **비텍스트(선·아이콘)까지
 9. **실제 계정 권한 분기** — 픽스처는 한 계정(관리자·크루 리더)이다. 비회원·일반회원·정회원·부리더 시점의 화면은 조건 분기를
    그대로 옮겼을 뿐 각 시점으로 렌더하지 않았다
 10. **en/es 문구** — 신규 키만 3언어로 넣었다. 기존 도메인 문구의 영어·스페인어 재번역은 범위 밖
+
+### 화면 점검 (2026-09-20 · 소스 레벨 + 화면 레벨)
+
+**소스 레벨** — `app/**/page.tsx` 71개 라우트를 전부 열어 시안 프리미티브(`components/rox/*`)로 그리는지 봤다.
+
+| 결과 | 라우트 |
+|---|---|
+| 시안 마크업 (직접 import) | 59 |
+| 시안 마크업 (폼·보드 컴포넌트에 위임 — `auth-form`·`pft-race-board`·`pft-measure`·`program-new-form`·`race-new-form`·`session-new-form`·`session-edit-form` 이 rox 를 import) | 10 — `/login` `/signup` `/board/[code]` `/programs/new` `/pft/measure` `/pft/race/[code]` `/pft/race/[code]/staff` `/sessions/new` `/sessions/[id]/edit` `/races/new` |
+| **미반영이었던 것 → 이번에 이식** | 2 — `/leaderboard` (PageHead · Segments 종합+스테이션 8 · Panel(action Choice 디비전) · DataTable 순위/선수/디비전/최고 기록), `/members` (PageHead · Panel[Find · `.rx-switch-row` 사람 행 + 팔로우/프로필 보기 · Hint]) |
+
+**화면 레벨** — P9 전수 캡쳐(81 라우트)에서 빠졌던 3개 라우트를 이번에 처음 찍었다: `/pft/race`(내 레이스 목록),
+`/races/[id]/share`, `/sessions/[id]/share`(기록 카드). 위 2개 이식 라우트는 픽스처에 `leaderboard_overall`·
+`leaderboard_station`·`discover_members` 모양을 더해 **행이 있는 상태**로 다시 찍었다. 14 라우트 × 1200/390 = 28장 +
+재캡쳐 6장, `pageerror` 0, 가로 넘침 0. 캡쳐: 스크래치패드 `captures/audit/`·`captures/audit2/`.
+
+**모바일 하단 탭 제거** — 768px 미만에서 시안의 `MobileNavigation`(하단 5탭 + 바텀시트)이 사이드바 드로어와 함께 떠서
+같은 메뉴가 두 번 보이고 서로 겹쳤다. `components/rox/mobile-navigation.tsx` 를 지우고 `app-shell.tsx`·`globals.css`
+(`.rx-mobile-tabs`·`.rx-native-tabs`·`.rx-shell` 하단 여백)·`lib/nav.ts`(하단 탭 전용 `NAV`·`PUBLIC_NAV`·`activeNavKey`)에서
+걷어냈다. 390px 캡쳐 14장 모두 하단 탭 없음, 상단바 트리거 → 드로어만 남는다.
+
+남는 것 하나: **`/watch`** 는 네이티브 앱의 하단 Watch 탭이 열던 화면이라 이제 앱 안에서 들어가는 메뉴가 없다(주소로만
+열린다). 라우트와 화면은 그대로 두었다 — 사이드바에 넣을지, 설정 > 연동으로 옮길지, 라우트를 지울지는 결정 사항.
 
 ### 다시 돌리는 법
 
