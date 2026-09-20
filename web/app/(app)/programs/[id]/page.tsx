@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { formatDateShort, programDayDate } from "@/lib/format";
 import { targetParts, type WorkoutTarget } from "@/lib/target";
-import { wodTypeDot } from "@/lib/wod-type";
 import { ProgramBuilder } from "@/components/program-builder";
 import { ProgramBasicsEditor } from "@/components/program-basics-editor";
 import { ProgramCalendarSubscribe } from "@/components/program-calendar-subscribe";
@@ -13,6 +13,17 @@ import { ProgramEnrollButton } from "@/components/program-enroll-button";
 import { CloneProgramButton } from "@/components/clone-program-button";
 import { DeleteButton } from "@/components/delete-button";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import {
+  Back,
+  Chip,
+  DataTable,
+  Empty,
+  Go,
+  Hint,
+  PageHead,
+  Panel,
+  RecordRow,
+} from "@/components/rox/ui";
 
 export async function generateMetadata({
   params,
@@ -50,6 +61,12 @@ type Day = {
   }[];
 };
 
+/**
+ * 프로그램 상세 — 시안 training.tsx ProgramDetail 그대로 (PORT_PLAN §3-c):
+ * Back · PageHead(시작/보관) · two-col[Panel "훈련 계획"(일차별 운동 행) | Panel "프로그램 정보"
+ * DataTable + Go 주간 일정]. 소유자 편집(ProgramBuilder 1,232줄)·복제·삭제·캘린더 구독은
+ * 시안에 없는 우리 기능이라 Panel 로만 감싼다(§4-1). 미리보기(?preview=1) 조건은 확정 2.
+ */
 export default async function ProgramDetailPage({
   params,
   searchParams,
@@ -84,7 +101,7 @@ export default async function ProgramDetailPage({
   if (!program) notFound();
 
   const isOwner = program.owner_id === user!.id;
-  // 소유자도 "남에게 어떻게 보이는지"를 볼 수 있어야 한다
+  // 소유자도 "남에게 어떻게 보이는지"를 볼 수 있어야 한다 — 확정 2: 로그인한 비소유자 시점
   const readOnly = !isOwner || preview === "1";
 
   // 내 활성 등록 — 프로그램은 템플릿이고 날짜는 등록에 속한다 (own RLS)
@@ -117,11 +134,6 @@ export default async function ProgramDetailPage({
       a + d.workout_templates.reduce((b, w) => b + w.workout_template_items.length, 0),
     0,
   );
-  const emptyWorkouts = days.reduce(
-    (a, d) =>
-      a + d.workout_templates.filter((w) => !w.workout_template_items.length).length,
-    0,
-  );
   const weekPattern = (program.week_pattern as number[] | null) ?? null;
   const perWeek = weekPattern?.length ?? null;
 
@@ -139,233 +151,159 @@ export default async function ProgramDetailPage({
   const exName = (ex: { name_ko: string; name_en: string } | null) =>
     ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : "—";
 
+  const description = [
+    program.weeks ? t("programs.weeksN", { n: program.weeks }) : null,
+    perWeek ? t("programs.perWeek", { n: perWeek }) : null,
+    program.level ? t(`predict.level.${program.level}` as DictKey) : null,
+    program.is_public ? t("programs.public") : t("programs.private"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <main className="max-w-4xl">
-      <div className="flex items-center justify-between">
-        <Link href="/programs" className="text-[13px] text-muted hover:text-foreground">
-          {t("programs.back")}
-        </Link>
-        {isOwner && preview === "1" && (
-          <Link
-            href={`/programs/${program.id}`}
-            className="text-[13px] font-semibold text-gold hover:underline"
-          >
-            {t("programs.backToBuilder")}
-          </Link>
-        )}
-      </div>
-
-      {/* 히어로 */}
-      <section className="mt-3 grid gap-5 rounded-2xl border border-line-mid bg-card px-6 py-5 md:grid-cols-[1fr_auto] max-md:px-4">
-        <div className="flex min-w-0 flex-col gap-2">
-          <p className="flex flex-wrap items-center gap-2 text-xs">
-            {program.level && (
-              <span className="rounded bg-line px-1.5 py-0.5 font-bold text-foreground/80">
-                {t(`predict.level.${program.level}` as DictKey)}
-              </span>
+    <>
+      <Back href="/programs" label={t("programs.title")} />
+      <PageHead
+        title={program.title}
+        description={description}
+        action={
+          <div className="rx-actions">
+            {isOwner && preview === "1" && (
+              <Go href={`/programs/${program.id}`}>{t("programs.backToBuilder")}</Go>
             )}
-            <span className="text-muted">
-              {program.weeks ? t("programs.weeksN", { n: program.weeks }) : ""}
-              {perWeek ? ` · ${t("programs.perWeek", { n: perWeek })}` : ""}
-              {` · ${program.is_public ? t("programs.public") : t("programs.private")}`}
-            </span>
-          </p>
-          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{program.title}</h1>
-          <p className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-muted">
-            <span>
-              {t("programs.builderStats", {
-                d: totalDays,
-                w: workoutCount,
-                m: itemCount,
-              })}
-            </span>
-            {emptyWorkouts > 0 ? (
-              <span className="text-accent-dim">
-                · {t("programs.emptyWods", { n: emptyWorkouts })}
-              </span>
-            ) : workoutCount > 0 ? (
-              <span className="text-success">· {t("programs.allWodsSet")}</span>
-            ) : null}
-          </p>
-          {isOwner && (
-            <ProgramBasicsEditor
+            {readOnly && <CloneProgramButton programId={program.id} title={program.title} />}
+            <ProgramEnrollButton
               programId={program.id}
-              title={program.title}
-              description={program.description}
-              weeks={program.weeks}
-              level={program.level}
-              isPublic={program.is_public}
+              initialActive={isEnrolled}
+              totalDays={totalDays}
             />
-          )}
-        </div>
-
-        <div className="flex flex-col items-end gap-2 max-md:items-stretch">
-          <ProgramEnrollButton
-            programId={program.id}
-            initialActive={isEnrolled}
-            totalDays={totalDays}
-          />
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-2 max-md:justify-between">
-            {!isOwner && (
-              <CloneProgramButton programId={program.id} title={program.title} />
-            )}
-            {isOwner && (
+            {!readOnly && (
               <DeleteButton kind="program" id={program.id} redirectTo="/programs" />
             )}
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {program.description && (
-        <p className="mt-3 whitespace-pre-wrap text-sm text-muted">
-          {program.description}
-        </p>
-      )}
-
-      {/* 내 일정 — 날짜는 프로그램(템플릿)이 아니라 내 등록에 속한다 */}
-      {myStart && (
-        <>
-          <p className="mt-3 flex flex-wrap items-center gap-3 text-[13px] font-medium text-info">
-            <span>
-              {t("programs.mySchedule")}: {formatDateShort(myStart, tag, tz)}
-              {myEnd ? ` – ${formatDateShort(myEnd, tag, tz)}` : ""}
-              {myRepeat ? " 🔁" : ""}
-            </span>
-            <a
-              href={`/programs/${program.id}/calendar.ics`}
-              className="rounded-md bg-control px-2.5 py-1 text-xs font-semibold text-foreground hover:text-gold"
-            >
-              📅 {t("programs.icsDownload")}
-            </a>
-            <ProgramCalendarSubscribe
-              programId={program.id}
-              token={program.calendar_token}
-              isOwner={isOwner}
-            />
-          </p>
-          <p className="mt-1 text-xs text-muted">{t("programs.subscribeHint")}</p>
-        </>
-      )}
-
-      {!readOnly ? (
-        <ProgramBuilder
-          programId={program.id}
-          initialDays={days}
-          exercises={exercises ?? []}
-          locale={locale}
-          startDate={myStart}
-          weeks={program.weeks}
-          weekPattern={weekPattern}
-          previewHref={`/programs/${program.id}?preview=1`}
-        />
-      ) : (
-        <div className="mt-5 flex flex-col gap-3">
-          {days.map((d) => {
-            const dt = programDayDate(myStart, d.day_index, tag);
-            const items = d.workout_templates.reduce(
-              (a, w) => a + w.workout_template_items.length,
-              0,
-            );
-            return (
-              <section
-                key={d.id}
-                className={`overflow-hidden rounded-[14px] border bg-card ${
-                  d.workout_templates.length ? "border-line" : "border-line-soft"
-                }`}
-              >
-                <div className="flex flex-wrap items-center gap-2.5 border-b border-line bg-inset px-4 py-3">
-                  <span className="text-[15px] font-extrabold">
-                    {t("programs.dayN", { n: d.day_index })}
-                  </span>
-                  {dt && <span className="text-xs text-muted-2">{dt}</span>}
-                  {d.focus && (
-                    <span className="min-w-0 flex-1 truncate text-sm">{d.focus}</span>
-                  )}
-                  <span className="ml-auto shrink-0 text-xs text-muted">
-                    {t("programs.dayCounts", {
-                      w: d.workout_templates.length,
-                      m: items,
-                    })}
-                  </span>
-                </div>
-
-                {d.workout_templates.length ? (
-                  <div className="flex flex-col gap-2.5 px-4 py-3">
-                    {d.workout_templates.map((w) => (
-                      <div key={w.id} className="rounded-xl border border-line bg-page">
-                        <div className="flex flex-wrap items-center gap-2.5 border-b border-line-soft px-3.5 py-2.5">
-                          <span
-                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${wodTypeDot(w.type)}`}
-                          />
-                          <span className="min-w-0 flex-1 truncate text-[15px] font-bold">
-                            {w.title}
-                          </span>
-                          <span className="shrink-0 text-xs text-muted">
-                            {t(`programs.type.${w.type}` as DictKey)}
-                          </span>
-                        </div>
-                        {w.workout_template_items.length ? (
-                          <ul>
-                            {w.workout_template_items
-                              .slice()
-                              .sort((a, b) => a.seq - b.seq)
-                              .map((it, i) => (
-                                <li
-                                  key={it.id}
-                                  className="flex flex-wrap items-center gap-2.5 border-b border-card-hover px-3.5 py-2 last:border-b-0"
-                                >
-                                  <span className="tabular w-6 shrink-0 text-right text-xs font-bold text-muted-2">
-                                    {i + 1}
-                                  </span>
-                                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                                    {it.exercises
-                                      ? exName(it.exercises)
-                                      : (it.pending_exercise ?? "—")}
-                                    {!it.exercises && it.pending_exercise && (
-                                      <span
-                                        title={t("programs.pendingHint")}
-                                        className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-gold"
-                                      >
-                                        {t("programs.pendingBadge")}
-                                      </span>
-                                    )}
-                                  </span>
-                                  <span className="flex flex-wrap items-center gap-1.5 max-md:order-last max-md:w-full max-md:pl-8">
-                                    {targetParts(it.target, locale).map((part, j) => (
-                                      <span
-                                        key={j}
-                                        className="tabular flex h-6 items-center rounded-md border border-line-mid bg-card-hover px-1.5 text-xs font-bold"
-                                      >
-                                        {part}
-                                      </span>
-                                    ))}
-                                  </span>
-                                </li>
-                              ))}
-                          </ul>
-                        ) : (
-                          <p className="px-3.5 py-3 text-[13px] text-muted-2">
-                            {t("programs.noItems")}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="px-4 py-3 text-[13px] text-muted-2">
-                    {t("programs.restDay")}
-                  </p>
-                )}
-              </section>
-            );
-          })}
-          {!days.length && (
-            <p className="rounded-[14px] border border-line bg-card px-4 py-10 text-center text-sm text-muted">
-              {t("programs.emptyDays")}
-            </p>
-          )}
+        <div className="rx-notice">
+          <div>
+            <p style={{ whiteSpace: "pre-wrap" }}>{program.description}</p>
+          </div>
         </div>
       )}
-    </main>
+
+      {!readOnly && (
+        <ProgramBasicsEditor
+          programId={program.id}
+          title={program.title}
+          description={program.description}
+          weeks={program.weeks}
+          level={program.level}
+          isPublic={program.is_public}
+        />
+      )}
+
+      <div className="rx-two-col">
+        <Panel
+          title={t("programs.builderStats", { d: totalDays, w: workoutCount, m: itemCount })}
+          action={isEnrolled ? <Chip tone="green">{t("programs.running")}</Chip> : undefined}
+        >
+          {days.length ? (
+            days.map((d) => {
+              const dt = programDayDate(myStart, d.day_index, tag);
+              return (
+                <div key={d.id}>
+                  <div className="rx-section-label">
+                    {t("programs.dayN", { n: d.day_index })}
+                    {dt ? ` · ${dt}` : ""}
+                    {d.focus ? ` · ${d.focus}` : ""}
+                  </div>
+                  {d.workout_templates.length ? (
+                    d.workout_templates.map((w) => (
+                      <RecordRow
+                        key={w.id}
+                        href={`/workouts/${w.id}`}
+                        title={w.title}
+                        note={[
+                          t(`programs.type.${w.type}` as DictKey),
+                          w.workout_template_items.length
+                            ? w.workout_template_items
+                                .slice()
+                                .sort((a, b) => a.seq - b.seq)
+                                .map((it) =>
+                                  it.exercises
+                                    ? `${exName(it.exercises)} ${targetParts(it.target, locale).join(" ")}`
+                                    : (it.pending_exercise ?? "—"),
+                                )
+                                .join(" · ")
+                            : t("programs.noItems"),
+                        ].join(" · ")}
+                      />
+                    ))
+                  ) : (
+                    <Hint>{t("programs.restDay")}</Hint>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <Empty title={t("programs.emptyDays")} description={t("programs.intro")} />
+          )}
+        </Panel>
+        <Panel title={t("programs.info")}>
+          <DataTable
+            headers={[t("programs.field"), t("programs.value")]}
+            rows={[
+              [t("programs.weeksN", { n: program.weeks ?? 0 }), perWeek ? t("programs.perWeek", { n: perWeek }) : "—"],
+              [t("programs.running"), isEnrolled ? t("programs.running") : "—"],
+              [t("programs.public"), program.is_public ? t("programs.public") : t("programs.private")],
+              ...(myStart
+                ? [[
+                    t("programs.mySchedule"),
+                    `${formatDateShort(myStart, tag, tz)}${myEnd ? ` – ${formatDateShort(myEnd, tag, tz)}` : ""}${myRepeat ? " 🔁" : ""}`,
+                  ]]
+                : []),
+            ]}
+          />
+          {myStart && (
+            <div className="rx-actions" style={{ padding: "0 24px" }}>
+              <Go href={`/programs/${program.id}/calendar.ics`}>
+                <CalendarDays size={17} />
+                {t("programs.icsDownload")}
+              </Go>
+              <ProgramCalendarSubscribe
+                programId={program.id}
+                token={program.calendar_token}
+                isOwner={!readOnly}
+              />
+            </div>
+          )}
+          {myStart && <Hint>{t("programs.subscribeHint")}</Hint>}
+          <div style={{ padding: "0 24px 24px" }}>
+            <Go href="/schedule">
+              <CalendarDays size={17} />
+              {t("schedule.title")}
+            </Go>
+          </div>
+        </Panel>
+      </div>
+
+      {!readOnly && (
+        <Panel title={t("programs.backToBuilder")} action={<Link href={`/programs/${program.id}?preview=1`}>{t("programs.previewLink")}</Link>}>
+          <div style={{ padding: "0 24px 24px" }}>
+            <ProgramBuilder
+              programId={program.id}
+              initialDays={days}
+              exercises={exercises ?? []}
+              locale={locale}
+              startDate={myStart}
+              weeks={program.weeks}
+              weekPattern={weekPattern}
+              previewHref={`/programs/${program.id}?preview=1`}
+            />
+          </div>
+        </Panel>
+      )}
+    </>
   );
 }

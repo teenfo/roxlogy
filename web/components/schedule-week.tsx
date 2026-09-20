@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { Dumbbell } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
-import { wodTypeChip } from "@/lib/wod-type";
-import { RowLink } from "@/components/row-link";
+import { Chip, Empty, Go } from "@/components/rox/ui";
 
 /** 하루에 걸린 한 프로그램의 계획 */
 export type DayPlan = {
@@ -22,143 +23,80 @@ export type WeekDay = {
   iso: string;
   weekday: string;
   dayOfMonth: number;
-  /** 0=일, 6=토 — 주말 색 */
+  /** 날짜 전체 문구 — .rx-section-label */
+  label: string;
+  /** 0=일, 6=토 */
   dow: number;
   isToday: boolean;
   plans: DayPlan[];
 };
 
-const weekdayCls = (dow: number) =>
-  dow === 0 ? "text-sunday" : dow === 6 ? "text-info" : "text-muted";
-
 /**
- * 일정 주간 목록 — 날짜마다 진행 중인 프로그램별로 한 블록씩 쌓는다.
- * 프로그램이 하나뿐이면(solo) 이름표를 생략해 예전 화면과 같아 보인다.
+ * 주간 훈련 — 시안 training.tsx Schedule 의 Panel 본문 그대로: .rx-week 7일 버튼 →
+ * .rx-section-label → 선택한 날의 .rx-schedule-row / Empty(휴식일).
+ * 날짜 계산은 서버에서 끝났고 여기서는 고른 날만 바뀐다.
  */
 export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean }) {
   const { t } = useI18n();
+  const todayIdx = Math.max(0, week.findIndex((d) => d.isToday));
+  const [selected, setSelected] = useState(todayIdx);
+  const day = week[selected] ?? week[0];
+  const rows = day.plans.flatMap((pl) =>
+    pl.workouts.map((w) => ({ pl, w })),
+  );
 
   return (
-    <ul className="flex flex-col gap-2">
-      {week.map((d) => {
-        const withWork = d.plans.filter((pl) => pl.workouts.length > 0);
-        const rest = withWork.length === 0;
-        const done = withWork.length > 0 && withWork.every((pl) => pl.done);
-        // 그날 워크아웃이 딱 하나면 줄 전체를 링크로(기존 동작), 여럿이면 칩마다 링크
-        const only =
-          withWork.length === 1 && withWork[0].workouts.length === 1 ? withWork[0] : null;
-        const onlyHref = only
-          ? only.doneSessionId
-            ? `/sessions/${only.doneSessionId}`
-            : `/workouts/${only.workouts[0].id}`
-          : null;
-
-        const body = (
-          <div
-            className={`grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 rounded-[14px] border transition-colors max-md:grid-cols-[52px_minmax(0,1fr)] max-md:gap-3 ${
-              d.isToday
-                ? "border-accent-line bg-highlight px-5 py-[18px] max-md:px-4"
-                : rest
-                  ? "border-line-soft px-5 py-3.5 opacity-55 max-md:px-4"
-                  : "border-line bg-card px-5 py-3.5 hover:border-line-strong max-md:px-4"
-            }`}
+    <>
+      <div className="rx-week">
+        {week.map((d, i) => (
+          <button
+            key={d.iso}
+            type="button"
+            aria-pressed={selected === i}
+            className={selected === i ? "selected" : ""}
+            onClick={() => setSelected(i)}
           >
-            {/* 날짜 블록 */}
-            <div className="border-r border-line-mid pr-3 text-center">
-              <p className={`text-xs font-bold ${weekdayCls(d.dow)}`}>{d.weekday}</p>
-              <p
-                className={`tabular text-2xl font-extrabold leading-tight ${
-                  d.isToday ? "text-gold" : rest ? "text-muted" : ""
-                }`}
-              >
-                {d.dayOfMonth}
+            <small>{d.weekday}</small>
+            <b>{d.dayOfMonth}</b>
+            <i className={d.plans.some((pl) => pl.workouts.length) ? "has" : ""} />
+          </button>
+        ))}
+      </div>
+      <div className="rx-section-label">
+        {day.label}
+        {day.isToday ? ` · ${t("schedule.today")}` : ""}
+      </div>
+      {!rows.length ? (
+        <Empty title={t("schedule.rest")} description={t("schedule.restDesc")} />
+      ) : (
+        rows.map(({ pl, w }) => (
+          <div className="rx-schedule-row" key={w.id}>
+            <span className="rx-workout-icon">
+              <Dumbbell size={20} />
+            </span>
+            <div>
+              <h3>{w.title}</h3>
+              <p>
+                {[
+                  solo ? null : pl.progTitle,
+                  t(`programs.type.${w.type}` as Parameters<typeof t>[0]),
+                  t("programs.dayN", { n: pl.dayIndex }),
+                  pl.focus,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
-              {d.isToday && (
-                <span className="mt-0.5 inline-block rounded-full bg-accent px-1.5 text-[10px] font-extrabold text-accent-foreground">
-                  {t("schedule.today")}
-                </span>
-              )}
             </div>
-
-            {/* 본문 */}
-            <div className="flex min-w-0 flex-col gap-2.5">
-              {rest ? (
-                <p className="truncate text-[15px] font-medium text-muted">
-                  {t("schedule.rest")}
-                </p>
-              ) : (
-                withWork.map((pl) => (
-                  <div key={pl.progId} className="flex min-w-0 flex-col gap-1">
-                    {/* 프로그램 이름표는 윗줄에 — 긴 제목과 한 줄에 두면 좁은 화면에서 줄바꿈이 지저분하다 */}
-                    {!solo && (
-                      <span className="block w-fit max-w-full truncate rounded-md bg-line px-1.5 py-0.5 text-[11px] font-bold text-muted">
-                        {pl.progTitle}
-                      </span>
-                    )}
-                    <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                      <span
-                        className={`min-w-0 truncate ${d.isToday ? "text-[19px]" : "text-base"} font-bold`}
-                      >
-                        {pl.focus ?? pl.workouts[0].title}
-                      </span>
-                      <span className="shrink-0 text-xs font-semibold text-muted">
-                        {t("programs.dayN", { n: pl.dayIndex })}
-                      </span>
-                      {pl.done && (
-                        <span className="shrink-0 text-xs font-bold text-success">✓</span>
-                      )}
-                    </p>
-                    <span className="flex flex-wrap gap-1.5">
-                      {pl.workouts.map((w) => {
-                        const chip = (
-                          <>
-                            <span className="truncate">{w.title}</span>
-                            {w.items > 0 && <span className="tabular opacity-70">{w.items}</span>}
-                          </>
-                        );
-                        const cls = `flex h-[26px] max-w-full items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold ${wodTypeChip(w.type)}`;
-                        // 줄 전체가 이미 링크면 칩은 링크로 두지 않는다 — a 안의 a 는 잘못된 HTML 이라
-                        // 하이드레이션이 깨진다(React #418).
-                        return onlyHref ? (
-                          <span key={w.id} className={cls}>
-                            {chip}
-                          </span>
-                        ) : (
-                          <RowLink key={w.id} href={`/workouts/${w.id}`} className={cls}>
-                            {chip}
-                          </RowLink>
-                        );
-                      })}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* 우측 */}
-            <div className="flex shrink-0 items-center gap-2.5 max-md:col-span-2 max-md:justify-end">
-              {done && (
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success-bg text-sm font-extrabold text-success">
-                  ✓
-                </span>
-              )}
-              {d.isToday && !rest && (
-                <span className="flex h-9 items-center rounded-lg bg-accent px-3.5 text-[13px] font-extrabold text-accent-foreground">
-                  {t("schedule.startShort")} →
-                </span>
-              )}
-            </div>
+            {day.isToday || pl.done ? (
+              <Go href={pl.doneSessionId ? `/sessions/${pl.doneSessionId}` : `/workouts/${w.id}`}>
+                {pl.done ? t("schedule.doneRecord") : t("schedule.viewWorkout")}
+              </Go>
+            ) : (
+              <Chip>{t("schedule.planned")}</Chip>
+            )}
           </div>
-        );
-
-        return <li key={d.iso}>{onlyHref ? (
-          <RowLink href={onlyHref}>
-            {body}
-          </RowLink>
-        ) : (
-          body
-        )}</li>;
-      })}
-    </ul>
+        ))
+      )}
+    </>
   );
 }

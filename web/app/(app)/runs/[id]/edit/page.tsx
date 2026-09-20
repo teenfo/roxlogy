@@ -4,6 +4,7 @@ import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { RunForm } from "@/components/run-form";
 import type { Run } from "@/lib/run";
+import { Back, PageHead } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -32,9 +33,10 @@ export default async function EditRunPage({
   if (!data) notFound();
 
   return (
-    <main>
-      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("run.editTitle")}</h1>
+    <>
+      <Back href="/runs" label={t("run.title")} />
+      <PageHead title={t("run.editTitle")} description={t("run.newIntro")} />
       <RunForm initial={data as Run} tz={tz} />
-    </main>
+    </>
   );
 }

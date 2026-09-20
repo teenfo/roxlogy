@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
@@ -9,7 +8,7 @@ import {
 import type { ItemSet } from "@/components/workout-sets";
 import { targetParts, type WorkoutTarget } from "@/lib/target";
 import { dictLabel } from "@/lib/dict-label";
-import { wodTypeChip } from "@/lib/wod-type";
+import { Back, Chip, Go, Hint, PageHead, Panel } from "@/components/rox/ui";
 
 export async function generateMetadata({
   params,
@@ -51,6 +50,11 @@ type SetDbRow = {
   duration_s: number | null;
 };
 
+/**
+ * 운동 상세 — 시안 training.tsx 의 Workout 그대로 (PORT_PLAN §3-c):
+ * Back · PageHead(세션으로 기록) · .rx-form-layout[Panel "오늘의 운동" | aside].
+ * 체크리스트·세트 기록(WorkoutChecklist)은 시안보다 많은 우리 기능이라 Panel 안에 그대로.
+ */
 export default async function WorkoutPage({
   params,
 }: {
@@ -93,7 +97,6 @@ export default async function WorkoutPage({
 
   // 이 WOD의 아이템 중 내가 완료한 것 + 수행 기록 (RLS: 본인 것만 조회됨)
   const itemIds = items.map((it) => it.id);
-  // 완료 표시와 세트 기록은 서로를 기다릴 이유가 없다 — 순차로 두면 도쿄 왕복이 2회다
   const [{ data: compRows }, { data: setRows, error: setErr }] = itemIds.length
     ? await Promise.all([
         supabase
@@ -146,77 +149,51 @@ export default async function WorkoutPage({
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-3.5">
-      {/* 브레드크럼 */}
-      <p className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
-        <Link
-          href="/schedule"
-          className="transition-colors hover:text-foreground"
-        >
-          ← {t("schedule.title")}
-        </Link>
-        {program && (
-          <>
-            <span aria-hidden>/</span>
-            <Link
-              href={`/programs/${program.id}`}
-              className="transition-colors hover:text-foreground"
-            >
-              {program.title}
-            </Link>
-          </>
-        )}
-        {day && (
-          <>
-            <span aria-hidden>/</span>
-            <span className="text-foreground/75">
-              {t("programs.dayN", { n: day.day_index })}
-            </span>
-          </>
-        )}
-      </p>
-
-      <WorkoutChecklist
-        items={checklist}
-        initialCompletions={completions}
-        initialSets={initialSets}
-        hero={
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-5 px-6 py-[22px] max-md:grid-cols-1 max-md:px-4">
-            <div className="flex min-w-0 flex-col gap-2.5">
-              <p className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded-[5px] px-2 py-[3px] text-xs font-bold ${wodTypeChip(w.type)}`}
-                >
-                  {dictLabel(t, `programs.type.${w.type}`, w.type)}
-                </span>
-                {day?.focus && (
-                  <span className="min-w-0 truncate text-xs text-muted">
-                    {day.focus}
-                  </span>
-                )}
-              </p>
-              <h1 className="[word-break:keep-all] text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
-                {w.title}
-              </h1>
-              <p className="text-[13px] text-muted">
-                {t("workouts.itemsN", { n: checklist.length })}
-              </p>
-            </div>
-
-            <div className="flex shrink-0 flex-col items-end gap-1.5 max-md:items-stretch">
-              <Link
-                href="/sessions/new"
-                className="flex h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-extrabold text-accent-foreground transition hover:brightness-95"
-              >
-                ◔ {t("workouts.recordAsSession")}
-              </Link>
-              <span className="text-xs text-muted [word-break:keep-all]">
-                {t("workouts.autoSegments")}
-              </span>
-            </div>
-          </div>
-        }
+    <>
+      <Back
+        href={program ? `/programs/${program.id}` : "/schedule"}
+        label={program ? program.title : t("schedule.title")}
       />
-    </main>
+      <PageHead
+        title={w.title}
+        description={[
+          dictLabel(t, `programs.type.${w.type}`, w.type),
+          t("workouts.itemsN", { n: checklist.length }),
+          day ? t("programs.dayN", { n: day.day_index }) : null,
+          day?.focus,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+        action={<Go href="/sessions/new">{t("workouts.recordAsSession")}</Go>}
+      />
+      <div className="rx-form-layout">
+        <Panel
+          title={t("workouts.today")}
+          action={<Chip>{dictLabel(t, `programs.type.${w.type}`, w.type)}</Chip>}
+        >
+          <div style={{ padding: "0 24px 24px" }}>
+            <WorkoutChecklist
+              items={checklist}
+              initialCompletions={completions}
+              initialSets={initialSets}
+              hero={null}
+            />
+          </div>
+        </Panel>
+        <aside>
+          <Panel title={t("workouts.recordAsSession")}>
+            <p className="rx-hint" style={{ padding: "0 24px" }}>
+              {t("workouts.autoSegments")}
+            </p>
+            <Hint>{day?.focus ?? ""}</Hint>
+            <div style={{ padding: "0 24px 24px" }}>
+              <Go href="/sessions/new" primary>
+                {t("workouts.recordAsSession")}
+              </Go>
+            </div>
+          </Panel>
+        </aside>
+      </div>
+    </>
   );
 }

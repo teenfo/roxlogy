@@ -1,11 +1,11 @@
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { AiProgramButton } from "@/components/ai-program-button";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { programDayNumber, todayISOIn } from "@/lib/format";
-import { dictLabel } from "@/lib/dict-label";
 import { ProgramFinder, type ProgramCardData } from "@/components/program-finder";
+import { Go, PageHead } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -43,7 +43,7 @@ type ActiveEnroll = {
 
 export default async function ProgramsPage() {
   const supabase = await createClient();
-  const { t, tag, tz } = await getT();
+  const { t, tz } = await getT();
   const user = await getCachedUser();
 
   // 공용(is_public) 또는 본인 소유만 — 관리자는 RLS 로 전체가 보이므로 명시 필터
@@ -114,25 +114,6 @@ export default async function ProgramsPage() {
   const enrolls = (enrollRow ?? []) as unknown as ActiveEnroll[];
   const activeIds = new Set(enrolls.map((e) => e.programs?.id).filter(Boolean) as string[]);
 
-  const card = (p: Program): ProgramCardData => {
-    const s = stats.get(p.id);
-    const extra = byProgram.get(p.id);
-    return {
-      id: p.id,
-      title: p.title,
-      description: p.description,
-      level: p.level,
-      weeks: p.weeks,
-      isPublic: p.is_public,
-      active: activeIds.has(p.id),
-      workoutDays: s?.workoutDays ?? 0,
-      types: s?.types ?? [],
-      createdAt: p.created_at,
-      ownerName: extra?.owner_name ?? null,
-      enrollCount: extra?.enroll_count ?? null,
-    };
-  };
-
   // 진행 중 카드 — 프로그램마다 오늘 일차와 첫 템플릿
   type Running = {
     id: string;
@@ -181,110 +162,45 @@ export default async function ProgramsPage() {
   // 오늘 할 것이 있는 프로그램을 위로
   runningList.sort((a, b) => Number(!!b.todayTemplate) - Number(!!a.todayTemplate));
 
-  const dateLabel = (iso: string) =>
-    new Date(`${iso}T00:00:00`).toLocaleDateString(tag, {
-      month: "long",
-      day: "numeric",
-    });
+  const todayByProgram = new Map(runningList.map((r) => [r.id, r.todayTemplate]));
+  const card = (p: Program): ProgramCardData => {
+    const s = stats.get(p.id);
+    const extra = byProgram.get(p.id);
+    return {
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      level: p.level,
+      weeks: p.weeks,
+      isPublic: p.is_public,
+      active: activeIds.has(p.id),
+      workoutDays: s?.workoutDays ?? 0,
+      types: s?.types ?? [],
+      createdAt: p.created_at,
+      ownerName: extra?.owner_name ?? null,
+      enrollCount: extra?.enroll_count ?? null,
+      todayTemplate: todayByProgram.get(p.id) ?? null,
+    };
+  };
 
+  // 시안 training.tsx Programs 그대로: PageHead(프로그램 만들기) · Segments · .rx-card-grid.
+  // 진행 중 프로그램의 "오늘 운동" 링크는 카드 안에 들어간다(§4-1: AI 생성 버튼도 시안에 없음).
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
-            {t("programs.title")}
-          </h1>
-          <p className="mt-1 text-[15px] text-muted">{t("programs.desc")}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 max-md:w-full">
-          <AiProgramButton />
-          <Link
-            href="/programs/new"
-            className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground transition hover:brightness-95 max-md:flex-1 max-md:justify-center"
-          >
-            {t("programs.create")}
-          </Link>
-        </div>
-      </div>
-
-      {/* 진행 중 프로그램 */}
-      {runningList.length > 0 ? (
-        <div className="flex flex-col gap-3">
-        {runningList.map((running) => (
-        <section
-          key={running.id}
-          className="grid items-center gap-5 rounded-2xl border border-line-accent bg-highlight px-6 py-5 max-md:grid-cols-1 max-md:px-4 md:grid-cols-[minmax(0,1fr)_auto]"
-        >
-          <div className="flex min-w-0 flex-col gap-3">
-            <p className="flex flex-wrap items-center gap-x-2 text-xs font-extrabold tracking-[0.1em] text-gold">
-              {t("programs.enrolled")}
-              <span className="font-semibold tracking-normal text-gold-dim">
-                {dateLabel(running.startDate)}
-                {running.endDate ? ` – ${dateLabel(running.endDate)}` : ""}
-              </span>
-            </p>
-            <Link
-              href={`/programs/${running.id}`}
-              className="text-[22px] font-extrabold tracking-tight hover:text-gold max-md:text-lg"
-            >
-              {running.title}
-            </Link>
-            <p className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-foreground/80">
-              {running.level && (
-                <span className="rounded-md bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent-dim">
-                  {dictLabel(t, `predict.level.${running.level}`, running.level)}
-                </span>
-              )}
-              {running.weeks && (
-                <span>{t("programs.weeksN", { n: running.weeks })}</span>
-              )}
-              {running.dayIndex && (
-                <span className="tabular">
-                  {t("programs.weekDay", {
-                    w: running.weekNo ?? 1,
-                    d: running.dayIndex,
-                  })}
-                </span>
-              )}
-            </p>
+    <>
+      <PageHead
+        title={t("programs.title")}
+        description={t("programs.intro")}
+        action={
+          <div className="rx-actions">
+            <AiProgramButton />
+            <Go href="/programs/new" primary>
+              <Plus size={16} />
+              {t("programs.create")}
+            </Go>
           </div>
-
-          <div className="flex shrink-0 flex-col items-end gap-2 max-md:items-stretch">
-            {running.todayTemplate ? (
-              <Link
-                href={`/workouts/${running.todayTemplate.id}`}
-                className="flex h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-extrabold text-accent-foreground transition hover:brightness-95"
-              >
-                ▶ {running.todayTemplate.title}
-              </Link>
-            ) : (
-              <Link
-                href="/schedule"
-                className="flex h-11 items-center justify-center rounded-lg border border-line-accent px-5 text-[15px] font-bold text-gold transition hover:brightness-95"
-              >
-                {t("schedule.title")}
-              </Link>
-            )}
-            <Link
-              href="/schedule"
-              className="text-xs font-semibold text-gold-dim hover:text-gold"
-            >
-              {t("schedule.title")} →
-            </Link>
-          </div>
-        </section>
-        ))}
-        </div>
-      ) : (
-        <section className="rounded-2xl border border-dashed border-line-strong bg-card px-6 py-8 text-center">
-          <p className="text-sm text-muted [word-break:keep-all]">
-            {t("programs.noneRunning")}
-          </p>
-        </section>
-      )}
-
-      {/* 내 프로그램 + 커뮤니티 — 필터·검색은 클라이언트에서 즉시 반영 */}
+        }
+      />
       <ProgramFinder mine={mine.map(card)} community={community.map(card)} />
-    </main>
+    </>
   );
 }

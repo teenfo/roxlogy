@@ -4,6 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Hint, Panel } from "@/components/rox/ui";
 import { formatMs, formatTimeInput, parseTimeToMs, todayISOIn } from "@/lib/format";
 import {
   RUN_KINDS,
@@ -13,9 +17,9 @@ import {
   type Run,
 } from "@/lib/run";
 
-const input =
-  "w-full rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
-const label = "mt-4 block text-xs text-muted";
+// 시안 .rx-field 와 같은 라벨·select 모양 (Input/Textarea 는 shadcn 프리미티브)
+const input = "rx-locale w-full max-w-none";
+const label = "mt-4 mb-1.5 block text-sm font-semibold";
 
 /** 러닝 기록 입력·수정. 거리 + 시간만 필수고 페이스는 DB 생성 컬럼이 채운다
  *  (여기 미리보기는 표시용). 1km 환산도 같이 보여줘서 이 기록이 기준선을
@@ -104,16 +108,17 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
   }
 
   return (
-    <form onSubmit={save} className="mt-6 max-w-lg">
+    <form onSubmit={save} className="rx-form-layout">
+      <Panel title={t("run.info")}>
+      <div style={{ padding: "0 24px 24px" }}>
       <label className={label} htmlFor="run-date">
         {t("run.date")}
       </label>
-      <input
+      <Input
         id="run-date"
         type="date"
         value={ranOn}
         onChange={(e) => setRanOn(e.target.value)}
-        className={input}
         required
       />
 
@@ -159,13 +164,12 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
           <label className={label} htmlFor="run-distance">
             {t("run.distance")}
           </label>
-          <input
+          <Input
             id="run-distance"
             inputMode="numeric"
             value={distance}
             onChange={(e) => setDistance(e.target.value)}
             placeholder="5000"
-            className={input}
             required
           />
         </div>
@@ -173,71 +177,49 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
           <label className={label} htmlFor="run-duration">
             {t("run.duration")}
           </label>
-          <input
+          <Input
             id="run-duration"
             value={duration}
             onChange={(e) => setDuration(formatTimeInput(e.target.value))}
             placeholder="25:00"
-            className={input}
             required
           />
         </div>
       </div>
-
-      {/* 페이스 미리보기 — 저장하면 DB 생성 컬럼이 같은 값을 채운다 */}
-      {paceS != null && (
-        <p className="mt-3 rounded-md bg-surface px-3 py-2 text-sm">
-          <span className="text-xs text-muted">{t("run.pace")}</span>{" "}
-          <span className="font-mono text-lg font-bold">
-            {formatPace(paceS)}
-            <span className="text-xs font-normal text-muted">
-              {t("run.paceUnit")}
-            </span>
-          </span>
-          {projected != null && (
-            <span className="ml-3 text-xs text-muted">
-              1km ≈ {formatMs(Math.round(projected))}
-            </span>
-          )}
-        </p>
-      )}
 
       <div className="grid grid-cols-3 gap-3">
         <div>
           <label className={label} htmlFor="run-incline">
             {t("run.incline")}
           </label>
-          <input
+          <Input
             id="run-incline"
             inputMode="decimal"
             value={incline}
             onChange={(e) => setIncline(e.target.value)}
             placeholder="1"
-            className={input}
           />
         </div>
         <div>
           <label className={label} htmlFor="run-avghr">
             {t("run.avgHr")}
           </label>
-          <input
+          <Input
             id="run-avghr"
             inputMode="numeric"
             value={avgHr}
             onChange={(e) => setAvgHr(e.target.value)}
-            className={input}
           />
         </div>
         <div>
           <label className={label} htmlFor="run-maxhr">
             {t("run.maxHr")}
           </label>
-          <input
+          <Input
             id="run-maxhr"
             inputMode="numeric"
             value={maxHr}
             onChange={(e) => setMaxHr(e.target.value)}
-            className={input}
           />
         </div>
       </div>
@@ -247,24 +229,22 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
           <label className={label} htmlFor="run-rpe">
             {t("run.rpe")}
           </label>
-          <input
+          <Input
             id="run-rpe"
             inputMode="numeric"
             value={rpe}
             onChange={(e) => setRpe(e.target.value)}
-            className={input}
           />
         </div>
         <div>
           <label className={label} htmlFor="run-location">
             {t("run.location")}
           </label>
-          <input
+          <Input
             id="run-location"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             maxLength={80}
-            className={input}
           />
         </div>
       </div>
@@ -272,24 +252,37 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
       <label className={label} htmlFor="run-note">
         {t("run.note")}
       </label>
-      <textarea
+      <Textarea
         id="run-note"
         value={note}
         onChange={(e) => setNote(e.target.value)}
         maxLength={500}
         rows={3}
-        className={input}
       />
 
-      {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
-
-      <button
-        type="submit"
-        disabled={busy}
-        className="mt-5 w-full rounded-md bg-accent px-4 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-50"
-      >
-        {busy ? t("common.saving") : t("common.save")}
-      </button>
+      {err && (
+        <p role="alert" className="rx-error">
+          {err}
+        </p>
+      )}
+      </div>
+      </Panel>
+      <aside>
+        {/* 페이스 미리보기 — 저장하면 DB 생성 컬럼이 같은 값을 채운다 */}
+        <Panel title={t("run.pace")}>
+          <div className="rx-summary-time">{paceS != null ? formatPace(paceS) : "—"}</div>
+          <p>
+            min / km
+            {projected != null ? ` · 1km ≈ ${formatMs(Math.round(projected))}` : ""}
+          </p>
+          <Hint>{t("run.paceHint")}</Hint>
+          <div style={{ padding: "0 24px 24px" }}>
+            <Button type="submit" className="rx-primary rx-wide" disabled={busy}>
+              {busy ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </Panel>
+      </aside>
     </form>
   );
 }

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Dumbbell } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
@@ -7,6 +7,7 @@ import { dictLabel } from "@/lib/dict-label";
 import { formatDateShort, formatMs } from "@/lib/format";
 import { RunLapLine } from "@/components/charts";
 import { ExerciseDrills, type Drill } from "@/components/exercise-drills";
+import { Back, Chip, Hint, PageHead, Panel } from "@/components/rox/ui";
 
 export async function generateMetadata({
   params,
@@ -25,6 +26,11 @@ export async function generateMetadata({
   return { title: name ? `${name} — Roxlogy` : "Roxlogy" };
 }
 
+/**
+ * 운동 상세 — 시안 training.tsx Exercises(id) 그대로 (PORT_PLAN §3-c):
+ * Back · PageHead · two-col[Panel "운동 정보"(.rx-exercise-feature · 칩 · 수행 방법 · Hint) |
+ * Panel "나의 운동 메모"(= 우리 도움 훈련 ExerciseDrills)]. 영상·내 추이는 시안에 없는 우리 정보.
+ */
 export default async function ExerciseDetailPage({
   params,
 }: {
@@ -50,7 +56,6 @@ export default async function ExerciseDetailPage({
       .not("split_time_ms", "is", null)
       .eq("sessions.user_id", user!.id)
       .is("sessions.deleted_at", null),
-    // 이 운동에 대해 내가 직접 추가한 도움 훈련 (RLS: 본인 것만)
     supabase
       .from("exercise_drills")
       .select("id, title, body")
@@ -73,195 +78,123 @@ export default async function ExerciseDetailPage({
     name: formatDateShort(r.sessions!.started_at, tag, tz),
     ms: r.split_time_ms,
   }));
-  const best = splits.length
-    ? Math.min(...splits.map((r) => r.split_time_ms))
-    : null;
+  const best = splits.length ? Math.min(...splits.map((r) => r.split_time_ms)) : null;
   const latest = splits.length ? splits[splits.length - 1].split_time_ms : null;
 
   const drills = (drillRows ?? []) as Drill[];
-
   const muscles: string[] = Array.isArray(ex.muscles) ? ex.muscles : [];
-  const helps: string[] = Array.isArray(ex.helps_stations)
-    ? ex.helps_stations
-    : [];
+  const helps: string[] = Array.isArray(ex.helps_stations) ? ex.helps_stations : [];
 
   // 특정 유튜브 영상이면 임베드, 검색 링크면 버튼, 그 외 URL은 이미지
   const media: string | null = ex.media_url ?? null;
   const ytId = media
-    ? (media.match(
-        /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/,
-      )?.[1] ?? null)
+    ? (media.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1] ??
+      null)
     : null;
   const isYtSearch = !!media && /youtube\.com\/results/.test(media);
 
   const primary = locale === "ko" ? ex.name_ko : ex.name_en;
   const secondary = locale === "ko" ? ex.name_en : ex.name_ko;
 
-  const meta: { label: string; value: string }[] = [];
-  if (ex.category)
-    meta.push({
-      label: t("exercises.detCategory"),
-      value: t(`exercises.cat.${ex.category}` as Parameters<typeof t>[0]),
-    });
-  if (ex.station_type)
-    meta.push({
-      label: t("exercises.detStation"),
-      value: t("exercises.stationN", {
-        n: ex.station_type.replace("station_", ""),
-      }),
-    });
-  if (ex.equipment?.length)
-    meta.push({
-      label: t("exercises.detEquipment"),
-      value: ex.equipment
-        .map((q: string) => dictLabel(t, `equipment.${q}`, q))
-        .join(", "),
-    });
+  // 로케일 설명 우선, 없으면 영어 → 한국어 순 폴백.
+  const desc =
+    (locale === "ko"
+      ? ex.description_ko
+      : locale === "es"
+        ? ex.description_es
+        : ex.description_en) ||
+    ex.description_en ||
+    ex.description_ko;
+  const isKoFallback = !!desc && locale !== "ko" && desc === ex.description_ko;
 
   return (
-    <main>
-      <Link
-        href="/exercises"
-        className="text-sm text-muted hover:text-foreground"
-      >
-        {t("exercises.back")}
-      </Link>
-
-      <h1 className="mt-4 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{primary}</h1>
-      <p className="mt-1 text-sm text-muted">{secondary}</p>
-
-      {ytId ? (
-        <div className="mt-6">
-          <div className="relative aspect-video w-full overflow-hidden rounded-md bg-black">
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${ytId}`}
-              title={primary}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="absolute inset-0 h-full w-full"
-            />
+    <>
+      <Back href="/exercises" label={t("exercises.title")} />
+      <PageHead title={primary} description={secondary} />
+      <div className="rx-two-col">
+        <Panel title={t("exercises.info")}>
+          <div className="rx-exercise-feature">
+            {ytId ? (
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${ytId}`}
+                title={primary}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ width: "100%", aspectRatio: "16 / 9", border: 0, borderRadius: 12 }}
+              />
+            ) : media && !isYtSearch ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={media} alt={primary} style={{ maxWidth: "100%", borderRadius: 12 }} />
+            ) : (
+              <Dumbbell size={56} />
+            )}
+            <span>{secondary}</span>
           </div>
-          <a
-            href={media!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1.5 inline-block text-xs text-muted hover:text-foreground"
-          >
-            {t("exercises.watchOnYoutube")}
-          </a>
-        </div>
-      ) : isYtSearch ? (
-        <a
-          href={media!}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 flex items-center gap-2 rounded-md bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-card"
-        >
-          <span className="text-lg text-danger">▶</span>
-          {t("exercises.watchDemo")}
-        </a>
-      ) : media ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={media}
-          alt={primary}
-          className="mt-6 max-h-80 w-full rounded-md object-cover"
-        />
-      ) : null}
-
-      {meta.length > 0 && (
-        <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {meta.map((m) => (
-            <div key={m.label} className="rounded-md bg-surface px-4 py-3">
-              <dt className="text-xs text-muted">{m.label}</dt>
-              <dd className="mt-1 text-sm font-semibold">{m.value}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-
-      {muscles.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-sm text-muted">{t("exercises.detTarget")}</h2>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {muscles.map((m) => (
-              <span
-                key={m}
-                className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track"
-              >
-                {dictLabel(t, `muscle.${m}`, m)}
-              </span>
+          <div className="rx-actions">
+            {ex.category && (
+              <Chip>{t(`exercises.cat.${ex.category}` as Parameters<typeof t>[0])}</Chip>
+            )}
+            {ex.station_type && (
+              <Chip tone="yellow">
+                {t("exercises.stationN", { n: ex.station_type.replace("station_", "") })}
+              </Chip>
+            )}
+            {(ex.equipment ?? []).map((q: string) => (
+              <Chip key={q}>{dictLabel(t, `equipment.${q}`, q)}</Chip>
             ))}
+            {(ytId || isYtSearch) && (
+              <a className="rx-external" href={media!} target="_blank" rel="noopener noreferrer">
+                {ytId ? t("exercises.watchOnYoutube") : t("exercises.watchDemo")}
+              </a>
+            )}
           </div>
-        </section>
-      )}
-
-      {helps.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-sm text-muted">{t("exercises.detHelps")}</h2>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {helps.map((h) => (
-              <span
-                key={h}
-                className="rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-gold"
-              >
-                {dictLabel(t, `hstation.${h}`, h)}
-              </span>
-            ))}
+          {desc ? (
+            <>
+              <h3 className="rx-section-label">
+                {t("exercises.detHowTo")}
+                {isKoFallback ? ` · ${t("exercises.howToKoOnly")}` : ""}
+              </h3>
+              <p style={{ padding: "0 24px", whiteSpace: "pre-wrap" }}>{desc}</p>
+            </>
+          ) : null}
+          {muscles.length > 0 && (
+            <Hint>
+              {t("exercises.detTarget")}:{" "}
+              {muscles.map((m) => dictLabel(t, `muscle.${m}`, m)).join(" · ")}
+            </Hint>
+          )}
+          {helps.length > 0 && (
+            <Hint>
+              {t("exercises.detHelps")}:{" "}
+              {helps.map((h) => dictLabel(t, `hstation.${h}`, h)).join(" · ")} —{" "}
+              {t("exercises.detHelpsHint")}
+            </Hint>
+          )}
+        </Panel>
+        <Panel title={t("exercises.drillsTitle")}>
+          <div style={{ padding: "0 24px 24px" }}>
+            <ExerciseDrills exerciseId={id} initial={drills} />
           </div>
-          <p className="mt-1.5 text-xs text-muted">{t("exercises.detHelpsHint")}</p>
-        </section>
-      )}
-
+        </Panel>
+      </div>
       {trend.length >= 2 && (
-        <section className="mt-8">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold">{t("exercises.myTrend")}</h2>
-            <span className="text-xs text-muted">
+        <Panel
+          title={t("exercises.myTrend")}
+          action={
+            <Chip>
               {t("exercises.trendBestLatest", {
                 best: best != null ? formatMs(best) : "—",
                 latest: latest != null ? formatMs(latest) : "—",
               })}
-            </span>
-          </div>
-          <div className="mt-3 rounded-md bg-surface p-4">
+            </Chip>
+          }
+        >
+          <div style={{ padding: "0 24px" }}>
             <RunLapLine data={trend} />
           </div>
-          <p className="mt-2 text-xs text-muted">{t("exercises.trendNote")}</p>
-        </section>
+          <Hint>{t("exercises.trendNote")}</Hint>
+        </Panel>
       )}
-
-      {(() => {
-        // 로케일 설명 우선, 없으면 영어 → 한국어 순 폴백.
-        // 한국어로 폴백한 경우에만 '한국어 원문' 표시를 붙인다.
-        const desc =
-          (locale === "ko"
-            ? ex.description_ko
-            : locale === "es"
-              ? ex.description_es
-              : ex.description_en) ||
-          ex.description_en ||
-          ex.description_ko;
-        if (!desc) return null;
-        const isKoFallback = locale !== "ko" && desc === ex.description_ko;
-        return (
-          <section className="mt-6">
-            <h2 className="text-lg font-semibold">
-              {t("exercises.detHowTo")}
-              {isKoFallback && (
-                <span className="ml-2 text-xs font-normal text-muted">
-                  {t("exercises.howToKoOnly")}
-                </span>
-              )}
-            </h2>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/90">
-              {desc}
-            </p>
-          </section>
-        );
-      })()}
-
-      <ExerciseDrills exerciseId={id} initial={drills} />
-    </main>
+    </>
   );
 }

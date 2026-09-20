@@ -1,7 +1,10 @@
-import Link from "next/link";
+import { ArrowRight, Dumbbell } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { dictLabel } from "@/lib/dict-label";
+import { RowLink } from "@/components/row-link";
+import { Chip, Empty, PageHead, Panel } from "@/components/rox/ui";
+import { QueryChoice, QueryFind, QuerySegments } from "@/components/rox/query-filters";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -17,6 +20,11 @@ const EQUIPMENT = [
   "foamroller", "abwheel",
 ] as const;
 
+/**
+ * 운동 라이브러리 — 시안 training.tsx 의 Exercises 그대로 (PORT_PLAN §3-c):
+ * PageHead · Panel(툴바 Find·Choice + Segments) · .rx-list-count · .rx-card-grid(.rx-exercise-card) · Empty.
+ * 필터는 쿼리스트링(서버)이다.
+ */
 export default async function ExercisesPage({
   searchParams,
 }: {
@@ -30,19 +38,13 @@ export default async function ExercisesPage({
   const supabase = await createClient();
   const { data: allExercises } = await supabase.from("exercises").select("*");
   const term = q?.trim().toLowerCase();
+  const cat = (CATEGORIES as readonly string[]).includes(category ?? "") ? category! : "all";
+  const eq = (EQUIPMENT as readonly string[]).includes(equipment ?? "") ? equipment! : "all";
   const exercises = (allExercises ?? []).filter((e) => {
-    if (category && (CATEGORIES as readonly string[]).includes(category) && e.category !== category)
-      return false;
-    if (
-      equipment &&
-      (EQUIPMENT as readonly string[]).includes(equipment) &&
-      !(e.equipment ?? []).includes(equipment)
-    )
-      return false;
+    if (cat !== "all" && e.category !== cat) return false;
+    if (eq !== "all" && !(e.equipment ?? []).includes(eq)) return false;
     if (!term) return true;
-    return [e.name_ko, e.name_en].some((v) =>
-      (v ?? "").toLowerCase().includes(term),
-    );
+    return [e.name_ko, e.name_en].some((v) => (v ?? "").toLowerCase().includes(term));
   });
   // 표시 이름(로케일) 기준 알파벳·가나다순 정렬
   exercises.sort((a, b) =>
@@ -53,112 +55,65 @@ export default async function ExercisesPage({
   );
 
   return (
-    <main>
-      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("exercises.title")}</h1>
-      <p className="mt-1 text-sm text-muted">{t("exercises.desc")}</p>
-
-      <form method="get" className="mt-6 flex flex-wrap gap-3">
-        <input
-          type="search"
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder={t("exercises.searchPh")}
-          className="min-w-52 flex-1 rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
-        />
-        <select
-          name="category"
-          defaultValue={category ?? ""}
-          className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
-        >
-          <option value="">{t("exercises.allCategories")}</option>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {t(`exercises.cat.${c}`)}
-            </option>
-          ))}
-        </select>
-        <select
-          name="equipment"
-          defaultValue={equipment ?? ""}
-          className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
-        >
-          <option value="">{t("exercises.allEquipment")}</option>
-          {EQUIPMENT.map((e) => (
-            <option key={e} value={e}>
-              {dictLabel(t, `equipment.${e}`, e)}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95"
-        >
-          {t("common.search")}
-        </button>
-      </form>
-
-      {!exercises?.length ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("exercises.noResults")}
-        </p>
-      ) : (
-        <ul className="mt-6 grid gap-2 sm:grid-cols-2">
+    <>
+      <PageHead title={t("exercises.title")} description={t("exercises.intro")} />
+      <Panel>
+        <div className="rx-toolbar">
+          <QueryFind param="q" value={q ?? ""} placeholder={t("exercises.searchPh")} />
+          <QueryChoice
+            param="equipment"
+            value={eq}
+            label={t("exercises.detEquipment")}
+            options={[
+              ["all", t("exercises.allEquipment")],
+              ...EQUIPMENT.map((e) => [e, dictLabel(t, `equipment.${e}`, e)] as [string, string]),
+            ]}
+          />
+        </div>
+        <div style={{ padding: "0 24px 24px" }}>
+          <QuerySegments
+            param="category"
+            value={cat}
+            label={t("exercises.detCategory")}
+            options={[
+              ["all", t("exercises.allCategories")],
+              ...CATEGORIES.map((c) => [c, t(`exercises.cat.${c}`)] as [string, string]),
+            ]}
+          />
+        </div>
+      </Panel>
+      <p className="rx-list-count">{t("exercises.countN", { n: exercises.length })}</p>
+      {exercises.length ? (
+        <div className="rx-card-grid">
           {exercises.map((ex) => {
             const primary = locale === "ko" ? ex.name_ko : ex.name_en;
             const secondary = locale === "ko" ? ex.name_en : ex.name_ko;
             return (
-              <li key={ex.id}>
-                <Link
-                  href={`/exercises/${ex.id}`}
-                  className="block rounded-md bg-surface px-4 py-3 hover:bg-card"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">{primary}</p>
-                    {ex.station_type && (
-                      <span className="rounded border border-accent-line/60 px-1.5 py-0.5 text-xs text-gold">
-                        {t("exercises.stationN", {
-                          n: ex.station_type.replace("station_", ""),
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted">
-                    {secondary}
-                    {ex.category
-                      ? ` · ${t(`exercises.cat.${ex.category}` as Parameters<typeof t>[0])}`
-                      : ""}
-                    {ex.equipment?.length
-                      ? ` · ${ex.equipment.map((q: string) => dictLabel(t, `equipment.${q}`, q)).join(", ")}`
-                      : ""}
-                  </p>
-                  {((Array.isArray(ex.muscles) && ex.muscles.length > 0) ||
-                    (Array.isArray(ex.helps_stations) &&
-                      ex.helps_stations.length > 0)) && (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {(ex.muscles ?? []).map((m: string) => (
-                        <span
-                          key={`m-${m}`}
-                          className="rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-semibold text-track"
-                        >
-                          {dictLabel(t, `muscle.${m}`, m)}
-                        </span>
-                      ))}
-                      {(ex.helps_stations ?? []).map((h: string) => (
-                        <span
-                          key={`h-${h}`}
-                          className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-gold"
-                        >
-                          {dictLabel(t, `hstation.${h}`, h)}
-                        </span>
-                      ))}
-                    </div>
+              <RowLink key={ex.id} className="rx-exercise-card" href={`/exercises/${ex.id}`}>
+                <Dumbbell size={27} />
+                <span className="rx-muted">{secondary}</span>
+                <h2>{primary}</h2>
+                <div>
+                  {ex.category && (
+                    <Chip>{t(`exercises.cat.${ex.category}` as Parameters<typeof t>[0])}</Chip>
                   )}
-                </Link>
-              </li>
+                  {ex.station_type && (
+                    <Chip tone="yellow">
+                      {t("exercises.stationN", { n: ex.station_type.replace("station_", "") })}
+                    </Chip>
+                  )}
+                  {(ex.equipment ?? []).slice(0, 2).map((e: string) => (
+                    <Chip key={e}>{dictLabel(t, `equipment.${e}`, e)}</Chip>
+                  ))}
+                  <ArrowRight size={18} />
+                </div>
+              </RowLink>
             );
           })}
-        </ul>
+        </div>
+      ) : (
+        <Empty title={t("exercises.noResults")} description={t("exercises.intro")} />
       )}
-    </main>
+    </>
   );
 }

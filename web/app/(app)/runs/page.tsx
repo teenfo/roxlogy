@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
@@ -13,6 +13,7 @@ import {
 import { RunDeleteButton } from "@/components/run-form";
 import { RecordCardButton } from "@/components/record-card-button";
 import type { RecordCardData } from "@/lib/record-card";
+import { DataTable, Empty, Go, Hint, PageHead, Panel, Stats } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -25,6 +26,11 @@ type Baseline = {
   from_ran_on: string;
 } | null;
 
+/**
+ * 러닝 기록 — 시안 training.tsx 의 Runs 그대로 (PORT_PLAN §3-c):
+ * PageHead(러닝 기록) · Panel "러닝 타임라인" DataTable[날짜·코스·거리·시간·평균 페이스·편집] · Empty.
+ * 1km 기준선·90일 요약은 시안에 없는 우리 정보 — Stats 로(§4-1).
+ */
 export default async function RunsPage() {
   const [{ t, tag, tz }, user] = await Promise.all([getT(), getCachedUser()]);
   const supabase = await createClient();
@@ -80,136 +86,102 @@ export default async function RunsPage() {
   });
 
   return (
-    <main>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("run.title")}</h1>
-          <p className="mt-1 text-sm text-muted">{t("run.desc")}</p>
-        </div>
-        <Link
-          href="/runs/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
-        >
-          {t("run.add")}
-        </Link>
-      </div>
-
-      {error && <p role="alert" className="mt-4 text-sm text-danger">{error.message}</p>}
-
-      {/* 1km 기준선 — 시뮬 저하율이 비교하는 값 */}
-      <section className="mt-6 rounded-md bg-surface px-5 py-4">
-        <p className="text-xs text-muted">{t("run.baselineTitle")}</p>
-        {base ? (
-          <>
-            <div className="mt-1 flex flex-wrap items-baseline gap-3">
-              <span className="font-mono text-3xl font-black">
-                {formatMs(base.baseline_1k_ms)}
-              </span>
-              <span className="text-xs text-muted">
-                {t("run.baselineFrom", {
+    <>
+      <PageHead
+        title={t("run.title")}
+        description={t("run.intro")}
+        action={
+          <Go href="/runs/new" primary>
+            <Plus size={16} />
+            {t("run.add")}
+          </Go>
+        }
+      />
+      {error && (
+        <p role="alert" className="rx-error">
+          {error.message}
+        </p>
+      )}
+      <Stats
+        items={[
+          [
+            t("run.baselineTitle"),
+            base ? formatMs(base.baseline_1k_ms) : "—",
+            base
+              ? t("run.baselineFrom", {
                   distance: formatDistance(base.from_distance_m),
                   date: formatDateShortYear(base.from_ran_on, tag, tz),
-                })}
-              </span>
-            </div>
-            <p className="mt-2 text-xs text-muted">{t("run.baselineHint")}</p>
-          </>
-        ) : (
-          <p className="mt-1 text-sm text-muted">{t("run.baselineNone")}</p>
-        )}
-      </section>
-
-      {/* 최근 90일 요약 */}
-      {recent.length > 0 && (
-        <section className="mt-3 grid grid-cols-3 gap-3">
-          <div className="rounded-md bg-surface px-4 py-3">
-            <p className="text-xs text-muted">{t("run.summaryTitle")}</p>
-            <p className="mt-1 font-mono text-xl font-bold">
-              {t("run.summaryRuns", { n: recent.length })}
-            </p>
-          </div>
-          <div className="rounded-md bg-surface px-4 py-3">
-            <p className="text-xs text-muted">{t("run.summaryDistance")}</p>
-            <p className="mt-1 font-mono text-xl font-bold">
-              {formatDistance(totalM)}
-            </p>
-          </div>
-          <div className="rounded-md bg-surface px-4 py-3">
-            <p className="text-xs text-muted">{t("run.summaryPace")}</p>
-            <p className="mt-1 font-mono text-xl font-bold">
-              {formatPace(avgPace)}
-              <span className="text-xs font-normal text-muted">
-                {t("run.paceUnit")}
-              </span>
-            </p>
-          </div>
-        </section>
-      )}
-
-      {!rows.length ? (
-        <div className="mt-6 rounded-md bg-surface px-4 py-10 text-center">
-          <p className="text-sm text-muted">{t("run.empty")}</p>
-          <p className="mx-auto mt-2 max-w-md text-xs text-muted">
-            {t("run.emptyHint")}
-          </p>
-          <Link
-            href="/runs/new"
-            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95"
-          >
-            {t("run.add")}
-          </Link>
-        </div>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-2">
-          {rows.map((r) => (
-            <li key={r.id} className="rounded-md bg-surface px-4 py-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-lg font-bold">
-                  {formatDistance(r.distance_m)}
-                </span>
-                <span className="font-mono text-sm text-muted">
-                  {formatMs(r.duration_ms)}
-                </span>
-                <span className="rounded-full bg-background px-2 py-0.5 font-mono text-xs font-bold text-gold">
-                  {formatPace(r.pace_s_per_km)}
-                  {t("run.paceUnit")}
-                </span>
-                <span className="text-[10px] text-muted">
+                })
+              : t("run.baselineNone"),
+          ],
+          [t("run.summaryTitle"), t("run.summaryRuns", { n: recent.length }), ""],
+          [t("run.summaryDistance"), formatDistance(totalM), t("run.summaryTitle")],
+          [
+            t("run.summaryPace"),
+            avgPace != null ? `${formatPace(avgPace)}${t("run.paceUnit")}` : "—",
+            t("run.summaryTitle"),
+          ],
+        ]}
+      />
+      <Panel title={t("run.timeline")}>
+        {rows.length ? (
+          <>
+            <DataTable
+              headers={[
+                t("run.date"),
+                t("run.kind"),
+                t("run.distance"),
+                t("run.duration"),
+                t("run.pace"),
+                "",
+              ]}
+              rows={rows.map((r) => [
+                <span key="d">
+                  {formatDateShortYear(r.ran_on, tag, tz)}
+                  {r.location && <small className="rx-block rx-muted">{r.location}</small>}
+                </span>,
+                <span key="k">
                   {t(kindLabel(r.kind))} · {t(surfaceLabel(r.surface))}
                   {r.incline_pct != null && ` · ${r.incline_pct}%`}
-                </span>
-                <span className="ml-auto flex items-center gap-3 text-xs text-muted">
-                  {formatDateShortYear(r.ran_on, tag, tz)}
-                  <RecordCardButton data={cardFor(r)} className="hover:text-gold" />
-                  <Link href={`/runs/${r.id}/edit`} className="hover:text-gold">
-                    {t("common.edit")}
-                  </Link>
-                  <RunDeleteButton id={r.id} />
-                </span>
-              </div>
-
-              {(r.avg_hr != null || r.rpe != null || r.location) && (
-                <p className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted">
-                  {r.avg_hr != null && (
-                    <span>
-                      {t("run.avgHr")} {r.avg_hr}
-                      {r.max_hr != null && ` / ${r.max_hr}`}
-                    </span>
+                  {(r.avg_hr != null || r.rpe != null) && (
+                    <small className="rx-block rx-muted">
+                      {r.avg_hr != null && `${t("run.avgHr")} ${r.avg_hr}`}
+                      {r.avg_hr != null && r.rpe != null && " · "}
+                      {r.rpe != null && `RPE ${r.rpe}`}
+                    </small>
                   )}
-                  {r.rpe != null && <span>RPE {r.rpe}</span>}
-                  {r.location && <span>📍 {r.location}</span>}
-                </p>
-              )}
-
-              {r.note && (
-                <p className="mt-2 whitespace-pre-line text-xs text-muted">
-                  {r.note}
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+                </span>,
+                <strong className="rx-number" key="dist">
+                  {formatDistance(r.distance_m)}
+                </strong>,
+                <strong className="rx-number" key="t">
+                  {formatMs(r.duration_ms)}
+                </strong>,
+                <span className="rx-number" key="p">
+                  {formatPace(r.pace_s_per_km)}
+                  {t("run.paceUnit")}
+                </span>,
+                <span className="rx-actions" key="a">
+                  <Go href={`/runs/${r.id}/edit`}>{t("common.edit")}</Go>
+                  <RecordCardButton data={cardFor(r)} />
+                  <RunDeleteButton id={r.id} />
+                </span>,
+              ])}
+            />
+            <Hint>{t("run.baselineHint")}</Hint>
+          </>
+        ) : (
+          <Empty
+            title={t("run.empty")}
+            description={t("run.emptyHint")}
+            action={
+              <Go href="/runs/new" primary>
+                {t("run.firstRun")}
+              </Go>
+            }
+          />
+        )}
+      </Panel>
+    </>
   );
 }

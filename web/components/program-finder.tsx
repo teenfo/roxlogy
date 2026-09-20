@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { ArrowRight, Dumbbell } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
 import { dictLabel } from "@/lib/dict-label";
-import { wodTypeDot } from "@/lib/wod-type";
-import { Avatar } from "@/components/ui/crew-ui";
+import { Chip, Choice, Empty, Find, Panel, Segments } from "@/components/rox/ui";
 
 export type ProgramCardData = {
   id: string;
@@ -22,11 +22,17 @@ export type ProgramCardData = {
   /** 커뮤니티 프로그램만 (public_program_stats) */
   ownerName: string | null;
   enrollCount: number | null;
+  /** 진행 중이면 오늘의 워크아웃 */
+  todayTemplate: { id: string; title: string } | null;
 };
 
 const LEVELS = ["beginner", "intermediate", "advanced"] as const;
 
-/** 내 프로그램 + 커뮤니티 프로그램 — 레벨 칩·검색은 클라이언트에서 즉시 반영 */
+/**
+ * 프로그램 목록 — 시안 training.tsx Programs 그대로: Segments(전체/진행 중/…) ·
+ * .rx-card-grid 의 .rx-program-card(.rx-program-top.tone-n · .rx-card-body).
+ * 검색·레벨 필터와 내/커뮤니티 구분은 시안에 없는 우리 기능이라 Panel 툴바로 둔다(§4-1).
+ */
 export function ProgramFinder({
   mine,
   community,
@@ -35,176 +41,113 @@ export function ProgramFinder({
   community: ProgramCardData[];
 }) {
   const { t } = useI18n();
-  const [level, setLevel] = useState<string | null>(null);
+  const [tab, setTab] = useState("all");
+  const [level, setLevel] = useState("all");
   const [q, setQ] = useState("");
 
+  const all = useMemo(
+    () => [...mine.map((p) => ({ ...p, mine: true })), ...community.map((p) => ({ ...p, mine: false }))],
+    [mine, community],
+  );
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return community.filter((p) => {
-      if (level && p.level !== level) return false;
+    return all.filter((p) => {
+      if (tab === "running" && !p.active) return false;
+      if (tab === "mine" && !p.mine) return false;
+      if (tab === "community" && p.mine) return false;
+      if (level !== "all" && p.level !== level) return false;
       if (!needle) return true;
       return [p.title, p.description, p.ownerName]
         .filter(Boolean)
         .some((v) => v!.toLowerCase().includes(needle));
     });
-  }, [community, level, q]);
-
-  const card = (p: ProgramCardData, showOwner: boolean) => (
-    <li key={p.id}>
-      <Link
-        href={`/programs/${p.id}`}
-        className="flex h-full flex-col gap-3 rounded-[14px] border border-line bg-card px-[18px] py-4 transition-colors hover:border-line-strongest hover:bg-card-hover"
-      >
-        <div className="flex items-start gap-2">
-          <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-base font-extrabold">
-                {p.title}
-              </span>
-              {p.active && (
-                <span className="shrink-0 rounded-[5px] bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-accent-foreground">
-                  {t("programs.enrolled")}
-                </span>
-              )}
-              {p.isPublic && !showOwner && (
-                <span className="shrink-0 rounded-[5px] bg-label-bg px-1.5 py-0.5 text-[10px] font-bold text-label">
-                  {t("programs.public")}
-                </span>
-              )}
-            </span>
-            {p.description && (
-              <span className="mt-1 line-clamp-2 block text-[13px] leading-relaxed text-muted">
-                {p.description}
-              </span>
-            )}
-          </span>
-          <span aria-hidden className="shrink-0 text-muted/60">
-            ›
-          </span>
-        </div>
-
-        <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-muted">
-          {p.level && (
-            <span className="rounded-md bg-line px-1.5 py-0.5 font-bold text-foreground/75">
-              {dictLabel(t, `predict.level.${p.level}`, p.level)}
-            </span>
-          )}
-          {p.weeks && <span>{t("programs.weeksN", { n: p.weeks })}</span>}
-          {p.weeks && p.workoutDays > 0 && (
-            <span className="tabular">
-              {t("programs.perWeek", {
-                n: Math.max(1, Math.round(p.workoutDays / p.weeks)),
-              })}
-            </span>
-          )}
-          {p.types.length > 0 && (
-            <span className="flex items-center gap-1">
-              {p.types.map((ty) => (
-                <span
-                  key={ty}
-                  aria-hidden
-                  className={`h-2 w-2 rounded-[2px] ${wodTypeDot(ty)}`}
-                />
-              ))}
-            </span>
-          )}
-          {showOwner && p.ownerName && (
-            <span className="ml-auto flex min-w-0 items-center gap-1.5">
-              <Avatar name={p.ownerName} size={18} />
-              <span className="truncate text-foreground/75">{p.ownerName}</span>
-              {p.enrollCount != null && p.enrollCount > 0 && (
-                <span className="shrink-0">
-                  · {t("programs.enrolledN", { n: p.enrollCount })}
-                </span>
-              )}
-            </span>
-          )}
-        </div>
-      </Link>
-    </li>
-  );
+  }, [all, tab, level, q]);
 
   return (
     <>
-      <section>
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-base font-extrabold">{t("programs.mine")}</h2>
-          <span className="text-[13px] text-muted">{mine.length}</span>
+      <Segments
+        value={tab}
+        onChange={setTab}
+        label={t("programs.title")}
+        options={[
+          ["all", t("programs.fltAll")],
+          ["running", t("programs.running")],
+          ["mine", t("programs.mine")],
+          ["community", t("programs.community")],
+        ]}
+      />
+      <Panel>
+        <div className="rx-toolbar">
+          <Find value={q} onChange={setQ} placeholder={t("programs.searchPh")} />
+          <Choice
+            label={t("predict.level.label" as Parameters<typeof t>[0])}
+            value={level}
+            onChange={setLevel}
+            options={[
+              ["all", t("programs.allLevels")],
+              ...LEVELS.map(
+                (l) => [l, dictLabel(t, `predict.level.${l}`, l)] as [string, string],
+              ),
+            ]}
+          />
         </div>
-        <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
-          {mine.map((p) => card(p, false))}
-          <li>
-            <Link
-              href="/programs/new"
-              className="flex h-full min-h-[120px] flex-col items-center justify-center gap-1 rounded-[14px] border border-dashed border-line-strong text-center transition-colors hover:border-line-strong"
-            >
-              <span aria-hidden className="text-[22px] text-muted">
-                +
-              </span>
-              <span className="text-[13px] font-semibold">
-                {t("programs.create")}
-              </span>
-              <span className="px-4 text-xs text-muted [word-break:keep-all]">
-                {t("programs.createHint")}
-              </span>
-            </Link>
-          </li>
-        </ul>
-      </section>
-
-      {community.length > 0 && (
-        <section>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-base font-extrabold">
-              {t("programs.community")}
-            </h2>
-            <span className="text-[13px] text-muted">{community.length}</span>
-
-            <span className="ml-auto flex flex-wrap items-center gap-1.5 max-md:ml-0 max-md:w-full">
-              <button
-                type="button"
-                onClick={() => setLevel(null)}
-                className={`flex h-[30px] items-center rounded-full px-3 text-xs font-semibold transition-colors ${
-                  level === null
-                    ? "bg-accent text-accent-foreground"
-                    : "border border-line-strong text-muted hover:text-foreground"
-                }`}
-              >
-                {t("crew.all")}
-              </button>
-              {LEVELS.map((lv) => (
-                <button
-                  key={lv}
-                  type="button"
-                  onClick={() => setLevel(lv)}
-                  className={`flex h-[30px] items-center rounded-full px-3 text-xs font-semibold transition-colors ${
-                    level === lv
-                      ? "bg-accent text-accent-foreground"
-                      : "border border-line-strong text-muted hover:text-foreground"
-                  }`}
-                >
-                  {dictLabel(t, `predict.level.${lv}`, lv)}
-                </button>
-              ))}
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={t("nav.searchPh")}
-                className="h-[30px] w-[180px] min-w-0 rounded-full border border-line-strong bg-page px-3 text-xs outline-none transition-colors focus:border-accent-line max-md:w-full"
-              />
-            </span>
-          </div>
-
-          {!shown.length ? (
-            <p className="mt-3 rounded-[14px] border border-dashed border-line-strong px-4 py-10 text-center text-[13px] text-muted">
-              {t("programs.filterEmpty")}
-            </p>
-          ) : (
-            <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
-              {shown.map((p) => card(p, true))}
-            </ul>
-          )}
-        </section>
+      </Panel>
+      {shown.length ? (
+        <div className="rx-card-grid">
+          {shown.map((p, i) => (
+            <Panel key={p.id} className="rx-program-card">
+              <div className={"rx-program-top tone-" + (i % 3)}>
+                <Dumbbell size={30} />
+                <span>{String(i + 1).padStart(2, "0")} / TRAINING</span>
+              </div>
+              <div className="rx-card-body">
+                <Chip tone={p.active ? "green" : "neutral"}>
+                  {p.active
+                    ? t("programs.running")
+                    : p.mine
+                      ? t("programs.mine")
+                      : t("programs.community")}
+                </Chip>
+                <h2>{p.title}</h2>
+                <p>
+                  {p.description ||
+                    [
+                      p.level ? dictLabel(t, `predict.level.${p.level}`, p.level) : null,
+                      p.ownerName,
+                      p.enrollCount != null ? `${p.enrollCount}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                </p>
+                {p.todayTemplate && (
+                  <p>
+                    <Link href={`/workouts/${p.todayTemplate.id}`}>
+                      ▶ {t("programs.todayWorkout", { name: p.todayTemplate.title })}
+                    </Link>
+                  </p>
+                )}
+                <div className="rx-card-bottom">
+                  <span>
+                    {p.weeks ? t("programs.weeksProgram", { n: p.weeks }) : ""}
+                    {p.weeks && p.workoutDays
+                      ? ` · ${t("programs.perWeek", { n: Math.max(1, Math.round(p.workoutDays / p.weeks)) })}`
+                      : ""}
+                  </span>
+                  <Link aria-label={t("programs.detailOf", { name: p.title })} href={`/programs/${p.id}`}>
+                    <ArrowRight size={21} />
+                  </Link>
+                </div>
+              </div>
+            </Panel>
+          ))}
+        </div>
+      ) : (
+        <Panel>
+          <Empty
+            title={tab === "mine" ? t("programs.mineEmpty") : t("exercises.noResults")}
+            description={t("programs.intro")}
+          />
+        </Panel>
       )}
     </>
   );

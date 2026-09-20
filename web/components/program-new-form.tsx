@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Back, PageHead, Panel } from "@/components/rox/ui";
 
 const LEVELS = ["beginner", "intermediate", "advanced", "elite"] as const;
 const WEEK_CHIPS = [4, 6, 8, 12] as const;
@@ -107,18 +107,15 @@ export function ProgramNewForm() {
   const label = "text-xs font-bold tracking-[0.02em] text-muted";
 
   return (
-    <main className="max-w-4xl pb-10">
-      <Link href="/programs" className="text-[13px] text-muted hover:text-foreground">
-        {t("programs.back")}
-      </Link>
-      <h1 className="mt-3 text-[28px] font-extrabold leading-tight">
-        {t("programs.newTitle")}
-      </h1>
-      <p className="mt-1 text-xs text-muted-2">{t("programs.step1")}</p>
-
-      <div className="mt-5 grid gap-3.5 md:grid-cols-[1fr_280px]">
+    <>
+      {/* 시안 training.tsx ProgramNew 의 바깥 구조 — Back · PageHead · form-layout[기본 설정 | 계획 미리보기].
+          폼 항목 자체는 시안보다 많은 우리 구성이라 Panel 안에 그대로 둔다(§4-1) */}
+      <Back href="/programs" label={t("programs.title")} />
+      <PageHead title={t("programs.newTitle")} description={t("programs.step1")} />
+      <div className="rx-form-layout">
         {/* 폼 */}
-        <div className="flex flex-col gap-[18px] rounded-[14px] border border-line bg-card p-[22px] max-md:p-4">
+        <Panel title={t("programs.newTitle")}>
+        <div className="flex flex-col gap-[18px]" style={{ padding: "0 24px 24px" }}>
           <label className="flex flex-col gap-1.5">
             <span className={label}>
               {t("programs.fldTitle")} <span className="text-danger">*</span>
@@ -287,12 +284,12 @@ export function ProgramNewForm() {
             <p className="text-center text-xs text-muted-2">{hint}</p>
           </div>
         </div>
+        </Panel>
 
         {/* 미리보기 */}
-        <aside className="flex h-fit flex-col gap-2.5 rounded-[14px] border border-line bg-card p-[18px] md:sticky md:top-5">
-          <p className="text-xs font-extrabold tracking-[0.1em] text-muted">
-            {t("programs.preview")}
-          </p>
+        <aside>
+        <Panel title={t("programs.preview")}>
+        <div className="flex flex-col gap-2.5" style={{ padding: "0 24px 24px" }}>
           <p
             className={`text-[17px] font-extrabold ${title.trim() ? "" : "text-muted-3"}`}
           >
@@ -310,8 +307,10 @@ export function ProgramNewForm() {
           <p className="mt-1 border-t border-line pt-2.5 text-xs text-muted-2">
             {t("programs.totalDaysHint", { n: totalDays })}
           </p>
+        </div>
+        </Panel>
         </aside>
       </div>
-    </main>
+    </>
   );
 }
