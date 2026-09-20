@@ -98,7 +98,7 @@ export function ProgramEnrollButton({
     return (
       <div className="flex flex-col items-start gap-1">
         <div className="flex items-center gap-3">
-          <span className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track">
+          <span className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track-ink">
             {t("programs.enrolled")}
           </span>
           <button
@@ -109,7 +109,7 @@ export function ProgramEnrollButton({
             {t("programs.stop")}
           </button>
         </div>
-        {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+        {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       </div>
     );
   }
@@ -124,7 +124,7 @@ export function ProgramEnrollButton({
           setErr(null);
           setOpen(true);
         }}
-        className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+        className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110"
       >
         {t("programs.start")}
       </button>
@@ -185,7 +185,7 @@ export function ProgramEnrollButton({
                   <span className="text-muted">
                     {t("programs.enrollEndPreview")}
                   </span>{" "}
-                  <b className="text-track">{fmt(endPreview)}</b>
+                  <b className="text-track-ink">{fmt(endPreview)}</b>
                   {!repeat && (
                     <span className="ml-1 text-xs text-muted">
                       ({t("programs.dayN", { n: totalDays })})
@@ -198,7 +198,7 @@ export function ProgramEnrollButton({
               )}
             </p>
 
-            {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
+            {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
 
             <div className="mt-5 flex justify-end gap-2">
               <button
@@ -210,7 +210,7 @@ export function ProgramEnrollButton({
               <button
                 onClick={start}
                 disabled={pending || !startDate}
-                className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+                className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
               >
                 {pending ? t("common.saving") : t("programs.start")}
               </button>

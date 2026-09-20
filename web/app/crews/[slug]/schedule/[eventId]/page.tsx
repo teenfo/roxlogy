@@ -100,21 +100,21 @@ export default async function CrewEventPage({
     }
     // 로그인은 했는데 정회원이 아니다 → 로그인시켜도 소용없으니 이유를 보여준다
     return (
-      <main>
+      <main className="rx-page rx-detail-page rx-crews-page">
         <Link
           href={`/crews/${slug}/schedule`}
           className="text-sm text-muted hover:text-foreground"
         >
           ← {t("crew.schedTab")}
         </Link>
-        <div className="mt-6 rounded-xl border border-line bg-card px-5 py-10 text-center">
+        <div className="rx-access mt-6">
           <p className="text-sm font-semibold">{t("crew.eventMembersOnly")}</p>
           <p className="mx-auto mt-2 max-w-md text-xs text-muted">
             {t("crew.eventMembersOnlyDesc", { crew: gate.crew })}
           </p>
           <Link
             href={`/crews/${slug}`}
-            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-on-accent hover:brightness-110"
           >
             {t("crew.about")}
           </Link>
@@ -178,11 +178,11 @@ export default async function CrewEventPage({
     tally.push({
       label: t("crew.rsvpWaitlisted"),
       value: ev.waitlist_names.length,
-      cls: "text-accent",
+      cls: "text-accent-ink",
     });
 
   return (
-    <main className="flex flex-col gap-3.5">
+    <main className="rx-page rx-detail-page rx-crews-page flex flex-col gap-3.5">
       {/* 히어로 — 날짜 블록 · 제목/메타 · 운영진 액션 */}
       <section className="overflow-hidden rounded-2xl border border-line-mid bg-card">
         <div className="grid grid-cols-[84px_minmax(0,1fr)_auto] items-start gap-5 px-6 py-[22px] max-md:grid-cols-[64px_minmax(0,1fr)] max-md:gap-4 max-md:px-4">
@@ -276,7 +276,7 @@ export default async function CrewEventPage({
           {isMember && (
             <div className="px-6 py-3.5 max-md:px-4">
               <p className="text-xs text-muted">{t("crew.attendCheckTab")}</p>
-              <p className="tabular mt-0.5 text-[22px] font-extrabold text-accent max-md:text-lg">
+              <p className="tabular mt-0.5 text-[22px] font-extrabold text-accent-ink max-md:text-lg">
                 {checked}
                 <span className="text-sm font-bold text-muted">
                   {" / "}
@@ -432,7 +432,7 @@ export default async function CrewEventPage({
                     <p className="flex items-baseline gap-2">
                       <Link
                         href={`/u/${c.author_id}`}
-                        className="text-[13px] font-bold hover:text-accent"
+                        className="text-[13px] font-bold hover:text-accent-ink"
                       >
                         {c.author_name}
                       </Link>

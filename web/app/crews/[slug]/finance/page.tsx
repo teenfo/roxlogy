@@ -85,9 +85,10 @@ export default async function CrewFinancePage({
 
   if (!isFull) {
     return (
-      <main>
-        <Card className="px-4 py-10 text-center">
+      <main className="rx-page rx-detail-page rx-crews-page">
+        <Card className="rx-access px-4 py-10 text-center">
           <p className="text-sm text-muted">{t("crew.finFullOnly")}</p>
+          <Link href={`/crews/${slug}`} className="rx-primary mt-5">{t("crew.about")}</Link>
         </Card>
       </main>
     );
@@ -256,7 +257,7 @@ export default async function CrewFinancePage({
       aria-current={view === v}
       className={`-mb-px flex items-center gap-1.5 border-b-2 px-1 pb-2.5 text-sm ${
         view === v
-          ? "border-accent font-bold text-accent"
+          ? "border-accent font-bold text-accent-ink"
           : "border-transparent text-muted hover:text-foreground"
       }`}
     >
@@ -278,14 +279,14 @@ export default async function CrewFinancePage({
           {t("crew.duesTodoSum", { n: unpaidPeople, amount: won(unpaidAmount) })}
         </p>
         {firstUnpaid && (
-          <p className="text-[13px] text-[#c9c9c9]">
+          <p className="text-[13px] text-foreground/80">
             {firstUnpaid.display_name} — {firstUnpaid.label}
           </p>
         )}
         <div className="flex flex-wrap gap-2">
           <Link
             href={`${linkFor(month, "dues")}&f=unpaid`}
-            className="flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg bg-danger px-3 text-[13px] font-extrabold text-background hover:brightness-110"
+            className="flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg bg-danger px-3 text-[13px] font-extrabold text-on-accent hover:brightness-110"
           >
             {t("crew.duesOpenUnpaid")}
           </Link>
@@ -299,7 +300,7 @@ export default async function CrewFinancePage({
 
   /** 크루 통장 — 두 탭 모두 우측에 붙는다. 장부와 통장의 차이가 곧 미반영 금액이다. */
   const bankCard = (
-    <div className="flex flex-col gap-2 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
+    <div className="rx-bank flex flex-col gap-2 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[15px] font-extrabold">{t("crew.finBank")}</p>
         <span
@@ -330,7 +331,7 @@ export default async function CrewFinancePage({
         ))}
       </dl>
       {bankAccount && (
-        <p className="break-all text-xs text-[#777]">{bankAccount}</p>
+        <p className="break-all text-xs text-muted">{bankAccount}</p>
       )}
       {isStaff && (
         <div className="flex flex-wrap gap-2">
@@ -353,7 +354,7 @@ export default async function CrewFinancePage({
   );
 
   return (
-    <main className="flex flex-col gap-5">
+    <main className="rx-page rx-detail-page rx-crews-page flex flex-col gap-5">
       {/* ── §0 월 헤더 ── */}
       <div className="flex flex-wrap items-center gap-3.5">
         <h1 className="text-[22px] font-extrabold">{monthLabel}</h1>
@@ -368,7 +369,7 @@ export default async function CrewFinancePage({
           <Link
             href={linkFor(shiftMonth(month, -1))}
             aria-label={t("crew.prevMonth")}
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-accent hover:bg-card-hover"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-accent-ink hover:bg-card-hover"
           >
             ‹
           </Link>
@@ -377,14 +378,14 @@ export default async function CrewFinancePage({
             <Link
               href={linkFor(shiftMonth(month, 1))}
               aria-label={t("crew.nextMonth")}
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-accent hover:bg-card-hover"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-accent-ink hover:bg-card-hover"
             >
               ›
             </Link>
           ) : (
             <span
               aria-hidden
-              className="flex h-[30px] w-[30px] items-center justify-center text-[#444]"
+              className="flex h-[30px] w-[30px] items-center justify-center text-muted-3"
             >
               ›
             </span>
@@ -450,13 +451,13 @@ export default async function CrewFinancePage({
       )}
 
       {/* ── §0 KPI 4 ── */}
-      <section className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+      <section className="rx-finance-kpis grid grid-cols-2 gap-4 xl:grid-cols-4">
         <Card className="px-[18px] py-3.5">
           <p className="text-xs text-muted">{t("crew.finIncome")}</p>
           <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-info md:text-[26px]">
             +{won(monthIncome)}
           </p>
-          <p className="mt-0.5 text-xs text-[#777]">
+          <p className="mt-0.5 text-xs text-muted">
             {t("crew.finIncomeSub", { dues: won(duesIncome), other: won(otherIncome) })}
           </p>
         </Card>
@@ -465,7 +466,7 @@ export default async function CrewFinancePage({
           <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-danger md:text-[26px]">
             −{won(monthExpense)}
           </p>
-          <p className="mt-0.5 text-xs text-[#777]">
+          <p className="mt-0.5 text-xs text-muted">
             {t("crew.finEntryN", { n: entries.filter((r) => r.kind === "expense").length })}
           </p>
         </Card>
@@ -479,14 +480,14 @@ export default async function CrewFinancePage({
             {monthNet >= 0 ? "+" : "−"}
             {won(Math.abs(monthNet))}
           </p>
-          <p className="mt-0.5 text-xs text-[#777]">{t("crew.finNetSub")}</p>
+          <p className="mt-0.5 text-xs text-muted">{t("crew.finNetSub")}</p>
         </Card>
         <Card highlight className="px-[18px] py-3.5">
-          <p className="text-xs text-[#c9b34a]">{t("crew.finBalance")}</p>
-          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px] text-accent">
+          <p className="text-xs text-accent-ink">{t("crew.finBalance")}</p>
+          <p className="tabular mt-1 text-[22px] font-extrabold leading-tight md:text-[26px] text-accent-ink">
             {won(totalBalance)}
           </p>
-          <p className="mt-0.5 flex flex-wrap items-center justify-between gap-x-2 text-xs text-[#777]">
+          <p className="mt-0.5 flex flex-wrap items-center justify-between gap-x-2 text-xs text-muted">
             <span>
               {t("crew.finBalanceSub", { opening: won(bank?.opening_balance ?? 0) })}
             </span>
@@ -506,7 +507,7 @@ export default async function CrewFinancePage({
             "dues",
             t("crew.finTabDues"),
             unpaidCount ? (
-              <span className="rounded-full bg-[#3a1a1a] px-1.5 py-0.5 text-[10px] font-bold text-[#ff8a8a]">
+              <span className="rounded-full bg-danger-bg px-1.5 py-0.5 text-[10px] font-bold text-danger">
                 {t("crew.duesFltUnpaid")} {unpaidCount}
               </span>
             ) : null,
@@ -514,16 +515,16 @@ export default async function CrewFinancePage({
         {subTab(
           "ledger",
           t("crew.finTabLedger"),
-          <span className="text-[11px] text-[#777]">{entries.length}</span>,
+          <span className="text-[11px] text-muted">{entries.length}</span>,
         )}
-        <span className="ml-auto pb-2.5 text-xs text-[#777]">
+        <span className="ml-auto pb-2.5 text-xs text-muted">
           🔒 {t(isStaff ? "crew.finVisibility" : "crew.finVisibilityRead")}
         </span>
       </nav>
 
       {/* ── 본문 + 우측 사이드 ── */}
       {todoCard && <div className="min-[900px]:hidden">{todoCard}</div>}
-      <div className="grid items-start gap-4 min-[900px]:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="rx-finance-grid">
         {view === "dues" ? (
           <CrewDuesMatrix
             crewId={crew.id}
@@ -545,7 +546,7 @@ export default async function CrewFinancePage({
           />
         )}
 
-        <aside className="flex flex-col gap-3 min-[900px]:sticky min-[900px]:top-5">
+        <aside className="rx-finance-aside">
           {todoCard && <div className="hidden min-[900px]:block">{todoCard}</div>}
           {view === "ledger" && isStaff && !closed && (
             <CrewLedgerForm crewId={crew.id} today={todayISOIn(tz)} trigger="inline" />
@@ -558,7 +559,7 @@ export default async function CrewFinancePage({
           {/* 이 달 청구 기준 — 등급이 곧 요금표다 */}
           {view === "dues" && tiers.length > 0 && (
             <div className="flex flex-col gap-2 rounded-[14px] border border-line bg-card px-[18px] py-3.5">
-              <p className="text-[11px] font-extrabold tracking-[0.08em] text-[#777]">
+              <p className="text-[11px] font-extrabold tracking-[0.08em] text-muted">
                 {t("crew.duesBasis", { period: monthLabel })}
               </p>
               <dl className="flex flex-col gap-1 text-xs">
@@ -580,7 +581,7 @@ export default async function CrewFinancePage({
               </dl>
               <Link
                 href={`/crews/${slug}/manage?tab=dues`}
-                className="text-xs font-semibold text-accent hover:underline"
+                className="text-xs font-semibold text-accent-ink hover:underline"
               >
                 {t("crew.duesFeeSettings")}
               </Link>

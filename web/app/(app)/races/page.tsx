@@ -30,14 +30,14 @@ export default async function RacesPage() {
   const linkedName = profile?.hyrox_athlete_name ?? null;
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-races-page">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("races.title")}</h1>
         <div className="flex items-center gap-3">
           {!!races?.length && <ExportButton kind="races" />}
           <Link
             href="/races/new"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110"
           >
             {t("races.register")}
           </Link>
@@ -55,7 +55,7 @@ export default async function RacesPage() {
             <p className="mt-1 text-muted">{t("races.syncedDesc")}</p>
             <Link
               href="/settings/profile"
-              className="mt-2 inline-block text-accent hover:underline"
+              className="mt-2 inline-block text-accent-ink hover:underline"
             >
               {t("races.syncedCta")}
             </Link>
@@ -66,7 +66,7 @@ export default async function RacesPage() {
             <p className="mt-1 text-muted">{t("races.syncDesc")}</p>
             <Link
               href="/settings/profile"
-              className="mt-2 inline-block text-accent hover:underline"
+              className="mt-2 inline-block text-accent-ink hover:underline"
             >
               {t("races.syncCta")}
             </Link>
@@ -76,7 +76,7 @@ export default async function RacesPage() {
                 href="https://results.hyrox.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent hover:underline"
+                className="text-accent-ink hover:underline"
               >
                 {t("races.findLink")}
               </a>
@@ -110,11 +110,11 @@ export default async function RacesPage() {
                   </div>
                   <span className="flex items-center gap-3">
                     {pct != null && (
-                      <span className="rounded-full bg-track/15 px-2 py-0.5 text-xs font-semibold text-track">
+                      <span className="rounded-full bg-track/15 px-2 py-0.5 text-xs font-semibold text-track-ink">
                         {t("percentile.top", { pct: String(Math.round(pct)) })}
                       </span>
                     )}
-                    <span className="font-mono text-lg font-semibold text-accent">
+                    <span className="font-mono text-lg font-semibold text-accent-ink">
                       {formatMs(r.total_time_ms)}
                     </span>
                   </span>

@@ -51,8 +51,8 @@ export function CrewDuesLinksManage({
   };
   const audBadge: Record<DuesAudience, string> = {
     all: "bg-background text-muted",
-    member: "bg-track/15 text-track",
-    associate: "bg-accent/15 text-accent",
+    member: "bg-track/15 text-track-ink",
+    associate: "bg-accent/15 text-accent-ink",
   };
 
   const parseAmount = (v: string) => {
@@ -131,10 +131,10 @@ export function CrewDuesLinksManage({
     "h-[38px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
   const pill = (on: boolean) =>
     `h-7 rounded-full px-2.5 text-xs font-bold ${
-      on ? "bg-accent text-background" : "border border-line-strong bg-control text-muted hover:text-foreground"
+      on ? "bg-accent text-on-accent" : "border border-line-strong bg-control text-muted hover:text-foreground"
     }`;
   const iconBtn =
-    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#333] text-xs disabled:opacity-40";
+    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line-strong text-xs disabled:opacity-40";
 
   /** 추가·수정이 같은 칸을 쓴다 — 수정은 행이 폼으로 바뀐다 */
   const fields = (
@@ -166,7 +166,7 @@ export function CrewDuesLinksManage({
           aria-label={t("crew.duesUrlPh")}
         />
         <span className="flex h-[38px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-accent">
-          <span aria-hidden className="px-2 text-xs text-[#666]">
+          <span aria-hidden className="px-2 text-xs text-muted-2">
             ₩
           </span>
           <input
@@ -200,7 +200,7 @@ export function CrewDuesLinksManage({
     <div className="overflow-hidden rounded-[14px] border border-line bg-card">
       <div className="border-b border-line px-[18px] py-3.5">
         <p className="text-[15px] font-extrabold">{t("crew.duesTitle")}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-[#777]">{t("crew.duesHint")}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted">{t("crew.duesHint")}</p>
       </div>
 
       <div className="flex flex-col">
@@ -209,7 +209,7 @@ export function CrewDuesLinksManage({
             <form
               key={l.id}
               onSubmit={saveEdit}
-              className="flex flex-col gap-2.5 border-b border-[#1c1c1c] bg-inset px-[18px] py-3.5"
+              className="flex flex-col gap-2.5 border-b border-line-soft bg-inset px-[18px] py-3.5"
             >
               {fields(
                 { label: eLabel, url: eUrl, amount: eAmount, audience: eAudience },
@@ -219,7 +219,7 @@ export function CrewDuesLinksManage({
                 <button
                   type="submit"
                   disabled={busy || !eLabel.trim() || !urlOk(eUrl)}
-                  className="h-9 rounded-lg bg-accent px-4 text-xs font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+                  className="h-9 rounded-lg bg-accent px-4 text-xs font-extrabold text-on-accent hover:brightness-110 disabled:opacity-40"
                 >
                   {t("common.save")}
                 </button>
@@ -235,18 +235,18 @@ export function CrewDuesLinksManage({
           ) : (
             <div
               key={l.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-[#1c1c1c] px-[18px] py-3"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-line-soft px-[18px] py-3"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="truncate text-sm font-bold">{l.label}</span>
                   {l.amount != null && (
-                    <span className="tabular text-[13px] font-bold text-accent">
+                    <span className="tabular text-[13px] font-bold text-accent-ink">
                       {won(l.amount)}
                     </span>
                   )}
                 </div>
-                <div className="mt-[3px] flex min-w-0 items-center gap-2 text-xs text-[#777]">
+                <div className="mt-[3px] flex min-w-0 items-center gap-2 text-xs text-muted">
                   <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${audBadge[l.audience]}`}>
                     {audLabel[l.audience]}
                   </span>
@@ -255,7 +255,7 @@ export function CrewDuesLinksManage({
                       href={l.url}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="truncate hover:text-accent hover:underline"
+                      className="truncate hover:text-accent-ink hover:underline"
                     >
                       {l.url}
                     </a>
@@ -270,7 +270,7 @@ export function CrewDuesLinksManage({
                   onClick={() => startEdit(l)}
                   disabled={busy}
                   aria-label={t("common.edit")}
-                  className={`${iconBtn} text-[#c9c9c9] hover:border-muted`}
+                  className={`${iconBtn} text-foreground/80 hover:border-muted`}
                 >
                   ✎
                 </button>
@@ -288,7 +288,7 @@ export function CrewDuesLinksManage({
           ),
         )}
         {items.length === 0 && (
-          <p className="px-[18px] py-6 text-center text-[13px] text-[#666]">
+          <p className="px-[18px] py-6 text-center text-[13px] text-muted-2">
             {t("crew.duesLinksEmpty")}
           </p>
         )}
@@ -311,7 +311,7 @@ export function CrewDuesLinksManage({
         <button
           type="submit"
           disabled={busy || !label.trim() || !urlOk(url)}
-          className="h-[38px] self-start rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+          className="h-[38px] self-start rounded-lg bg-accent px-4 text-sm font-extrabold text-on-accent hover:brightness-110 disabled:opacity-40"
         >
           + {t("crew.duesAdd")}
         </button>

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { rememberNext, safeNext } from "@/lib/site-url";
 import { KEEP_COOKIE } from "@/lib/supabase/keep";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 import { GoogleOneTap } from "@/components/google-one-tap";
 
 function GoogleIcon() {
@@ -119,10 +120,15 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
-      <Link href="/">
-        <Image src="/roxlogy-mark.svg" alt="Roxlogy" width={64} height={64} />
-      </Link>
+    <main className="rx-auth" id="main-content">
+      <aside className="rx-auth-brand">
+        <Link href="/" className="rx-brand"><Image src="/roxlogy-mark.svg" alt="" width={44} height={44} /><span>ROXLOGY</span></Link>
+        <div><h2>{t("landing.tagline")}</h2><p>{t("landing.ctaSub")}</p></div>
+        <p className="text-sm">{t("landing.tagline")}</p>
+      </aside>
+      <section className="rx-auth-form">
+        <div className="rx-auth-locale"><LocaleSwitcher compact /></div>
+        <Link href="/" className="rx-auth-mobile-brand rx-brand"><Image src="/roxlogy-mark-inverse.svg" alt="" width={40} height={40} /><span>ROXLOGY</span></Link>
       <h1 className="mt-6 text-2xl font-bold">
         {mode === "login" ? t("auth.loginTitle") : t("auth.signupTitle")}
       </h1>
@@ -184,7 +190,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 aria-pressed={showPassword}
-                className="absolute inset-y-0 right-2 my-auto h-7 rounded px-2 text-xs font-semibold text-muted hover:text-foreground"
+                className="absolute inset-y-0 right-2 my-auto h-11 rounded px-2 text-xs font-semibold text-muted hover:text-foreground"
               >
                 {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
               </button>
@@ -211,13 +217,13 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           안 뜨는 브라우저(사파리 등)에서는 아래 버튼이 그대로 동작한다. */}
       <GoogleOneTap next={safeNext(searchParams.get("next")) ?? undefined} />
 
-      {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
-          {notice && <p role="status" className="text-sm text-track">{notice}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+          {notice && <p role="status" className="text-sm text-track-ink">{notice}</p>}
 
           <button
             type="submit"
             disabled={pending || (mode === "signup" && !displayName.trim())}
-            className="mt-2 rounded-md bg-accent px-4 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
+            className="mt-2 rounded-md bg-accent px-4 py-2.5 font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
           >
             {pending
               ? t("auth.processing")
@@ -231,20 +237,21 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           {mode === "login" ? (
             <>
               {t("auth.noAccount")}{" "}
-              <Link href={`/signup${nextQs}`} className="text-accent hover:underline">
+              <Link href={`/signup${nextQs}`} className="text-accent-ink hover:underline">
                 {t("auth.submitSignup")}
               </Link>
             </>
           ) : (
             <>
               {t("auth.haveAccount")}{" "}
-              <Link href={`/login${nextQs}`} className="text-accent hover:underline">
+              <Link href={`/login${nextQs}`} className="text-accent-ink hover:underline">
                 {t("auth.submitLogin")}
               </Link>
             </>
           )}
         </p>
       </div>
+      </section>
     </main>
   );
 }

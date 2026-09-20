@@ -207,7 +207,7 @@ export function RaceReplayTable({
   const [sel, setSel] = useState<Selected | null>(null);
 
   const cellBtn =
-    "cursor-pointer rounded px-1 py-0.5 text-accent underline decoration-accent/40 decoration-dotted underline-offset-2 hover:bg-accent/10";
+    "cursor-pointer rounded px-1 py-0.5 text-accent-ink underline decoration-accent/40 decoration-dotted underline-offset-2 hover:bg-accent/10";
 
   const openRun = (r: ReplayRow) =>
     r.runMs != null &&
@@ -315,7 +315,7 @@ export function RaceReplayTable({
           <div>
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="text-base font-bold">{sel.label}</h3>
-              <span className="font-mono text-lg font-bold text-accent">
+              <span className="font-mono text-lg font-bold text-accent-ink">
                 {formatMs(sel.ms)}
               </span>
             </div>
@@ -328,7 +328,7 @@ export function RaceReplayTable({
                     field: fieldSize.toLocaleString(tag),
                   })}
                   {topPct != null && (
-                    <span className="ml-2 font-bold text-accent">
+                    <span className="ml-2 font-bold text-accent-ink">
                       {t("dist.topPct", { pct: topPct })}
                     </span>
                   )}

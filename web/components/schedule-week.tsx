@@ -68,13 +68,13 @@ export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean })
               <p className={`text-xs font-bold ${weekdayCls(d.dow)}`}>{d.weekday}</p>
               <p
                 className={`tabular text-2xl font-extrabold leading-tight ${
-                  d.isToday ? "text-accent" : rest ? "text-muted" : ""
+                  d.isToday ? "text-accent-ink" : rest ? "text-muted" : ""
                 }`}
               >
                 {d.dayOfMonth}
               </p>
               {d.isToday && (
-                <span className="mt-0.5 inline-block rounded-full bg-accent px-1.5 text-[10px] font-extrabold text-background">
+                <span className="mt-0.5 inline-block rounded-full bg-accent px-1.5 text-[10px] font-extrabold text-on-accent">
                   {t("schedule.today")}
                 </span>
               )}
@@ -143,7 +143,7 @@ export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean })
                 </span>
               )}
               {d.isToday && !rest && (
-                <span className="flex h-9 items-center rounded-lg bg-accent px-3.5 text-[13px] font-extrabold text-background">
+                <span className="flex h-9 items-center rounded-lg bg-accent px-3.5 text-[13px] font-extrabold text-on-accent">
                   {t("schedule.startShort")} →
                 </span>
               )}

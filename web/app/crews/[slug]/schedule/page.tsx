@@ -158,7 +158,7 @@ export default async function CrewSchedulePage({
   } as const;
 
   return (
-    <main>
+    <main className="rx-page rx-detail-page rx-crews-page">
       {/* 내 대회일정 목록 — 등록 폼과 인라인 수정이 함께 펼쳐지므로 좌우 칸에
           끼우지 않고 월 바 위 전체 폭에 둔다. 등록 버튼만 아래 툴바 좌측에. */}
       {isMember && plans.length > 0 && (
@@ -189,7 +189,7 @@ export default async function CrewSchedulePage({
           <Link
             href={`/crews/${slug}/schedule?m=${shiftMonth(month, -1)}`}
             aria-label={t("crew.prevMonth")}
-            className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent hover:bg-card-hover"
+            className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-accent-ink hover:bg-card-hover"
           >
             ‹
           </Link>
@@ -197,7 +197,7 @@ export default async function CrewSchedulePage({
           <Link
             href={`/crews/${slug}/schedule?m=${shiftMonth(month, 1)}`}
             aria-label={t("crew.nextMonth")}
-            className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent hover:bg-card-hover"
+            className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-accent-ink hover:bg-card-hover"
           >
             ›
           </Link>
@@ -235,7 +235,7 @@ export default async function CrewSchedulePage({
                     <p
                       className={`tabular text-[30px] font-extrabold leading-none max-md:text-2xl ${
                         hasNext
-                          ? "text-accent"
+                          ? "text-accent-ink"
                           : isSunday(d)
                             ? "text-sunday"
                             : ""
@@ -279,7 +279,7 @@ export default async function CrewSchedulePage({
                               {r.title}
                             </span>
                             {isNext && (
-                              <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-background">
+                              <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-on-accent">
                                 {t("crew.nextMeetup")}
                               </span>
                             )}

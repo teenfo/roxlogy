@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint",
     "test:design-gaps": "node --test tests/design-gaps.test.mjs",
-    "og:generate": "node scripts/render-og.mjs"
+    "og:generate": "node scripts/render-og.mjs",
+    "test:renewal-http": "node scripts/check-renewal-http.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

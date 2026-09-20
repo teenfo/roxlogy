@@ -99,13 +99,13 @@ export default async function CrewHomePage({
     .filter(Boolean);
 
   return (
-    <main className="flex flex-col gap-5">
+    <main className="rx-page rx-detail-page rx-crews-page flex flex-col gap-5">
       {/* 소개 + 정보 — 좌 1.4 : 우 1 */}
       {(crew.description || tags.length > 0 || info.length > 0) && (
         <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
           {(crew.description || tags.length > 0) && (
             <Card highlight className="px-6 py-5">
-              <p className="text-xs font-extrabold tracking-[0.1em] text-accent">
+              <p className="text-xs font-extrabold tracking-[0.1em] text-accent-ink">
                 {t("crew.aboutLabel")}
               </p>
               {crew.description && (
@@ -166,7 +166,7 @@ export default async function CrewHomePage({
                 {l.label}
                 <span className="ml-auto text-xs">↗</span>
               </span>
-              <span className="truncate text-[15px] font-bold text-accent">
+              <span className="truncate text-[15px] font-bold text-accent-ink">
                 {l.href.replace(/^https?:\/\//, "")}
               </span>
             </a>
@@ -224,7 +224,7 @@ export default async function CrewHomePage({
                       href={l.url}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="shrink-0 rounded-lg bg-accent px-4 py-1.5 text-xs font-bold text-background hover:brightness-110"
+                      className="shrink-0 rounded-lg bg-accent px-4 py-1.5 text-xs font-bold text-on-accent hover:brightness-110"
                     >
                       {t("crew.duesPayBtn")}
                     </a>
@@ -262,7 +262,7 @@ export default async function CrewHomePage({
           right={
             <Link
               href={`/crews/${slug}/board`}
-              className="text-[13px] text-muted hover:text-accent"
+              className="text-[13px] text-muted hover:text-accent-ink"
             >
               {t("crew.viewAll")} →
             </Link>

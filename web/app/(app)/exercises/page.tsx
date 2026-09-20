@@ -53,7 +53,7 @@ export default async function ExercisesPage({
   );
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-exercises-page">
       <h1 className="text-2xl font-bold">{t("exercises.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("exercises.desc")}</p>
 
@@ -91,7 +91,7 @@ export default async function ExercisesPage({
         </select>
         <button
           type="submit"
-          className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+          className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-on-accent hover:brightness-110"
         >
           {t("common.search")}
         </button>
@@ -115,7 +115,7 @@ export default async function ExercisesPage({
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold">{primary}</p>
                     {ex.station_type && (
-                      <span className="rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent">
+                      <span className="rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent-ink">
                         {t("exercises.stationN", {
                           n: ex.station_type.replace("station_", ""),
                         })}
@@ -138,7 +138,7 @@ export default async function ExercisesPage({
                       {(ex.muscles ?? []).map((m: string) => (
                         <span
                           key={`m-${m}`}
-                          className="rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-semibold text-track"
+                          className="rounded-full bg-track/15 px-2 py-0.5 text-[10px] font-semibold text-track-ink"
                         >
                           {dictLabel(t, `muscle.${m}`, m)}
                         </span>
@@ -146,7 +146,7 @@ export default async function ExercisesPage({
                       {(ex.helps_stations ?? []).map((h: string) => (
                         <span
                           key={`h-${h}`}
-                          className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent"
+                          className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent-ink"
                         >
                           {dictLabel(t, `hstation.${h}`, h)}
                         </span>

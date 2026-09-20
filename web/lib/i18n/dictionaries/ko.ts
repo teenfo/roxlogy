@@ -1,6 +1,16 @@
 import type { DictKey } from "./en";
 
 const ko: Record<DictKey, string> = {
+  "common.loading": "불러오는 중…",
+
+  "nav.insights": "인사이트",
+  "nav.members": "멤버",
+
+  "renewal.activity": "나의 훈련",
+  "renewal.community": "커뮤니티",
+  "renewal.navigation": "주요 메뉴",
+  "renewal.skip": "본문으로 이동",
+
   "common.save": "저장",
   "common.saving": "저장 중…",
   "common.delete": "삭제",

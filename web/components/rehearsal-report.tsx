@@ -61,7 +61,7 @@ export function RehearsalReport({
     <section className="mt-8">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-lg font-semibold">{t("dash.rehearsalTitle")}</h2>
-        <Link href="/goals" className="text-sm text-accent hover:underline">
+        <Link href="/goals" className="text-sm text-accent-ink hover:underline">
           {t("goals.title")}
         </Link>
       </div>
@@ -138,7 +138,7 @@ export function RehearsalReport({
                       {formatMs(r.actual!)}
                     </td>
                     <td
-                      className={`py-2 text-right font-mono ${gap <= 0 ? "text-track" : "text-red-400"}`}
+                      className={`py-2 text-right font-mono ${gap <= 0 ? "text-track-ink" : "text-danger"}`}
                     >
                       {gap <= 0 ? "-" : "+"}
                       {formatMs(Math.abs(gap))}

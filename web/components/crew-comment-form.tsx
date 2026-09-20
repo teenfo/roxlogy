@@ -48,12 +48,12 @@ export function CrewCommentForm({ postId }: { postId: string }) {
       <button
         type="submit"
         disabled={busy || !body.trim()}
-        className="shrink-0 rounded-md border border-accent px-4 text-sm font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
+        className="shrink-0 rounded-md border border-accent px-4 text-sm font-semibold text-accent-ink hover:bg-accent/10 disabled:opacity-50"
       >
         {t("crew.commentSubmit")}
       </button>
     </form>
-    {err && <p role="alert" className="mt-1 text-xs text-red-400">{err}</p>}
+    {err && <p role="alert" className="mt-1 text-xs text-danger">{err}</p>}
     </>
   );
 }

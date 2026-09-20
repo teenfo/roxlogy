@@ -19,11 +19,11 @@ import { ChartFrame } from "@/components/chart-frame";
 
 // 차트 안에서 쓰는 리터럴 — globals.css 토큰과 같은 값 (recharts 는 CSS 변수를
 // 직접 못 받는다). card/line-mid/muted 에 맞춰 둔다.
-const SURFACE = "#141414";
-const GRID = "#2a2a2a";
-const INK_MUTED = "#9A9A96";
-const FAST = "#6ee7a0";
-const SLOW = "#ff8a8a";
+const SURFACE = "var(--card)";
+const GRID = "var(--line)";
+const INK_MUTED = "var(--muted)";
+const FAST = "var(--success)";
+const SLOW = "var(--danger)";
 
 type TooltipPayload = {
   payload?: { name?: string; label?: string; ms?: number; kind?: string };
@@ -103,7 +103,7 @@ export function SegmentSplitBars({
             axisLine={false}
             width={44}
           />
-          <Tooltip content={<DarkTooltip />} cursor={{ fill: "#ffffff0d" }} />
+          <Tooltip content={<DarkTooltip />} cursor={{ fill: "var(--inset)" }} />
           <Bar dataKey="ms" radius={[4, 4, 0, 0]} maxBarSize={22}>
             {data.map((d, i) => (
               <Cell key={i} fill={CHART_COLORS[d.kind]} />
@@ -394,8 +394,8 @@ export function ErgCurve({
         <Tooltip
           cursor={{ stroke: GRID }}
           contentStyle={{
-            background: "#141414",
-            border: "1px solid #ffffff22",
+            background: "var(--card)",
+            border: "1px solid var(--line)",
             borderRadius: 6,
             fontSize: 12,
           }}
@@ -449,7 +449,7 @@ export function TrendBars({
           axisLine={false}
           width={52}
         />
-        <Tooltip content={<DarkTooltip />} cursor={{ fill: "#ffffff0d" }} />
+        <Tooltip content={<DarkTooltip />} cursor={{ fill: "var(--inset)" }} />
         <Bar
           dataKey="ms"
           fill={CHART_COLORS.run}
@@ -492,8 +492,8 @@ export function StrokeForceChart({
           <Tooltip
             cursor={{ stroke: GRID }}
             contentStyle={{
-              background: "#141414",
-              border: "1px solid #ffffff22",
+              background: "var(--card)",
+              border: "1px solid var(--line)",
               borderRadius: 6,
               fontSize: 12,
             }}
@@ -563,8 +563,8 @@ export function DriveChart({
           <Tooltip
             cursor={{ stroke: GRID }}
             contentStyle={{
-              background: "#141414",
-              border: "1px solid #ffffff22",
+              background: "var(--card)",
+              border: "1px solid var(--line)",
               borderRadius: 6,
               fontSize: 12,
             }}

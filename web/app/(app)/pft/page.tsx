@@ -119,7 +119,7 @@ export default async function PftPage() {
   const pctOf = (ms: number) => Math.min(100, (ms / SCALE) * 100);
 
   return (
-    <main className="flex flex-col gap-[22px]">
+    <main className="rx-page rx-list-page rx-pft-page flex flex-col gap-[22px]">
       {/* 헤더 */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -150,14 +150,14 @@ export default async function PftPage() {
           {canCreateRace && (
             <Link
               href="/pft/race/new"
-              className="flex h-10 items-center rounded-lg border border-line-accent bg-highlight px-4 text-sm font-semibold text-accent hover:brightness-110"
+              className="flex h-10 items-center rounded-lg border border-line-accent bg-highlight px-4 text-sm font-semibold text-accent-ink hover:brightness-110"
             >
               {t("pft.race.create")}
             </Link>
           )}
           <Link
             href="/pft/measure"
-            className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110"
+            className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-on-accent hover:brightness-110"
           >
             ▶ {t("pft.mStartCta")}
           </Link>
@@ -171,7 +171,7 @@ export default async function PftPage() {
         <Card className="p-4 sm:p-5">
           <p className="flex items-baseline justify-between gap-3 text-sm font-bold">
             {t("pft.race.mine")}
-            <Link href="/pft/race" className="text-xs font-semibold text-accent hover:underline">
+            <Link href="/pft/race" className="text-xs font-semibold text-accent-ink hover:underline">
               {t("pft.race.viewAll")}
             </Link>
           </p>
@@ -199,7 +199,7 @@ export default async function PftPage() {
         <Card className="p-4 sm:p-5">
           <p className="flex items-baseline justify-between gap-3 text-sm font-bold">
             {t("pft.race.created")}
-            <Link href="/pft/race" className="text-xs font-semibold text-accent hover:underline">
+            <Link href="/pft/race" className="text-xs font-semibold text-accent-ink hover:underline">
               {t("pft.race.viewAll")}
             </Link>
           </p>
@@ -227,10 +227,10 @@ export default async function PftPage() {
           {/* MY BEST */}
           <Card highlight className="flex flex-col gap-3.5 px-6 py-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-extrabold tracking-[0.1em] text-accent">
+              <span className="text-xs font-extrabold tracking-[0.1em] text-accent-ink">
                 MY BEST
               </span>
-              <span className="text-xs text-[#8a7a2a]">
+              <span className="text-xs text-accent-ink">
                 {formatDateShortYear(best.tested_on, tag, tz)}
                 {best.age != null && ` · ${t("pft.ageN", { n: best.age })}`}
               </span>
@@ -240,7 +240,7 @@ export default async function PftPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <span className="tabular text-[52px] font-extrabold leading-none tracking-tight text-accent">
+              <span className="tabular text-[52px] font-extrabold leading-none tracking-tight text-accent-ink">
                 {formatMs(best.total_ms)}
               </span>
               <span
@@ -260,20 +260,20 @@ export default async function PftPage() {
                   {next ? (
                     <>
                       {t(badgeDictKey(next.next))}{" "}
-                      <b className="font-bold text-accent">
+                      <b className="font-bold text-accent-ink">
                         {formatMs(next.gapMs)}
                       </b>{" "}
                       {t("pft.toCut")}
                     </>
                   ) : (
-                    <span className="text-accent">{t("pft.topBadge")}</span>
+                    <span className="text-accent-ink">{t("pft.topBadge")}</span>
                   )}
                 </span>
                 <span className="tabular ml-auto text-muted">
                   {badgeScale(t, cuts, formatMs)}
                 </span>
               </div>
-              <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-[#2a2500]">
+              <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-highlight">
                 <span
                   className="absolute inset-y-0 left-0 bg-accent"
                   style={{ width: `${pctOf(cuts.gold)}%` }}
@@ -346,7 +346,7 @@ export default async function PftPage() {
                       {formatMs(r.total_ms)}
                     </span>
                     <span
-                      className={`tabular block text-xs ${r.id === best.id ? "text-accent" : "text-muted"}`}
+                      className={`tabular block text-xs ${r.id === best.id ? "text-accent-ink" : "text-muted"}`}
                     >
                       {r.id === best.id
                         ? t("pft.bestTitle")
@@ -366,7 +366,7 @@ export default async function PftPage() {
           </p>
           <Link
             href="/pft/measure"
-            className="mt-4 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-extrabold text-background hover:brightness-110"
+            className="mt-4 inline-block rounded-lg bg-accent px-5 py-2.5 text-sm font-extrabold text-on-accent hover:brightness-110"
           >
             ▶ {t("pft.mStartCta")}
           </Link>
@@ -409,11 +409,11 @@ export default async function PftPage() {
                       {formatDateShortYear(r.tested_on, tag, tz)}
                       <RecordCardButton
                         data={cardFor(r)}
-                        className="hover:text-accent"
+                        className="hover:text-accent-ink"
                       />
                       <Link
                         href={`/pft/${r.id}/edit`}
-                        className="hover:text-accent"
+                        className="hover:text-accent-ink"
                       >
                         {t("common.edit")}
                       </Link>
@@ -466,7 +466,7 @@ export default async function PftPage() {
               className="rounded-xl border border-line bg-inset px-3 py-3.5"
             >
               <span className="flex items-center gap-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-extrabold text-background">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-extrabold text-on-accent">
                   {i + 1}
                 </span>
                 <span className="truncate text-sm font-bold">{t(st.label)}</span>

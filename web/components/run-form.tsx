@@ -104,7 +104,8 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
   }
 
   return (
-    <form onSubmit={save} className="mt-6 max-w-lg">
+    <form onSubmit={save} className="rx-run-editor mt-6">
+      <div className="rx-run-fields">
       <label className={label} htmlFor="run-date">
         {t("run.date")}
       </label>
@@ -183,24 +184,6 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
           />
         </div>
       </div>
-
-      {/* 페이스 미리보기 — 저장하면 DB 생성 컬럼이 같은 값을 채운다 */}
-      {paceS != null && (
-        <p className="mt-3 rounded-md bg-surface px-3 py-2 text-sm">
-          <span className="text-xs text-muted">{t("run.pace")}</span>{" "}
-          <span className="font-mono text-lg font-bold">
-            {formatPace(paceS)}
-            <span className="text-xs font-normal text-muted">
-              {t("run.paceUnit")}
-            </span>
-          </span>
-          {projected != null && (
-            <span className="ml-3 text-xs text-muted">
-              1km ≈ {formatMs(Math.round(projected))}
-            </span>
-          )}
-        </p>
-      )}
 
       <div className="grid grid-cols-3 gap-3">
         <div>
@@ -281,15 +264,37 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
         className={input}
       />
 
-      {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
+      </div>
+      <aside className="rx-run-summary">
+      <h2 className="text-lg font-bold">{t("run.pace")}</h2>
+      {/* 페이스 미리보기 — 저장하면 DB 생성 컬럼이 같은 값을 채운다 */}
+      {paceS != null && (
+        <p className="mt-3 rounded-md bg-surface px-3 py-2 text-sm">
+          <span className="text-xs text-muted">{t("run.pace")}</span>{" "}
+          <span className="font-mono text-lg font-bold">
+            {formatPace(paceS)}
+            <span className="text-xs font-normal text-muted">
+              {t("run.paceUnit")}
+            </span>
+          </span>
+          {projected != null && (
+            <span className="ml-3 text-xs text-muted">
+              1km ≈ {formatMs(Math.round(projected))}
+            </span>
+          )}
+        </p>
+      )}
+
+      {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
 
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 w-full rounded-md bg-accent px-4 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-50"
+        className="mt-5 w-full rounded-md bg-accent px-4 py-2.5 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-50"
       >
         {busy ? t("common.saving") : t("common.save")}
       </button>
+      </aside>
     </form>
   );
 }
@@ -320,11 +325,11 @@ export function RunDeleteButton({ id }: { id: string }) {
         type="button"
         onClick={del}
         disabled={busy}
-        className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
+        className="text-xs text-muted hover:text-danger disabled:opacity-50"
       >
         {t("common.delete")}
       </button>
-      {err && <span className="ml-2 text-xs text-red-400">{err}</span>}
+      {err && <span className="ml-2 text-xs text-danger">{err}</span>}
     </span>
   );
 }

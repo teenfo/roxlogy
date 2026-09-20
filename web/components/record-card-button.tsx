@@ -48,11 +48,13 @@ export function RecordCardButton({
   const [mark, setMark] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    if (!open || mark) return;
+    if (!open) return;
+    let cancelled = false;
     const img = new Image();
-    img.onload = () => setMark(img);
-    img.src = "/roxlogy-mark.svg";
-  }, [open, mark]);
+    img.onload = () => { if (!cancelled) setMark(img); };
+    img.src = theme === "light" ? "/roxlogy-mark-inverse.svg" : "/roxlogy-mark.svg";
+    return () => { cancelled = true; };
+  }, [open, theme]);
 
   const redraw = useCallback(() => {
     const c = canvasRef.current;
@@ -70,11 +72,12 @@ export function RecordCardButton({
     if (!fonts) return;
     let cancelled = false;
     const text = cardText(data);
-    void Promise.all(
-      CARD_WEIGHTS.map((wt) =>
+    void Promise.all([
+      fonts.load('400 26px "Archivo Black"', "ROXLOGY").catch(() => []),
+      ...CARD_WEIGHTS.map((wt) =>
         fonts.load(`${wt} 100px "Pretendard Variable"`, text).catch(() => []),
       ),
-    ).then(() => {
+    ]).then(() => {
       if (!cancelled) redraw();
     });
     return () => {
@@ -186,7 +189,7 @@ export function RecordCardButton({
           <p className="text-sm font-semibold">{t("card.title")}</p>
 
           <div className="flex flex-wrap items-center gap-2">
-            <label className="cursor-pointer rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110">
+            <label className="cursor-pointer rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-on-accent hover:brightness-110">
               {photo ? t("card.changePhoto") : t("card.pickPhoto")}
               <input
                 type="file"
@@ -222,7 +225,7 @@ export function RecordCardButton({
                   aria-pressed={ratio === r}
                   className={`${chip} ${
                     ratio === r
-                      ? "bg-accent text-background"
+                      ? "bg-accent text-on-accent"
                       : "bg-background text-muted hover:text-foreground"
                   }`}
                 >
@@ -242,7 +245,7 @@ export function RecordCardButton({
                 aria-pressed={theme === k}
                 className={`${chip} ${
                   theme === k
-                    ? "bg-accent text-background"
+                    ? "bg-accent text-on-accent"
                     : "bg-background text-muted hover:text-foreground"
                 }`}
               >
@@ -262,7 +265,7 @@ export function RecordCardButton({
                     aria-pressed={place.fit === f}
                     className={`${chip} ${
                       place.fit === f
-                        ? "bg-accent text-background"
+                        ? "bg-accent text-on-accent"
                         : "bg-background text-muted hover:text-foreground"
                     }`}
                   >
@@ -325,7 +328,7 @@ export function RecordCardButton({
             </label>
           )}
           {err && (
-            <p role="alert" className="text-xs text-red-400">
+            <p role="alert" className="text-xs text-danger">
               {err}
             </p>
           )}
@@ -342,7 +345,7 @@ export function RecordCardButton({
               type="button"
               onClick={() => void download()}
               disabled={busy}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
             >
               {t("card.download")}
             </button>

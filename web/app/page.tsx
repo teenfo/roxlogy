@@ -18,7 +18,7 @@ import type { DictKey } from "@/lib/i18n/dictionaries/en";
 const sec = (s: number) => formatMs(s * 1000);
 
 const ctaPrimary =
-  "flex h-[52px] items-center justify-center rounded-[10px] bg-accent px-7 text-base font-extrabold text-background transition hover:brightness-110";
+  "flex h-[52px] items-center justify-center rounded-[10px] bg-accent px-7 text-base font-extrabold text-on-accent transition hover:brightness-110";
 const ctaGhost =
   "flex h-[52px] items-center justify-center rounded-[10px] border border-line-strong px-7 text-[15px] font-semibold transition-colors hover:border-line-strong";
 
@@ -83,19 +83,19 @@ export default async function Landing({
   }));
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main id="main-content" className="rx-landing flex flex-1 flex-col">
       {/* 0. 상단 바 — 랜딩 전용(비로그인). 로그인 후 글로벌 네비와 별개다 */}
       <header className="sticky top-0 z-40 border-b border-line-soft bg-[color-mix(in_srgb,var(--page)_85%,transparent)] backdrop-blur-md">
         <div className="mx-auto flex h-[60px] max-w-[1120px] items-center justify-between gap-3 px-6 max-md:px-4">
           <Link href="/" className="flex shrink-0 items-center gap-2.5">
             <Image
-              src="/roxlogy-mark.svg"
+              src="/roxlogy-mark-inverse.svg"
               alt="Roxlogy"
               width={30}
               height={30}
               priority
             />
-            <span className="text-[17px] font-extrabold tracking-[0.08em]">
+            <span className="rx-wordmark text-[17px] font-extrabold tracking-[0.08em]">
               ROXLOGY
             </span>
           </Link>
@@ -111,7 +111,7 @@ export default async function Landing({
             </Link>
             <Link
               href="/signup"
-              className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background transition hover:brightness-110"
+              className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-on-accent transition hover:brightness-110"
             >
               {t("landing.startCta")}
             </Link>
@@ -133,7 +133,7 @@ export default async function Landing({
           <div className="flex flex-col gap-6">
             <h1 className="text-[clamp(2.375rem,5.2vw,3.75rem)] font-black leading-[1.05] tracking-[-0.03em] [text-wrap:balance] [word-break:keep-all]">
               {t("landing.h1a")}{" "}
-              <span className="text-accent">{t("landing.h1b")}</span>{" "}
+              <span className="text-accent-ink">{t("landing.h1b")}</span>{" "}
               {t("landing.h1c")}
             </h1>
 
@@ -151,7 +151,7 @@ export default async function Landing({
             </div>
 
             {/* 앱 다운로드는 아직 미출시라 랜딩에 노출하지 않는다 */}
-            <div className="flex flex-wrap gap-x-5 gap-y-2.5 text-sm font-semibold text-accent">
+            <div className="flex flex-wrap gap-x-5 gap-y-2.5 text-sm font-semibold text-accent-ink">
               <Link href="/predict" className="hover:underline">
                 {t("landing.predictLink")}
               </Link>
@@ -165,7 +165,7 @@ export default async function Landing({
           </div>
 
           {/* 분석 카드 — 전부 가짜 수치 */}
-          <div className="flex flex-col gap-[18px] rounded-[18px] border border-line-mid bg-card p-[22px] shadow-[0_30px_80px_rgba(0,0,0,.6)]">
+          <div data-theme="dark" className="rx-landing-demo flex flex-col gap-[18px] border border-line-mid bg-card p-[22px] shadow-[0_30px_80px_rgba(0,0,0,.6)]">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-[5px] bg-accent/15 px-[7px] py-[3px] text-xs font-bold text-accent-dim">
                 {t("landing.demoRace")}
@@ -188,7 +188,7 @@ export default async function Landing({
                 </p>
               </div>
               <div className="text-right">
-                <p className="tabular text-[40px] font-extrabold leading-none tracking-[-0.02em] text-accent max-md:text-[32px]">
+                <p className="tabular text-[40px] font-extrabold leading-none tracking-[-0.02em] text-accent-ink max-md:text-[32px]">
                   {sec(demo.finish)}
                 </p>
                 <p className="mt-1 text-xs text-muted">
@@ -224,7 +224,7 @@ export default async function Landing({
 
             {/* AI 코칭 */}
             <div className="rounded-[10px] border border-line-strong border-l-[3px] border-l-accent bg-page px-3.5 py-3">
-              <p className="text-xs font-extrabold tracking-[0.08em] text-accent">
+              <p className="text-xs font-extrabold tracking-[0.08em] text-accent-ink">
                 {t("landing.aiLabel")}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-foreground/85 [word-break:keep-all]">
@@ -250,7 +250,7 @@ export default async function Landing({
               aria-hidden
               className="flex h-10 w-10 items-center justify-center rounded-[10px] text-lg"
               style={{
-                background: ["var(--info-bg)", "#2a2500", "var(--success-bg)"][n - 1],
+                background: ["var(--info-bg)", "var(--highlight)", "var(--success-bg)"][n - 1],
                 color: [CHART_COLORS.run, "var(--accent-dim)", "var(--success)"][n - 1],
               }}
             >
@@ -271,7 +271,7 @@ export default async function Landing({
         <section className="mx-auto w-full max-w-[1120px] px-6 pb-20 max-md:px-5 max-md:pb-12">
           <div className="grid items-center gap-9 overflow-hidden rounded-2xl border border-line-accent bg-highlight px-9 py-8 max-md:gap-5 max-md:px-5 max-md:py-6 md:grid-cols-[minmax(0,1fr)_380px]">
             <div className="flex min-w-0 flex-col gap-4">
-              <p className="text-xs font-extrabold tracking-[0.1em] text-accent">
+              <p className="text-xs font-extrabold tracking-[0.1em] text-accent-ink">
                 CREW
               </p>
               <h2 className="text-[30px] font-extrabold leading-tight tracking-[-0.02em] [word-break:keep-all] max-md:text-2xl">
@@ -302,7 +302,7 @@ export default async function Landing({
 
               <Link
                 href="/crews"
-                className="mt-1.5 flex h-[46px] w-fit items-center rounded-[10px] border border-accent px-[22px] text-[15px] font-extrabold text-accent transition-colors hover:bg-accent hover:text-background max-md:w-full max-md:justify-center"
+                className="mt-1.5 flex h-[46px] w-fit items-center rounded-[10px] border border-accent px-[22px] text-[15px] font-extrabold text-accent-ink transition-colors hover:bg-accent hover:text-on-accent max-md:w-full max-md:justify-center"
               >
                 {t("landing.crewsAll")}
               </Link>
@@ -332,8 +332,8 @@ export default async function Landing({
       <footer className="border-t border-line-soft">
         <div className="mx-auto flex w-full max-w-[1120px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-6 text-[13px] text-muted max-md:flex-col max-md:items-start max-md:px-5">
           <span className="flex items-center gap-2">
-            <Image src="/roxlogy-mark.svg" alt="" width={20} height={20} />
-            <span className="font-extrabold tracking-[0.08em] text-foreground/80">
+            <Image src="/roxlogy-mark-inverse.svg" alt="" width={20} height={20} />
+            <span className="rx-wordmark font-extrabold tracking-[0.08em] text-foreground/80">
               ROXLOGY
             </span>
             <span className="max-sm:hidden">· {t("landing.tagline")}</span>

@@ -175,11 +175,11 @@ export function PftMeasure({
       onReset={reset}
       finishExtra={
         <>
-          <div className="mt-5 grid gap-3 border-t border-[#3a3200] pt-4 sm:grid-cols-2">
+          <div className="mt-5 grid gap-3 border-t border-line-accent pt-4 sm:grid-cols-2">
             <label className="block">
               <span className="text-xs text-muted">{t("pft.fLocation")}</span>
               <input
-                className="mt-1 h-10 w-full rounded-lg border border-[#444] bg-page px-3 text-sm outline-none focus:border-accent"
+                className="mt-1 h-10 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 maxLength={80}
@@ -212,7 +212,7 @@ export function PftMeasure({
               onClick={save}
               disabled={busy || tooShort}
               className={`h-11 rounded-lg px-6 text-[15px] font-extrabold ${
-                tooShort ? "cursor-not-allowed bg-[#2a2a2a] text-muted-2" : "bg-accent text-background hover:brightness-110"
+                tooShort ? "cursor-not-allowed bg-inset text-muted-2" : "bg-accent text-on-accent hover:brightness-110"
               } disabled:opacity-60`}
             >
               {busy ? t("common.saving") : t("pft.mSave")}

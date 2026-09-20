@@ -1,6 +1,16 @@
 import type { DictKey } from "./en";
 
 const es: Record<DictKey, string> = {
+  "common.loading": "Cargando…",
+
+  "nav.insights": "Análisis",
+  "nav.members": "Miembros",
+
+  "renewal.activity": "MI ENTRENAMIENTO",
+  "renewal.community": "COMUNIDAD",
+  "renewal.navigation": "Navegación principal",
+  "renewal.skip": "Saltar al contenido",
+
   "common.save": "Guardar",
   "common.saving": "Guardando…",
   "common.delete": "Eliminar",

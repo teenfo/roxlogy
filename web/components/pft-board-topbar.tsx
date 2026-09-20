@@ -47,7 +47,7 @@ export function PftBoardTopBar({ closed }: { closed: boolean }) {
   };
   return (
     <div className="flex h-14 items-center justify-between border-b border-line-soft px-4 md:px-7">
-      <Link href="/" className="flex items-center gap-2.5 text-base font-extrabold tracking-[0.08em]">
+      <Link href="/" className="rx-wordmark flex items-center gap-2.5 text-base font-extrabold tracking-[0.08em]">
         <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} priority />
         ROXLOGY
       </Link>

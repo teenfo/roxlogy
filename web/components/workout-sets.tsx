@@ -204,7 +204,7 @@ export function WorkoutSetEditor({
           type="button"
           onClick={onSave}
           disabled={pending}
-          className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+          className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-on-accent hover:brightness-110 disabled:opacity-40"
         >
           {pending ? t("workouts.saving") : t("workouts.saveLog")}
         </button>

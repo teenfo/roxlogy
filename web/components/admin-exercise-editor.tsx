@@ -166,15 +166,15 @@ export function AdminExerciseEditor({
               type="button"
               onClick={save}
               disabled={state === "saving"}
-              className="rounded-md bg-accent px-4 py-1.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="rounded-md bg-accent px-4 py-1.5 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
             >
               {state === "saving" ? t("common.saving") : t("common.save")}
             </button>
             {state === "saved" && (
-              <span className="text-xs text-track">{t("profile.saved")}</span>
+              <span className="text-xs text-track-ink">{t("profile.saved")}</span>
             )}
             {state === "err" && (
-              <span className="text-xs text-red-400">{t("common.needLogin")}</span>
+              <span className="text-xs text-danger">{t("common.needLogin")}</span>
             )}
           </div>
         </div>

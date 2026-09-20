@@ -63,7 +63,7 @@ export default async function SearchPage({
   const empty = query.length >= 1 && !crews.length && !events.length;
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-search-page">
       <h1 className="text-2xl font-bold">{t("nav.search")}</h1>
       <div className="mt-4 max-w-lg">
         <SearchBox initial={query} />

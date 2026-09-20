@@ -39,7 +39,7 @@ export function CrewPostActions({
     <span className="ml-auto flex items-center gap-3 text-xs">
       <Link
         href={`/crews/${slug}/board/${postId}/edit`}
-        className="text-muted hover:text-accent"
+        className="text-muted hover:text-accent-ink"
       >
         {t("common.edit")}
       </Link>
@@ -49,7 +49,7 @@ export function CrewPostActions({
             type="button"
             onClick={del}
             disabled={busy}
-            className="font-semibold text-red-400 disabled:opacity-50"
+            className="font-semibold text-danger disabled:opacity-50"
           >
             {busy ? t("common.deleting") : t("common.confirmDelete")}
           </button>
@@ -65,12 +65,12 @@ export function CrewPostActions({
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="text-muted hover:text-red-400"
+          className="text-muted hover:text-danger"
         >
           {t("common.delete")}
         </button>
       )}
-      {err && <span className="text-red-400">{err}</span>}
+      {err && <span className="text-danger">{err}</span>}
     </span>
   );
 }
@@ -103,11 +103,11 @@ export function CrewCommentDelete({ commentId }: { commentId: string }) {
         onClick={del}
         disabled={busy}
         aria-label={t("common.delete")}
-        className="ml-auto -m-2 p-2 text-xs text-muted hover:text-red-400 disabled:opacity-50"
+        className="ml-auto -m-2 p-2 text-xs text-muted hover:text-danger disabled:opacity-50"
       >
         ✕
       </button>
-      {err && <span className="text-xs text-red-400">{err}</span>}
+      {err && <span className="text-xs text-danger">{err}</span>}
     </>
   );
 }

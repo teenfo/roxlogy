@@ -151,7 +151,7 @@ export default async function PredictPage({
           loginNext="/predict"
         />
       </header>
-      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
+      <div id="main-content" className="rx-public-workspace mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         <PredictForm
           isLoggedIn={!!user}
           sessions={sessions}

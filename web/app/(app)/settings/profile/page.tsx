@@ -41,7 +41,7 @@ export default async function ProfileSettingsPage() {
     : null;
 
   return (
-    <div className="mx-auto w-full max-w-[960px]">
+    <main className="rx-page rx-settings-page mx-auto w-full max-w-[1200px]">
       {/* 모바일: 상단 고정 섹션 칩 (데스크톱은 좌측 목차) */}
       <SettingsChips />
 
@@ -109,7 +109,7 @@ export default async function ProfileSettingsPage() {
                   {t("profile.getAppDesc")}
                 </span>
               </span>
-              <span aria-hidden className="shrink-0 text-accent">
+              <span aria-hidden className="shrink-0 text-accent-ink">
                 →
               </span>
             </Link>
@@ -148,6 +148,6 @@ export default async function ProfileSettingsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

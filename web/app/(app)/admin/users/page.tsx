@@ -33,7 +33,7 @@ export default async function AdminUsersPage({
   const users = (data ?? []) as AdminUser[];
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-admin-page">
       <h1 className="text-xl font-bold">{t("admin.usersTitle")}</h1>
       <form className="mt-4" action="/admin/users">
         <input
@@ -61,7 +61,7 @@ export default async function AdminUsersPage({
                 <td className="py-2.5 pr-4">
                   <Link
                     href={`/admin/users/${u.id}`}
-                    className="font-medium hover:text-accent"
+                    className="font-medium hover:text-accent-ink"
                   >
                     {u.display_name ?? t("admin.noName")}
                   </Link>
@@ -82,17 +82,17 @@ export default async function AdminUsersPage({
                 <td className="py-2.5 pr-4">
                   <span className="flex flex-wrap gap-1">
                     {u.is_admin && (
-                      <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                      <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent-ink">
                         admin
                       </span>
                     )}
                     {u.disabled && (
-                      <span className="rounded bg-red-400/15 px-1.5 py-0.5 text-[10px] font-bold text-red-400">
+                      <span className="rounded bg-red-400/15 px-1.5 py-0.5 text-[10px] font-bold text-danger">
                         {t("admin.flagDisabled")}
                       </span>
                     )}
                     {u.leaderboard_opt_in && (
-                      <span className="rounded bg-track/15 px-1.5 py-0.5 text-[10px] font-bold text-track">
+                      <span className="rounded bg-track/15 px-1.5 py-0.5 text-[10px] font-bold text-track-ink">
                         LB
                       </span>
                     )}

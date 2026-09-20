@@ -98,7 +98,7 @@ export function CrewFinder({ crews }: { crews: CrewDirectoryRow[] }) {
           <p className="mt-1 text-sm text-muted">{t("crew.findEmptyHint")}</p>
           <Link
             href="/crews/new"
-            className="mt-4 inline-block rounded-lg border border-line-accent bg-highlight px-5 py-2.5 text-sm font-bold text-accent"
+            className="mt-4 inline-block rounded-lg border border-line-accent bg-highlight px-5 py-2.5 text-sm font-bold text-accent-ink"
           >
             + {t("crew.createCta")}
           </Link>

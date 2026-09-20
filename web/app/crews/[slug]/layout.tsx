@@ -56,7 +56,7 @@ export default async function CrewLayout({
     <>
       <CrewHeader loginNext={`/crews/${slug}`} />
 
-      <div className="mx-auto w-full max-w-[960px] flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
+      <div id="main-content" className="rx-public-workspace rx-crew-workspace mx-auto w-full max-w-[960px] flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         {/* 커버는 탭 화면에서만 — 모임 상세·게시글에서는 본문이 먼저다 */}
         {crew.cover_url && <CrewCover src={crew.cover_url} slug={slug} />}
         {/* 크루 헤더 */}
@@ -74,12 +74,12 @@ export default async function CrewLayout({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="min-w-0 truncate text-2xl font-black tracking-tight sm:text-3xl">
                 {/* 크루명 = 소개로 가는 링크 (소개 탭을 대신한다) */}
-                <Link href={`/crews/${slug}`} className="hover:text-accent">
+                <Link href={`/crews/${slug}`} className="hover:text-accent-ink">
                   {crew.name}
                 </Link>
               </h1>
               {crew.crew_status === "pending" && (
-                <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent">
+                <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent-ink">
                   {t("crew.pendingBadge")}
                 </span>
               )}

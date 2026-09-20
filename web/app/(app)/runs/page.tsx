@@ -80,7 +80,7 @@ export default async function RunsPage() {
   });
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-runs-page">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t("run.title")}</h1>
@@ -88,13 +88,13 @@ export default async function RunsPage() {
         </div>
         <Link
           href="/runs/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110"
         >
           {t("run.add")}
         </Link>
       </div>
 
-      {error && <p role="alert" className="mt-4 text-sm text-red-400">{error.message}</p>}
+      {error && <p role="alert" className="mt-4 text-sm text-danger">{error.message}</p>}
 
       {/* 1km 기준선 — 시뮬 저하율이 비교하는 값 */}
       <section className="mt-6 rounded-md bg-surface px-5 py-4">
@@ -154,7 +154,7 @@ export default async function RunsPage() {
           </p>
           <Link
             href="/runs/new"
-            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+            className="mt-4 inline-block rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-on-accent hover:brightness-110"
           >
             {t("run.add")}
           </Link>
@@ -170,7 +170,7 @@ export default async function RunsPage() {
                 <span className="font-mono text-sm text-muted">
                   {formatMs(r.duration_ms)}
                 </span>
-                <span className="rounded-full bg-background px-2 py-0.5 font-mono text-xs font-bold text-accent">
+                <span className="rounded-full bg-background px-2 py-0.5 font-mono text-xs font-bold text-accent-ink">
                   {formatPace(r.pace_s_per_km)}
                   {t("run.paceUnit")}
                 </span>
@@ -180,8 +180,8 @@ export default async function RunsPage() {
                 </span>
                 <span className="ml-auto flex items-center gap-3 text-xs text-muted">
                   {formatDateShortYear(r.ran_on, tag, tz)}
-                  <RecordCardButton data={cardFor(r)} className="hover:text-accent" />
-                  <Link href={`/runs/${r.id}/edit`} className="hover:text-accent">
+                  <RecordCardButton data={cardFor(r)} className="hover:text-accent-ink" />
+                  <Link href={`/runs/${r.id}/edit`} className="hover:text-accent-ink">
                     {t("common.edit")}
                   </Link>
                   <RunDeleteButton id={r.id} />

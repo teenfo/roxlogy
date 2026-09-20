@@ -23,7 +23,7 @@ export default async function InsightsPage() {
     .limit(26);
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-insights-page">
       <div className="flex items-baseline justify-between">
         <h1 className="text-2xl font-bold">{t("insights.title")}</h1>
         <Link
@@ -47,7 +47,7 @@ export default async function InsightsPage() {
               className="rounded-lg border border-accent/25 bg-surface p-5"
             >
               <div className="flex items-center justify-between gap-4">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-accent">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-accent-ink">
                   {t("ai.weekly.title")}
                 </h2>
                 {r.period_start && (

@@ -35,13 +35,13 @@ export async function PercentileBar({
           {link && (
             <Link
               href={link.href}
-              className="truncate text-sm font-semibold text-accent hover:underline"
+              className="truncate text-sm font-semibold text-accent-ink hover:underline"
             >
               {link.label}
             </Link>
           )}
         </div>
-        <span className="shrink-0 font-mono text-xl font-bold text-accent">
+        <span className="shrink-0 font-mono text-xl font-bold text-accent-ink">
           {t("percentile.top", { pct: String(top) })}
         </span>
       </div>

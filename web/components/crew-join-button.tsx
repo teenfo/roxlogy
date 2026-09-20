@@ -69,7 +69,7 @@ export function CrewJoinButton({
     return (
       <a
         href={`/login?next=/crews/${slug}`}
-        className="rounded-md border border-accent/50 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
+        className="rounded-md border border-accent/50 px-4 py-2 text-sm font-semibold text-accent-ink hover:bg-accent/10"
       >
         {t("crew.loginToJoin")}
       </a>
@@ -92,7 +92,7 @@ export function CrewJoinButton({
                   type="button"
                   onClick={leave}
                   disabled={busy}
-                  className="font-semibold text-red-400 disabled:opacity-50"
+                  className="font-semibold text-danger disabled:opacity-50"
                 >
                   {busy ? t("common.deleting") : t("crew.leaveConfirm")}
                 </button>
@@ -108,13 +108,13 @@ export function CrewJoinButton({
               <button
                 type="button"
                 onClick={() => setConfirming(true)}
-                className="text-xs text-muted hover:text-red-400"
+                className="text-xs text-muted hover:text-danger"
               >
                 {action}
               </button>
             ))}
         </div>
-        {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+        {err && <p role="alert" className="text-xs text-danger">{err}</p>}
       </div>
     );
   }
@@ -125,11 +125,11 @@ export function CrewJoinButton({
         type="button"
         onClick={join}
         disabled={busy}
-        className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+        className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
       >
         {busy ? t("crew.joining") : t("crew.join")}
       </button>
-      {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+      {err && <p role="alert" className="text-xs text-danger">{err}</p>}
     </div>
   );
 }

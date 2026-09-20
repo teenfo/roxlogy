@@ -23,7 +23,7 @@ export default async function BoardPage({ params }: { params: Promise<{ code: st
   if (!board) notFound();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-page text-foreground">
+    <div data-theme="dark" className="rx-live-board flex min-h-dvh flex-col bg-page text-foreground">
       {/* 상단 바는 보드 컴포넌트가 그린다 — 종료 표시가 Realtime 으로 같이 바뀌어야 한다 */}
       <PftRaceBoard initial={board} meId={auth.user?.id ?? null} />
     </div>

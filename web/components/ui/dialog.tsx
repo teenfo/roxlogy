@@ -123,7 +123,7 @@ export function Dialog({
         : "relative my-auto w-full text-left outline-none";
 
   return createPortal(
-    <div className={overlay} onKeyDown={onKeyDown}>
+    <div className={`rx-dialog-overlay ${overlay}`} data-variant={variant} onKeyDown={onKeyDown}>
       {/* 배경 — 버튼이라 스크린리더·키보드로도 닫을 수 있다 */}
       <button
         type="button"
@@ -138,8 +138,9 @@ export function Dialog({
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className={`${panel} ${panelClassName}`}
+        className={`rx-dialog-panel ${panel} ${panelClassName}`}
       >
+        <button type="button" className="rx-dialog-close" onClick={onClose} aria-label={closeLabel}>×</button>
         {children}
       </div>
     </div>,

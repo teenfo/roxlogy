@@ -37,10 +37,10 @@ function Field({
     <label className="block min-w-0">
       <span className={`${fieldLabel} flex items-center justify-between gap-2`}>
         <span className="min-w-0 truncate">{label}</span>
-        {right && <span className="shrink-0 text-[#666]">{right}</span>}
+        {right && <span className="shrink-0 text-muted-2">{right}</span>}
       </span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-[#666]">{hint}</span>}
+      {hint && <span className="mt-1 block text-xs text-muted-2">{hint}</span>}
     </label>
   );
 }
@@ -175,7 +175,7 @@ export function CrewInfoForm({
       ? "bg-success-bg text-success"
       : joinPolicy === "approval"
         ? "bg-label-bg text-label"
-        : "bg-[#222] text-muted";
+        : "bg-line text-muted";
 
   return (
     <form onSubmit={save} className="grid items-start gap-4 min-[900px]:grid-cols-[minmax(0,1fr)_280px]">
@@ -200,7 +200,7 @@ export function CrewInfoForm({
               <Field label={t("crew.fSlug")}>
                 {/* 접두는 줄지 않고 입력만 줄어야 한다 — 접두에 shrink-0, 입력에 w-0 */}
                 <span className="flex h-10 items-center overflow-hidden rounded-lg border border-line-strong bg-page opacity-50">
-                  <span className="shrink-0 whitespace-nowrap border-r border-line-strong px-2.5 text-xs text-[#555]">
+                  <span className="shrink-0 whitespace-nowrap border-r border-line-strong px-2.5 text-xs text-muted-2">
                     roxlogy.com/crews/
                   </span>
                   <input
@@ -355,10 +355,10 @@ export function CrewInfoForm({
                         on ? "border-line-accent bg-highlight" : "border-line bg-page hover:border-muted/40"
                       }`}
                     >
-                      <span className={`block text-sm font-bold ${on ? "text-accent" : ""}`}>
+                      <span className={`block text-sm font-bold ${on ? "text-accent-ink" : ""}`}>
                         {lbl}
                       </span>
-                      <span className="mt-0.5 block text-xs text-[#777]">{desc}</span>
+                      <span className="mt-0.5 block text-xs text-muted">{desc}</span>
                     </button>
                   );
                 })}
@@ -371,7 +371,7 @@ export function CrewInfoForm({
             >
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-bold">{t("crew.fPublicShort")}</span>
-                <span className="mt-0.5 block text-xs text-[#777]">{t("crew.fPublicDesc")}</span>
+                <span className="mt-0.5 block text-xs text-muted">{t("crew.fPublicDesc")}</span>
               </span>
               <button
                 type="button"
@@ -380,7 +380,7 @@ export function CrewInfoForm({
                 aria-label={t("crew.fPublicShort")}
                 onClick={() => setIsPublic((p) => !p)}
                 className={`relative h-[26px] w-11 shrink-0 rounded-full transition-colors ${
-                  isPublic ? "bg-accent" : "bg-[#333]"
+                  isPublic ? "bg-accent" : "bg-line"
                 }`}
               >
                 <span
@@ -399,10 +399,10 @@ export function CrewInfoForm({
           <span
             aria-hidden
             className={`h-2 w-2 shrink-0 rounded-full ${
-              dirty ? "bg-accent" : msg ? "bg-success" : "bg-[#444]"
+              dirty ? "bg-accent" : msg ? "bg-success" : "bg-line-strong"
             }`}
           />
-          <p className={`text-[13px] ${dirty ? "text-accent" : "text-muted"}`}>
+          <p className={`text-[13px] ${dirty ? "text-accent-ink" : "text-muted"}`}>
             {dirty ? t("crew.unsavedN", { n: dirtyCount }) : (msg ?? t("crew.noChanges"))}
           </p>
           <span className="ml-auto flex items-center gap-2">
@@ -419,7 +419,7 @@ export function CrewInfoForm({
             <button
               type="submit"
               disabled={busy || !dirty}
-              className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-background hover:brightness-110 disabled:bg-[#2a2a2a] disabled:text-[#666]"
+              className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-on-accent hover:brightness-110 disabled:bg-inset disabled:text-muted-2"
             >
               {busy ? t("common.saving") : t("crew.save")}
             </button>
@@ -439,7 +439,7 @@ export function CrewInfoForm({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
               ) : (
-                <span className="h-10 w-10 shrink-0 rounded-full border border-[#4a4a4a]" />
+                <span className="h-10 w-10 shrink-0 rounded-full border border-line-strong" />
               )}
               <span className="min-w-0">
                 <span className="flex flex-wrap items-center gap-1.5">
@@ -454,15 +454,15 @@ export function CrewInfoForm({
                     )}
                   </span>
                 </span>
-                <span className="mt-0.5 block truncate text-xs text-[#9a9a9a]">
+                <span className="mt-0.5 block truncate text-xs text-muted">
                   {[location, hoursWeekend || hoursWeekday].filter(Boolean).join(" · ") || "—"}
                 </span>
               </span>
             </div>
-            <p className="line-clamp-2 text-[13px] leading-relaxed text-[#c9c9c9]">
+            <p className="line-clamp-2 text-[13px] leading-relaxed text-foreground/80">
               {description || tagline || t("crew.previewNoDesc")}
             </p>
-            <div className="flex items-center gap-2 border-t border-line pt-2.5 text-xs text-[#9a9a9a]">
+            <div className="flex items-center gap-2 border-t border-line pt-2.5 text-xs text-muted">
               <span>
                 <strong className="tabular text-foreground">{memberCount}</strong>{" "}
                 {t("crew.memberUnit")}
@@ -471,7 +471,7 @@ export function CrewInfoForm({
                 <strong className="tabular text-foreground">{postCount}</strong>{" "}
                 {t("crew.postUnit")}
               </span>
-              <span className={`ml-auto ${isPublic ? "text-success" : "text-[#777]"}`}>
+              <span className={`ml-auto ${isPublic ? "text-success" : "text-muted"}`}>
                 {t(isPublic ? "crew.previewPublic" : "crew.previewPrivate")}
               </span>
             </div>
@@ -479,7 +479,7 @@ export function CrewInfoForm({
         </div>
         <Link
           href={`/crews/${crew.slug}`}
-          className={`${CARD} px-[18px] py-3 text-xs text-accent hover:underline`}
+          className={`${CARD} px-[18px] py-3 text-xs text-accent-ink hover:underline`}
         >
           {t("crew.openCrewPage")}
         </Link>
@@ -598,7 +598,7 @@ export function CrewImageUpload({
       <div className="flex shrink-0 flex-col items-center gap-2">
         {picker(
           <>
-            <span className="relative block h-24 w-24 cursor-pointer rounded-full border-2 border-[#4a4a4a] hover:border-accent">
+            <span className="relative block h-24 w-24 cursor-pointer rounded-full border-2 border-line-strong hover:border-accent">
               {url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={url} alt="" className="h-full w-full rounded-full object-cover" />
@@ -609,7 +609,7 @@ export function CrewImageUpload({
               )}
               <span
                 aria-hidden
-                className="absolute -bottom-0.5 -right-0.5 flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] border-card bg-accent text-xs text-background"
+                className="absolute -bottom-0.5 -right-0.5 flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] border-card bg-accent text-xs text-on-accent"
               >
                 ✎
               </span>
@@ -617,13 +617,13 @@ export function CrewImageUpload({
           </>,
           "block",
         )}
-        <span className="text-[11px] text-[#666]">{t("crew.logoSquareHint")}</span>
+        <span className="text-[11px] text-muted-2">{t("crew.logoSquareHint")}</span>
         {url && (
           <button
             type="button"
             onClick={remove}
             disabled={busy}
-            className="text-xs text-[#777] hover:text-danger disabled:opacity-50"
+            className="text-xs text-muted hover:text-danger disabled:opacity-50"
           >
             {t("crew.logoRemove")}
           </button>
@@ -646,7 +646,7 @@ export function CrewImageUpload({
             type="button"
             onClick={remove}
             disabled={busy}
-            className="text-xs text-[#777] hover:text-danger disabled:opacity-50"
+            className="text-xs text-muted hover:text-danger disabled:opacity-50"
           >
             {t("crew.logoRemove")}
           </button>
@@ -662,13 +662,13 @@ export function CrewImageUpload({
               {busy ? "…" : t("crew.coverNone")}
             </span>
           )}
-          <span className="absolute bottom-2 right-2 flex h-[30px] items-center rounded-lg border border-[#333] bg-[rgba(13,13,13,.85)] px-2.5 text-xs font-semibold">
+          <span className="absolute bottom-2 right-2 flex h-[30px] items-center rounded-lg border border-line-strong bg-[rgba(13,13,13,.85)] px-2.5 text-xs font-semibold">
             ◫ {t("crew.coverChange")}
           </span>
         </span>,
         "block",
       )}
-      <span className="text-[11px] text-[#666]">{t("crew.coverBannerHint")}</span>
+      <span className="text-[11px] text-muted-2">{t("crew.coverBannerHint")}</span>
       {err && (
         <p role="alert" className="text-xs text-danger">
           {err}
@@ -725,7 +725,7 @@ function RowMenu({
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <span className="absolute right-0 top-9 z-20 flex w-[180px] flex-col rounded-[10px] border border-[#333] bg-[#1a1a1a] p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]">
+          <span className="absolute right-0 top-9 z-20 flex w-[180px] flex-col rounded-[10px] border border-line-strong bg-inset p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]">
             {children(() => setOpen(false))}
           </span>
         </>
@@ -736,7 +736,7 @@ function RowMenu({
 
 /** 색은 항목마다 붙인다 — 여기에 text-foreground 를 넣으면 "제외"의 text-danger 와
  *  같은 자리를 다퉈 어느 쪽이 이길지가 CSS 순서에 달린다. */
-const menuItem = "rounded-md px-2.5 py-2 text-left text-[13px] hover:bg-[#222] disabled:opacity-40";
+const menuItem = "rounded-md px-2.5 py-2 text-left text-[13px] hover:bg-line disabled:opacity-40";
 
 /**
  * 멤버 관리 — 가입 신청 승인/거절, 등급 지정, 부리더 지정/해제(리더만), 리더 위임, 제외.
@@ -948,7 +948,7 @@ export function CrewMemberManage({
       {/* 가입 대기 — 제일 먼저 처리할 일이라 표 위에 따로 둔다 */}
       {pending.length > 0 && (
         <div className="overflow-hidden rounded-[14px] border border-line-accent bg-highlight">
-          <p className="border-b border-line-accent px-[18px] py-3 text-[13px] font-extrabold text-accent">
+          <p className="border-b border-line-accent px-[18px] py-3 text-[13px] font-extrabold text-accent-ink">
             {t("crew.pendingRequests")} {pending.length}
           </p>
           <ul>
@@ -960,14 +960,14 @@ export function CrewMemberManage({
                 <Avatar name={m.display_name} size={32} />
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-bold">{m.display_name}</span>
-                  {m.email && <span className="truncate text-[11px] text-[#666]">{m.email}</span>}
+                  {m.email && <span className="truncate text-[11px] text-muted-2">{m.email}</span>}
                 </span>
                 <span className="ml-auto flex shrink-0 gap-2">
                   <button
                     type="button"
                     onClick={() => approve(m.user_id)}
                     disabled={busy != null}
-                    className="h-[30px] rounded-md bg-accent px-3 text-xs font-extrabold text-background disabled:opacity-40"
+                    className="h-[30px] rounded-md bg-accent px-3 text-xs font-extrabold text-on-accent disabled:opacity-40"
                   >
                     {t("crew.approveMember")}
                   </button>
@@ -1002,11 +1002,11 @@ export function CrewMemberManage({
                     setPage(1);
                   }}
                   className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
-                    on ? "bg-accent text-background" : "text-[#c9c9c9] hover:text-foreground"
+                    on ? "bg-accent text-on-accent" : "text-foreground/80 hover:text-foreground"
                   }`}
                 >
                   {c.label}
-                  <span className={`text-[11px] ${on ? "text-[#6b5a00]" : "text-[#777]"}`}>
+                  <span className={`text-[11px] ${on ? "text-accent-ink" : "text-muted"}`}>
                     {c.n}
                   </span>
                 </button>
@@ -1037,7 +1037,7 @@ export function CrewMemberManage({
         {/* 선택 바 — 고른 사람들의 등급을 한 번에 바꾼다 */}
         {sel.size > 0 && (
           <div className="flex flex-wrap items-center gap-2.5 border-b border-line-accent bg-highlight px-[18px] py-2.5 text-[13px]">
-            <strong className="text-accent">{t("crew.memberSelected", { n: sel.size })}</strong>
+            <strong className="text-accent-ink">{t("crew.memberSelected", { n: sel.size })}</strong>
             <span className="text-muted">{t("crew.memberBulkTier")}</span>
             <select
               value={bulkTier}
@@ -1058,14 +1058,14 @@ export function CrewMemberManage({
               type="button"
               onClick={() => void applyBulk()}
               disabled={busy != null || !bulkTier}
-              className="h-[30px] rounded-md bg-accent px-3 text-[13px] font-extrabold text-background disabled:opacity-40"
+              className="h-[30px] rounded-md bg-accent px-3 text-[13px] font-extrabold text-on-accent disabled:opacity-40"
             >
               {busy === "bulk" ? t("crew.memberApplying") : t("crew.memberApply")}
             </button>
             <button
               type="button"
               onClick={() => setSel(new Set())}
-              className="ml-auto text-[#777] hover:text-foreground"
+              className="ml-auto text-muted hover:text-foreground"
             >
               {t("crew.memberClearSel")}
             </button>
@@ -1074,7 +1074,7 @@ export function CrewMemberManage({
 
         {/* 컬럼 머리 — 좁은 화면에서는 행이 카드처럼 쌓여 의미가 없다 */}
         <div
-          className={`hidden ${cols} border-b border-[#1c1c1c] px-[18px] py-2 text-[11px] font-bold tracking-[0.06em] text-[#777]`}
+          className={`hidden ${cols} border-b border-line-soft px-[18px] py-2 text-[11px] font-bold tracking-[0.06em] text-muted`}
         >
           <input
             type="checkbox"
@@ -1095,7 +1095,7 @@ export function CrewMemberManage({
           return (
             <div
               key={m.user_id}
-              className={`${cols} border-b border-[#1c1c1c] px-[18px] py-2.5 ${
+              className={`${cols} border-b border-line-soft px-[18px] py-2.5 ${
                 on ? "bg-highlight" : "hover:bg-card-hover"
               }`}
             >
@@ -1123,7 +1123,7 @@ export function CrewMemberManage({
                       )}
                     </div>
                     {m.email && (
-                      <div className="truncate text-[11px] text-[#666]">{m.email}</div>
+                      <div className="truncate text-[11px] text-muted-2">{m.email}</div>
                     )}
                   </div>
                 </div>
@@ -1156,7 +1156,7 @@ export function CrewMemberManage({
                   title={t("crew.attendColHint")}
                 >
                   <strong>{m.attend_paid_count}</strong>
-                  <span className="text-[#666]"> / {m.attend_count}</span>
+                  <span className="text-muted-2"> / {m.attend_count}</span>
                 </span>
 
                 <RowMenu label={t("crew.memberMenu", { name: m.display_name })}>
@@ -1198,7 +1198,7 @@ export function CrewMemberManage({
                           </button>
                         </>
                       )}
-                      <span className="my-1 h-px bg-[#2a2a2a]" />
+                      <span className="my-1 h-px bg-inset" />
                       <button
                         type="button"
                         disabled={busy != null || m.role === "owner"}
@@ -1219,14 +1219,14 @@ export function CrewMemberManage({
         })}
 
         {rows.length === 0 && (
-          <p className="px-[18px] py-8 text-center text-[13px] text-[#666]">
+          <p className="px-[18px] py-8 text-center text-[13px] text-muted-2">
             {t("crew.filterEmpty")}
           </p>
         )}
 
         {/* 푸터 — 몇 명을 보고 있는지 + 페이지 이동 */}
         {active.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 text-xs text-[#777]">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 text-xs text-muted">
             <span>
               {t("crew.memberRange", {
                 a: (cur - 1) * PAGE + 1,
@@ -1253,7 +1253,7 @@ export function CrewMemberManage({
                     onClick={() => setPage(n)}
                     className={`rounded-md px-2 py-1 ${
                       n === cur
-                        ? "bg-accent font-extrabold text-background"
+                        ? "bg-accent font-extrabold text-on-accent"
                         : "border border-line-strong hover:border-muted/60"
                     }`}
                   >
@@ -1371,7 +1371,7 @@ function MemberHistory({
       >
         <div className="flex w-full flex-col gap-3 rounded-md bg-surface p-4">
           <p className="text-sm font-semibold">{t("crew.memberHistoryTitle", { name })}</p>
-          {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+          {err && <p role="alert" className="text-xs text-danger">{err}</p>}
           {rows == null && !err && <p className="text-xs text-muted">…</p>}
           {rows?.length === 0 && (
             <p className="rounded-md bg-background px-3 py-6 text-center text-xs text-muted">
@@ -1458,11 +1458,11 @@ export function CrewDeleteButton({ crewId }: { crewId: string }) {
 
   return (
     <div>
-      {err && <p role="alert" className="mb-2 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mb-2 text-sm text-danger">{err}</p>}
       <button
         onClick={del}
         disabled={busy}
-        className="rounded-md border border-red-400/50 px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-400/10 disabled:opacity-50"
+        className="rounded-md border border-red-400/50 px-4 py-2 text-sm font-semibold text-danger hover:bg-red-400/10 disabled:opacity-50"
       >
         {t("crew.deleteCrew")}
       </button>

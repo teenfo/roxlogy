@@ -28,7 +28,7 @@ export default async function PftEditPage({
   if (!data) notFound();
 
   return (
-    <main>
+    <main className="rx-page rx-form-page rx-pft-page">
       <Link href="/pft" className="text-sm text-muted hover:text-foreground">
         ← {t("pft.title")}
       </Link>

@@ -1,57 +1,32 @@
 @import "tailwindcss";
 @import "./fonts.css";
+@import "./renewal.css";
 
-/* Roxlogy 브랜드 팔레트 (docs/PLANNING.md §10.4) — 다크 단일 테마 */
+/* ROXLOGY renewal: original brand colors, light workspace, isolated dark broadcast. */
 :root {
-  --background: #141414; /* Black */
-  --surface: #1e1e1e;    /* Coal */
-  --foreground: #f4f4f2; /* Chalk */
-  --muted: #9a9a96;      /* Grey */
-  --accent: #ffd500;     /* Race Yellow — CTA·강조 한정 */
-  --track: #2d7dff;      /* Track Blue — 런/페이스 */
+  color-scheme: light;
+  --background: #f5f6f8; --surface: #ffffff; --foreground: #25282d;
+  --muted: #626d7b; --muted-2: #687383; --muted-3: #6c7785;
+  --accent: #ffd500; --accent-ink: #796100; --on-accent: #141414; --track: #2d7dff; --track-ink: #2166d7; --on-solid: #ffffff;
+  --page: #f5f6f8; --card: #ffffff; --card-hover: #f7f9fc; --inset: #f1f3f6;
+  --control: #ffffff; --highlight: #fff9e5; --nav: #ffffff;
+  --line-soft: #edf0f4; --line: #e2e5eb; --line-mid: #d8dee7; --line-strong: #b7c0ce; --line-accent: #e4cc70;
+  --info: #236b91; --info-bg: #eaf4fb; --danger: #b44248; --danger-bg: #fceef0;
+  --success: #27724e; --success-bg: #e7f3ed; --label: #5669a2; --label-bg: #edf0fc;
+  --accent-dim: #796100; --sunday: #b44248; --danger-line: #f0c9ce;
+  --danger-line-strong: #c77880; --danger-card: #fff5f6;
 }
-
-/* 크루 화면 재디자인 토큰 (2026-09 디자인 핸드오프).
- * 브랜드 팔레트는 그대로 둔다 — 옐로는 브랜드 확정값 #ffd500 을 쓴다
- * (디자인 시안의 #ffd60a 와는 육안 구분이 안 되는 차이).
- * 여기서는 카드·보더·시맨틱 색의 '단계'만 추가한다. 기존 화면은 영향 없음. */
-:root {
-  /* 표면 단계 — 페이지가 가장 어둡고 카드가 한 단계 뜬다 */
-  --page: #0d0d0d;
-  --card: #141414;
-  --card-hover: #181818;
-  --inset: #101010;
-  --control: #171717;
-  --highlight: #181610; /* 옐로 강조 카드 */
-  --nav: #111111;   /* 상단 네비 · 하단 탭바 */
-
-  /* 보더 단계 */
-  --line-soft: #1f1f1f;
-  --line: #222222;
-  --line-mid: #262626;
-  --line-strong: #333333;
-  --line-accent: #5a4d00;
-
-  /* 시맨틱 (전경/배경 쌍) */
-  --info: #7dd3fc;
-  --info-bg: #0c2a3a;
-  --danger: #ff8a8a;
-  --danger-bg: #3a0c0c;
-  --success: #6ee7a0;
-  --success-bg: #0f2e1c;
-  --label: #a5b4fc;
-  --label-bg: #1e2140;
-  --accent-dim: #e0c53a;
-  --sunday: #ff6b6b;
-  --danger-line: #4a1d1d;
-  --danger-line-strong: #7a2e2e;
-  --danger-card: #170f0f;
-
-  /* 작은 텍스트용 회색 단계 (UI 감사 2026-09-12 P1) — 임의 hex(#555·#666·#777)를 대체.
-   * #141414 위 대비: muted-2 ≈ 5.2:1, muted-3 ≈ 4.6:1 (둘 다 AA 본문 기준 통과).
-   * placeholder 는 muted-3, 비활성·장식 텍스트는 muted-2 를 쓴다. */
-  --muted-2: #8c8c88;
-  --muted-3: #808080;
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #12171c; --surface: #181f26; --foreground: #f3f5f7;
+  --muted: #a8b4c1; --muted-2: #a8b4c1; --muted-3: #9aa7b5;
+  --accent-ink: #ffd500; --track: #7db1ff; --track-ink: #7db1ff; --on-solid: #141414; --accent-dim: #ffd500;
+  --page: #12171c; --card: #181f26; --card-hover: #202a34; --inset: #11171e;
+  --control: #202a34; --highlight: #292717; --nav: #0e1318;
+  --line-soft: #26313c; --line: #2c353f; --line-mid: #354250; --line-strong: #566879; --line-accent: #70601c;
+  --info: #7dd3fc; --info-bg: #153246; --danger: #ff9ba3; --danger-bg: #411d26;
+  --success: #6ee7a0; --success-bg: #163529; --label: #b6bfff; --label-bg: #262d46;
+  --sunday: #ff9ba3; --danger-line: #66313a; --danger-line-strong: #9f4c58; --danger-card: #2c1920;
 }
 
 @theme inline {
@@ -61,6 +36,10 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-track: var(--track);
+  --color-accent-ink: var(--accent-ink);
+  --color-on-accent: var(--on-accent);
+  --color-track-ink: var(--track-ink);
+  --color-on-solid: var(--on-solid);
 
   --color-page: var(--page);
   --color-card: var(--card);
@@ -99,7 +78,7 @@
  * offset 으로 배경·보더와 분리하고, 스크롤 컨테이너 안에서도 잘리지 않게 outline 을 쓴다(box-shadow 아님).
  * 입력류는 보더가 이미 accent 로 바뀌므로 offset 0 으로 겹쳐 그린다. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid #2d7dff;
   outline-offset: 2px;
   border-radius: inherit;
 }
@@ -155,7 +134,7 @@ input[type="date"],
 input[type="time"],
 input[type="datetime-local"],
 input[type="month"] {
-  color-scheme: dark;
+  color-scheme: inherit;
 }
 
 input::-webkit-calendar-picker-indicator {

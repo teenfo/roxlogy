@@ -281,7 +281,7 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
             checked={f.is_admin}
             onChange={(e) => set("is_admin", e.target.checked)}
           />
-          <span className="font-semibold text-accent">{t("admin.fIsAdmin")}</span>
+          <span className="font-semibold text-accent-ink">{t("admin.fIsAdmin")}</span>
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -289,17 +289,17 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
             checked={f.disabled}
             onChange={(e) => set("disabled", e.target.checked)}
           />
-          <span className="font-semibold text-red-400">{t("admin.fDisabled")}</span>
+          <span className="font-semibold text-danger">{t("admin.fDisabled")}</span>
         </label>
       </div>
 
-      {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
       {msg && <p role="alert" className="mt-3 text-sm text-muted">{msg}</p>}
 
       <button
         type="submit"
         disabled={busy}
-        className="mt-5 rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+        className="mt-5 rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
       >
         {busy ? "…" : t("crew.save")}
       </button>

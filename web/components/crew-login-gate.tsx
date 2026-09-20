@@ -11,13 +11,13 @@ import { Card } from "@/components/ui/crew-ui";
 export async function CrewLoginGate({ next }: { next: string }) {
   const { t } = await getT();
   return (
-    <Card className="px-6 py-12 text-center">
+    <Card className="rx-access px-6 py-12 text-center">
       <p className="text-sm leading-relaxed text-muted [word-break:keep-all]">
         {t("crew.loginToSee")}
       </p>
       <Link
         href={`/login?next=${encodeURIComponent(next)}`}
-        className="mt-5 inline-flex h-10 items-center rounded-full bg-accent px-5 text-sm font-extrabold text-background transition hover:brightness-110"
+        className="mt-5 inline-flex h-10 items-center rounded-full bg-accent px-5 text-sm font-extrabold text-on-accent transition hover:brightness-110"
       >
         {t("common.login")}
       </Link>

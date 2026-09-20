@@ -113,9 +113,9 @@ export default async function EventDetailPage({
 
   const phaseBadge =
     live?.phase === "finished"
-      ? ["bg-track/15 text-track", t("events.phaseFinished")]
+      ? ["bg-track/15 text-track-ink", t("events.phaseFinished")]
       : live?.phase === "racing"
-        ? ["bg-accent/15 text-accent", t("events.phaseRacing")]
+        ? ["bg-accent/15 text-accent-ink", t("events.phaseRacing")]
         : live?.phase === "scheduled"
           ? ["bg-surface text-muted", t("events.phaseScheduled")]
           : null;
@@ -123,7 +123,7 @@ export default async function EventDetailPage({
   return (
     <>
       <CrewHeader loginNext={`/events/${ev.id}`} />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+      <main id="main-content" className="rx-public-workspace mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         <Link href="/events" className="text-sm text-muted hover:text-foreground">
           ← {t("nav.events")}
         </Link>
@@ -142,7 +142,7 @@ export default async function EventDetailPage({
           <span>
             {eventPlace(t, ev, locale)}
           </span>
-          <span className="font-medium text-track">{dateRange}</span>
+          <span className="font-medium text-track-ink">{dateRange}</span>
           {ev.venue && <span>{ev.venue}</span>}
           {ev.season && <span>{ev.season}</span>}
         </p>
@@ -157,7 +157,7 @@ export default async function EventDetailPage({
               href={ev.official_url}
               target="_blank"
               rel="noreferrer noopener"
-              className="rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent"
+              className="rounded-md bg-surface px-3 py-1.5 text-xs font-semibold hover:text-accent-ink"
             >
               {t("events.official")} ↗
             </a>
@@ -165,14 +165,14 @@ export default async function EventDetailPage({
           {myPlanId && (
             <Link
               href={`/schedule/race/${myPlanId}?from=${encodeURIComponent(`/events/${id}`)}`}
-              className="rounded-md border border-line-accent bg-highlight px-3 py-1.5 text-xs font-bold text-accent hover:brightness-125"
+              className="rounded-md border border-line-accent bg-highlight px-3 py-1.5 text-xs font-bold text-accent-ink hover:brightness-125"
             >
               {t("race.myPlan")} →
             </Link>
           )}
           <Link
             href={`/predict?event=${encodeURIComponent(ev.name)}${ev.start_date ? `&date=${ev.start_date}` : ""}`}
-            className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
+            className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-on-accent hover:brightness-110"
           >
             {t("events.setGoal")}
           </Link>
@@ -257,13 +257,13 @@ export default async function EventDetailPage({
                       </div>
                       <div>
                         <p className="text-xs text-muted">{t("events.top10")}</p>
-                        <p className="font-mono text-sm text-track">
+                        <p className="font-mono text-sm text-track-ink">
                           {formatMs(d.p10Ms)}
                         </p>
                       </div>
                     </div>
                     {myPct != null && (
-                      <p className="mt-2 text-xs text-accent">
+                      <p className="mt-2 text-xs text-accent-ink">
                         🎯 {t("events.myGoalPct", {
                           time: formatMs(goal!.target_total_ms),
                           pct: myPct,

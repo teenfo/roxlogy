@@ -40,7 +40,7 @@ export default async function CrewBoardPage({
   }
 
   return (
-    <main>
+    <main className="rx-page rx-detail-page rx-crews-page">
       {/* 필터 칩 + 글쓰기 */}
       <div className="flex flex-wrap items-center gap-2">
         <Chip href={`/crews/${slug}/board`} active={!category}>
@@ -59,7 +59,7 @@ export default async function CrewBoardPage({
         {canPost && (
           <Link
             href={`/crews/${slug}/board/new`}
-            className="ml-auto shrink-0 rounded-lg bg-accent px-4 py-2 text-[13px] font-bold text-background hover:brightness-110"
+            className="ml-auto shrink-0 rounded-lg bg-accent px-4 py-2 text-[13px] font-bold text-on-accent hover:brightness-110"
           >
             + {t("crew.newPost")}
           </Link>
@@ -69,7 +69,7 @@ export default async function CrewBoardPage({
       {/* 고정 공지 */}
       {notices.length > 0 && (
         <section className="mt-6">
-          <p className="mb-2 text-xs font-bold text-accent">
+          <p className="mb-2 text-xs font-bold text-accent-ink">
             {t("crew.pinnedNotices")}
           </p>
           <Card highlight className="divide-y divide-line-accent/40 overflow-hidden">
@@ -79,7 +79,7 @@ export default async function CrewBoardPage({
                 href={`/crews/${slug}/board/${n.id}`}
                 className="flex items-center gap-2.5 px-5 py-3 transition-colors hover:bg-accent/5"
               >
-                <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-background">
+                <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-on-accent">
                   {t("crew.cat.notice")}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[15px] font-bold">

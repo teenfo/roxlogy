@@ -48,7 +48,7 @@ export default async function PftMeasurePage() {
       : null;
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-pft-page">
       <PftMeasure defaultAge={age} defaultGender={gender} best={best} />
     </main>
   );

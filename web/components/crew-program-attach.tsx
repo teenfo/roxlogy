@@ -44,7 +44,7 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
       aria-label={label}
       onClick={() => onChange(!on)}
       className={`relative h-[26px] w-11 shrink-0 rounded-full transition-colors ${
-        on ? "bg-accent" : "bg-[#333]"
+        on ? "bg-accent" : "bg-line"
       }`}
     >
       <span
@@ -160,8 +160,8 @@ export function CrewProgramAttach({
         )}
 
         {attached.length === 0 ? (
-          <div className="rounded-[14px] border border-dashed border-[#333] px-5 py-10 text-center">
-            <p className="text-[13px] text-[#666]">{t("crew.progEmpty")}</p>
+          <div className="rounded-[14px] border border-dashed border-line-strong px-5 py-10 text-center">
+            <p className="text-[13px] text-muted-2">{t("crew.progEmpty")}</p>
           </div>
         ) : (
           attached.map((a) => {
@@ -186,9 +186,9 @@ export function CrewProgramAttach({
                   <span
                     className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${
                       state === "live"
-                        ? "bg-accent text-background"
+                        ? "bg-accent text-on-accent"
                         : state === "soon"
-                          ? "bg-[#222] text-muted"
+                          ? "bg-line text-muted"
                           : "bg-line text-muted"
                     }`}
                   >
@@ -235,7 +235,7 @@ export function CrewProgramAttach({
 
                 {state === "live" && (
                   <div className="flex flex-col gap-1.5">
-                    <p className="flex items-center justify-between gap-2 text-xs text-[#777]">
+                    <p className="flex items-center justify-between gap-2 text-xs text-muted">
                       <span>
                         {t("crew.progWeekNo", { n: Math.floor((elapsed - 1) / 7) + 1 })}
                       </span>
@@ -272,12 +272,12 @@ export function CrewProgramAttach({
             ))}
           </select>
         </label>
-        <Link href="/programs" className="text-xs text-accent hover:underline">
+        <Link href="/programs" className="text-xs text-accent-ink hover:underline">
           {t("crew.progManage")}
         </Link>
 
         {selected && (
-          <p className="rounded-lg border border-line-accent bg-highlight px-3 py-2 text-xs text-[#c9b34a]">
+          <p className="rounded-lg border border-line-accent bg-highlight px-3 py-2 text-xs text-accent-ink">
             {t("crew.progSummary", {
               w: selected.weeks ?? 0,
               m: perWeek(selected) ?? 0,
@@ -319,7 +319,7 @@ export function CrewProgramAttach({
         >
           <span className="min-w-0 flex-1">
             <span className="block text-[13px] font-semibold">{t("programs.repeatLabel")}</span>
-            <span className="block text-xs text-[#777]">{t("crew.progRepeatHint")}</span>
+            <span className="block text-xs text-muted">{t("crew.progRepeatHint")}</span>
           </span>
           <Toggle on={repeat} onChange={setRepeat} label={t("programs.repeatLabel")} />
         </div>
@@ -327,7 +327,7 @@ export function CrewProgramAttach({
         <button
           type="submit"
           disabled={busy || !pick || !start}
-          className="h-[42px] rounded-lg bg-accent text-sm font-extrabold text-background hover:brightness-110 disabled:bg-[#2a2a2a] disabled:text-[#666]"
+          className="h-[42px] rounded-lg bg-accent text-sm font-extrabold text-on-accent hover:brightness-110 disabled:bg-inset disabled:text-muted-2"
         >
           {busy ? t("common.saving") : t("crew.progAttachBtn")}
         </button>

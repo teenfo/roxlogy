@@ -52,7 +52,7 @@ export function DeleteButton({
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="text-sm text-muted hover:text-red-400"
+        className="text-sm text-muted hover:text-danger"
       >
         {t("common.delete")}
       </button>
@@ -64,14 +64,14 @@ export function DeleteButton({
       <button
         onClick={handleDelete}
         disabled={pending}
-        className="font-semibold text-red-400 disabled:opacity-50"
+        className="font-semibold text-danger disabled:opacity-50"
       >
         {pending ? t("common.deleting") : t("common.delete")}
       </button>
       <button onClick={() => setConfirming(false)} className="text-muted">
         {t("common.cancel")}
       </button>
-      {err && <span className="text-xs text-red-400">{err}</span>}
+      {err && <span className="text-xs text-danger">{err}</span>}
     </span>
   );
 }

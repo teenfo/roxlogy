@@ -391,7 +391,7 @@ export function PftRaceRunner({
                   type="button"
                   onClick={join}
                   disabled={busy || closed || joinBlocked}
-                  className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-black text-background hover:brightness-110 disabled:opacity-40"
+                  className="mt-4 h-14 w-full rounded-xl bg-accent text-lg font-black text-on-accent hover:brightness-110 disabled:opacity-40"
                 >
                   {t("pft.race.join")}
                 </button>
@@ -421,7 +421,7 @@ export function PftRaceRunner({
         ) : undefined
       }
       finishExtra={
-        <div className="mt-5 border-t border-[#3a3200] pt-4">
+        <div className="mt-5 border-t border-line-accent pt-4">
           <p className="text-xs text-muted">
             {local.pending.length > 0
               ? t("pft.race.syncPending", { n: local.pending.length })
@@ -430,7 +430,7 @@ export function PftRaceRunner({
                 : t("pft.race.notSavedNote")}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link href="/pft" className="flex h-9 items-center rounded-lg bg-accent px-4 text-sm font-bold text-background">
+            <Link href="/pft" className="flex h-9 items-center rounded-lg bg-accent px-4 text-sm font-bold text-on-accent">
               {t("pft.title")}
             </Link>
             {!closed && finished && (
@@ -457,7 +457,7 @@ export function PftRaceRunner({
             <div className="mt-3 flex flex-wrap gap-2">
               <Link
                 href={`/pft/race/${race.code}/staff`}
-                className="flex h-9 items-center rounded-lg bg-accent px-3 text-sm font-bold text-background hover:brightness-110"
+                className="flex h-9 items-center rounded-lg bg-accent px-3 text-sm font-bold text-on-accent hover:brightness-110"
               >
                 {t("pft.race.staffOpen")}
               </Link>

@@ -256,7 +256,7 @@ export function WorkoutChecklist({
               {t("workouts.progress", { done: doneCount, total })}
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-[#222]">
+          <div className="h-2 overflow-hidden rounded-full bg-line">
             <div
               className="h-full rounded-full bg-accent transition-all duration-200"
               style={{ width: `${pct}%` }}
@@ -277,7 +277,7 @@ export function WorkoutChecklist({
             <li
               key={it.id}
               className={`overflow-hidden rounded-[14px] border ${
-                isDone ? "border-[#1e3328] bg-[#101410]" : "border-line bg-card"
+                isDone ? "border-success/20 bg-success-bg" : "border-line bg-card"
               }`}
             >
               <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-start gap-3.5 px-[18px] py-4 max-md:grid-cols-[40px_minmax(0,1fr)] max-md:px-4">
@@ -292,8 +292,8 @@ export function WorkoutChecklist({
                   <span
                     className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-[15px] font-extrabold transition-colors ${
                       isDone
-                        ? "border-success bg-success text-background"
-                        : "border-[#444] text-transparent hover:border-accent"
+                        ? "border-success bg-success text-on-solid"
+                        : "border-line-strong text-transparent hover:border-accent"
                     }`}
                   >
                     ✓
@@ -308,7 +308,7 @@ export function WorkoutChecklist({
                     {it.exerciseId ? (
                       <Link
                         href={`/exercises/${it.exerciseId}`}
-                        className={`min-w-0 truncate text-lg font-extrabold hover:text-accent ${
+                        className={`min-w-0 truncate text-lg font-extrabold hover:text-accent-ink ${
                           isDone ? "text-muted line-through" : ""
                         }`}
                       >
@@ -379,7 +379,7 @@ export function WorkoutChecklist({
       <div
         className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3.5 rounded-[14px] border px-5 py-4 max-md:grid-cols-1 ${
           allDone
-            ? "border-[#1e3328] bg-[#101410]"
+            ? "border-success/20 bg-success-bg"
             : "border-line bg-card"
         }`}
       >
@@ -400,7 +400,7 @@ export function WorkoutChecklist({
           className={`flex h-11 items-center justify-center rounded-lg px-5 text-[15px] font-extrabold transition disabled:opacity-40 max-md:w-full ${
             allDone
               ? "bg-success-bg text-success"
-              : "bg-accent text-background hover:brightness-110"
+              : "bg-accent text-on-accent hover:brightness-110"
           }`}
         >
           {pending

@@ -36,14 +36,14 @@ export default async function AdminOverviewPage() {
     : [];
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-admin-page">
       <h1 className="text-xl font-bold">{t("admin.overviewTitle")}</h1>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {cards.map((c) => (
           <div key={c.label} className="rounded-md bg-surface px-4 py-4">
             <p className="text-xs text-muted">{c.label}</p>
             <p className="mt-1 text-2xl font-bold tabular-nums">{c.value}</p>
-            {c.sub && <p className="mt-0.5 text-xs text-track">{c.sub}</p>}
+            {c.sub && <p className="mt-0.5 text-xs text-track-ink">{c.sub}</p>}
           </div>
         ))}
       </div>

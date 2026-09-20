@@ -36,8 +36,8 @@ import type { RecordCardData } from "@/lib/record-card";
 import { FollowButton } from "@/components/follow-button";
 
 const KIND_BADGE: Record<string, string> = {
-  run: "border-track/60 text-track",
-  station: "border-accent/60 text-accent",
+  run: "border-track/60 text-track-ink",
+  station: "border-accent/60 text-accent-ink",
   roxzone: "border-muted/60 text-muted",
 };
 
@@ -405,7 +405,7 @@ export default async function SessionDetailPage({
     lapMs.length >= 2 ? lapMs[lapMs.length - 1] - lapMs[0] : null;
 
   return (
-    <main className="flex flex-col gap-[22px]">
+    <main className="rx-page rx-detail-page rx-sessions-page flex flex-col gap-[22px]">
       {/* 상단 바 */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-[13px]">
         <Link
@@ -439,7 +439,7 @@ export default async function SessionDetailPage({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             {race ? (
-              <span className="rounded-md bg-[#2a2500] px-2 py-0.5 text-xs font-bold text-accent-dim">
+              <span className="rounded-md bg-highlight px-2 py-0.5 text-xs font-bold text-accent-dim">
                 {t("sessions.race")}
               </span>
             ) : isErg ? (
@@ -478,13 +478,13 @@ export default async function SessionDetailPage({
         </div>
 
         <div className="sm:text-right">
-          <p className="tabular text-[44px] font-extrabold leading-none tracking-tight text-accent">
+          <p className="tabular text-[44px] font-extrabold leading-none tracking-tight text-accent-ink">
             {formatMs(session.total_time_ms)}
           </p>
           <p className="mt-2 flex flex-wrap items-center gap-x-2.5 text-[13px] sm:justify-end">
             {pbGap != null && (
               <span
-                className={`tabular font-bold ${pbGap <= 0 ? "text-accent" : "text-danger"}`}
+                className={`tabular font-bold ${pbGap <= 0 ? "text-accent-ink" : "text-danger"}`}
               >
                 {pbGap <= 0 ? t("sessions.pb") : `PB ${gapLabel(pbGap)}`}
               </span>
@@ -507,7 +507,7 @@ export default async function SessionDetailPage({
               {linked.program_days?.programs ? (
                 <Link
                   href={`/programs/${linked.program_days.programs.id}`}
-                  className="text-accent hover:underline"
+                  className="text-accent-ink hover:underline"
                 >
                   {linked.program_days.programs.title}
                   {linked.program_days.day_index != null
@@ -523,7 +523,7 @@ export default async function SessionDetailPage({
           {isOwner && session.rpe != null && (
             <div className={`flex items-center gap-2 text-sm ${linked ? "mt-2" : ""}`}>
               <span className="text-muted">{t("sessions.rpe")}</span>
-              <span className="tabular rounded-md bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent">
+              <span className="tabular rounded-md bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent-ink">
                 {t("sessions.rpeValue", { n: session.rpe })}
               </span>
             </div>
@@ -714,7 +714,7 @@ export default async function SessionDetailPage({
                 <p className="text-sm text-muted">{t("run.degNone")}</p>
                 <Link
                   href="/runs/new"
-                  className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+                  className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110"
                 >
                   {t("run.add")}
                 </Link>
@@ -744,7 +744,7 @@ export default async function SessionDetailPage({
                       {formatMs(degradation.baseline!.baseline_1k_ms)}
                     </span>
                   </span>
-                  <Link href="/runs" className="hover:text-accent">
+                  <Link href="/runs" className="hover:text-accent-ink">
                     {t("run.baselineFrom", {
                       distance: formatDistance(
                         degradation.baseline!.from_distance_m,

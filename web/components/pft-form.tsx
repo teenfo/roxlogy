@@ -124,7 +124,7 @@ export function PftForm({
               <span className="text-xs text-muted">{t("pft.fDate")}</span>
               <input
                 type="date"
-                className={`${input} mt-1 [color-scheme:dark]`}
+                className={`${input} mt-1 [color-scheme:light]`}
                 value={testedOn}
                 onChange={(e) => setTestedOn(e.target.value)}
                 required
@@ -289,7 +289,7 @@ export function PftForm({
             {t("pft.previewBadge")}
           </p>
           <p
-            className={`tabular mt-1 text-[40px] font-extrabold leading-none ${totalMs != null ? "text-accent" : "text-[#444]"}`}
+            className={`tabular mt-1 text-[40px] font-extrabold leading-none ${totalMs != null ? "text-accent-ink" : "text-muted-3"}`}
           >
             {totalMs != null ? formatMs(totalMs) : "--:--"}
           </p>
@@ -325,8 +325,8 @@ export function PftForm({
             disabled={busy || !canSave}
             className={`mt-4 h-11 w-full rounded-lg text-[15px] font-extrabold ${
               canSave
-                ? "bg-accent text-background hover:brightness-110"
-                : "cursor-not-allowed bg-[#2a2a2a] text-muted-2"
+                ? "bg-accent text-on-accent hover:brightness-110"
+                : "cursor-not-allowed bg-inset text-muted-2"
             } disabled:opacity-60`}
           >
             {busy ? t("common.saving") : t("common.save")}
@@ -374,11 +374,11 @@ export function PftDeleteButton({ id }: { id: string }) {
         type="button"
         onClick={del}
         disabled={busy}
-        className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
+        className="text-xs text-muted hover:text-danger disabled:opacity-50"
       >
         {t("common.delete")}
       </button>
-      {err && <span className="ml-2 text-xs text-red-400">{err}</span>}
+      {err && <span className="ml-2 text-xs text-danger">{err}</span>}
     </span>
   );
 }

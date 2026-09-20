@@ -1,5 +1,15 @@
 /** 영어 — 기본 언어이자 키의 원본. 새 키는 여기 먼저 추가. */
 const en = {
+  "common.loading": "Loading…",
+
+  "nav.insights": "Insights",
+  "nav.members": "Members",
+
+  "renewal.activity": "MY TRAINING",
+  "renewal.community": "COMMUNITY",
+  "renewal.navigation": "Main navigation",
+  "renewal.skip": "Skip to content",
+
   // 공통
   "common.save": "Save",
   "common.saving": "Saving…",

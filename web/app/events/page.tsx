@@ -76,7 +76,7 @@ export default async function EventsPage({
           로그인 버튼이 보였다(상세 페이지는 이미 CrewHeader 를 쓰고 있었다). */}
       <CrewHeader loginNext="/events" />
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
+      <main id="main-content" className="rx-public-workspace mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         <h1 className="text-3xl font-black tracking-tight">{t("events.title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("events.desc")}</p>
 
@@ -102,7 +102,7 @@ export default async function EventsPage({
           </select>
           <button
             type="submit"
-            className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110"
+            className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-on-accent hover:brightness-110"
           >
             {t("common.search")}
           </button>
@@ -127,12 +127,12 @@ export default async function EventsPage({
                         <p className="text-sm font-semibold">
                           <RowLink
                             href={`/events/${e.id}`}
-                            className="hover:text-accent hover:underline"
+                            className="hover:text-accent-ink hover:underline"
                           >
                             {e.name}
                           </RowLink>
                           {e.country_code === "KR" && (
-                            <span className="ml-2 rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent">
+                            <span className="ml-2 rounded border border-accent/60 px-1.5 py-0.5 text-xs text-accent-ink">
                               {t("events.koreaBadge")}
                             </span>
                           )}
@@ -161,7 +161,7 @@ export default async function EventsPage({
                               href={e.official_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-accent hover:underline"
+                              className="text-xs text-accent-ink hover:underline"
                             >
                               {t("events.official")}
                             </a>
@@ -170,7 +170,7 @@ export default async function EventsPage({
                             href={`/predict?event=${encodeURIComponent(e.name)}${
                               e.start_date ? `&date=${e.start_date}` : ""
                             }`}
-                            className="rounded-md border border-accent/50 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/10"
+                            className="rounded-md border border-accent/50 px-2.5 py-1 text-xs font-semibold text-accent-ink hover:bg-accent/10"
                           >
                             {t("events.setGoal")}
                           </RowLink>
@@ -196,7 +196,7 @@ export default async function EventsPage({
                       <span className="text-sm">
                         <RowLink
                           href={`/events/${e.id}`}
-                          className="hover:text-accent hover:underline"
+                          className="hover:text-accent-ink hover:underline"
                         >
                           {e.name}
                         </RowLink>{" "}
@@ -225,7 +225,7 @@ export default async function EventsPage({
             href="https://hyrox.com/find-my-race/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-accent hover:underline"
+            className="text-accent-ink hover:underline"
           >
             {t("events.disclaimer.link")}
           </a>

@@ -55,7 +55,7 @@ export async function DistributionCurve({
         <h2 className="text-sm font-semibold text-muted">
           {t("dist.title")}
         </h2>
-        <span className="text-xs font-bold text-accent">
+        <span className="text-xs font-bold text-accent-ink">
           {t("dist.topPct", { pct })}
         </span>
       </div>

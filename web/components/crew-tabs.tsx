@@ -17,7 +17,7 @@ export function CrewTabs({ tabs }: { tabs: CrewTab[] }) {
   // 소개는 탭이 아니라 크루명 링크로 옮겼다 — 접두사가 겹치는 탭이 없으므로
   // 정확 일치/하위 경로만 보면 된다.
   return (
-    <nav className="mt-6 flex flex-wrap gap-x-1 border-b border-line pb-px">
+    <nav className="rx-crew-tabs mt-6 flex gap-x-1 overflow-x-auto border-b border-line pb-px">
       {tabs.map((tab) => {
         const active =
           pathname === tab.href || pathname.startsWith(`${tab.href}/`);
@@ -28,13 +28,13 @@ export function CrewTabs({ tabs }: { tabs: CrewTab[] }) {
             aria-current={active ? "page" : undefined}
             className={`-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-2.5 text-sm transition-colors sm:px-3.5 sm:text-[15px] ${
               active
-                ? "border-accent font-bold text-accent"
+                ? "border-accent font-bold text-accent-ink"
                 : "border-transparent text-muted hover:text-foreground"
             }`}
           >
             {tab.label}
             {!!tab.badge && (
-              <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold leading-none text-background">
+              <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold leading-none text-on-accent">
                 {tab.badge}
               </span>
             )}

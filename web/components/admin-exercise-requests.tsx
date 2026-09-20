@@ -95,15 +95,15 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      {err && <p role="alert" className="text-sm text-red-400">{err}</p>}
-      {notice && <p role="status" className="text-sm text-accent">{notice}</p>}
+      {err && <p role="alert" className="text-sm text-danger">{err}</p>}
+      {notice && <p role="status" className="text-sm text-accent-ink">{notice}</p>}
       {items.map((r) => (
         <div key={r.id} className="rounded-md bg-surface px-4 py-2.5">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {r.source !== "user" && (
               <span
                 title={t(r.source === "ai" ? "admin.exReqAiHint" : "admin.exReqMcpHint")}
-                className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent"
+                className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent-ink"
               >
                 {t(r.source === "ai" ? "admin.exReqAi" : "admin.exReqMcp")}
               </span>
@@ -127,7 +127,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
             <button
               onClick={() => approve(r)}
               disabled={busy != null}
-              className="shrink-0 rounded-md bg-accent px-3 py-1 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="shrink-0 rounded-md bg-accent px-3 py-1 text-xs font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
             >
               {t("admin.exReqApprove")}
             </button>
@@ -143,7 +143,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
             <button
               onClick={() => reject(r)}
               disabled={busy != null}
-              className="shrink-0 rounded-md bg-background px-3 py-1 text-xs text-red-400 disabled:opacity-40"
+              className="shrink-0 rounded-md bg-background px-3 py-1 text-xs text-danger disabled:opacity-40"
             >
               {t("admin.exReqReject")}
             </button>

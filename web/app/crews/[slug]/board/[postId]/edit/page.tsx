@@ -35,10 +35,10 @@ export default async function CrewEditPostPage({
     redirect(`/crews/${slug}/board/${postId}`);
 
   return (
-    <main>
+    <main className="rx-page rx-form-page rx-crews-page">
       <Link
         href={`/crews/${slug}/board/${postId}`}
-        className="text-xs text-muted hover:text-accent"
+        className="text-xs text-muted hover:text-accent-ink"
       >
         ← {t("crew.board")}
       </Link>

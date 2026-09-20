@@ -60,16 +60,16 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
       <div className="flex flex-wrap items-baseline gap-2">
         <span className="text-sm text-muted">{t("crew.duesMyTitle")}</span>
         {outstanding > 0 ? (
-          <span className="font-mono text-sm font-bold text-accent">
+          <span className="font-mono text-sm font-bold text-accent-ink">
             {won(outstanding)}
           </span>
         ) : (
-          <span className={badge("bg-track/15 text-track")}>
+          <span className={badge("bg-track/15 text-track-ink")}>
             ✓ {t("crew.duesAllPaid")}
           </span>
         )}
       </div>
-      {err && <p role="alert" className="mt-2 text-xs text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-xs text-danger">{err}</p>}
 
       <ul className="mt-2 flex flex-col gap-1">
         {charges.slice(0, 12).map((c) => (
@@ -91,24 +91,24 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
                         {won(c.amount)}
                       </span>
             {c.status === "waived" ? (
-              <span className={badge("bg-track/15 text-track")}>
+              <span className={badge("bg-track/15 text-track-ink")}>
                 {t("crew.duesWaived")}
                 {c.waive_reason ? ` · ${c.waive_reason}` : ""}
               </span>
             ) : c.status === "confirmed" ? (
-              <span className={badge("bg-track/15 text-track")}>
+              <span className={badge("bg-track/15 text-track-ink")}>
                 ✓ {t("crew.duesConfirmed")}
               </span>
             ) : c.status === "reported" ? (
               <>
-                <span className={badge("bg-accent/15 text-accent")}>
+                <span className={badge("bg-accent/15 text-accent-ink")}>
                   {t("crew.duesReported")}
                 </span>
                 <button
                   type="button"
                   onClick={() => report(c.charge_id, false)}
                   disabled={busy != null}
-                  className="text-xs text-muted hover:text-red-400 disabled:opacity-50"
+                  className="text-xs text-muted hover:text-danger disabled:opacity-50"
                 >
                   {t("crew.duesCancelReport")}
                 </button>
@@ -118,7 +118,7 @@ export function CrewDuesSelfReport({ charges }: { charges: MyCharge[] }) {
                 type="button"
                 onClick={() => report(c.charge_id, true)}
                 disabled={busy != null}
-                className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold text-background hover:brightness-110 disabled:opacity-40"
+                className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
               >
                 {t("crew.duesReport")}
               </button>
@@ -334,11 +334,11 @@ export function CrewDuesMatrix({
       aria-pressed={filter === k}
       onClick={() => setFilter(k)}
       className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
-        filter === k ? "bg-accent text-background" : "text-[#c9c9c9] hover:text-foreground"
+        filter === k ? "bg-accent text-on-accent" : "text-foreground/80 hover:text-foreground"
       }`}
     >
       {label}
-      <span className={`text-[11px] ${filter === k ? "text-[#6b5a00]" : "text-[#777]"}`}>{n}</span>
+      <span className={`text-[11px] ${filter === k ? "text-accent-ink" : "text-muted"}`}>{n}</span>
     </button>
   );
 
@@ -366,7 +366,7 @@ export function CrewDuesMatrix({
               <li key={m.uid} className="rounded-xl bg-inset px-3 py-2.5">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="truncate text-sm font-semibold">{m.name}</span>
-                  <span className="tabular shrink-0 text-xs text-accent">
+                  <span className="tabular shrink-0 text-xs text-accent-ink">
                     {won(m.rows.reduce((a, c) => a + c.amount, 0))}
                   </span>
                 </div>
@@ -375,7 +375,7 @@ export function CrewDuesMatrix({
                     <li key={c.charge_id} className="flex items-baseline gap-2 text-xs text-muted">
                       <span className="min-w-0 flex-1 truncate">{c.label}</span>
                       {c.status === "reported" && (
-                        <span className="shrink-0 text-accent">{t("crew.duesReported")}</span>
+                        <span className="shrink-0 text-accent-ink">{t("crew.duesReported")}</span>
                       )}
                       <span className="tabular shrink-0">{won(c.amount)}</span>
                     </li>
@@ -393,7 +393,7 @@ export function CrewDuesMatrix({
                 setFilter("unpaid");
                 setUnpaidOpen(false);
               }}
-              className="text-xs text-accent hover:underline"
+              className="text-xs text-accent-ink hover:underline"
             >
               {t("crew.unpaidFilterHere")}
             </button>
@@ -414,7 +414,7 @@ export function CrewDuesMatrix({
           <div className="px-[18px] py-3.5">
             <p className="text-xs text-muted">{t("crew.duesPaidLabel")}</p>
             <p className="tabular mt-1 text-[22px] font-extrabold leading-tight">{won(paid)}</p>
-            <p className="mt-0.5 text-xs text-[#777]">{t("crew.memberN", { n: stateCount("settled") })}</p>
+            <p className="mt-0.5 text-xs text-muted">{t("crew.memberN", { n: stateCount("settled") })}</p>
           </div>
           {/* 미납은 눌러서 내역을 본다 — 관리 탭의 미납 타일과 같은 동작 */}
           {unpaid > 0 ? (
@@ -427,7 +427,7 @@ export function CrewDuesMatrix({
               <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-danger">
                 {won(unpaid)}
               </p>
-              <p className="mt-0.5 text-xs text-accent">
+              <p className="mt-0.5 text-xs text-accent-ink">
                 {t("crew.memberN", { n: stateCount("unpaid") })} · {t("crew.unpaidOpen")}
               </p>
             </button>
@@ -437,7 +437,7 @@ export function CrewDuesMatrix({
               <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-success">
                 {won(0)}
               </p>
-              <p className="mt-0.5 text-xs text-[#777]">{t("crew.duesAllPaid")}</p>
+              <p className="mt-0.5 text-xs text-muted">{t("crew.duesAllPaid")}</p>
             </div>
           )}
           <div className="px-[18px] py-3.5">
@@ -445,7 +445,7 @@ export function CrewDuesMatrix({
             <p className="tabular mt-1 text-[22px] font-extrabold leading-tight text-muted">
               {won(waived)}
             </p>
-            <p className="mt-0.5 text-xs text-[#777]">{t("crew.memberN", { n: stateCount("waived") })}</p>
+            <p className="mt-0.5 text-xs text-muted">{t("crew.memberN", { n: stateCount("waived") })}</p>
           </div>
         </div>
         {/* 납부율 — 금액 기준, 면제 제외 */}
@@ -456,7 +456,7 @@ export function CrewDuesMatrix({
               {rate.toFixed(1)}%
             </strong>
           </div>
-          <span className="flex h-2 overflow-hidden rounded-full bg-[#1c1c1c]">
+          <span className="flex h-2 overflow-hidden rounded-full bg-inset">
             <span className="h-full bg-accent" style={{ width: `${rate}%` }} />
             <span className="h-full flex-1 bg-danger" />
           </span>
@@ -468,7 +468,7 @@ export function CrewDuesMatrix({
           {err}
         </p>
       )}
-      {note && <p className="text-xs text-accent">{note}</p>}
+      {note && <p className="text-xs text-accent-ink">{note}</p>}
 
       {/* ── §1-b 목록 ── */}
       <div className={CARD}>
@@ -520,7 +520,7 @@ export function CrewDuesMatrix({
                     "generate_monthly_charges",
                   )
                 }
-                className="h-9 rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background disabled:opacity-40"
+                className="h-9 rounded-lg bg-accent px-4 text-[13px] font-extrabold text-on-accent disabled:opacity-40"
               >
                 {busy === "generate_monthly_charges"
                   ? "…"
@@ -542,12 +542,12 @@ export function CrewDuesMatrix({
                   : t("crew.duesGenerateSession", { period: periodLabel })}
               </button>
             </div>
-            <p className="max-w-md text-xs text-[#777]">{t("crew.duesGenHint")}</p>
+            <p className="max-w-md text-xs text-muted">{t("crew.duesGenHint")}</p>
           </div>
         ) : (
           <>
             <div
-              className={`hidden ${cols} border-b border-[#1c1c1c] px-[18px] py-2 text-[11px] font-bold tracking-[0.06em] text-[#777] sm:grid`}
+              className={`hidden ${cols} border-b border-line-soft px-[18px] py-2 text-[11px] font-bold tracking-[0.06em] text-muted sm:grid`}
             >
               <span />
               <span>{t("crew.duesColMember")}</span>
@@ -567,7 +567,7 @@ export function CrewDuesMatrix({
               return (
                 <div
                   key={uid}
-                  className={`border-b border-[#1c1c1c] ${
+                  className={`border-b border-line-soft ${
                     state === "unpaid" ? "bg-danger-card" : ""
                   }`}
                 >
@@ -591,7 +591,7 @@ export function CrewDuesMatrix({
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 block truncate text-xs font-normal text-[#777]">
+                      <span className="mt-0.5 block truncate text-xs font-normal text-muted">
                         {breakdown(list)}
                       </span>
                     </span>
@@ -605,9 +605,9 @@ export function CrewDuesMatrix({
                       <span
                         className={`inline-block shrink-0 rounded px-1.5 py-0.5 text-[11px] font-bold ${
                           state === "unpaid"
-                            ? "bg-[#3a1a1a] text-[#ff8a8a]"
+                            ? "bg-danger-bg text-danger"
                             : state === "waived"
-                              ? "bg-[#222] text-muted"
+                              ? "bg-line text-muted"
                               : "text-success"
                         }`}
                       >
@@ -618,7 +618,7 @@ export function CrewDuesMatrix({
                             : `✓ ${t("crew.duesStatusDone")}`}
                       </span>
                     </span>
-                    <span aria-hidden className="text-right text-[11px] text-[#666]">
+                    <span aria-hidden className="text-right text-[11px] text-muted-2">
                       {open ? "▲" : "▼"}
                     </span>
                   </button>
@@ -633,15 +633,15 @@ export function CrewDuesMatrix({
                           key={c.charge_id}
                           className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg border px-3 py-2 sm:grid-cols-[minmax(0,1fr)_90px_auto] ${
                             !exempt && !done
-                              ? "border-danger-line bg-[#1a1010]"
-                              : "border-[#1c1c1c] bg-page"
+                              ? "border-danger-line bg-danger-bg"
+                              : "border-line-soft bg-page"
                           }`}
                         >
                           <span className="min-w-0">
                             <span className="block truncate text-[13px] font-semibold">
                               {c.label}
                             </span>
-                            <span className="block text-[11px] text-[#777]">
+                            <span className="block text-[11px] text-muted">
                               {c.kind === "monthly"
                                 ? t("crew.duesKindMonthly")
                                 : c.kind === "session"
@@ -652,13 +652,13 @@ export function CrewDuesMatrix({
                             </span>
                           </span>
                           <span
-                            className={`tabular text-right text-[13px] font-bold ${exempt ? "text-[#666] line-through" : ""}`}
+                            className={`tabular text-right text-[13px] font-bold ${exempt ? "text-muted-2 line-through" : ""}`}
                           >
                             {won(c.amount)}
                           </span>
                           <span className="col-span-2 flex items-center justify-end gap-1.5 sm:col-span-1">
                             {c.status === "reported" && (
-                              <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-bold text-accent">
+                              <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-bold text-accent-ink">
                                 {t("crew.duesReported")}
                               </span>
                             )}
@@ -675,7 +675,7 @@ export function CrewDuesMatrix({
                                       p_charge: c.charge_id,
                                     })
                                   }
-                                  className="text-[11px] text-[#666] hover:text-foreground disabled:opacity-50"
+                                  className="text-[11px] text-muted-2 hover:text-foreground disabled:opacity-50"
                                 >
                                   {t("crew.duesRelease")}
                                 </button>
@@ -694,7 +694,7 @@ export function CrewDuesMatrix({
                                       p_charge: c.charge_id,
                                     });
                                   }}
-                                  className="text-[11px] text-[#666] hover:text-danger disabled:opacity-50"
+                                  className="text-[11px] text-muted-2 hover:text-danger disabled:opacity-50"
                                 >
                                   {t("crew.duesUndo")}
                                 </button>
@@ -705,7 +705,7 @@ export function CrewDuesMatrix({
                                   type="button"
                                   disabled={busy != null || locked}
                                   onClick={() => waive(c.charge_id)}
-                                  className="h-7 shrink-0 rounded-md border border-[#333] px-2.5 text-[11px] font-semibold text-muted hover:border-muted/60 hover:text-foreground disabled:opacity-50"
+                                  className="h-7 shrink-0 rounded-md border border-line-strong px-2.5 text-[11px] font-semibold text-muted hover:border-muted/60 hover:text-foreground disabled:opacity-50"
                                 >
                                   {t("crew.duesWaive")}
                                 </button>
@@ -717,7 +717,7 @@ export function CrewDuesMatrix({
                                       p_charge: c.charge_id,
                                     })
                                   }
-                                  className="h-7 shrink-0 rounded-md bg-accent px-2.5 text-[11px] font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+                                  className="h-7 shrink-0 rounded-md bg-accent px-2.5 text-[11px] font-extrabold text-on-accent hover:brightness-110 disabled:opacity-40"
                                 >
                                   ✓ {t("crew.duesConfirm")}
                                 </button>
@@ -733,12 +733,12 @@ export function CrewDuesMatrix({
             })}
 
             {members.length === 0 && (
-              <p className="px-[18px] py-8 text-center text-[13px] text-[#666]">
+              <p className="px-[18px] py-8 text-center text-[13px] text-muted-2">
                 {t("crew.filterEmpty")}
               </p>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 text-xs text-[#777]">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-[18px] py-3 text-xs text-muted">
               <span>
                 {t("crew.duesShownN", { n: members.length, m: byMember.size })}
               </span>
@@ -753,7 +753,7 @@ export function CrewDuesMatrix({
                     setOpened(new Set(byMember.keys()));
                   }
                 }}
-                className="font-bold text-accent hover:underline"
+                className="font-bold text-accent-ink hover:underline"
               >
                 {allExpanded ? t("crew.duesCollapseAll") : t("crew.duesExpandAll")}
               </button>

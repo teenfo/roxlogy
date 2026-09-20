@@ -17,8 +17,8 @@ import { TimeInput } from "@/components/time-input";
 import { useI18n } from "@/components/i18n-provider";
 
 const KIND_BADGE: Record<string, string> = {
-  run: "border-track/60 text-track",
-  station: "border-accent/60 text-accent",
+  run: "border-track/60 text-track-ink",
+  station: "border-accent/60 text-accent-ink",
   roxzone: "border-muted/60 text-muted",
 };
 
@@ -199,7 +199,7 @@ export function SessionNewForm({
   }
 
   return (
-    <main>
+    <main className="rx-page rx-form-page rx-session-new-form">
       <Link
         href={initial ? `/sessions/${initial.id}` : "/sessions"}
         className="text-sm text-muted hover:text-foreground"
@@ -262,7 +262,7 @@ export function SessionNewForm({
               onClick={() => setRpe(rpe === n ? null : n)}
               className={`h-8 w-8 rounded-md border text-xs font-semibold transition ${
                 rpe === n
-                  ? "border-accent bg-accent text-background"
+                  ? "border-accent bg-accent text-on-accent"
                   : "border-muted/30 text-muted hover:border-foreground"
               }`}
             >
@@ -286,7 +286,7 @@ export function SessionNewForm({
                 }
                 className={`rounded-full border px-3 py-1 text-xs transition ${
                   templateId === w.id
-                    ? "border-accent bg-accent text-background"
+                    ? "border-accent bg-accent text-on-accent"
                     : "border-muted/30 text-muted hover:border-foreground"
                 }`}
               >
@@ -340,11 +340,11 @@ export function SessionNewForm({
           </span>
         </p>
         <div className="flex items-center gap-4">
-          {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <button
             onClick={handleSave}
             disabled={pending || totalMs === 0}
-            className="rounded-md bg-accent px-6 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
+            className="rounded-md bg-accent px-6 py-2.5 font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
           >
             {pending ? t("common.saving") : t("newSession.save")}
           </button>

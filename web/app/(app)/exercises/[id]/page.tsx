@@ -119,7 +119,7 @@ export default async function ExerciseDetailPage({
     });
 
   return (
-    <main>
+    <main className="rx-page rx-detail-page rx-exercises-page">
       <Link
         href="/exercises"
         className="text-sm text-muted hover:text-foreground"
@@ -187,7 +187,7 @@ export default async function ExerciseDetailPage({
             {muscles.map((m) => (
               <span
                 key={m}
-                className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track"
+                className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track-ink"
               >
                 {dictLabel(t, `muscle.${m}`, m)}
               </span>
@@ -203,7 +203,7 @@ export default async function ExerciseDetailPage({
             {helps.map((h) => (
               <span
                 key={h}
-                className="rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent"
+                className="rounded-full bg-accent/15 px-3 py-1 text-xs font-semibold text-accent-ink"
               >
                 {dictLabel(t, `hstation.${h}`, h)}
               </span>

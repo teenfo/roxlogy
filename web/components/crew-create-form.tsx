@@ -95,7 +95,7 @@ export function CrewCreateForm() {
         required
       />
       {slug && !slugOk && (
-        <p className="mt-1 text-xs text-red-400">{t("crew.slugHint")}</p>
+        <p className="mt-1 text-xs text-danger">{t("crew.slugHint")}</p>
       )}
 
       <label className={label}>{t("crew.fTagline")}</label>
@@ -137,7 +137,7 @@ export function CrewCreateForm() {
             onClick={() => setJoinPolicy(v)}
             className={`rounded-full px-3 py-1.5 text-xs ${
               joinPolicy === v
-                ? "bg-accent font-bold text-background"
+                ? "bg-accent font-bold text-on-accent"
                 : "bg-surface text-muted hover:text-foreground"
             }`}
           >
@@ -155,12 +155,12 @@ export function CrewCreateForm() {
         {t("crew.fPublic")}
       </label>
 
-      {err && <p role="alert" className="mt-3 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
 
       <button
         type="submit"
         disabled={busy || !name.trim() || !slugOk}
-        className="mt-6 w-full rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+        className="mt-6 w-full rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
       >
         {t("crew.submitCreate")}
       </button>

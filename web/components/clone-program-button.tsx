@@ -39,11 +39,11 @@ export function CloneProgramButton({
       <button
         onClick={clone}
         disabled={pending}
-        className="rounded-md border border-accent/50 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10 disabled:opacity-40"
+        className="rounded-md border border-accent/50 px-4 py-2 text-sm font-semibold text-accent-ink hover:bg-accent/10 disabled:opacity-40"
       >
         {pending ? t("common.saving") : t("programs.clone")}
       </button>
-      {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+      {err && <p role="alert" className="text-xs text-danger">{err}</p>}
     </div>
   );
 }

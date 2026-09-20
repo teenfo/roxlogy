@@ -96,7 +96,7 @@ export default async function AdminContentPage({
   const exs = (exercises ?? []) as Ex[];
 
   return (
-    <main className="flex flex-col gap-10">
+    <main className="rx-page rx-list-page rx-admin-page flex flex-col gap-10">
       <section>
         <h1 className="text-xl font-bold">{t("admin.exercisesTitle")}</h1>
         <p className="mt-1 text-sm text-muted">{t("admin.exercisesDesc")}</p>
@@ -148,7 +148,7 @@ export default async function AdminContentPage({
             >
               <Link
                 href={`/programs/${p.id}`}
-                className="text-sm font-medium hover:text-accent"
+                className="text-sm font-medium hover:text-accent-ink"
               >
                 {p.title}
               </Link>

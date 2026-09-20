@@ -68,15 +68,15 @@ export default async function PftLeaderboardPage({
   };
   const rankStyle = (rank: number) =>
     rank === 1
-      ? "bg-accent text-background"
+      ? "bg-accent text-on-accent"
       : rank === 2
-        ? "bg-[#c9c9c9] text-background"
+        ? "bg-[#c9c9c9] text-on-accent"
         : rank === 3
-          ? "bg-[#b87333] text-background"
+          ? "bg-[#b87333] text-on-accent"
           : "bg-line text-muted";
 
   return (
-    <main className="flex flex-col gap-[22px]">
+    <main className="rx-page rx-list-page rx-pft-page flex flex-col gap-[22px]">
       {/* 헤더 */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -93,7 +93,7 @@ export default async function PftLeaderboardPage({
         </div>
         <Link
           href="/pft/measure"
-          className="flex h-10 shrink-0 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110"
+          className="flex h-10 shrink-0 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-on-accent hover:brightness-110"
         >
           ▶ {t("pft.mStartCta")}
         </Link>
@@ -103,7 +103,7 @@ export default async function PftLeaderboardPage({
         <Card className="px-5 py-3.5">
           <p className="text-sm text-muted">
             {t("leaderboard.optInPrompt")}{" "}
-            <Link href="/settings/profile" className="text-accent hover:underline">
+            <Link href="/settings/profile" className="text-accent-ink hover:underline">
               {t("leaderboard.optInLink")}
             </Link>
           </p>
@@ -158,7 +158,7 @@ export default async function PftLeaderboardPage({
                     isMe
                       ? "bg-highlight"
                       : r.rank === 1
-                        ? "bg-[#161512]"
+                        ? "bg-highlight"
                         : "hover:bg-card-hover"
                   }`}
                 >
@@ -175,11 +175,11 @@ export default async function PftLeaderboardPage({
                     <span className="min-w-0">
                       <Link
                         href={`/u/${r.user_id}`}
-                        className="flex items-center gap-1.5 truncate text-base font-bold hover:text-accent"
+                        className="flex items-center gap-1.5 truncate text-base font-bold hover:text-accent-ink"
                       >
                         {r.display_name}
                         {isMe && (
-                          <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-background">
+                          <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-on-accent">
                             ME
                           </span>
                         )}
@@ -209,7 +209,7 @@ export default async function PftLeaderboardPage({
 
                   <span className="text-right">
                     <span
-                      className={`tabular block text-[22px] font-extrabold ${r.rank === 1 ? "text-accent" : ""}`}
+                      className={`tabular block text-[22px] font-extrabold ${r.rank === 1 ? "text-accent-ink" : ""}`}
                     >
                       {formatMs(r.total_ms)}
                     </span>

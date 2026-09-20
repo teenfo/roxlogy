@@ -32,7 +32,7 @@ export default async function AdminCrewsPage() {
   const rest = crews.filter((c) => c.status !== "pending");
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-admin-page">
       <h1 className="text-xl font-bold">{t("admin.crewsTitle")}</h1>
 
       <h2 className="mt-5 text-sm font-semibold text-muted">
@@ -52,7 +52,7 @@ export default async function AdminCrewsPage() {
               <div className="min-w-0">
                 <Link
                   href={`/crews/${c.slug}`}
-                  className="text-sm font-bold hover:text-accent"
+                  className="text-sm font-bold hover:text-accent-ink"
                 >
                   {c.name}
                 </Link>
@@ -78,14 +78,14 @@ export default async function AdminCrewsPage() {
           >
             <Link
               href={`/crews/${c.slug}`}
-              className="truncate text-sm hover:text-accent"
+              className="truncate text-sm hover:text-accent-ink"
             >
               {c.name}
               <span className="ml-2 text-xs text-muted">/{c.slug}</span>
             </Link>
             <span
               className={`text-xs ${
-                c.status === "active" ? "text-track" : "text-red-400"
+                c.status === "active" ? "text-track-ink" : "text-danger"
               }`}
             >
               {c.status}

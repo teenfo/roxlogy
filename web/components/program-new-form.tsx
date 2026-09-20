@@ -24,8 +24,8 @@ export function dowLabel(tag: string, d: number): string {
 const chip = (active: boolean) =>
   `flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-bold transition-colors ${
     active
-      ? "bg-accent text-background"
-      : "border border-line-strong text-[#c9c9c9] hover:border-muted/60"
+      ? "bg-accent text-on-accent"
+      : "border border-line-strong text-foreground/80 hover:border-muted/60"
   }`;
 
 /**
@@ -107,7 +107,7 @@ export function ProgramNewForm() {
   const label = "text-xs font-bold tracking-[0.02em] text-muted";
 
   return (
-    <main className="max-w-4xl pb-10">
+    <main className="rx-page rx-form-page rx-program-new-form max-w-4xl pb-10">
       <Link href="/programs" className="text-[13px] text-muted hover:text-foreground">
         {t("programs.back")}
       </Link>
@@ -219,14 +219,14 @@ export function ProgramNewForm() {
                     aria-pressed={on}
                     className={`flex h-11 flex-col items-center justify-center rounded-lg text-sm font-bold transition-colors max-md:h-10 ${
                       on
-                        ? "bg-accent text-background"
-                        : "border border-line-strong text-[#c9c9c9] hover:border-muted/60"
+                        ? "bg-accent text-on-accent"
+                        : "border border-line-strong text-foreground/80 hover:border-muted/60"
                     }`}
                   >
                     {dowLabel(tag, d)}
                     <span
                       className={`text-[10px] font-semibold ${
-                        on ? "text-background/70" : "text-muted-2"
+                        on ? "text-on-accent/70" : "text-muted-2"
                       }`}
                     >
                       {on ? t("programs.dowOn") : t("programs.dowOff")}
@@ -278,8 +278,8 @@ export function ProgramNewForm() {
               disabled={!valid || pending}
               className={`flex h-[46px] items-center justify-center rounded-lg text-sm font-extrabold transition ${
                 valid && !pending
-                  ? "bg-accent text-background hover:brightness-110"
-                  : "cursor-not-allowed bg-[#2a2a2a] text-muted-2"
+                  ? "bg-accent text-on-accent hover:brightness-110"
+                  : "cursor-not-allowed bg-inset text-muted-2"
               }`}
             >
               {pending ? t("common.saving") : t("programs.createNext")}

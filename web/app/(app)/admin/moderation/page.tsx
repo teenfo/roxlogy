@@ -46,7 +46,7 @@ export default async function AdminModerationPage() {
   );
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-admin-page">
       <h1 className="text-xl font-bold">{t("admin.modTitle")}</h1>
       <p className="mt-1 text-sm text-muted">{t("admin.modDesc")}</p>
 

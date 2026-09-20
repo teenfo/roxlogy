@@ -140,7 +140,7 @@ export default async function ProgramDetailPage({
     ex ? (locale === "ko" ? ex.name_ko : ex.name_en) : "—";
 
   return (
-    <main className="max-w-4xl">
+    <main className="rx-page rx-detail-page rx-programs-page max-w-4xl">
       <div className="flex items-center justify-between">
         <Link href="/programs" className="text-[13px] text-muted hover:text-foreground">
           {t("programs.back")}
@@ -148,7 +148,7 @@ export default async function ProgramDetailPage({
         {isOwner && preview === "1" && (
           <Link
             href={`/programs/${program.id}`}
-            className="text-[13px] font-semibold text-accent hover:underline"
+            className="text-[13px] font-semibold text-accent-ink hover:underline"
           >
             {t("programs.backToBuilder")}
           </Link>
@@ -233,7 +233,7 @@ export default async function ProgramDetailPage({
             </span>
             <a
               href={`/programs/${program.id}/calendar.ics`}
-              className="rounded-md bg-control px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent"
+              className="rounded-md bg-control px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent-ink"
             >
               📅 {t("programs.icsDownload")}
             </a>
@@ -270,7 +270,7 @@ export default async function ProgramDetailPage({
               <section
                 key={d.id}
                 className={`overflow-hidden rounded-[14px] border bg-card ${
-                  d.workout_templates.length ? "border-line" : "border-[#1c1c1c]"
+                  d.workout_templates.length ? "border-line" : "border-line-soft"
                 }`}
               >
                 <div className="flex flex-wrap items-center gap-2.5 border-b border-line bg-inset px-4 py-3">
@@ -293,7 +293,7 @@ export default async function ProgramDetailPage({
                   <div className="flex flex-col gap-2.5 px-4 py-3">
                     {d.workout_templates.map((w) => (
                       <div key={w.id} className="rounded-xl border border-line bg-page">
-                        <div className="flex flex-wrap items-center gap-2.5 border-b border-[#1c1c1c] px-3.5 py-2.5">
+                        <div className="flex flex-wrap items-center gap-2.5 border-b border-line-soft px-3.5 py-2.5">
                           <span
                             className={`h-1.5 w-1.5 shrink-0 rounded-full ${wodTypeDot(w.type)}`}
                           />
@@ -312,7 +312,7 @@ export default async function ProgramDetailPage({
                               .map((it, i) => (
                                 <li
                                   key={it.id}
-                                  className="flex flex-wrap items-center gap-2.5 border-b border-[#161616] px-3.5 py-2 last:border-b-0"
+                                  className="flex flex-wrap items-center gap-2.5 border-b border-line-soft px-3.5 py-2 last:border-b-0"
                                 >
                                   <span className="tabular w-6 shrink-0 text-right text-xs font-bold text-muted-2">
                                     {i + 1}
@@ -324,7 +324,7 @@ export default async function ProgramDetailPage({
                                     {!it.exercises && it.pending_exercise && (
                                       <span
                                         title={t("programs.pendingHint")}
-                                        className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-accent"
+                                        className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-accent-ink"
                                       >
                                         {t("programs.pendingBadge")}
                                       </span>
@@ -334,7 +334,7 @@ export default async function ProgramDetailPage({
                                     {targetParts(it.target, locale).map((part, j) => (
                                       <span
                                         key={j}
-                                        className="tabular flex h-6 items-center rounded-md border border-line-mid bg-[#161616] px-1.5 text-xs font-bold"
+                                        className="tabular flex h-6 items-center rounded-md border border-line-mid bg-inset px-1.5 text-xs font-bold"
                                       >
                                         {part}
                                       </span>

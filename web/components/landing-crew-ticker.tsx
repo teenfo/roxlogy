@@ -103,7 +103,7 @@ export function LandingCrewTicker({ crews }: { crews: TickerCrew[] }) {
           />
         </>
       )}
-      <span className="absolute right-0 top-2.5 z-[3] flex items-center gap-1.5 text-xs font-bold tracking-[0.06em] text-[#8a7a2a]">
+      <span className="absolute right-0 top-2.5 z-[3] flex items-center gap-1.5 text-xs font-bold tracking-[0.06em] text-accent-ink">
         <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />
         {t("landing.activeCrews")}
       </span>

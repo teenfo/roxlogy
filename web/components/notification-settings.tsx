@@ -235,7 +235,7 @@ export function NotificationSettings() {
               type="button"
               onClick={test}
               disabled={busy}
-              className="mt-1.5 text-xs font-bold text-accent hover:underline disabled:opacity-40"
+              className="mt-1.5 text-xs font-bold text-accent-ink hover:underline disabled:opacity-40"
             >
               {t("notif.test")}
             </button>

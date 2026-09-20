@@ -55,7 +55,7 @@ export default async function PublicProfilePage({
   const name = profile.display_name || t("profile.anon");
 
   return (
-    <main>
+    <main className="rx-page rx-detail-page rx-u-page">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{name}</h1>
@@ -69,7 +69,7 @@ export default async function PublicProfilePage({
               href={`https://instagram.com/${profile.instagram}`}
               target="_blank"
               rel="noreferrer noopener"
-              className="mt-1 inline-block text-sm text-accent hover:underline"
+              className="mt-1 inline-block text-sm text-accent-ink hover:underline"
             >
               @{profile.instagram}
             </a>
@@ -83,7 +83,7 @@ export default async function PublicProfilePage({
           {t("pub.sharedN", { n: profile.shared_count })}
         </span>
         {profile.leaderboard_opt_in && (
-          <span className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track">
+          <span className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track-ink">
             {t("pub.leaderboardMember")}
           </span>
         )}
@@ -104,7 +104,7 @@ export default async function PublicProfilePage({
                   className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
                 >
                   <span className="text-sm">{formatDate(s.started_at, tag, tz)}</span>
-                  <span className="font-mono text-lg font-semibold text-accent">
+                  <span className="font-mono text-lg font-semibold text-accent-ink">
                     {formatMs(s.total_time_ms)}
                   </span>
                 </RowLink>

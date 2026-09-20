@@ -21,10 +21,10 @@ export default async function CrewNewPostPage({
   if (!isActiveMember(crew)) redirect(`/crews/${slug}/board`);
 
   return (
-    <main>
+    <main className="rx-page rx-form-page rx-crews-page">
       <Link
         href={`/crews/${slug}/board`}
-        className="text-xs text-muted hover:text-accent"
+        className="text-xs text-muted hover:text-accent-ink"
       >
         ← {t("crew.board")}
       </Link>

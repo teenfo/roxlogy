@@ -67,7 +67,7 @@ export function CrewDuesNotify({
           {err}
         </p>
       )}
-      {msg && <p className="text-xs text-[#c9c9c9]">{msg}</p>}
+      {msg && <p className="text-xs text-foreground/80">{msg}</p>}
     </>
   );
 }

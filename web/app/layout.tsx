@@ -11,7 +11,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   ...shareMetadata(),
   metadataBase: new URL(SITE_URL),
-  title: "Roxlogy",
+  title: "ROXLOGY",
   description: "The science of hybrid racing",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -20,13 +20,13 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Roxlogy",
+    title: "ROXLOGY",
     statusBarStyle: "black-translucent",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#141414",
+  themeColor: "#f5f6f8",
 };
 
 export default function RootLayout({

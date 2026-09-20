@@ -25,7 +25,7 @@ export default async function PftRaceJoinPage() {
   const missing = missingForRace(me as { birth_year: number | null; gender: string | null } | null);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
+    <main className="rx-page rx-form-page rx-pft-page mx-auto flex w-full max-w-lg flex-col gap-4">
       <div>
         <Link href="/pft" className="text-sm text-muted hover:text-foreground">
           ← {t("pft.title")}

@@ -56,7 +56,7 @@ export function CrewUnpaidCard({
     <>
       <p className="text-xs text-muted">{t("crew.statUnpaid")}</p>
       <p
-        className={`mt-1 font-mono text-lg font-bold ${amount > 0 ? "text-red-400" : ""}`}
+        className={`mt-1 font-mono text-lg font-bold ${amount > 0 ? "text-danger" : ""}`}
       >
         {won(amount)}
       </p>
@@ -76,7 +76,7 @@ export function CrewUnpaidCard({
         className="rounded-md bg-surface px-4 py-3 text-left ring-accent/40 hover:ring-1"
       >
         {tile}
-        <span className="mt-1 block text-xs text-accent">
+        <span className="mt-1 block text-xs text-accent-ink">
           {t("crew.unpaidOpen")}
         </span>
       </button>
@@ -92,7 +92,7 @@ export function CrewUnpaidCard({
         <div className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="text-sm font-bold">{t("crew.unpaidTitle")}</h3>
-            <span className="font-mono text-sm font-bold text-red-400">
+            <span className="font-mono text-sm font-bold text-danger">
               {won(amount)}
             </span>
           </div>
@@ -107,7 +107,7 @@ export function CrewUnpaidCard({
                     <span className="truncate text-sm font-semibold">
                       {list[0].name}
                     </span>
-                    <span className="shrink-0 font-mono text-xs text-accent">
+                    <span className="shrink-0 font-mono text-xs text-accent-ink">
                       {won(sum)}
                     </span>
                   </div>
@@ -120,7 +120,7 @@ export function CrewUnpaidCard({
                         <span className="shrink-0 font-mono">{c.period}</span>
                         <span className="min-w-0 flex-1 truncate">{c.label}</span>
                         {c.status === "reported" && (
-                          <span className="shrink-0 text-accent">
+                          <span className="shrink-0 text-accent-ink">
                             {t("crew.duesReported")}
                           </span>
                         )}
@@ -136,7 +136,7 @@ export function CrewUnpaidCard({
           <div className="mt-4 flex items-center justify-between gap-3">
             <a
               href={financeHref}
-              className="text-xs text-accent hover:underline"
+              className="text-xs text-accent-ink hover:underline"
             >
               {t("crew.unpaidGoFinance")}
             </a>

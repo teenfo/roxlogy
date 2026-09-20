@@ -127,7 +127,7 @@ export default async function RacePlanPage({
   const accepted = plan.partners.filter((p) => p.status === "accepted").length;
 
   const badges: { label: string; cls: string }[] = [
-    { label: "MY RACE", cls: "border border-line-accent text-accent" },
+    { label: "MY RACE", cls: "border border-line-accent text-accent-ink" },
   ];
   if (plan.division)
     badges.push({
@@ -158,7 +158,7 @@ export default async function RacePlanPage({
   ] as const;
 
   return (
-    <main className="mx-auto flex w-full max-w-[860px] flex-col gap-3.5">
+    <main className="rx-page rx-detail-page rx-schedule-page mx-auto flex w-full max-w-[860px] flex-col gap-3.5">
       {/* 히어로 — 크루 모임 상세와 같은 구성 */}
       <section className="overflow-hidden rounded-2xl border border-line-mid bg-card">
         <div className="grid grid-cols-[84px_minmax(0,1fr)_auto] items-start gap-5 px-6 py-[22px] max-md:grid-cols-[64px_minmax(0,1fr)] max-md:gap-4 max-md:px-4">
@@ -247,7 +247,7 @@ export default async function RacePlanPage({
           </div>
           <div className="px-6 py-3.5 max-md:px-4">
             <p className="text-xs text-muted">{t("race.goalTitle")}</p>
-            <p className="tabular mt-0.5 text-[22px] font-extrabold text-accent max-md:text-lg">
+            <p className="tabular mt-0.5 text-[22px] font-extrabold text-accent-ink max-md:text-lg">
               {plan.goal_target_ms == null ? "—" : formatMs(plan.goal_target_ms)}
             </p>
           </div>
@@ -287,7 +287,7 @@ export default async function RacePlanPage({
             {isOwner && (
               <Link
                 href={`/predict?event=${encodeURIComponent(plan.title)}&date=${plan.race_date}`}
-                className="ml-auto text-xs font-bold text-accent hover:underline"
+                className="ml-auto text-xs font-bold text-accent-ink hover:underline"
               >
                 {plan.goal_target_ms == null
                   ? t("events.setGoal")
@@ -301,7 +301,7 @@ export default async function RacePlanPage({
             </p>
           ) : (
             <>
-              <p className="tabular text-3xl font-extrabold text-accent">
+              <p className="tabular text-3xl font-extrabold text-accent-ink">
                 {formatMs(plan.goal_target_ms)}
               </p>
               {splits.some((s) => s.ms != null) && (

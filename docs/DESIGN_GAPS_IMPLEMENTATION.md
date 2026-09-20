@@ -1,6 +1,7 @@
 # 디자인 공백 후속 구현 — 2026-09-20
 
-이번 변경 범위는 프로그램 멤버 미리보기, 외부 공유 OG 3종, Google One Tap 정책이다.
+이 문서는 1차 변경(프로그램 멤버 미리보기, 외부 공유 OG 3종, Google One Tap 정책)의 상세 기록이다.
+같은 브랜치의 후속 변경은 전체 화면 리뉴얼까지 포함하며, 현재 기준은 `ROXLOGY-Global-Design-Spec.md`, `ROXLOGY-Mobile-Design-Guide.md`, `ROXLOGY-Screen-Coverage.md`다.
 기준 커밋: `0e413cdfb46e774c1ec8df9629e1d6f45b600a41`.
 사용자 요청에 따라 `feat/design-gaps-preview-og-onetap` 브랜치에서 작업한다.
 

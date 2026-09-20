@@ -38,7 +38,7 @@ function Delta({ raceMs, trainMs }: { raceMs?: number; trainMs?: number }) {
   if (raceMs == null || trainMs == null)
     return <span className="text-muted">—</span>;
   const diff = raceMs - trainMs; // 음수 = 레이스가 빠름
-  const cls = diff <= 0 ? "text-track" : "text-red-400";
+  const cls = diff <= 0 ? "text-track-ink" : "text-danger";
   return (
     <span className={`font-mono ${cls}`}>
       {diff <= 0 ? "-" : "+"}
@@ -185,7 +185,7 @@ export default async function RaceDetailPage({
   }));
 
   return (
-    <main>
+    <main className="rx-page rx-detail-page rx-races-page">
       <div className="flex items-center justify-between">
         <Link href="/races" className="text-sm text-muted hover:text-foreground">
           {t("races.back")}
@@ -211,9 +211,10 @@ export default async function RaceDetailPage({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
+      <section className="rx-race-result" data-theme="dark">
+      <div className="flex flex-wrap items-baseline justify-between gap-4">
         <h1 className="text-2xl font-bold">{race.event}</h1>
-        <span className="font-mono text-3xl font-bold text-accent">
+        <span className="font-mono text-3xl font-bold text-accent-ink">
           {formatMs(race.total_time_ms)}
         </span>
       </div>
@@ -237,6 +238,8 @@ export default async function RaceDetailPage({
         )}
       </p>
 
+      </section>
+
       {percentile != null && race.division && (
         <PercentileBar
           pct={percentile}
@@ -258,7 +261,7 @@ export default async function RaceDetailPage({
         {!sim ? (
           <p className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             {t("races.noSim")}{" "}
-            <Link href="/sessions/new" className="text-accent hover:underline">
+            <Link href="/sessions/new" className="text-accent-ink hover:underline">
               {t("races.noSimLink")}
             </Link>
           </p>

@@ -16,7 +16,7 @@ export default async function CrewNewPage() {
     <>
       <CrewHeader loginNext="/crews/new" />
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-6 py-8">
+      <main id="main-content" className="rx-public-workspace mx-auto w-full max-w-lg flex-1 px-6 py-8">
         <h1 className="text-3xl font-black tracking-tight">
           {t("crew.createTitle")}
         </h1>
@@ -26,7 +26,7 @@ export default async function CrewNewPage() {
           <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
             <Link
               href="/login?next=/crews/new"
-              className="text-accent hover:underline"
+              className="text-accent-ink hover:underline"
             >
               {t("common.login")}
             </Link>

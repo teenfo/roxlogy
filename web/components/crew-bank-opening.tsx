@@ -92,7 +92,7 @@ export function CrewBankOpening({
       <button
         type="submit"
         disabled={busy}
-        className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-background disabled:opacity-40"
+        className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-on-accent disabled:opacity-40"
       >
         {t("common.save")}
       </button>

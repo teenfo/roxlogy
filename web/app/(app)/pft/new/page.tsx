@@ -28,14 +28,14 @@ export default async function PftNewPage() {
     : null;
 
   return (
-    <main>
+    <main className="rx-page rx-form-page rx-pft-page">
       <Link href="/pft" className="text-[13px] text-muted hover:text-foreground">
         ← {t("pft.title")}
       </Link>
       <h1 className="mt-2 text-[26px] font-extrabold">{t("pft.add")}</h1>
       <p className="mt-1 text-sm text-muted">
         {t("pft.addDesc")}{" "}
-        <Link href="/pft/measure" className="text-accent hover:underline">
+        <Link href="/pft/measure" className="text-accent-ink hover:underline">
           {t("pft.mStartCta")} →
         </Link>
       </p>

@@ -66,7 +66,7 @@ export function ExerciseDrills({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="text-sm font-semibold text-accent hover:underline"
+          className="text-sm font-semibold text-accent-ink hover:underline"
         >
           {t("exercises.drillAdd")}
         </button>
@@ -93,11 +93,11 @@ export function ExerciseDrills({
             rows={3}
             className="rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-accent"
           />
-          {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <button
             type="submit"
             disabled={pending || !title.trim()}
-            className="justify-self-start rounded-md bg-accent px-5 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+            className="justify-self-start rounded-md bg-accent px-5 py-2 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
           >
             {pending ? t("exercises.drillSaving") : t("exercises.drillSave")}
           </button>
@@ -127,7 +127,7 @@ export function ExerciseDrills({
                 type="button"
                 onClick={() => remove(d.id)}
                 aria-label={t("common.delete")}
-                className="-m-2 shrink-0 p-2 text-muted hover:text-red-400"
+                className="-m-2 shrink-0 p-2 text-muted hover:text-danger"
               >
                 ✕
               </button>

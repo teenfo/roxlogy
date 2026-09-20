@@ -385,7 +385,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     "rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent";
 
   return (
-    <main>
+    <main className="rx-page rx-form-page rx-race-new-form">
       <Link href="/races" className="text-sm text-muted hover:text-foreground">
         {t("races.back")}
       </Link>
@@ -495,7 +495,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               type="button"
               onClick={handleSearch}
               disabled={searching || !canSearch}
-              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
             >
               {searching
                 ? t("raceNew.import.searching")
@@ -510,7 +510,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           </p>
         )}
         {searchError && (
-          <p className="mt-2 text-xs text-red-400">{searchError}</p>
+          <p className="mt-2 text-xs text-danger">{searchError}</p>
         )}
 
         {/* ── 2단계: 결과 선택 */}
@@ -518,7 +518,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           <div className="mt-4 border-t border-muted/20 pt-3">
             <p className="text-sm font-semibold">{t("raceNew.step2")}</p>
             {firstNameMiss && hits.length > 0 && (
-              <p className="mt-2 text-xs text-accent">
+              <p className="mt-2 text-xs text-accent-ink">
                 {t("raceNew.import.firstNameMiss", {
                   name: firstName.trim(),
                 })}
@@ -552,7 +552,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               </ul>
             )}
             {importing && (
-              <p className="mt-1.5 text-xs text-track">
+              <p className="mt-1.5 text-xs text-track-ink">
                 {t("raceNew.import.loadingResult")}
               </p>
             )}
@@ -562,7 +562,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           </div>
         )}
         {importNotice && (
-          <p className="mt-2 text-xs text-track">{importNotice}</p>
+          <p className="mt-2 text-xs text-track-ink">{importNotice}</p>
         )}
       </section>
 
@@ -713,11 +713,11 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               </div>
             )}
 
-            {saveError && <p className="text-sm text-red-400">{saveError}</p>}
+            {saveError && <p className="text-sm text-danger">{saveError}</p>}
             <button
               onClick={handleSave}
               disabled={pending}
-              className="rounded-md bg-accent px-6 py-2.5 font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="rounded-md bg-accent px-6 py-2.5 font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
             >
               {pending
                 ? t("common.saving")
@@ -729,7 +729,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         <button
           type="button"
           onClick={() => setShowManual(true)}
-          className="mt-4 text-sm text-accent hover:underline"
+          className="mt-4 text-sm text-accent-ink hover:underline"
         >
           {t("raceNew.manualToggle")}
         </button>
@@ -783,7 +783,7 @@ function ManualImport({
         type="button"
         onClick={onOpenSite}
         disabled={!canOpenSite}
-        className="text-xs text-accent hover:underline disabled:opacity-40"
+        className="text-xs text-accent-ink hover:underline disabled:opacity-40"
       >
         {t("raceNew.import.openSite")} ↗
       </button>
@@ -824,7 +824,7 @@ function ManualImport({
       >
         {t("raceNew.import.parseBtn")}
       </button>
-      {notice && <p role="status" className="mt-2 text-xs text-red-400">{notice}</p>}
+      {notice && <p role="status" className="mt-2 text-xs text-danger">{notice}</p>}
     </section>
   );
 }

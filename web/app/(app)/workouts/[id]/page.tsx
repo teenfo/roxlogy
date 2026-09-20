@@ -146,7 +146,7 @@ export default async function WorkoutPage({
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-3.5">
+    <main className="rx-page rx-detail-page rx-workouts-page mx-auto flex w-full max-w-4xl flex-col gap-3.5">
       {/* 브레드크럼 */}
       <p className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
         <Link
@@ -206,7 +206,7 @@ export default async function WorkoutPage({
             <div className="flex shrink-0 flex-col items-end gap-1.5 max-md:items-stretch">
               <Link
                 href="/sessions/new"
-                className="flex h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-extrabold text-background transition hover:brightness-110"
+                className="flex h-11 items-center justify-center rounded-lg bg-accent px-5 text-[15px] font-extrabold text-on-accent transition hover:brightness-110"
               >
                 ◔ {t("workouts.recordAsSession")}
               </Link>

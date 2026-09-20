@@ -63,7 +63,7 @@ export function CrewLedgerSettle({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-label-bg px-1.5 py-0.5 text-xs font-bold text-label transition-colors hover:bg-accent hover:text-background"
+        className="rounded-md bg-label-bg px-1.5 py-0.5 text-xs font-bold text-label transition-colors hover:bg-accent hover:text-on-accent"
       >
         {t("crew.finUnsettledBadge")}
       </button>
@@ -82,7 +82,7 @@ export function CrewLedgerSettle({
         type="button"
         onClick={() => set(date || entryDate)}
         disabled={busy}
-        className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-background disabled:opacity-40"
+        className="rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-on-accent disabled:opacity-40"
       >
         {t("crew.finSettle")}
       </button>
@@ -157,7 +157,7 @@ export function CrewLedgerSettleMonth({
         type="button"
         onClick={run}
         disabled={busy}
-        className="flex h-8 shrink-0 items-center rounded-lg border border-line-accent bg-highlight px-3 text-[13px] font-bold text-accent transition hover:brightness-125 disabled:opacity-40"
+        className="flex h-8 shrink-0 items-center rounded-lg border border-line-accent bg-highlight px-3 text-[13px] font-bold text-accent-ink transition hover:brightness-125 disabled:opacity-40"
       >
         {t("crew.finSettleAll", { n: count })}
       </button>

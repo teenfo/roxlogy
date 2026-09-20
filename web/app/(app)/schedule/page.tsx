@@ -90,7 +90,7 @@ export default async function SchedulePage({
 
   if (enrolls.length === 0) {
     return (
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+      <main className="rx-page rx-list-page rx-schedule-page mx-auto flex w-full max-w-4xl flex-col gap-5">
         <h1 className="text-[30px] font-extrabold tracking-tight max-md:text-2xl">
           {t("schedule.title")}
         </h1>
@@ -100,7 +100,7 @@ export default async function SchedulePage({
           </p>
           <Link
             href="/programs"
-            className="mt-4 inline-flex h-10 items-center rounded-lg bg-accent px-5 text-sm font-extrabold text-background transition hover:brightness-110"
+            className="mt-4 inline-flex h-10 items-center rounded-lg bg-accent px-5 text-sm font-extrabold text-on-accent transition hover:brightness-110"
           >
             {t("schedule.browsePrograms")}
           </Link>
@@ -263,7 +263,7 @@ export default async function SchedulePage({
     })),
   }));
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+    <main className="rx-page rx-list-page rx-schedule-page mx-auto flex w-full max-w-4xl flex-col gap-5">
       {/* 헤더 — 프로그램과 현재 위치를 한 줄로 */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
@@ -271,14 +271,14 @@ export default async function SchedulePage({
             {t("schedule.title")}
           </h1>
           <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[15px] text-muted">
-            <span className="rounded-md border border-line-accent bg-highlight px-2 py-[3px] text-xs font-extrabold tracking-[0.08em] text-accent">
+            <span className="rounded-md border border-line-accent bg-highlight px-2 py-[3px] text-xs font-extrabold tracking-[0.08em] text-accent-ink">
               PROGRAM
             </span>
             {solo ? (
               <>
                 <Link
                   href={`/programs/${solo.id}`}
-                  className="font-semibold text-accent hover:underline"
+                  className="font-semibold text-accent-ink hover:underline"
                 >
                   {solo.title}
                 </Link>
@@ -299,7 +299,7 @@ export default async function SchedulePage({
                 )}
               </>
             ) : (
-              <Link href="/programs" className="font-semibold text-accent hover:underline">
+              <Link href="/programs" className="font-semibold text-accent-ink hover:underline">
                 {t("schedule.nPrograms", { n: progs.length })}
               </Link>
             )}
@@ -316,7 +316,7 @@ export default async function SchedulePage({
           {todayFirst && (
             <Link
               href={`/workouts/${todayFirst.id}`}
-              className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background transition hover:brightness-110 max-md:flex-1 max-md:justify-center"
+              className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-on-accent transition hover:brightness-110 max-md:flex-1 max-md:justify-center"
             >
               ▶ {t("schedule.startToday")}
             </Link>
@@ -331,7 +331,7 @@ export default async function SchedulePage({
             <Link
               href={`/schedule?week=${weekOffset - 1}`}
               aria-label={t("schedule.prevWeek")}
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-lg text-accent hover:bg-card-hover"
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-lg text-accent-ink hover:bg-card-hover"
             >
               ‹
             </Link>
@@ -341,7 +341,7 @@ export default async function SchedulePage({
             <Link
               href={`/schedule?week=${weekOffset + 1}`}
               aria-label={t("schedule.nextWeek")}
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-lg text-accent hover:bg-card-hover"
+              className="flex h-[34px] w-[34px] items-center justify-center rounded-lg text-accent-ink hover:bg-card-hover"
             >
               ›
             </Link>
@@ -349,7 +349,7 @@ export default async function SchedulePage({
           {weekOffset !== 0 && (
             <Link
               href="/schedule"
-              className="text-[13px] font-semibold text-accent hover:underline"
+              className="text-[13px] font-semibold text-accent-ink hover:underline"
             >
               {t("schedule.goThisWeek")}
             </Link>
@@ -375,7 +375,7 @@ export default async function SchedulePage({
                     : d.isToday
                       ? "bg-accent"
                       : d.withWork.length
-                        ? "bg-[#2a2a2a]"
+                        ? "bg-inset"
                         : "bg-line-soft"
                 }`}
               />

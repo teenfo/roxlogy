@@ -118,7 +118,7 @@ export default async function PftRaceListPage() {
     "flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-sm font-semibold hover:border-muted/60";
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+    <main className="rx-page rx-list-page rx-pft-page mx-auto flex w-full max-w-3xl flex-col gap-5">
       <div>
         <Link href="/pft" className="text-[13px] text-muted hover:text-foreground">
           ← {t("pft.title")}

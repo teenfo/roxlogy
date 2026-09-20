@@ -281,7 +281,7 @@ export function drawRecordCard(
       x += size + 14;
     }
     ctx.fillStyle = pal.ink;
-    ctx.font = font(26, 800);
+    ctx.font = '400 26px "Archivo Black", sans-serif';
     ctx.fillText("ROXLOGY", x, y - Math.round(size * 0.18));
     y -= size + 26;
   }

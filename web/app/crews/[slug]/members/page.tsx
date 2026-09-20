@@ -56,7 +56,7 @@ export default async function CrewMembersPage({
     v ? `/crews/${slug}/members?tier=${encodeURIComponent(v)}` : `/crews/${slug}/members`;
 
   return (
-    <main>
+    <main className="rx-page rx-detail-page rx-crews-page">
       {/* 등급 필터 + 안내 */}
       <div className="flex flex-wrap items-center gap-2">
         <Chip href={chipHref(null)} active={!tier} count={roster.length}>
@@ -92,7 +92,7 @@ export default async function CrewMembersPage({
                 <span className="min-w-0">
                   <Link
                     href={`/u/${m.user_id}`}
-                    className="block truncate text-[15px] font-bold hover:text-accent"
+                    className="block truncate text-[15px] font-bold hover:text-accent-ink"
                   >
                     {m.display_name}
                   </Link>

@@ -58,7 +58,7 @@ export default async function SessionComparePage() {
   const stationKeys = STATIONS.map((s) => s.key);
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-sessions-page">
       <Link href="/sessions" className="text-sm text-muted hover:text-foreground">
         {t("sessions.title")}
       </Link>

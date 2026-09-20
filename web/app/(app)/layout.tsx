@@ -18,14 +18,15 @@ export default async function AppLayout({
   // 비활성(정지) 계정: 앱 접근 차단
   if (profile?.disabled) {
     return (
-      <main className="mx-auto max-w-md px-6 py-24 text-center">
-        <h1 className="text-xl font-bold">{t("suspended.title")}</h1>
+      <main className="rx-state">
+        <div className="rx-state-card"><h1 className="text-xl font-bold">{t("suspended.title")}</h1>
         <p className="mt-2 text-sm text-muted">{t("suspended.body")}</p>
         <SignOutForm
           className="mt-6"
-          buttonClassName="text-sm text-accent hover:underline"
+          buttonClassName="text-sm text-accent-ink hover:underline"
           label={t("common.logout")}
         />
+        </div>
       </main>
     );
   }
@@ -48,7 +49,7 @@ export default async function AppLayout({
         />
       </header>
       {/* 하단 탭바(모바일)에 가리지 않도록 아래 여백을 준다 */}
-      <div className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
+      <div className="rx-workspace" id="main-content">
         {children}
       </div>
       <MobileTabBar />

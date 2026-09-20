@@ -33,7 +33,7 @@ export default async function AdminRacesPage() {
   const open = rows.filter((r) => r.status !== "closed");
   const closed = rows.filter((r) => r.status === "closed");
   const chip = "rounded-md px-2 py-0.5 text-[11px] font-bold";
-  const link = "text-xs font-semibold text-accent hover:underline";
+  const link = "text-xs font-semibold text-accent-ink hover:underline";
 
   const table = (title: string, list: AdminRace[]) =>
     list.length === 0 ? null : (
@@ -102,7 +102,7 @@ export default async function AdminRacesPage() {
     );
 
   return (
-    <div className="flex min-w-0 flex-col gap-5">
+    <main className="rx-page rx-admin-page flex min-w-0 flex-col gap-5">
       <div>
         <h1 className="text-xl font-extrabold">{t("admin.racesTitle")}</h1>
         <p className="mt-1 text-sm text-muted">{t("admin.racesDesc")}</p>
@@ -121,6 +121,6 @@ export default async function AdminRacesPage() {
           {table(t("pft.race.sectionPast"), closed)}
         </>
       )}
-    </div>
+    </main>
   );
 }

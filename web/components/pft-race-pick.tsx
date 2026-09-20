@@ -102,7 +102,7 @@ export function PftRacePick({
                   className={`h-10 shrink-0 rounded-lg px-5 text-sm font-extrabold disabled:opacity-40 ${
                     r.joined
                       ? "border border-line-strong bg-control text-foreground hover:border-muted/60"
-                      : "bg-accent text-background hover:brightness-110"
+                      : "bg-accent text-on-accent hover:brightness-110"
                   }`}
                 >
                   {busy === r.code

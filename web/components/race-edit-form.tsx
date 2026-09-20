@@ -145,7 +145,7 @@ export function RaceEditForm({
           />
         </label>
       </div>
-      {err && <p role="alert" className="mt-2 text-sm text-red-400">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-sm text-danger">{err}</p>}
       <div className="mt-4 flex justify-end gap-2">
         <button
           type="button"
@@ -161,7 +161,7 @@ export function RaceEditForm({
           type="button"
           onClick={save}
           disabled={busy}
-          className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+          className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
         >
           {busy ? t("common.saving") : t("common.save")}
         </button>

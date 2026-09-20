@@ -58,7 +58,7 @@ export function ProgramCalendarSubscribe({
       <button
         type="button"
         onClick={copy}
-        className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent"
+        className="rounded-md bg-surface px-2.5 py-1 text-xs font-semibold text-foreground hover:text-accent-ink"
       >
         {copied ? `✓ ${t("programs.copied")}` : `🔗 ${t("programs.subscribeCopy")}`}
       </button>
@@ -68,12 +68,12 @@ export function ProgramCalendarSubscribe({
           onClick={regenerate}
           disabled={busy}
           title={t("programs.tokenRegenConfirm")}
-          className="rounded-md bg-surface px-2.5 py-1 text-xs text-muted hover:text-red-400 disabled:opacity-50"
+          className="rounded-md bg-surface px-2.5 py-1 text-xs text-muted hover:text-danger disabled:opacity-50"
         >
           ↻ {t("programs.tokenRegen")}
         </button>
       )}
-      {err && <span className="text-xs text-red-400">{err}</span>}
+      {err && <span className="text-xs text-danger">{err}</span>}
     </>
   );
 }

@@ -142,7 +142,7 @@ export function CrewMeetupForm({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-background hover:brightness-110"
+          className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-on-accent hover:brightness-110"
         >
           {editing ? t("common.edit") : `+ ${t("crew.meetupAdd")}`}
         </button>
@@ -224,12 +224,12 @@ export function CrewMeetupForm({
               <span className="text-muted">{t("crew.feeExemptHint")}</span>
             </label>
           )}
-          {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+          {err && <p role="alert" className="text-xs text-danger">{err}</p>}
           <div className="flex gap-2">
             <button
               type="submit"
               disabled={busy || !title.trim() || !when}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
             >
               {editing ? t("common.save") : t("crew.meetupCreate")}
             </button>
@@ -394,7 +394,7 @@ export function RacePlanEditor({
                 <button
                   type="submit"
                   disabled={busy || !title.trim() || !date}
-                  className="rounded-md bg-track px-4 py-2 text-sm font-bold text-background disabled:opacity-40"
+                  className="rounded-md bg-track px-4 py-2 text-sm font-bold text-on-solid disabled:opacity-40"
                 >
                   {t("common.save")}
                 </button>
@@ -619,7 +619,7 @@ export function RacePlanForm({
         <button
           type="button"
           onClick={openForm}
-          className="self-start rounded-md bg-surface px-3 py-1.5 text-xs font-semibold text-track hover:brightness-110"
+          className="self-start rounded-md bg-surface px-3 py-1.5 text-xs font-semibold text-track-ink hover:brightness-110"
         >
           + {t("crew.racePlanAdd")}
         </button>
@@ -674,7 +674,7 @@ export function RacePlanForm({
             </ul>
           )}
           {eventId ? (
-            <p className="text-xs text-track">✓ {t("crew.racePlanLinked")}</p>
+            <p className="text-xs text-track-ink">✓ {t("crew.racePlanLinked")}</p>
           ) : (
             title.trim().length >= 1 &&
             events !== null &&
@@ -718,12 +718,12 @@ export function RacePlanForm({
             placeholder={t("crew.racePlanNotePh")}
             maxLength={80}
           />
-          {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+          {err && <p role="alert" className="text-xs text-danger">{err}</p>}
           <div className="flex gap-2">
             <button
               type="submit"
               disabled={busy || !title.trim() || !date}
-              className="rounded-md bg-track px-4 py-2 text-sm font-bold text-background disabled:opacity-40"
+              className="rounded-md bg-track px-4 py-2 text-sm font-bold text-on-solid disabled:opacity-40"
             >
               {t("common.save")}
             </button>
@@ -794,12 +794,12 @@ export function RacePlanForm({
                     placeholder={t("crew.racePlanNotePh")}
                     maxLength={80}
                   />
-                  {err && <p role="alert" className="text-xs text-red-400">{err}</p>}
+                  {err && <p role="alert" className="text-xs text-danger">{err}</p>}
                   <div className="flex gap-2">
                     <button
                       type="submit"
                       disabled={busy || !eTitle.trim() || !eDate || !bibOk(eBib)}
-                      className="rounded-md bg-track px-4 py-1.5 text-xs font-bold text-background disabled:opacity-40"
+                      className="rounded-md bg-track px-4 py-1.5 text-xs font-bold text-on-solid disabled:opacity-40"
                     >
                       {t("common.save")}
                     </button>
@@ -820,7 +820,7 @@ export function RacePlanForm({
               >
                 {/* 1행 — 배지·D-day·액션 */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="shrink-0 rounded-md border border-line-accent px-2 py-0.5 text-[10px] font-extrabold tracking-[0.06em] text-accent">
+                  <span className="shrink-0 rounded-md border border-line-accent px-2 py-0.5 text-[10px] font-extrabold tracking-[0.06em] text-accent-ink">
                     MY RACE
                   </span>
                   {(() => {
@@ -845,7 +845,7 @@ export function RacePlanForm({
                       <button
                         type="button"
                         onClick={() => startEdit(p)}
-                        className="hover:text-accent"
+                        className="hover:text-accent-ink"
                       >
                         {t("common.edit")}
                       </button>
@@ -862,7 +862,7 @@ export function RacePlanForm({
                       href={planHref(p.id)}
                       className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${
                         p.my_status === "pending"
-                          ? "bg-accent text-background"
+                          ? "bg-accent text-on-accent"
                           : "bg-line text-muted"
                       }`}
                     >
@@ -877,7 +877,7 @@ export function RacePlanForm({
                 <div className="min-w-0">
                   <a
                     href={planHref(p.id)}
-                    className="block truncate text-[17px] font-extrabold hover:text-accent"
+                    className="block truncate text-[17px] font-extrabold hover:text-accent-ink"
                   >
                     {p.title}
                   </a>
@@ -913,13 +913,13 @@ export function RacePlanForm({
                 {/* 3행 — 목표 상태 박스 */}
                 {p.goal_target_ms == null ? (
                   <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-line-accent bg-highlight px-3 py-2.5">
-                    <span className="min-w-0 flex-1 text-[13px] text-[#c9b34a]">
+                    <span className="min-w-0 flex-1 text-[13px] text-accent-ink">
                       {t("race.goalNone")}
                     </span>
                     {p.role === "owner" && (
                       <a
                         href={`/predict?event=${encodeURIComponent(p.title)}&date=${p.race_date}`}
-                        className="shrink-0 text-[13px] font-bold text-accent hover:underline"
+                        className="shrink-0 text-[13px] font-bold text-accent-ink hover:underline"
                       >
                         {t("events.setGoal")} →
                       </a>
@@ -931,7 +931,7 @@ export function RacePlanForm({
                       <span className="block text-xs text-muted">
                         {t("race.goalTitle")}
                       </span>
-                      <span className="tabular block text-lg font-extrabold text-accent">
+                      <span className="tabular block text-lg font-extrabold text-accent-ink">
                         {fmtMs(p.goal_target_ms)}
                       </span>
                     </span>
@@ -1016,7 +1016,7 @@ export function CrewRsvpButtons({
 
   // 상태별 색을 유지한다 — "불참"이 선택됐다고 옐로로 칠하면 뜻이 뒤집힌다.
   const activeCls: Record<string, string> = {
-    going: "bg-accent text-background",
+    going: "bg-accent text-on-accent",
     maybe: "bg-accent-dim/20 text-accent-dim ring-1 ring-accent-dim/40",
     declined: "bg-danger-bg text-danger ring-1 ring-danger-line-strong",
   };
@@ -1035,7 +1035,7 @@ export function CrewRsvpButtons({
               className={`flex h-10 items-center justify-center rounded-lg px-2 text-sm font-bold transition-colors disabled:opacity-50 ${
                 on
                   ? waitlisted && v === "going"
-                    ? "bg-accent/25 text-accent ring-1 ring-accent/50"
+                    ? "bg-accent/25 text-accent-ink ring-1 ring-accent/50"
                     : activeCls[v]
                   : "border border-line-mid bg-control text-foreground/75 hover:border-line-strong hover:text-foreground"
               }`}
@@ -1046,7 +1046,7 @@ export function CrewRsvpButtons({
         })}
       </div>
       {waitlisted && (
-        <p className="mt-2 text-xs text-accent">{t("crew.waitlistNote")}</p>
+        <p className="mt-2 text-xs text-accent-ink">{t("crew.waitlistNote")}</p>
       )}
       {err && <p role="alert" className="mt-2 text-xs text-danger">{err}</p>}
     </div>
@@ -1213,7 +1213,7 @@ export function CrewEventCommentForm({
         <button
           type="submit"
           disabled={busy || !body.trim()}
-          className="flex h-10 shrink-0 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-background transition hover:brightness-110 disabled:opacity-40"
+          className="flex h-10 shrink-0 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-on-accent transition hover:brightness-110 disabled:opacity-40"
         >
           {t("crew.commentSubmit")}
         </button>
@@ -1476,7 +1476,7 @@ export function CrewAttendanceCheck({
 
   const rsvpLabel = (status: string | null) => {
     if (status === "going") return [t("crew.rsvpGoing"), "text-success"];
-    if (status === "waitlisted") return [t("crew.rsvpWaitlisted"), "text-accent"];
+    if (status === "waitlisted") return [t("crew.rsvpWaitlisted"), "text-accent-ink"];
     if (status === "maybe") return [t("crew.rsvpMaybe"), "text-accent-dim"];
     if (status === "declined") return [t("crew.rsvpDeclined"), "text-danger"];
     return [t("crew.rsvpNone"), "text-muted"];
@@ -1490,13 +1490,13 @@ export function CrewAttendanceCheck({
         type="button"
         onClick={() => setTab(key)}
         className={`flex h-[30px] items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition-colors ${
-          on ? "bg-accent text-background" : "text-muted hover:text-foreground"
+          on ? "bg-accent text-on-accent" : "text-muted hover:text-foreground"
         }`}
       >
         {label}
         <span
           className={`tabular rounded-full px-1.5 text-xs font-bold ${
-            on ? "bg-[#6b5a00] text-accent" : "bg-line text-muted"
+            on ? "bg-accent/20 text-accent-ink" : "bg-line text-muted"
           }`}
         >
           {count}
@@ -1536,7 +1536,7 @@ export function CrewAttendanceCheck({
                 type="button"
                 onClick={checkAllGoing}
                 disabled={busy != null}
-                className="flex h-8 items-center rounded-lg border border-line-accent bg-highlight px-3 text-[13px] font-bold text-accent transition hover:brightness-125 disabled:opacity-40"
+                className="flex h-8 items-center rounded-lg border border-line-accent bg-highlight px-3 text-[13px] font-bold text-accent-ink transition hover:brightness-125 disabled:opacity-40"
               >
                 {t("crew.checkAllGoing")}
               </button>
@@ -1585,7 +1585,7 @@ export function CrewAttendanceCheck({
           <span className="text-muted">{t("crew.attendFeeTitle")} </span>
           <span className="tabular font-bold text-info">{won(paidSum)}</span>
           <span className="text-muted"> · </span>
-          <span className="tabular font-bold text-accent">{won(dueSum)}</span>
+          <span className="tabular font-bold text-accent-ink">{won(dueSum)}</span>
           <span className="text-muted"> {t("crew.attendFeeDue")}</span>
         </p>
       )}
@@ -1648,7 +1648,7 @@ export function CrewAttendanceCheck({
                           className={`tabular rounded-md px-2 py-1 text-xs font-bold disabled:opacity-50 ${
                             r.charge_status === "confirmed"
                               ? "bg-info-bg text-info"
-                              : "bg-page text-accent ring-1 ring-line-accent"
+                              : "bg-page text-accent-ink ring-1 ring-line-accent"
                           }`}
                         >
                           {r.charge_status === "confirmed" ? "✓ " : ""}
@@ -1661,7 +1661,7 @@ export function CrewAttendanceCheck({
                       onClick={() => toggle(r.user_id, !r.checked_in)}
                       className={`flex h-8 items-center rounded-lg px-2.5 text-[13px] font-bold transition-colors disabled:opacity-100 ${
                         r.checked_in
-                          ? "bg-accent text-background"
+                          ? "bg-accent text-on-accent"
                           : "border border-line-strong text-muted"
                       } ${canEdit ? "disabled:opacity-50" : "cursor-default"}`}
                     >
@@ -1683,7 +1683,7 @@ export function CrewAttendanceCheck({
             <button
               type="button"
               onClick={() => setShowAll((v) => !v)}
-              className="w-full px-[22px] py-3 text-[13px] font-bold text-accent hover:underline max-md:px-4"
+              className="w-full px-[22px] py-3 text-[13px] font-bold text-accent-ink hover:underline max-md:px-4"
             >
               {showAll
                 ? t("crew.attendHideOthers")
@@ -1771,7 +1771,7 @@ export function CrewAttendanceCheck({
             </p>
           )}
           {waitlistNames.length > 0 && (
-            <p className="px-[22px] py-3 text-[13px] text-accent max-md:px-4">
+            <p className="px-[22px] py-3 text-[13px] text-accent-ink max-md:px-4">
               ⏳ {t("crew.waitlistTitle")} ({waitlistNames.length}):{" "}
               {waitlistNames.join(", ")}
             </p>
@@ -1856,7 +1856,7 @@ export function CrewEventFeeToggle({
         <span>{t("crew.feeExempt")}</span>
       </label>
       {note && <span className="text-xs text-muted">{note}</span>}
-      {err && <span className="text-xs text-red-400">{err}</span>}
+      {err && <span className="text-xs text-danger">{err}</span>}
     </span>
   );
 }
@@ -2027,8 +2027,8 @@ export function CrewRsvpToggle({
         disabled={busy}
         className={`inline-flex h-[34px] shrink-0 items-center rounded-lg px-3.5 text-xs font-bold transition-colors disabled:opacity-50 ${
           going || waitlisted
-            ? "border border-line-accent bg-highlight text-accent"
-            : "bg-accent text-background hover:brightness-110"
+            ? "border border-line-accent bg-highlight text-accent-ink"
+            : "bg-accent text-on-accent hover:brightness-110"
         }`}
       >
         {waitlisted

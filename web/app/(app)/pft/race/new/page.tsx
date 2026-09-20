@@ -26,7 +26,7 @@ export default async function PftRaceNewPage() {
   const allowed = !!profile?.is_admin || crews.length > 0;
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
+    <main className="rx-page rx-form-page rx-pft-page mx-auto flex w-full max-w-lg flex-col gap-4">
       <div>
         <Link href="/pft" className="text-sm text-muted hover:text-foreground">← {t("pft.title")}</Link>
         <h1 className="mt-2 text-2xl font-extrabold tracking-tight">{t("pft.race.create")}</h1>

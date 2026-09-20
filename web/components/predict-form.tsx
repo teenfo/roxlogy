@@ -24,9 +24,9 @@ import { InfoTip } from "@/components/info-tip";
 import { useI18n } from "@/components/i18n-provider";
 
 const TIER_STYLE: Record<string, string> = {
-  aggressive: "border-red-400/60 text-red-400",
-  challenging: "border-accent/60 text-accent",
-  realistic: "border-track/60 text-track",
+  aggressive: "border-red-400/60 text-danger",
+  challenging: "border-accent/60 text-accent-ink",
+  realistic: "border-track/60 text-track-ink",
   comfortable: "border-muted/60 text-muted",
 };
 
@@ -331,14 +331,14 @@ export function PredictForm({
     "w-24 rounded-md border border-muted/30 bg-surface px-2 py-1.5 text-right font-mono text-sm text-foreground outline-none focus:border-accent";
 
   return (
-    <main>
+    <main className="rx-page rx-form-page rx-predict-form">
       <h1 className="text-2xl font-bold">{t("predict.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("predict.desc")}</p>
 
       {goalEventName && (
         <div className="mt-4 rounded-md border border-accent/40 bg-accent/10 px-4 py-3">
           <p className="text-xs text-muted">{t("predict.forEvent")}</p>
-          <p className="mt-0.5 text-sm font-semibold text-accent">
+          <p className="mt-0.5 text-sm font-semibold text-accent-ink">
             {goalEventName}
             {goalEventDate ? ` · ${goalEventDate}` : ""}
           </p>
@@ -390,7 +390,7 @@ export function PredictForm({
             </div>
           )}
           {fieldPct != null && (
-            <p className="mt-2 text-xs text-track">
+            <p className="mt-2 text-xs text-track-ink">
               📊{" "}
               {fieldPct.byAge && ageGroup
                 ? t("predict.fieldPctAge", { pct: fieldPct.pct, age: ageGroup })
@@ -404,7 +404,7 @@ export function PredictForm({
           )}
           {eventDivStat && (
             <div className="mt-3 rounded-md border border-track/30 bg-surface/60 px-4 py-3">
-              <p className="text-xs font-semibold text-track">
+              <p className="text-xs font-semibold text-track-ink">
                 {eventStats!.source === "this"
                   ? t("predict.eventStatThis", { label: eventStats!.label })
                   : t("predict.eventStatPrev", { label: eventStats!.label })}
@@ -416,7 +416,7 @@ export function PredictForm({
                   median: formatMs(eventDivStat.medianMs),
                 })}
                 {eventPct != null && (
-                  <span className="ml-1 font-semibold text-accent">
+                  <span className="ml-1 font-semibold text-accent-ink">
                     {t("predict.eventStatPct", { pct: eventPct })}
                   </span>
                 )}
@@ -427,7 +427,7 @@ export function PredictForm({
           <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-md bg-surface px-4 py-3">
               <p className="text-xs text-muted">{t("predict.runPerKm")}</p>
-              <p className="mt-1 font-mono text-xl font-bold text-track">
+              <p className="mt-1 font-mono text-xl font-bold text-track-ink">
                 {formatMs(result.runLapMs)}
               </p>
               <p className="mt-0.5 text-xs text-muted">
@@ -436,7 +436,7 @@ export function PredictForm({
             </div>
             <div className="rounded-md bg-surface px-4 py-3">
               <p className="text-xs text-muted">{t("predict.stationSum")}</p>
-              <p className="mt-1 font-mono text-xl font-bold text-accent">
+              <p className="mt-1 font-mono text-xl font-bold text-accent-ink">
                 {formatMs(result.stationTotalMs)}
               </p>
             </div>
@@ -468,7 +468,7 @@ export function PredictForm({
                   </p>
                   <Link
                     href="/runs/new"
-                    className="mt-2 inline-block text-xs font-semibold text-accent hover:brightness-110"
+                    className="mt-2 inline-block text-xs font-semibold text-accent-ink hover:brightness-110"
                   >
                     {t("run.add")} →
                   </Link>
@@ -498,7 +498,7 @@ export function PredictForm({
                 </div>
                 <p
                   className={`mt-2 text-sm font-semibold ${
-                    check.reachable ? "text-track" : "text-amber-400"
+                    check.reachable ? "text-track-ink" : "text-accent-ink"
                   }`}
                 >
                   {check.reachable
@@ -559,7 +559,7 @@ export function PredictForm({
                     setPickedSession("");
                     setSaveState("idle");
                   }}
-                  className="text-xs font-semibold text-accent hover:underline"
+                  className="text-xs font-semibold text-accent-ink hover:underline"
                 >
                   {t("predict.resetToSuggested")}
                 </button>
@@ -675,7 +675,7 @@ export function PredictForm({
 
               <div className="mt-4 rounded-md bg-background px-4 py-3">
                 <p className="text-xs text-muted">{t("predict.adjustedTotal")}</p>
-                <p className="mt-1 font-mono text-2xl font-bold text-accent">
+                <p className="mt-1 font-mono text-2xl font-bold text-accent-ink">
                   {formatMs(adjustedMs)}
                 </p>
               </div>
@@ -701,7 +701,7 @@ export function PredictForm({
                   </div>
                 ))}
                 <div className="mt-1 flex items-center gap-3 rounded-md bg-background px-4 py-2">
-                  <span className="flex-1 text-sm text-track">
+                  <span className="flex-1 text-sm text-track-ink">
                     {t("predict.runPaceField")}
                     {effRunTotalMs != null && (
                       <span className="ml-2 text-xs text-muted">
@@ -734,7 +734,7 @@ export function PredictForm({
                   type="button"
                   onClick={saveGoal}
                   disabled={saveState !== "idle"}
-                  className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+                  className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
                 >
                   {saveState === "saving"
                     ? t("common.saving")
@@ -747,19 +747,19 @@ export function PredictForm({
                 {saveState === "saved" && (
                   <Link
                     href="/goals"
-                    className="text-sm text-accent hover:underline"
+                    className="text-sm text-accent-ink hover:underline"
                   >
                     {t("goals.title")}
                   </Link>
                 )}
               </div>
               {saveErr && (
-                <p className="mt-2 text-sm text-red-400">{saveErr}</p>
+                <p className="mt-2 text-sm text-danger">{saveErr}</p>
               )}
             </section>
           ) : !isLoggedIn ? (
             <p className="mt-6 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm text-muted">
-              <Link href="/signup" className="text-accent hover:underline">
+              <Link href="/signup" className="text-accent-ink hover:underline">
                 {t("predict.signupPrompt.before")}
               </Link>
               {t("predict.signupPrompt.after")}

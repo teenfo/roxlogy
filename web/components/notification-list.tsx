@@ -23,14 +23,14 @@ export type NotifRow = {
 
 /** 유형 색 — 목록에서 무슨 알림인지 색으로 먼저 걸러 보게 */
 const TONE: Record<string, string> = {
-  wod_reminder: "bg-accent/15 text-accent",
+  wod_reminder: "bg-accent/15 text-accent-ink",
   ai_insight: "bg-info-bg text-info",
   ai_program: "bg-info-bg text-info",
   crew_join_request: "bg-success-bg text-success",
   exercise_request: "bg-success-bg text-success",
   new_follower: "bg-success-bg text-success",
-  race_partner: "bg-[#2a1a10] text-[#f4a261]",
-  race_imported: "bg-[#2a1a10] text-[#f4a261]",
+  race_partner: "bg-highlight text-accent-ink",
+  race_imported: "bg-highlight text-accent-ink",
   test: "bg-label-bg text-label",
 };
 const FALLBACK_TONE = "bg-line text-foreground/75";
@@ -178,7 +178,7 @@ export function NotificationList({ rows }: { rows: NotifRow[] }) {
               type="button"
               onClick={markAll}
               disabled={busy}
-              className="text-[13px] text-muted hover:text-accent disabled:opacity-50"
+              className="text-[13px] text-muted hover:text-accent-ink disabled:opacity-50"
             >
               {t("notif.markAll")}
             </button>

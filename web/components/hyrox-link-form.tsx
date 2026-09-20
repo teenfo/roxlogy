@@ -220,7 +220,7 @@ export function HyroxLinkForm({
               >
                 <span className="shrink-0 font-bold">{h.name}</span>
                 <span className="min-w-0 truncate text-muted">{h.context}</span>
-                <span className="ml-auto shrink-0 font-bold text-accent">
+                <span className="ml-auto shrink-0 font-bold text-accent-ink">
                   {t("hyroxLink.thisIsMe")}
                 </span>
               </button>

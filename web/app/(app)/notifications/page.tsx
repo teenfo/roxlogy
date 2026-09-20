@@ -88,11 +88,11 @@ export default async function NotificationsPage() {
   const unread = rows.filter((r) => r.unread).length;
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-notifications-page">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">{t("nav.notifications")}</h1>
         {unread > 0 && (
-          <span className="rounded-full bg-sunday px-2 py-0.5 text-xs font-bold text-background">
+          <span className="rounded-full bg-sunday px-2 py-0.5 text-xs font-bold text-on-accent">
             {unread}
           </span>
         )}

@@ -327,33 +327,27 @@ export default async function DashboardPage() {
   const showRehearsal = goalRows.length > 0 && rehearsalSessions.length > 0;
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-dashboard-page">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">
             {profile?.display_name ?? user!.email}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            <Link href="/settings/profile" className="text-accent hover:underline">
+            <Link href="/settings/profile" className="text-accent-ink hover:underline">
               {t("dash.profileSettings")}
             </Link>
           </p>
         </div>
         <Link
           href="/sessions/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110"
         >
           {t("dash.recordSession")}
         </Link>
       </div>
 
-      {/* ── 그룹 1: 오늘 & 일정 ── */}
-      <div className="mt-8 rounded-lg border border-muted/15 bg-surface/30 p-4 sm:p-5">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
-          {t("dash.groupToday")}
-        </h2>
-
-      <section className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="rx-dash-kpis">
         <div className="rounded-md bg-surface px-4 py-3">
           <p className="text-xs text-muted">{t("dash.streak")}</p>
           <p className="mt-1 text-2xl font-bold">
@@ -379,6 +373,20 @@ export default async function DashboardPage() {
           </p>
         </div>
       </section>
+      {latestRace && (
+        <section className="rx-latest-race" data-theme="dark">
+          <div><p className="text-xs font-bold uppercase tracking-widest text-muted">{t("dash.latestRaceTitle")}</p><h2 className="mt-3 text-xl font-bold">{latestRace.event}</h2><p className="mt-2 text-sm text-muted">{latestRace.division}</p></div>
+          <div><p className="tabular text-5xl font-extrabold tracking-tight text-accent-ink">{formatMs(latestRace.total_time_ms)}</p><Link href={`/races/${latestRace.id}`} className="mt-4 inline-flex text-sm font-semibold text-accent-ink">{t("dash.viewAll")} →</Link></div>
+        </section>
+      )}
+      <div className="rx-dashboard-columns">
+      {/* ── 그룹 1: 오늘 & 일정 ── */}
+      <div className="rx-dash-today">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
+          {t("dash.groupToday")}
+        </h2>
+
+
 
       {todayPlans.map((today) => {
         const todayDone = planDone(today);
@@ -391,8 +399,8 @@ export default async function DashboardPage() {
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                     todayDone
-                      ? "bg-track/15 text-track"
-                      : "bg-accent/15 text-accent"
+                      ? "bg-track/15 text-track-ink"
+                      : "bg-accent/15 text-accent-ink"
                   }`}
                 >
                   {todayDone ? t("dash.todayDone") : t("dash.todayTodo")}
@@ -401,7 +409,7 @@ export default async function DashboardPage() {
             </h2>
             <Link
               href={`/programs/${today.programId}`}
-              className="text-sm text-accent hover:underline"
+              className="text-sm text-accent-ink hover:underline"
             >
               {today.programTitle}
             </Link>
@@ -421,7 +429,7 @@ export default async function DashboardPage() {
                     {/* 가장 자주 쓰는 진입점 — 체크리스트로 바로 가게 한다 */}
                     <RowLink
                       href={`/workouts/${w.id}`}
-                      className="text-sm hover:text-accent"
+                      className="text-sm hover:text-accent-ink"
                     >
                       {w.title}
                     </RowLink>
@@ -451,7 +459,7 @@ export default async function DashboardPage() {
             </h2>
             <Link
               href={`/crews/${crew.slug}/schedule`}
-              className="text-sm text-accent hover:underline"
+              className="text-sm text-accent-ink hover:underline"
             >
               {t("dash.viewAll")}
             </Link>
@@ -459,8 +467,8 @@ export default async function DashboardPage() {
           <ul className="mt-3 flex flex-col gap-1.5">
             {rows.map((r, i) => {
               const kindCls = {
-                meetup: "bg-accent/15 text-accent",
-                race: "bg-track/15 text-track",
+                meetup: "bg-accent/15 text-accent-ink",
+                race: "bg-track/15 text-track-ink",
                 program: "bg-background text-muted",
               }[r.kind];
               const kindLabel = {
@@ -487,7 +495,7 @@ export default async function DashboardPage() {
                     </span>
                     <span className="min-w-0 truncate text-sm">{r.title}</span>
                     {r.kind === "race" && r.member_name && (
-                      <span className="shrink-0 text-xs text-track">
+                      <span className="shrink-0 text-xs text-track-ink">
                         {r.member_name}
                       </span>
                     )}
@@ -495,7 +503,7 @@ export default async function DashboardPage() {
                       <span className="ml-auto shrink-0 text-xs text-muted">
                         ✓ {r.going_count ?? 0}
                         {r.my_status === "going" && (
-                          <span className="ml-1 text-accent">
+                          <span className="ml-1 text-accent-ink">
                             {t("crew.rsvpGoing")}
                           </span>
                         )}
@@ -511,7 +519,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── 그룹 2: 내 기록 ── */}
-      <div className="mt-6 rounded-lg border border-muted/15 bg-surface/30 p-4 sm:p-5">
+      <div className="rx-dash-records">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
           {t("dash.groupRecords")}
         </h2>
@@ -530,7 +538,7 @@ export default async function DashboardPage() {
       <section className="mt-6">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold">{t("dash.recentTitle")}</h2>
-          <Link href="/sessions" className="text-sm text-accent hover:underline">
+          <Link href="/sessions" className="text-sm text-accent-ink hover:underline">
             {t("dash.viewAll")}
           </Link>
         </div>
@@ -540,7 +548,7 @@ export default async function DashboardPage() {
             <p>{t("dash.empty")}</p>
             <Link
               href="/sessions/new"
-              className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+              className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110"
             >
               {t("dash.recordFirst")}
             </Link>
@@ -588,8 +596,9 @@ export default async function DashboardPage() {
       )}
       </div>
 
+      </div>
       {/* ── 그룹 3: 분석 & 인사이트 ── */}
-      <div className="mt-6 rounded-lg border border-muted/15 bg-surface/30 p-4 sm:p-5">
+      <div className="rx-dash-analysis">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
           {t("dash.groupAnalysis")}
         </h2>

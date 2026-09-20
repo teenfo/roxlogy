@@ -21,7 +21,7 @@ export default async function PftRaceStaffPage({ params }: { params: Promise<{ c
   if (manage !== true) redirect(`/pft/race/${board.race.code}`);
 
   return (
-    <main className="mx-auto w-full max-w-5xl">
+    <main className="rx-page rx-detail-page rx-pft-page mx-auto w-full max-w-5xl">
       <PftRaceStaff initial={board} />
     </main>
   );

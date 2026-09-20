@@ -53,7 +53,7 @@ export function ProgramFinder({
     <li key={p.id}>
       <Link
         href={`/programs/${p.id}`}
-        className="flex h-full flex-col gap-3 rounded-[14px] border border-line bg-card px-[18px] py-4 transition-colors hover:border-[#444] hover:bg-card-hover"
+        className="flex h-full flex-col gap-3 rounded-[14px] border border-line bg-card px-[18px] py-4 transition-colors hover:border-line-strong hover:bg-card-hover"
       >
         <div className="flex items-start gap-2">
           <span className="min-w-0 flex-1">
@@ -62,7 +62,7 @@ export function ProgramFinder({
                 {p.title}
               </span>
               {p.active && (
-                <span className="shrink-0 rounded-[5px] bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-background">
+                <span className="shrink-0 rounded-[5px] bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-on-accent">
                   {t("programs.enrolled")}
                 </span>
               )}
@@ -166,7 +166,7 @@ export function ProgramFinder({
                 onClick={() => setLevel(null)}
                 className={`flex h-[30px] items-center rounded-full px-3 text-xs font-semibold transition-colors ${
                   level === null
-                    ? "bg-accent text-background"
+                    ? "bg-accent text-on-accent"
                     : "border border-line-strong text-muted hover:text-foreground"
                 }`}
               >
@@ -179,7 +179,7 @@ export function ProgramFinder({
                   onClick={() => setLevel(lv)}
                   className={`flex h-[30px] items-center rounded-full px-3 text-xs font-semibold transition-colors ${
                     level === lv
-                      ? "bg-accent text-background"
+                      ? "bg-accent text-on-accent"
                       : "border border-line-strong text-muted hover:text-foreground"
                   }`}
                 >

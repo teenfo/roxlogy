@@ -59,7 +59,7 @@ export default async function LeaderboardPage({
   };
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-leaderboard-page">
       <h1 className="text-2xl font-bold">{t("leaderboard.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("leaderboard.desc")}</p>
 
@@ -68,7 +68,7 @@ export default async function LeaderboardPage({
           {t("leaderboard.optInPrompt")}{" "}
           <Link
             href="/settings/profile"
-            className="text-accent hover:underline"
+            className="text-accent-ink hover:underline"
           >
             {t("leaderboard.optInLink")}
           </Link>
@@ -79,7 +79,7 @@ export default async function LeaderboardPage({
       <div className="mt-6 flex flex-wrap gap-2">
         <Link
           href={linkFor({ station: "" })}
-          className={`rounded-full border px-3 py-1 text-xs ${!stationDef ? "border-accent text-accent" : "border-muted/40 text-muted hover:border-foreground"}`}
+          className={`rounded-full border px-3 py-1 text-xs ${!stationDef ? "border-accent text-accent-ink" : "border-muted/40 text-muted hover:border-foreground"}`}
         >
           {t("leaderboard.overall")}
         </Link>
@@ -87,7 +87,7 @@ export default async function LeaderboardPage({
           <Link
             key={s.key}
             href={linkFor({ station: s.key })}
-            className={`rounded-full border px-3 py-1 text-xs ${stationDef?.key === s.key ? "border-accent text-accent" : "border-muted/40 text-muted hover:border-foreground"}`}
+            className={`rounded-full border px-3 py-1 text-xs ${stationDef?.key === s.key ? "border-accent text-accent-ink" : "border-muted/40 text-muted hover:border-foreground"}`}
           >
             {t(`station.${s.key}` as Parameters<typeof t>[0])}
           </Link>

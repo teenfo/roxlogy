@@ -34,12 +34,12 @@ export default async function GoalsPage() {
   const goals = (data ?? []) as Goal[];
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-goals-page">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("goals.title")}</h1>
         <Link
           href="/predict"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110"
         >
           {t("goals.new")}
         </Link>
@@ -49,7 +49,7 @@ export default async function GoalsPage() {
       {!goals.length ? (
         <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
           {t("goals.empty")}{" "}
-          <Link href="/predict" className="text-accent hover:underline">
+          <Link href="/predict" className="text-accent-ink hover:underline">
             {t("goals.new")}
           </Link>
         </p>
@@ -60,11 +60,11 @@ export default async function GoalsPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xl font-bold text-accent">
+                    <span className="font-mono text-xl font-bold text-accent-ink">
                       {formatMs(g.target_total_ms)}
                     </span>
                     {g.division && (
-                      <span className="rounded-full bg-track/15 px-2 py-0.5 text-xs font-semibold text-track">
+                      <span className="rounded-full bg-track/15 px-2 py-0.5 text-xs font-semibold text-track-ink">
                         {t(`division.${g.division}` as Parameters<typeof t>[0])}
                       </span>
                     )}
@@ -88,7 +88,7 @@ export default async function GoalsPage() {
                 <div className="flex shrink-0 items-center gap-3">
                   <Link
                     href={`/predict?goal=${g.id}`}
-                    className="text-xs font-semibold text-accent hover:underline"
+                    className="text-xs font-semibold text-accent-ink hover:underline"
                   >
                     {t("common.edit")}
                   </Link>
@@ -99,7 +99,7 @@ export default async function GoalsPage() {
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <span className="rounded bg-background px-2 py-1">
                   {t("predict.runPerKm")}:{" "}
-                  <span className="font-mono font-semibold text-track">
+                  <span className="font-mono font-semibold text-track-ink">
                     {formatMs(
                       g.run_total_ms != null
                         ? Math.round(g.run_total_ms / 8)
@@ -109,7 +109,7 @@ export default async function GoalsPage() {
                 </span>
                 <span className="rounded bg-background px-2 py-1">
                   {t("predict.stationSum")}:{" "}
-                  <span className="font-mono font-semibold text-accent">
+                  <span className="font-mono font-semibold text-accent-ink">
                     {formatMs(g.station_total_ms)}
                   </span>
                 </span>

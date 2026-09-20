@@ -391,7 +391,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       {/* 헤더 */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-accent">{t("pft.race.staff")}</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-accent-ink">{t("pft.race.staff")}</p>
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{race.title}</h1>
           <p className="mt-1 text-sm text-muted">
             {race.join_open ? (
@@ -472,7 +472,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       {closed && <p className="text-xs text-danger">{t("pft.race.closedNote")}</p>}
 
       {!closed && (
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="rx-staff-top">
         {/* 참가자 추가 */}
         <section className="rounded-2xl border border-line bg-card p-4 sm:p-5">
           <p className="text-sm font-bold">{t("pft.race.staffAdd")}</p>
@@ -499,7 +499,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       type="button"
                       onClick={() => add(r.user_id)}
                       disabled={busy || closed}
-                      className="h-8 rounded-lg bg-accent px-3 text-xs font-bold text-background disabled:opacity-40"
+                      className="h-8 rounded-lg bg-accent px-3 text-xs font-bold text-on-accent disabled:opacity-40"
                     >
                       {t("pft.race.staffAddBtn")}
                     </button>
@@ -533,8 +533,8 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         disabled={busy || closed}
                         className={`flex h-14 items-center justify-between gap-3 rounded-xl border px-4 text-left font-extrabold transition disabled:opacity-40 ${
                           picked === g.wave
-                            ? "border-accent bg-accent text-background"
-                            : "border-line-accent bg-highlight text-accent hover:brightness-125"
+                            ? "border-accent bg-accent text-on-accent"
+                            : "border-line-accent bg-highlight text-accent-ink hover:brightness-125"
                         }`}
                       >
                         <span className="text-base">
@@ -542,7 +542,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         </span>
                         <span
                           className={`min-w-0 truncate text-xs font-semibold ${
-                            picked === g.wave ? "text-background/70" : "text-muted"
+                            picked === g.wave ? "text-on-accent/70" : "text-muted"
                           }`}
                         >
                           {g.rows.map((e) => e.name).join(", ")}
@@ -591,7 +591,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         />
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{e.name}</span>
                         {e.wave != null && (
-                          <span className="shrink-0 rounded bg-highlight px-1.5 py-0.5 text-[10px] font-extrabold text-accent">
+                          <span className="shrink-0 rounded bg-highlight px-1.5 py-0.5 text-[10px] font-extrabold text-accent-ink">
                             {t("pft.race.waveN", { n: e.wave })}
                           </span>
                         )}
@@ -638,7 +638,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                 type="button"
                 onClick={startWave}
                 disabled={busy || closed || !selected.length}
-                className="mt-3 h-16 w-full rounded-2xl bg-accent text-xl font-black text-background hover:brightness-110 disabled:opacity-40"
+                className="mt-3 h-16 w-full rounded-2xl bg-accent text-xl font-black text-on-accent hover:brightness-110 disabled:opacity-40"
               >
                 {t("pft.race.staffStart", { n: selected.length })}
               </button>
@@ -657,7 +657,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
             {t("pft.race.noEntries")}
           </p>
         ) : (
-          <ul className="mt-2 grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <ul className="rx-staff-athletes mt-4">
             {entries.map((e) => {
               const state = entryState(e);
               const mine = isClient ? (pending[e.entry_id] ?? []) : [];
@@ -703,7 +703,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         {mine.length > 0 && ` · ${t("pft.race.staffPending", { n: mine.length })}`}
                       </p>
                     </div>
-                    <p className={`tabular text-3xl font-black leading-none ${!dnf && state === "running" && !done ? "text-accent" : dnf ? "text-muted" : ""}`}>
+                    <p className={`tabular text-3xl font-black leading-none ${!dnf && state === "running" && !done ? "text-accent-ink" : dnf ? "text-muted" : ""}`}>
                       {state === "finished"
                         ? formatMs(total)
                         : dnf

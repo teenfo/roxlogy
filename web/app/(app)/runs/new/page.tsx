@@ -9,7 +9,7 @@ export async function generateMetadata() {
 export default async function NewRunPage() {
   const { t, tz } = await getT();
   return (
-    <main>
+    <main className="rx-page rx-form-page rx-runs-page">
       <h1 className="text-2xl font-bold">{t("run.add")}</h1>
       <p className="mt-1 text-sm text-muted">{t("run.addDesc")}</p>
       <RunForm tz={tz} />

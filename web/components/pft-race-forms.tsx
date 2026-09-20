@@ -93,7 +93,7 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
       <button
         type="submit"
         disabled={busy || !title.trim()}
-        className="h-11 rounded-lg bg-accent text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+        className="h-11 rounded-lg bg-accent text-sm font-extrabold text-on-accent hover:brightness-110 disabled:opacity-40"
       >
         {t("pft.race.create")}
       </button>

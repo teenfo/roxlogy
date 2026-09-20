@@ -52,7 +52,7 @@ export function AdminSessionActions({
         onClick={toggleExclude}
         className={`rounded-md border px-2.5 py-1 text-xs font-semibold disabled:opacity-40 ${
           excluded
-            ? "border-track/40 text-track hover:bg-track/10"
+            ? "border-track/40 text-track-ink hover:bg-track/10"
             : "border-muted/30 text-muted hover:text-foreground"
         }`}
       >
@@ -62,7 +62,7 @@ export function AdminSessionActions({
         type="button"
         disabled={busy}
         onClick={softDelete}
-        className="rounded-md border border-red-400/40 px-2.5 py-1 text-xs font-semibold text-red-400 hover:bg-red-400/10 disabled:opacity-40"
+        className="rounded-md border border-red-400/40 px-2.5 py-1 text-xs font-semibold text-danger hover:bg-red-400/10 disabled:opacity-40"
       >
         {t("common.delete")}
       </button>

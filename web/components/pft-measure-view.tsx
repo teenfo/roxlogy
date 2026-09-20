@@ -169,11 +169,11 @@ export function PftMeasureView({
           >
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <div>
-                <p className={`text-xs font-extrabold tracking-[0.08em] ${running ? "text-accent" : "text-muted"}`}>
+                <p className={`text-xs font-extrabold tracking-[0.08em] ${running ? "text-accent-ink" : "text-muted"}`}>
                   {phase}
                 </p>
                 <p
-                  className={`tabular text-[56px] font-extrabold leading-none tracking-tight ${running ? "text-accent" : ""}`}
+                  className={`tabular text-[56px] font-extrabold leading-none tracking-tight ${running ? "text-accent-ink" : ""}`}
                 >
                   {startedAt == null ? "0:00.0" : done ? formatMs(totalMs) : fmtClock(totalMs)}
                 </p>
@@ -222,7 +222,7 @@ export function PftMeasureView({
                   type="button"
                   onClick={onStart}
                   disabled={busy || startDisabled}
-                  className="h-14 rounded-xl bg-accent px-9 text-lg font-black text-background hover:brightness-110 disabled:opacity-40 max-sm:w-full sm:ml-auto"
+                  className="h-14 rounded-xl bg-accent px-9 text-lg font-black text-on-accent hover:brightness-110 disabled:opacity-40 max-sm:w-full sm:ml-auto"
                 >
                   ▶ {t("pft.mStart")}
                 </button>
@@ -254,7 +254,7 @@ export function PftMeasureView({
                 <span
                   key={st.key}
                   className={`h-1.5 rounded-full ${
-                    i < splits.length ? "bg-success" : running && i === current ? "bg-accent" : "bg-[#2a2a2a]"
+                    i < splits.length ? "bg-success" : running && i === current ? "bg-accent" : "bg-inset"
                   }`}
                 />
               ))}
@@ -278,13 +278,13 @@ export function PftMeasureView({
                       ? "border-accent bg-highlight py-4"
                       : finished
                         ? "border-line bg-card py-3"
-                        : "border-[#1c1c1c] bg-card py-3 opacity-50"
+                        : "border-line-soft bg-card py-3 opacity-50"
                   }`}
                 >
                   <span
                     className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-extrabold ${
                       isCurrent
-                        ? "bg-accent text-background"
+                        ? "bg-accent text-on-accent"
                         : finished
                           ? "bg-success-bg text-success"
                           : "bg-line text-muted"
@@ -307,7 +307,7 @@ export function PftMeasureView({
                     <span className="text-right">
                       <span
                         className={`tabular block font-extrabold ${
-                          isCurrent ? "text-[26px] text-accent" : finished ? "text-base" : "text-base text-[#444]"
+                          isCurrent ? "text-[26px] text-accent-ink" : finished ? "text-base" : "text-base text-muted-3"
                         }`}
                       >
                         {ms == null ? "—" : finished ? formatMs(ms) : fmtClock(ms)}
@@ -332,7 +332,7 @@ export function PftMeasureView({
                         type="button"
                         onClick={onComplete}
                         disabled={completeDisabled}
-                        className="h-14 rounded-xl bg-accent px-6 text-lg font-black text-background hover:brightness-110 disabled:opacity-40 max-sm:flex-1 sm:px-8"
+                        className="h-14 rounded-xl bg-accent px-6 text-lg font-black text-on-accent hover:brightness-110 disabled:opacity-40 max-sm:flex-1 sm:px-8"
                       >
                         {t("pft.mDone")} ✓
                       </button>
@@ -352,8 +352,8 @@ export function PftMeasureView({
             <section className="rounded-2xl border border-line-accent bg-highlight px-6 py-5">
               <div className="grid gap-6 sm:grid-cols-[auto_minmax(0,1fr)]">
                 <div>
-                  <p className="text-xs font-extrabold tracking-[0.08em] text-accent">FINISHED</p>
-                  <p className="tabular mt-1 flex flex-wrap items-center gap-3 text-[48px] font-extrabold leading-none text-accent">
+                  <p className="text-xs font-extrabold tracking-[0.08em] text-accent-ink">FINISHED</p>
+                  <p className="tabular mt-1 flex flex-wrap items-center gap-3 text-[48px] font-extrabold leading-none text-accent-ink">
                     {formatMs(totalMs)}
                     {tooShort ? (
                       <span className="rounded-md bg-danger-bg px-2 py-1 text-xs font-bold text-danger">

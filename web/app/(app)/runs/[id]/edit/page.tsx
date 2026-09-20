@@ -32,7 +32,7 @@ export default async function EditRunPage({
   if (!data) notFound();
 
   return (
-    <main>
+    <main className="rx-page rx-form-page rx-runs-page">
       <h1 className="text-2xl font-bold">{t("run.editTitle")}</h1>
       <RunForm initial={data as Run} tz={tz} />
     </main>

@@ -28,7 +28,7 @@ export function SearchBox({ initial = "" }: { initial?: string }) {
       />
       <button
         type="submit"
-        className="h-10 shrink-0 rounded-lg bg-accent px-4 text-sm font-bold text-background hover:brightness-110"
+        className="h-10 shrink-0 rounded-lg bg-accent px-4 text-sm font-bold text-on-accent hover:brightness-110"
       >
         {t("nav.search")}
       </button>

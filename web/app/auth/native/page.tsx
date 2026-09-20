@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -51,20 +52,11 @@ export default function NativeAuthPage() {
   }, [router]);
 
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#141414",
-        color: "#F4F4F2",
-        fontFamily: "system-ui, sans-serif",
-      }}
-    >
-      <p style={{ fontSize: 14, color: "#9A9A96" }}>
-        {failed ? t("auth.nativeFailed") : t("auth.nativeLoading")}
-      </p>
-    </div>
+    <main className="rx-state" id="main-content"><div className="rx-state-card" role="status" aria-live="polite" aria-busy={!failed}>
+      <Image src="/roxlogy-mark-inverse.svg" alt="ROXLOGY" width={56} height={56} />
+      {!failed && <div aria-hidden className="mx-auto h-8 w-8 rounded-full border-2 border-line border-t-track motion-safe:animate-spin" />}
+      <h1>{failed ? t("auth.nativeFailed") : t("auth.nativeLoading")}</h1>
+      <p>{t("landing.tagline")}</p>
+    </div></main>
   );
 }

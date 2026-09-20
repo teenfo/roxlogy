@@ -37,14 +37,14 @@ export function AdminUserActions({
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      {err && <span className="text-[10px] text-red-400">{err}</span>}
+      {err && <span className="text-[10px] text-danger">{err}</span>}
       <button
         type="button"
         disabled={busy}
         onClick={() => patch({ is_admin: !isAdmin })}
         className={`rounded-md border px-2.5 py-1 text-xs font-semibold disabled:opacity-40 ${
           isAdmin
-            ? "border-accent/40 text-accent hover:bg-accent/10"
+            ? "border-accent/40 text-accent-ink hover:bg-accent/10"
             : "border-muted/30 text-muted hover:text-foreground"
         }`}
       >
@@ -56,8 +56,8 @@ export function AdminUserActions({
         onClick={() => patch({ disabled: !disabled })}
         className={`rounded-md border px-2.5 py-1 text-xs font-semibold disabled:opacity-40 ${
           disabled
-            ? "border-track/40 text-track hover:bg-track/10"
-            : "border-red-400/40 text-red-400 hover:bg-red-400/10"
+            ? "border-track/40 text-track-ink hover:bg-track/10"
+            : "border-red-400/40 text-danger hover:bg-red-400/10"
         }`}
       >
         {disabled ? t("admin.enable") : t("admin.disable")}

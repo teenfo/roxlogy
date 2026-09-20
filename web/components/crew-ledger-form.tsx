@@ -283,7 +283,7 @@ export function CrewLedgerForm({
         <button
           type="submit"
           disabled={busy}
-          className="mt-1 h-10 rounded-lg bg-accent text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+          className="mt-1 h-10 rounded-lg bg-accent text-sm font-extrabold text-on-accent hover:brightness-110 disabled:opacity-40"
         >
           {busy ? t("common.saving") : t("crew.finSave")}
         </button>
@@ -298,7 +298,7 @@ export function CrewLedgerForm({
           type="button"
           onClick={openModal}
           aria-label={t("common.edit")}
-          className="-m-2 shrink-0 p-2 text-xs text-muted transition-colors hover:text-accent"
+          className="-m-2 shrink-0 p-2 text-xs text-muted transition-colors hover:text-accent-ink"
         >
           ✎
         </button>
@@ -306,7 +306,7 @@ export function CrewLedgerForm({
         <button
           type="button"
           onClick={openModal}
-          className="rounded-md px-2.5 py-2 text-left text-[13px] text-foreground hover:bg-[#222]"
+          className="rounded-md px-2.5 py-2 text-left text-[13px] text-foreground hover:bg-line"
         >
           {t("common.edit")}
         </button>
@@ -314,7 +314,7 @@ export function CrewLedgerForm({
         <button
           type="button"
           onClick={openModal}
-          className="flex h-9 shrink-0 items-center rounded-[10px] border border-accent/40 px-3 text-sm font-semibold text-accent transition-colors hover:bg-accent/10"
+          className="flex h-9 shrink-0 items-center rounded-[10px] border border-accent/40 px-3 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent/10"
         >
           + {t("crew.finAdd")}
         </button>
@@ -336,7 +336,7 @@ export function CrewLedgerForm({
               <button
                 type="submit"
                 disabled={busy}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+                className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-on-accent hover:brightness-110 disabled:opacity-40"
               >
                 {busy ? t("common.saving") : t(editing ? "common.save" : "crew.finSave")}
               </button>
@@ -400,7 +400,7 @@ export function CrewLedgerDelete({
       type="button"
       onClick={del}
       disabled={busy}
-      className="-m-2 shrink-0 p-2 text-xs text-muted hover:text-red-400 disabled:opacity-40"
+      className="-m-2 shrink-0 p-2 text-xs text-muted hover:text-danger disabled:opacity-40"
       aria-label={t("crew.finDelete")}
     >
       ✕

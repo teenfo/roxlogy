@@ -31,7 +31,7 @@ export default async function MembersPage({
   const members = (data ?? []) as Member[];
 
   return (
-    <main>
+    <main className="rx-page rx-list-page rx-members-page">
       <h1 className="text-2xl font-bold">{t("members.title")}</h1>
       <p className="mt-1 text-sm text-muted">{t("members.desc")}</p>
 
@@ -58,7 +58,7 @@ export default async function MembersPage({
               <div className="min-w-0">
                 <RowLink
                   href={`/u/${m.id}`}
-                  className="text-sm font-semibold hover:text-accent"
+                  className="text-sm font-semibold hover:text-accent-ink"
                 >
                   {m.display_name}
                 </RowLink>
