@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCrewDirectory, getMyCrews } from "@/lib/crew";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { CrewHeader } from "@/components/crew-header";
+import { Shell } from "@/components/rox/shell";
 import { CrewFinder } from "@/components/crew-finder";
 import { Avatar, AvatarStack, Card } from "@/components/ui/crew-ui";
 import { crewRoleBadgeClass, crewRoleDictKey, isStaffRole, tierBadgeClass } from "@/lib/crew-role";
@@ -35,12 +35,8 @@ export default async function CrewDirectoryPage() {
     });
 
   return (
-    <>
-      <CrewHeader loginNext="/crews" />
-
-      {/* 사이드바(fixed)만큼 본문을 민다 — 비로그인은 사이드바가 없다 */}
-      <div className={user ? "md:pl-[248px]" : ""}>
-      <main className="mx-auto w-full max-w-[960px] flex-1 px-6 pb-20 pt-8 max-md:px-4 max-md:pb-28">
+    <Shell loginNext="/crews">
+      <div className="mx-auto w-full max-w-[960px] flex-1 px-6 pb-20 pt-8 max-md:px-4 max-md:pb-28">
         {/* 헤더 */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -175,8 +171,7 @@ export default async function CrewDirectoryPage() {
             <CrewFinder crews={crews} />
           )}
         </section>
-      </main>
       </div>
-    </>
+    </Shell>
   );
 }

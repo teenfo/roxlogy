@@ -5200,6 +5200,33 @@ button:focus-visible {
 
 
 /* ============================================================
+ * 우리 확장 — 시안에 없지만 실데이터·기능 유지에 필요한 최소 규칙.
+ * 시안 규칙을 바꾸지 않고 덧붙이기만 한다. (P9 이후에도 남는다)
+ * ============================================================ */
+/* 크루 마크에 로고 이미지가 있을 때 */
+.rx-crew-mark > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+/* 상단바 알림 아이콘의 미확인 점 */
+.rx-top-actions > a {
+  position: relative;
+}
+.rx-bell-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--destructive);
+  border: 2px solid #fff;
+}
+
+
+/* ============================================================
  * 과도기 호환 — 아직 시안으로 옮기지 않은 화면이 쓰는 옛 토큰 이름.
  * 이식이 끝나는 P9 에서 통째로 지운다. 여기 있는 이름을 새 화면에 쓰지 말 것.
  *

@@ -12,8 +12,7 @@ import {
 } from "@/components/predict-form";
 import { todayISOIn } from "@/lib/format";
 import type { RunFitness } from "@/lib/run";
-import { GlobalNav } from "@/components/global-nav";
-import { MobileTabBar } from "@/components/mobile-tabbar";
+import { Shell } from "@/components/rox/shell";
 
 const EX_TO_KEY = new Map(STATIONS.map((s) => [s.exerciseId, s.key]));
 
@@ -39,9 +38,6 @@ export default async function PredictPage({
 
   // 로그인 시: 최근 레이스 시뮬 세션을 목표 계산용으로 불러온다.
   let sessions: PredictSession[] = [];
-  let isAdmin = false;
-  let displayName: string | null = null;
-  const unread = 0;
   let gender: string | null = null;
   let ageGroup: string | null = null;
   let editGoal: EditGoal | null = null;
@@ -72,8 +68,6 @@ export default async function PredictPage({
       .select("is_admin, gender, birth_year, display_name")
       .eq("id", user.id)
       .maybeSingle();
-    isAdmin = profile?.is_admin === true;
-    displayName = (profile?.display_name as string | null) ?? null;
     gender = (profile?.gender as string | null) ?? null;
     ageGroup = hyroxAgeGroup(profile?.birth_year as number | null);
     const { data: rows } = await supabase
@@ -141,17 +135,8 @@ export default async function PredictPage({
   }
 
   return (
-    <>
-      <header className="sticky top-0 z-40 border-b border-line-soft bg-[var(--nav)]">
-        {/* 앱과 같은 글로벌 네비 — 비로그인이면 로그인 버튼으로 바뀐다 */}
-        <GlobalNav
-          isAdmin={isAdmin}
-          displayName={user ? (displayName ?? "Athlete") : null}
-          unread={unread}
-          loginNext="/predict"
-        />
-      </header>
-      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
+    <Shell loginNext="/predict">
+      <div>
         <PredictForm
           isLoggedIn={!!user}
           sessions={sessions}
@@ -173,7 +158,6 @@ export default async function PredictPage({
           }
         />
       </div>
-      {user && <MobileTabBar />}
-    </>
+    </Shell>
   );
 }

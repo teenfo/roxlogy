@@ -9,7 +9,7 @@ import {
   getEventLiveDetail,
   percentileWithin,
 } from "@/lib/hyrox-event-detail";
-import { CrewHeader } from "@/components/crew-header";
+import { Shell } from "@/components/rox/shell";
 import { Avatar } from "@/components/ui/crew-ui";
 
 export async function generateMetadata({
@@ -121,11 +121,8 @@ export default async function EventDetailPage({
           : null;
 
   return (
-    <>
-      <CrewHeader loginNext={`/events/${ev.id}`} />
-      {/* 사이드바(fixed)만큼 본문을 민다 — 비로그인은 사이드바가 없다 */}
-      <div className={user ? "md:pl-[248px]" : ""}>
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+    <Shell loginNext={`/events/${ev.id}`}>
+      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         <Link href="/events" className="text-sm text-muted hover:text-foreground">
           ← {t("nav.events")}
         </Link>
@@ -283,8 +280,7 @@ export default async function EventDetailPage({
             {t("events.noLive")}
           </p>
         )}
-      </main>
       </div>
-    </>
+    </Shell>
   );
 }

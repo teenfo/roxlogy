@@ -2188,6 +2188,25 @@ const ko: Record<DictKey, string> = {
   "crew.role.coach": "부리더",
   "crew.role.member": "정회원",
   "crew.role.associate": "일반회원",
+
+  // 디자인 리뉴얼 셸(PORT_PLAN §2)·Watch 화면
+  "a11y.skipContent": "본문으로 건너뛰기",
+  "shell.myCrew": "내 크루",
+  "shell.findCrew": "크루 찾기",
+  "shell.profileSettings": "프로필 & 설정",
+  "shell.sidebarCrew": "사이드바에 고정할 크루",
+  "shell.sidebarCrewAuto": "자동 (가장 오래 가입한 크루)",
+  "shell.sidebarCrewHint": "메뉴 아래에 크루 바로가기로 보입니다.",
+  "crew.aboutTab": "소개",
+  "crew.joinedBadge": "가입한 크루",
+  "watch.title": "손목에서 시작하는 기록",
+  "watch.hint": "워치 연결·목표 전송·WOD 는 Roxlogy 앱이 처리합니다.",
+  "watch.web": "Watch는 앱에서 이용할 수 있습니다",
+  "watch.webHint": "폰에 앱을 설치하면 Wear OS 워치를 연결하고 손목에서 세션을 기록할 수 있습니다.",
+  "watch.ready": "연결할 워치를 준비하세요",
+  "watch.readyHint": "워치 화면을 열어 연결하고 오늘의 목표를 보내고 세션을 시작하세요.",
+  "watch.connect": "워치 화면 열기",
+  "watch.download": "앱 다운로드",
 };
 
 export default ko;

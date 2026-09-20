@@ -9,7 +9,14 @@ import {
 } from "@/lib/i18n/config";
 import { useI18n } from "@/components/i18n-provider";
 
-export function LocaleSwitcher({ compact = false }: { compact?: boolean }) {
+export function LocaleSwitcher({
+  compact = false,
+  className,
+}: {
+  compact?: boolean;
+  /** 주면 기본 스타일 대신 이 클래스만 쓴다(시안 .rx-locale) */
+  className?: string;
+}) {
   const router = useRouter();
   const { locale, t } = useI18n();
   const [pending, setPending] = useState(false);
@@ -33,9 +40,10 @@ export function LocaleSwitcher({ compact = false }: { compact?: boolean }) {
       onChange={(e) => change(e.target.value as Locale)}
       aria-label={t("a11y.language")}
       className={
-        compact
+        className ??
+        (compact
           ? "rounded-md border border-line-mid bg-transparent px-2 py-1 text-xs text-muted outline-none focus:border-accent-line"
-          : "rounded-md border border-line-mid bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent-line"
+          : "rounded-md border border-line-mid bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent-line")
       }
     >
       {SUPPORTED_LOCALES.map((l) => (

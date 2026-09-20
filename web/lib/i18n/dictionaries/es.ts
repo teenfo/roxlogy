@@ -2197,6 +2197,25 @@ const es: Record<DictKey, string> = {
   "crew.role.coach": "Sublíder",
   "crew.role.member": "Miembro pleno",
   "crew.role.associate": "Miembro general",
+
+  // 디자인 리뉴얼 셸(PORT_PLAN §2)·Watch 화면
+  "a11y.skipContent": "Saltar al contenido",
+  "shell.myCrew": "Mi equipo",
+  "shell.findCrew": "Buscar un equipo",
+  "shell.profileSettings": "Perfil y ajustes",
+  "shell.sidebarCrew": "Equipo fijado en la barra lateral",
+  "shell.sidebarCrewAuto": "Automático (el primer equipo al que te uniste)",
+  "shell.sidebarCrewHint": "Aparece bajo el menú como acceso directo al equipo.",
+  "crew.aboutTab": "Acerca de",
+  "crew.joinedBadge": "Miembro",
+  "watch.title": "Empieza a registrar desde tu muñeca",
+  "watch.hint": "La app de Roxlogy gestiona la conexión del reloj, los objetivos y el WOD.",
+  "watch.web": "Watch está disponible en la app",
+  "watch.webHint": "Instala la app en tu teléfono para conectar un reloj Wear OS y registrar sesiones desde la muñeca.",
+  "watch.ready": "Prepara tu reloj",
+  "watch.readyHint": "Abre la pantalla del reloj para conectar, enviar el objetivo de hoy y empezar una sesión.",
+  "watch.connect": "Abrir pantalla del reloj",
+  "watch.download": "Descargar la app",
 };
 
 export default es;

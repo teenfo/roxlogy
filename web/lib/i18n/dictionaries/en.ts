@@ -2209,6 +2209,25 @@ const en = {
   "crew.role.coach": "Co-leader",
   "crew.role.member": "Full member",
   "crew.role.associate": "Associate",
+
+  // 디자인 리뉴얼 셸(PORT_PLAN §2)·Watch 화면
+  "a11y.skipContent": "Skip to content",
+  "shell.myCrew": "My crew",
+  "shell.findCrew": "Find a crew",
+  "shell.profileSettings": "Profile & settings",
+  "shell.sidebarCrew": "Crew pinned in the sidebar",
+  "shell.sidebarCrewAuto": "Automatic (the crew you joined first)",
+  "shell.sidebarCrewHint": "Shown under the menu with a shortcut to the crew page.",
+  "crew.aboutTab": "About",
+  "crew.joinedBadge": "Joined",
+  "watch.title": "Start recording on your wrist",
+  "watch.hint": "Watch pairing, goal sync and WOD delivery are handled by the Roxlogy app.",
+  "watch.web": "Watch is available in the app",
+  "watch.webHint": "Install the app on your phone to pair a Wear OS watch and record sessions from your wrist.",
+  "watch.ready": "Get your watch ready",
+  "watch.readyHint": "Open the watch screen to pair, send today's goal and start a session.",
+  "watch.connect": "Open watch screen",
+  "watch.download": "Download the app",
 } as const;
 
 export type DictKey = keyof typeof en;

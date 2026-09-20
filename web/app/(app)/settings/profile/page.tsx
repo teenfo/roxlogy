@@ -11,6 +11,8 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { SettingsChips, SettingsNav } from "@/components/settings-nav";
 import { SettingsCard } from "@/components/ui/settings-ui";
 import { SignOutForm } from "@/components/sign-out-form";
+import { SidebarCrewSelect } from "@/components/sidebar-crew-select";
+import { getShellData } from "@/lib/shell";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -20,7 +22,7 @@ export async function generateMetadata() {
 export default async function ProfileSettingsPage() {
   const supabase = await createClient();
   const user = await getCachedUser();
-  const { t, tag, tz } = await getT();
+  const [{ t, tag, tz }, shell] = await Promise.all([getT(), getShellData()]);
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
@@ -81,6 +83,13 @@ export default async function ProfileSettingsPage() {
             }}
             currentYear={now.getFullYear()}
             lastSaved={lastSaved}
+          />
+
+          {/* 사이드바에 고정할 크루 — 크루가 둘 이상일 때만 (PORT_PLAN §7-5) */}
+          <SidebarCrewSelect
+            userId={user!.id}
+            crews={shell.crews}
+            current={shell.pinned}
           />
 
           {/* 계정 — 로그인 수단 + 앱 다운로드 */}

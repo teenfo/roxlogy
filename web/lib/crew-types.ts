@@ -137,3 +137,8 @@ export type CrewMemberRow = {
 export function isActiveMember(crew: CrewOverview): boolean {
   return crew.my_status === "active";
 }
+
+/** 크루 마크 글자 — 로고가 없을 때. 시안 사이드바의 "L8"(LOOP8)처럼 앞 두 글자 */
+export function crewInitials(name: string) {
+  return name.replace(/\s+/g, "").slice(0, 2).toUpperCase();
+}

@@ -2,7 +2,7 @@ import { getRaceEvents } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { eventDateNote, eventPlace } from "@/lib/event-display";
-import { CrewHeader } from "@/components/crew-header";
+import { Shell } from "@/components/rox/shell";
 import { todayISOIn } from "@/lib/format";
 import { RowLink } from "@/components/row-link";
 
@@ -72,15 +72,8 @@ export default async function EventsPage({
   const past = events.filter((e) => endOf(e) && endOf(e)! < today);
 
   return (
-    <>
-      {/* 공용 헤더 — 로그인돼 있으면 아바타·알림, 아니면 로그인 버튼.
-          예전엔 여기서 헤더를 직접 그리며 /login 을 고정해 두어 로그인 상태에서도
-          로그인 버튼이 보였다(상세 페이지는 이미 CrewHeader 를 쓰고 있었다). */}
-      <CrewHeader loginNext="/events" />
-
-      {/* 사이드바(fixed)만큼 본문을 민다 — 비로그인은 사이드바가 없다 */}
-      <div className={user ? "md:pl-[248px]" : ""}>
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
+    <Shell loginNext="/events">
+      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 max-md:px-4 max-md:pb-28">
         <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("events.title")}</h1>
         <p className="mt-1 text-sm text-muted">{t("events.desc")}</p>
 
@@ -235,8 +228,7 @@ export default async function EventsPage({
           </a>
           {t("events.disclaimer.after")}
         </p>
-      </main>
       </div>
-    </>
+    </Shell>
   );
 }
