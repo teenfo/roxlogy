@@ -1,48 +1,37 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { Activity, ArrowRight, Check, LockKeyhole } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { rememberNext, safeNext } from "@/lib/site-url";
 import { KEEP_COOKIE } from "@/lib/supabase/keep";
 import { GoogleOneTap } from "@/components/google-one-tap";
+import { PublicHeader } from "@/components/rox/public-header";
+import { Field, Go } from "@/components/rox/ui";
 
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
-      <path
-        fill="#FFC107"
-        d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"
-      />
-      <path
-        fill="#FF3D00"
-        d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
-      />
-      <path
-        fill="#4CAF50"
-        d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.6 39.6 16.3 44 24 44z"
-      />
-      <path
-        fill="#1976D2"
-        d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C41.4 34.9 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"
-      />
-    </svg>
-  );
-}
-
+/**
+ * 로그인·가입 — 시안 public-screens.tsx 의 AuthScreen 그대로 (PORT_PLAN §3-a).
+ * .rx-auth-layout[aside 소개 | .rx-auth-card 폼]. 인증 로직은 우리 것(Supabase)
+ * 그대로다. 시안의 미리보기 상태 선택기·Google 안내 다이얼로그는 넣지 않고
+ * 실제 OAuth 와 One Tap(정책: 확정 4)을 쓴다. 가입 확인 메일을 보낸 뒤에는
+ * 시안의 완료 상태(체크 아이콘 + 안내)를 보여 준다.
+ */
 function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useI18n();
+  const signup = mode === "signup";
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
   const [pending, setPending] = useState(false);
 
   // 로그인 상태 유지. 기본은 켬(기존 동작 = 400일 쿠키).
@@ -57,10 +46,8 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   }
 
   // 로그인 ↔ 가입 이동에도 목적지를 들고 다닌다
-  const nextQs = (() => {
-    const n = safeNext(searchParams.get("next"));
-    return n ? `?next=${encodeURIComponent(n)}` : "";
-  })();
+  const next = safeNext(searchParams.get("next"));
+  const nextQs = next ? `?next=${encodeURIComponent(next)}` : "";
 
   async function handleGoogle() {
     setError(null);
@@ -83,29 +70,26 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     applyKeep();
     const supabase = createClient();
 
-    const signupNext = safeNext(searchParams.get("next"));
-
-    if (mode === "signup") {
+    if (signup) {
       // 이름은 handle_new_user 트리거가 raw_user_meta_data 에서 읽어 프로필에
       // 넣는다. 여기서 안 보내면 명단·출석·회비 화면이 전부 'Athlete' 가 된다.
       // 확인 메일은 다른 기기에서 열릴 수 있어 쿼리도 함께 남긴다.
       // 쿠키는 같은 브라우저로 돌아오는 경우의 보험이다.
-      rememberNext(signupNext);
+      rememberNext(next);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           // 공유 링크를 받고 처음 가입하는 사람도 원래 보려던 페이지로 돌아가야 한다
-          emailRedirectTo: `${location.origin}/auth/callback${
-            signupNext ? `?next=${encodeURIComponent(signupNext)}` : ""
-          }`,
+          emailRedirectTo: `${location.origin}/auth/callback${nextQs}`,
           data: { display_name: displayName.trim() },
         },
       });
       setPending(false);
       if (error) return setError(error.message);
-      if (data.session) return router.push(signupNext ?? "/dashboard");
-      setNotice(t("auth.confirmSent"));
+      if (data.session) return router.push(next ?? "/dashboard");
+      setPassword("");
+      setSent(true);
     } else {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -113,139 +97,139 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
       });
       setPending(false);
       if (error) return setError(t("auth.errInvalid"));
-      router.push(safeNext(searchParams.get("next")) ?? "/dashboard");
+      router.push(next ?? "/dashboard");
       router.refresh();
     }
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
-      <Link href="/">
-        <Image src="/roxlogy-appicon.svg" alt="Roxlogy" width={64} height={64} />
-      </Link>
-      <h1 className="mt-6 text-2xl font-bold">
-        {mode === "login" ? t("auth.loginTitle") : t("auth.signupTitle")}
-      </h1>
-
-      <div className="mt-8 flex w-full max-w-sm flex-col gap-4">
-        <button
-          type="button"
-          onClick={handleGoogle}
-          className="flex items-center justify-center gap-2.5 rounded-md border border-line-strongest bg-surface px-4 py-2.5 text-sm font-semibold hover:border-foreground"
-        >
-          <GoogleIcon />
-          {t("auth.google")}
-        </button>
-
-        <div className="flex items-center gap-3 text-xs text-muted">
-          <span className="h-px flex-1 bg-muted/30" />
-          {t("auth.or")}
-          <span className="h-px flex-1 bg-muted/30" />
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {mode === "signup" && (
-            <label className="flex flex-col gap-1.5 text-sm text-muted">
-              {t("auth.displayName")}
-              <input
-                type="text"
-                required
-                maxLength={40}
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder={t("auth.displayNamePh")}
-                className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent-line"
-              />
-              <span className="text-xs text-muted">{t("auth.displayNameHint")}</span>
-            </label>
-          )}
-          <label className="flex flex-col gap-1.5 text-sm text-muted">
-            {t("auth.email")}
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent-line"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm text-muted">
-            {t("auth.password")}
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-md border border-line-mid bg-surface px-3 py-2.5 pr-16 text-foreground outline-none focus:border-accent-line"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-pressed={showPassword}
-                className="absolute inset-y-0 right-2 my-auto h-7 rounded px-2 text-xs font-semibold text-muted hover:text-foreground"
-              >
-                {showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-              </button>
-            </div>
-          </label>
-
-          {/* 공용 PC 에서 끄라고 두는 스위치 — 끄면 브라우저를 닫을 때 로그아웃된다 */}
-          <label className="flex cursor-pointer items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={keep}
-              onChange={(e) => setKeep(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-accent"
-            />
-            <span>
-              {t("auth.keepSignedIn")}
-              <span className="block text-xs text-muted">
-                {t("auth.keepSignedInHint")}
-              </span>
-            </span>
-          </label>
-
-          {/* 원탭 — 이미 구글에 로그인된 브라우저면 카드가 뜬다.
-          안 뜨는 브라우저(사파리 등)에서는 아래 버튼이 그대로 동작한다. */}
-      <GoogleOneTap next={safeNext(searchParams.get("next")) ?? undefined} />
-
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-          {notice && <p role="status" className="text-sm text-track">{notice}</p>}
-
-          <button
-            type="submit"
-            disabled={pending || (mode === "signup" && !displayName.trim())}
-            className="mt-2 rounded-md bg-accent px-4 py-2.5 font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-          >
-            {pending
-              ? t("auth.processing")
-              : mode === "login"
-                ? t("auth.submitLogin")
-                : t("auth.submitSignup")}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-muted">
-          {mode === "login" ? (
+    <div className="rx-public">
+      <PublicHeader loginNext={next ?? undefined} />
+      <main className="rx-auth-layout">
+        <aside>
+          <span className="rx-kicker">YOUR NEXT PERSONAL BEST</span>
+          <h1>{t("landing.headline")}</h1>
+          <div>
+            <Activity size={30} />
+            <p>{t("landing.intro")}</p>
+          </div>
+        </aside>
+        <section className="rx-auth-card">
+          {sent ? (
             <>
-              {t("auth.noAccount")}{" "}
-              <Link href={`/signup${nextQs}`} className="text-gold hover:underline">
-                {t("auth.submitSignup")}
-              </Link>
+              <span className="rx-state-icon">
+                <Check />
+              </span>
+              <h1>{t("auth.confirmSent")}</h1>
+              <p>{email}</p>
+              <Go href={`/login${nextQs}`} primary>
+                {t("auth.submitLogin")}
+              </Go>
             </>
           ) : (
             <>
-              {t("auth.haveAccount")}{" "}
-              <Link href={`/login${nextQs}`} className="text-gold hover:underline">
-                {t("auth.submitLogin")}
+              <span className="rx-kicker">ROXLOGY ACCOUNT</span>
+              <h1>{signup ? t("auth.signupTitle") : t("auth.welcome")}</h1>
+              <p>{signup ? t("auth.signupIntro") : t("auth.intro")}</p>
+              <Button
+                variant="outline"
+                className="rx-google"
+                type="button"
+                onClick={handleGoogle}
+              >
+                <b aria-hidden="true">G</b>
+                {t("auth.google")}
+              </Button>
+              <div className="rx-auth-divider">{t("auth.or")}</div>
+              <form onSubmit={handleSubmit}>
+                {signup && (
+                  <Field label={t("auth.displayName")}>
+                    <Input
+                      required
+                      maxLength={40}
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder={t("auth.displayNamePh")}
+                      aria-describedby="name-help"
+                    />
+                    <small id="name-help">{t("auth.displayNameHint")}</small>
+                  </Field>
+                )}
+                <Field label={t("auth.email")}>
+                  <Input
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </Field>
+                <Field label={t("auth.password")}>
+                  <Input
+                    type={show ? "text" : "password"}
+                    required
+                    minLength={8}
+                    autoComplete={signup ? "new-password" : "current-password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    aria-describedby="password-help"
+                  />
+                  <small id="password-help">{t("auth.passwordHint")}</small>
+                </Field>
+                <label className="rx-check">
+                  <input
+                    type="checkbox"
+                    checked={show}
+                    onChange={(e) => setShow(e.target.checked)}
+                  />
+                  {t("auth.showPassword")}
+                </label>
+                {/* 공용 PC 에서 끄라고 두는 스위치 — 끄면 브라우저를 닫을 때 로그아웃된다 */}
+                <label className="rx-check">
+                  <input
+                    type="checkbox"
+                    checked={keep}
+                    onChange={(e) => setKeep(e.target.checked)}
+                  />
+                  {t("auth.keepSignedIn")}
+                </label>
+                {error && (
+                  <p role="alert" className="rx-error">
+                    {error}
+                  </p>
+                )}
+                <Button
+                  disabled={pending || (signup && !displayName.trim())}
+                  type="submit"
+                  className="rx-primary rx-wide"
+                >
+                  {pending
+                    ? t("auth.processing")
+                    : signup
+                      ? t("auth.submitSignup")
+                      : t("auth.submitLogin")}
+                </Button>
+              </form>
+              {/* 원탭 — 이미 구글에 로그인된 브라우저면 카드가 뜬다.
+                  안 뜨는 브라우저(사파리 등)에서는 위 버튼이 그대로 동작한다. */}
+              <GoogleOneTap next={next ?? undefined} />
+              <p className="rx-auth-notice">
+                <LockKeyhole size={16} />
+                {t("auth.keepSignedInHint")}
+              </p>
+              <Link
+                className="rx-auth-link"
+                href={signup ? `/login${nextQs}` : `/signup${nextQs}`}
+              >
+                {signup ? t("auth.haveAccount") : t("auth.noAccount")}{" "}
+                {signup ? t("auth.submitLogin") : t("auth.submitSignup")}
+                <ArrowRight size={16} />
               </Link>
             </>
           )}
-        </p>
-      </div>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }
 

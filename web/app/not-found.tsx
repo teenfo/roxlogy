@@ -1,22 +1,22 @@
-import Image from "next/image";
-import Link from "next/link";
 import { getT } from "@/lib/i18n";
+import { Go } from "@/components/rox/ui";
 
+/** 시안 NotFoundScreen 그대로 (.rx-state-page, PORT_PLAN §3-a) */
 export default async function NotFound() {
   const { t } = await getT();
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-24">
-      <Image src="/roxlogy-appicon.svg" alt="" width={72} height={72} />
-      <div className="text-center">
-        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("notFound.title")}</h1>
-        <p className="mt-2 text-sm text-muted">{t("notFound.desc")}</p>
+    <section className="rx-state-page">
+      <div>
+        <span className="rx-error-number">404</span>
+        <h1>{t("notFound.title")}</h1>
+        <p>{t("notFound.desc")}</p>
+        <div className="rx-actions">
+          <Go href="/dashboard" primary>
+            {t("nav.dashboard")}
+          </Go>
+          <Go href="/">{t("common.home")}</Go>
+        </div>
       </div>
-      <Link
-        href="/"
-        className="rounded-md bg-accent px-6 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95"
-      >
-        {t("common.home")}
-      </Link>
-    </main>
+    </section>
   );
 }

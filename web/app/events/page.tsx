@@ -1,6 +1,5 @@
 import { getRaceEvents } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
-import { getCachedUser } from "@/lib/supabase/auth";
 import { eventDateNote, eventPlace } from "@/lib/event-display";
 import { Shell } from "@/components/rox/shell";
 import { todayISOIn } from "@/lib/format";
@@ -46,8 +45,7 @@ export default async function EventsPage({
   searchParams: Promise<{ q?: string; region?: string }>;
 }) {
   const { q, region } = await searchParams;
-  // 사이드바 여백 판정에 쓴다 — 로그인 사용자에게만 사이드바가 있다
-  const [{ t, tag, locale, tz }, user] = await Promise.all([getT(), getCachedUser()]);
+  const { t, tag, locale, tz } = await getT();
 
   // 공개 대회 일정은 전역 캐시(1시간) — 검색·지역 필터는 메모리에서 처리
   const all = await getRaceEvents();

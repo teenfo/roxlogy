@@ -14,21 +14,20 @@ export default async function AppLayout({
   const [{ t }, profile] = await Promise.all([getT(), getCachedProfile()]);
 
   // 비활성(정지) 계정: 앱 접근 차단
-  // TODO(P3): 시안 GateScreen 으로 교체 (PORT_PLAN §3-a)
   if (profile?.disabled) {
     return (
-      <main className="mx-auto w-full max-w-md px-6 py-24">
+      <div className="rx-public">
         <AccessGate
           tone="alert"
           title={t("suspended.title")}
           reason={t("suspended.body")}
         />
         <SignOutForm
-          className="mt-6 text-center"
-          buttonClassName="text-sm text-gold hover:underline"
+          className="text-center"
+          buttonClassName="rx-auth-link"
           label={t("common.logout")}
         />
-      </main>
+      </div>
     );
   }
 
