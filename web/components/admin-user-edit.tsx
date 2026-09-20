@@ -6,9 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { DIVISIONS } from "@/lib/divisions";
 import { dictLabel } from "@/lib/dict-label";
-
-const input =
-  "w-full rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Choice, Field, Hint } from "@/components/rox/ui";
 
 export type AdminUserDetail = {
   id: string;
@@ -64,8 +65,7 @@ function errText(t: (k: never) => string, msg: string): string {
   for (const c of codes) {
     if (msg.includes(c)) return dictLabel(t as never, `admin.err.${c}`, msg);
   }
-  if (msg.includes("field_not_editable"))
-    return dictLabel(t as never, "admin.err.field_not_editable", msg);
+  if (msg.includes("field_not_editable")) return dictLabel(t as never, "admin.err.field_not_editable", msg);
   return msg;
 }
 
@@ -73,7 +73,8 @@ const str = (v: string | number | null | undefined) => (v == null ? "" : String(
 
 /** 관리자: 사용자 프로필 수정. 바뀐 항목만 admin_update_profile 로 보낸다.
  *  profiles 를 직접 UPDATE 하지 않는 이유는 그 경로가 mcp_token 까지
- *  열려 있기 때문 — RPC 가 수정 가능한 컬럼을 화이트리스트로 강제한다. */
+ *  열려 있기 때문 — RPC 가 수정 가능한 컬럼을 화이트리스트로 강제한다.
+ *  시안 프리미티브(Field·Choice·Input·rx-check·Button)로만 그린다. */
 export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -97,8 +98,9 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const set = (k: keyof typeof f, v: string | boolean) =>
-    setF((p) => ({ ...p, [k]: v }));
+  const set = (k: keyof typeof f, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
+  // Choice 는 빈 값을 못 쓴다 — "none" 을 빈 문자열로 오간다
+  const opt = (v: string) => (v === "none" ? "" : v);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -132,10 +134,7 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
       return setMsg(t("admin.noChanges"));
     }
 
-    const { error } = await createClient().rpc("admin_update_profile", {
-      p_user: user.id,
-      p_patch: patch,
-    });
+    const { error } = await createClient().rpc("admin_update_profile", { p_user: user.id, p_patch: patch });
     setBusy(false);
     if (error) return setErr(errText(t as never, error.message));
     setMsg(t("crew.saved"));
@@ -143,166 +142,84 @@ export function AdminUserEdit({ user }: { user: AdminUserDetail }) {
   }
 
   return (
-    <form onSubmit={save} className="max-w-lg">
-      <label className="block text-xs text-muted">{t("admin.fName")}</label>
-      <input
-        className={`${input} mt-1`}
-        value={f.display_name}
-        onChange={(e) => set("display_name", e.target.value)}
-        maxLength={60}
-      />
-
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-muted">{t("admin.fDivision")}</label>
-          <select
-            className={`${input} mt-1`}
-            value={f.division}
-            onChange={(e) => set("division", e.target.value)}
-          >
-            <option value="">—</option>
-            {DIVISIONS.map((d) => (
-              <option key={d} value={d}>
-                {dictLabel(t as never, `division.${d}`, d)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs text-muted">{t("pft.fGender")}</label>
-          <select
-            className={`${input} mt-1`}
-            value={f.gender}
-            onChange={(e) => set("gender", e.target.value)}
-          >
-            <option value="">—</option>
-            <option value="male">{t("pft.male")}</option>
-            <option value="female">{t("pft.female")}</option>
-            <option value="other">{t("pft.other")}</option>
-          </select>
-        </div>
+    <form onSubmit={save}>
+      <div className="rx-form-grid">
+        <Field label={t("admin.fName")}>
+          <Input value={f.display_name} onChange={(e) => set("display_name", e.target.value)} maxLength={60} />
+        </Field>
+        <Field label={t("admin.fAthleteName")}>
+          <Input value={f.hyrox_athlete_name} onChange={(e) => set("hyrox_athlete_name", e.target.value)} maxLength={80} />
+        </Field>
+        <Field label={t("admin.fDivision")}>
+          <Choice label={t("admin.fDivision")} value={f.division || "none"} onChange={(v) => set("division", opt(v))} options={[["none", "—"], ...DIVISIONS.map((d) => [d, dictLabel(t as never, `division.${d}`, d)] as [string, string])]} />
+        </Field>
+        <Field label={t("pft.fGender")}>
+          <Choice
+            label={t("pft.fGender")}
+            value={f.gender || "none"}
+            onChange={(v) => set("gender", opt(v))}
+            options={[
+              ["none", "—"],
+              ["male", t("pft.male")],
+              ["female", t("pft.female")],
+              ["other", t("pft.other")],
+            ]}
+          />
+        </Field>
+        <Field label={t("admin.fBirthYear")}>
+          <Input value={f.birth_year} onChange={(e) => set("birth_year", e.target.value)} inputMode="numeric" placeholder="1990" />
+        </Field>
+        <Field label={t("admin.fHeight")}>
+          <Input value={f.height_cm} onChange={(e) => set("height_cm", e.target.value)} inputMode="decimal" />
+        </Field>
+        <Field label={t("admin.fWeight")}>
+          <Input value={f.weight_kg} onChange={(e) => set("weight_kg", e.target.value)} inputMode="decimal" />
+        </Field>
+        <Field label={t("admin.fTimezone")}>
+          <Input value={f.timezone} onChange={(e) => set("timezone", e.target.value)} placeholder="Asia/Seoul" />
+        </Field>
+        <Field label={t("admin.fLocale")}>
+          <Choice
+            label={t("admin.fLocale")}
+            value={f.locale || "none"}
+            onChange={(v) => set("locale", opt(v))}
+            options={[
+              ["none", "—"],
+              ["ko", "한국어"],
+              ["en", "English"],
+              ["es", "Español"],
+            ]}
+          />
+        </Field>
+        <Field label={t("admin.fWodTime")}>
+          <Input type="time" value={f.wod_reminder_time} onChange={(e) => set("wod_reminder_time", e.target.value)} />
+        </Field>
+        <Field label={t("profile.instagram")}>
+          <Input value={f.instagram} onChange={(e) => set("instagram", e.target.value)} maxLength={80} placeholder="roxlogy" />
+        </Field>
       </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        <div>
-          <label className="block text-xs text-muted">{t("admin.fBirthYear")}</label>
-          <input
-            className={`${input} mt-1`}
-            value={f.birth_year}
-            onChange={(e) => set("birth_year", e.target.value)}
-            inputMode="numeric"
-            placeholder="1990"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-muted">{t("admin.fHeight")}</label>
-          <input
-            className={`${input} mt-1`}
-            value={f.height_cm}
-            onChange={(e) => set("height_cm", e.target.value)}
-            inputMode="decimal"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-muted">{t("admin.fWeight")}</label>
-          <input
-            className={`${input} mt-1`}
-            value={f.weight_kg}
-            onChange={(e) => set("weight_kg", e.target.value)}
-            inputMode="decimal"
-          />
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        <div>
-          <label className="block text-xs text-muted">{t("admin.fTimezone")}</label>
-          <input
-            className={`${input} mt-1`}
-            value={f.timezone}
-            onChange={(e) => set("timezone", e.target.value)}
-            placeholder="Asia/Seoul"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-muted">{t("admin.fLocale")}</label>
-          <select
-            className={`${input} mt-1`}
-            value={f.locale}
-            onChange={(e) => set("locale", e.target.value)}
-          >
-            <option value="">—</option>
-            <option value="ko">한국어</option>
-            <option value="en">English</option>
-            <option value="es">Español</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs text-muted">{t("admin.fWodTime")}</label>
-          <input
-            type="time"
-            className={`${input} mt-1`}
-            value={f.wod_reminder_time}
-            onChange={(e) => set("wod_reminder_time", e.target.value)}
-          />
-        </div>
-      </div>
-
-      <label className="mt-4 block text-xs text-muted">{t("admin.fAthleteName")}</label>
-      <input
-        className={`${input} mt-1`}
-        value={f.hyrox_athlete_name}
-        onChange={(e) => set("hyrox_athlete_name", e.target.value)}
-        maxLength={80}
-      />
-      <p className="mt-1 text-xs text-muted">{t("admin.fAthleteNameHint")}</p>
-
-      <label className="mt-4 block text-xs text-muted">{t("profile.instagram")}</label>
-      <input
-        className={`${input} mt-1`}
-        value={f.instagram}
-        onChange={(e) => set("instagram", e.target.value)}
-        maxLength={80}
-        placeholder="roxlogy"
-      />
-
-      <div className="mt-5 flex flex-col gap-2">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={f.leaderboard_opt_in}
-            onChange={(e) => set("leaderboard_opt_in", e.target.checked)}
-          />
-          {t("admin.fLeaderboard")}
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={f.is_admin}
-            onChange={(e) => set("is_admin", e.target.checked)}
-          />
-          <span className="font-semibold text-gold">{t("admin.fIsAdmin")}</span>
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={f.disabled}
-            onChange={(e) => set("disabled", e.target.checked)}
-          />
-          <span className="font-semibold text-danger">{t("admin.fDisabled")}</span>
-        </label>
-      </div>
-
-      {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
-      {msg && <p role="alert" className="mt-3 text-sm text-muted">{msg}</p>}
-
-      <button
-        type="submit"
-        disabled={busy}
-        className="mt-5 rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-      >
-        {busy ? "…" : t("crew.save")}
-      </button>
+      <Hint>{t("admin.fAthleteNameHint")}</Hint>
+      <label className="rx-check">
+        <Checkbox checked={f.leaderboard_opt_in} onCheckedChange={(v) => set("leaderboard_opt_in", v === true)} />
+        {t("admin.fLeaderboard")}
+      </label>
+      <label className="rx-check">
+        <Checkbox checked={f.is_admin} onCheckedChange={(v) => set("is_admin", v === true)} />
+        <b>{t("admin.fIsAdmin")}</b>
+      </label>
+      <label className="rx-check">
+        <Checkbox checked={f.disabled} onCheckedChange={(v) => set("disabled", v === true)} />
+        <b className="rx-error">{t("admin.fDisabled")}</b>
+      </label>
+      {err && (
+        <p role="alert" className="rx-error">
+          {err}
+        </p>
+      )}
+      {msg && <Hint>{msg}</Hint>}
+      <Button type="submit" className="rx-primary" disabled={busy}>
+        {busy ? t("common.saving") : t("crew.save")}
+      </Button>
     </form>
   );
 }

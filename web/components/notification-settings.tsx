@@ -1,38 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { NavIcon } from "@/components/nav-icon";
+import { Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { roxNative } from "@/lib/native";
-import {
-  SettingsCard,
-  Toggle,
-  btnGhost,
-  btnPrimary,
-} from "@/components/ui/settings-ui";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
-import {
-  pushSupported,
-  currentSubscription,
-  enablePush,
-  disablePush,
-  sendTest,
-} from "@/lib/push/client";
+import { pushSupported, currentSubscription, enablePush, disablePush, sendTest } from "@/lib/push/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Chip, Hint, Panel } from "@/components/rox/ui";
 
-const TYPES = [
-  "wod_reminder",
-  "new_follower",
-  "crew_join_request",
-  "dues_unpaid",
-  "exercise_request",
-  "race_partner",
-  "ai_insight",
-  "ai_program",
-] as const;
+const TYPES = ["wod_reminder", "new_follower", "crew_join_request", "dues_unpaid", "exercise_request", "race_partner", "ai_insight", "ai_program"] as const;
 type TypeKey = (typeof TYPES)[number];
 
-
+/**
+ * 알림 설정 — 시안 Settings(알림) Panel "받고 싶은 알림" 그대로: .rx-switch-row(b 종류 · small 받기/받지 않기 + Switch) × N · Hint.
+ * 푸시 켜기/끄기·테스트·네이티브 권한·WOD 시각은 우리 것이라 첫 .rx-switch-row 와 Input 으로(§4).
+ */
 export function NotificationSettings() {
   const { t } = useI18n();
   const [supported, setSupported] = useState(true);
@@ -58,9 +44,12 @@ export function NotificationSettings() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 권한 다이얼로그 폴링 정리 (언마운트 시)
-  useEffect(() => () => {
-    if (pollRef.current) clearInterval(pollRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     (async () => {
@@ -79,27 +68,18 @@ export function NotificationSettings() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: prows } = await supabase
-        .from("notification_prefs")
-        .select("type_key, enabled")
-        .eq("user_id", user.id);
+      const { data: prows } = await supabase.from("notification_prefs").select("type_key, enabled").eq("user_id", user.id);
       if (prows) {
         setPrefs((p) => {
           const next = { ...p };
           for (const r of prows) {
-            if ((TYPES as readonly string[]).includes(r.type_key))
-              next[r.type_key as TypeKey] = r.enabled;
+            if ((TYPES as readonly string[]).includes(r.type_key)) next[r.type_key as TypeKey] = r.enabled;
           }
           return next;
         });
       }
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("wod_reminder_time")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (prof?.wod_reminder_time)
-        setWodTime(String(prof.wod_reminder_time).slice(0, 5)); // HH:MM
+      const { data: prof } = await supabase.from("profiles").select("wod_reminder_time").eq("id", user.id).maybeSingle();
+      if (prof?.wod_reminder_time) setWodTime(String(prof.wod_reminder_time).slice(0, 5)); // HH:MM
     })();
   }, []);
 
@@ -167,10 +147,8 @@ export function NotificationSettings() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("notification_prefs").upsert(
-      { user_id: user.id, type_key: key, enabled, updated_at: new Date().toISOString() },
-      { onConflict: "user_id,type_key" },
-    );
+    const { error } = await supabase.from("notification_prefs").upsert({ user_id: user.id, type_key: key, enabled, updated_at: new Date().toISOString() }, { onConflict: "user_id,type_key" });
+    if (error) setErr(error.message);
   }
 
   async function saveWodTime(value: string) {
@@ -181,134 +159,74 @@ export function NotificationSettings() {
     } = await supabase.auth.getUser();
     if (!user) return;
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
-    await supabase
-      .from("profiles")
-      .update({ wod_reminder_time: value ? value : null, timezone: tz })
-      .eq("id", user.id);
+    const { error } = await supabase.from("profiles").update({ wod_reminder_time: value ? value : null, timezone: tz }).eq("id", user.id);
+    if (error) setErr(error.message);
   }
 
   // 푸시가 꺼져 있어도 종류별 선호는 미리 정해둘 수 있다 — 흐리게만 보여준다.
   const pushOn = native ? nativeOn : subscribed;
   const canPush = native ? nativeConfigured : supported;
-
-  const banner = () => {
-    if (native && !nativeConfigured)
-      return (
-        <p className="px-[22px] py-4 text-sm text-muted max-md:px-4">
-          {t("notif.native.preparing")}
-        </p>
-      );
-    if (!canPush)
-      return (
-        <div className="px-[22px] py-4 max-md:px-4">
-          <p className="text-sm text-muted">{t("notif.unsupported")}</p>
-          <p className="mt-1 text-xs text-muted">{t("notif.iosHint")}</p>
-        </div>
-      );
-
-    const onLabel = native ? t("notif.native.enabled") : t("notif.enabled");
-    const offLabel = native
-      ? t("notif.native.enable")
-      : t("notif.enablePush");
-
-    return (
-      <div
-        className={`flex items-center gap-3.5 border-b border-line px-[22px] py-4 max-md:px-4 ${
-          pushOn ? "bg-success-bg/15" : ""
-        }`}
-      >
-        <span
-          aria-hidden
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${
-            pushOn ? "bg-success-bg text-success" : "bg-line text-muted"
-          }`}
-        >
-          <NavIcon name="bell" className="h-4 w-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold">{pushOn ? onLabel : offLabel}</p>
-          <p className="mt-0.5 text-xs text-muted">
-            {pushOn ? t("notif.multiDevice") : t("notif.pushOffDesc")}
-          </p>
-          {pushOn && (
-            <button
-              type="button"
-              onClick={test}
-              disabled={busy}
-              className="mt-1.5 text-xs font-bold text-gold hover:underline disabled:opacity-40"
-            >
-              {t("notif.test")}
-            </button>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={
-            native
-              ? pushOn
-                ? nativeDisable
-                : nativeEnable
-              : toggleSubscribe
-          }
-          disabled={busy}
-          className={pushOn ? btnGhost : btnPrimary}
-        >
-          {pushOn ? t("notif.disable") : offLabel}
-        </button>
-      </div>
-    );
-  };
+  const onLabel = native ? t("notif.native.enabled") : t("notif.enabled");
+  const offLabel = native ? t("notif.native.enable") : t("notif.enablePush");
 
   return (
-    <SettingsCard
-      id="notifications"
-      title={t("notif.title")}
-      desc={t("notif.desc")}
-      bodyClassName="flex flex-col"
-    >
-      {banner()}
+    <Panel title={t("settings.noticeTitle")} action={<Chip tone={pushOn ? "green" : "neutral"}>{pushOn ? onLabel : t("notif.pushOffDesc")}</Chip>}>
+      <p>{t("notif.desc")}</p>
+      {/* 푸시 켜기/끄기 — 첫 행. 지원하지 않는 브라우저·미설정 앱은 안내만 */}
+      {native && !nativeConfigured ? (
+        <Hint>{t("notif.native.preparing")}</Hint>
+      ) : !canPush ? (
+        <Hint>
+          {t("notif.unsupported")} {t("notif.iosHint")}
+        </Hint>
+      ) : (
+        <div className="rx-switch-row">
+          <span>
+            <b style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Bell size={16} />
+              {pushOn ? onLabel : offLabel}
+            </b>
+            <small>{pushOn ? t("notif.multiDevice") : t("notif.pushOffDesc")}</small>
+          </span>
+          <span className="rx-actions" style={{ marginTop: 0, flexWrap: "nowrap" }}>
+            {pushOn && (
+              <Button type="button" variant="ghost" size="sm" onClick={test} disabled={busy}>
+                {t("notif.test")}
+              </Button>
+            )}
+            <Button type="button" variant={pushOn ? "outline" : "default"} className={pushOn ? "" : "rx-primary"} size="sm" onClick={native ? (pushOn ? nativeDisable : nativeEnable) : toggleSubscribe} disabled={busy}>
+              {pushOn ? t("notif.disable") : offLabel}
+            </Button>
+          </span>
+        </div>
+      )}
 
       {/* 종류별 선호 — 푸시가 꺼져 있으면 흐리게, 조작은 가능 */}
-      <div className={pushOn || !canPush ? "" : "opacity-50"}>
+      <div style={pushOn || !canPush ? undefined : { opacity: 0.55 }}>
         {TYPES.map((k) => (
-          <div
-            key={k}
-            className="flex items-center gap-4 border-b border-line-soft px-[22px] py-2.5 last:border-b-0 max-md:px-4"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">{t(`notif.type.${k}`)}</p>
-              <p className="mt-0.5 text-xs text-muted">
-                {t(`notif.typeDesc.${k}` as DictKey)}
-              </p>
+          <label className="rx-switch-row" key={k}>
+            <span>
+              <b>{t(`notif.type.${k}`)}</b>
+              <small>{t(`notif.typeDesc.${k}` as DictKey)}</small>
               {/* WOD 시각은 별도 카드 대신 이 행 안에서 정한다 */}
               {k === "wod_reminder" && prefs[k] && (
-                <label className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-muted">
-                  <input
-                    type="time"
-                    value={wodTime}
-                    onChange={(e) => saveWodTime(e.target.value)}
-                    className="h-8 rounded-lg border border-line-strong bg-page px-2 text-sm text-foreground outline-none focus:border-accent-line"
-                  />
-                  <span>{t("notif.wodTimeHint")}</span>
-                </label>
+                <small style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                  <Input type="time" value={wodTime} onChange={(e) => saveWodTime(e.target.value)} style={{ width: 130 }} aria-label={t("notif.wodTimeHint")} />
+                  {t("notif.wodTimeHint")}
+                </small>
               )}
-            </div>
-            <Toggle
-              checked={prefs[k]}
-              onChange={(v) => setPref(k, v)}
-              label={t(`notif.type.${k}`)}
-            />
-          </div>
+            </span>
+            <Switch checked={prefs[k]} onCheckedChange={(v) => setPref(k, v)} aria-label={t(`notif.type.${k}`)} />
+          </label>
         ))}
       </div>
 
-      {(err || note) && (
-        <p
-          className={`px-[22px] py-3 text-xs max-md:px-4 ${err ? "text-danger" : "text-success"}`}
-        >
-          {err ?? note}
+      {err && (
+        <p role="alert" className="rx-error">
+          {err}
         </p>
       )}
-    </SettingsCard>
+      {note && <Hint>{note}</Hint>}
+    </Panel>
   );
 }

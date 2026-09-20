@@ -1,162 +1,105 @@
-import Image from "next/image";
 import Link from "next/link";
 import { getT } from "@/lib/i18n";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import {
-  getAppDownloads,
-  storageFileExists,
-  AMAZFIT_ZAB_URL,
-  GARMIN_PRG_URL,
-  PLAY_STORE_URL,
-} from "@/lib/app-links";
+import { Shell } from "@/components/rox/shell";
+import { getAppDownloads, storageFileExists, AMAZFIT_ZAB_URL, GARMIN_PRG_URL, PLAY_STORE_URL } from "@/lib/app-links";
+import { Button } from "@/components/ui/button";
+import { Chip, Hint, PageHead, Panel } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
   return { title: t("meta.download") };
 }
 
+/**
+ * 앱 다운로드 — 시안 account.tsx Download() 그대로 (PORT_PLAN §3-f): PageHead · Panel "앱 다운로드"[ p · Button rx-primary ].
+ * 우리는 플랫폼이 셋(안드로이드·가민·어메이즈핏)이라 Panel 을 셋으로 늘리고, 상태는 Chip 으로(§4).
+ * (app) 밖 공개 라우트 — Shell 이 세션으로 앱 셸/공개 헤더를 가른다.
+ */
 export default async function DownloadPage() {
   const { t } = await getT();
-  const [dl, hasGarmin, hasAmazfit] = await Promise.all([
-    getAppDownloads(),
-    storageFileExists(GARMIN_PRG_URL),
-    storageFileExists(AMAZFIT_ZAB_URL),
-  ]);
+  const [dl, hasGarmin, hasAmazfit] = await Promise.all([getAppDownloads(), storageFileExists(GARMIN_PRG_URL), storageFileExists(AMAZFIT_ZAB_URL)]);
   const hasApk = !!(dl.wearUrl || dl.phoneUrl);
   const androidReady = !!PLAY_STORE_URL || hasApk;
-
-  const apkBtn =
-    "rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95";
+  const status = (ready: boolean) => <Chip tone={ready ? "green" : "neutral"}>{ready ? t("download.beta") : t("download.comingSoon")}</Chip>;
 
   return (
-    <main className="flex flex-1 flex-col">
-      <div className="flex items-center justify-between px-6 pt-4">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/roxlogy-appicon.svg" alt="Roxlogy" width={28} height={28} />
-          <span className="text-sm font-black tracking-tightst">ROXLOGY</span>
-        </Link>
-        <LocaleSwitcher compact />
-      </div>
-
-      <section className="mx-auto w-full max-w-lg px-6 pb-24 pt-12">
-        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("download.title")}</h1>
-        <p className="mt-3 text-muted">{t("download.desc")}</p>
-
-        {/* 안드로이드 */}
-        <div className="mt-8 rounded-md bg-surface px-5 py-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="font-semibold">{t("download.androidTitle")}</h2>
-              <p className="mt-1 text-sm text-muted">
-                {t("download.androidDesc")}
-              </p>
-            </div>
-            <span className="shrink-0 rounded-full bg-background px-3 py-1 text-xs text-muted">
-              {androidReady ? t("download.beta") : t("download.comingSoon")}
-            </span>
-          </div>
-
-          {PLAY_STORE_URL ? (
-            <a
-              href={PLAY_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`mt-4 inline-block ${apkBtn}`}
-            >
-              {t("download.playStore")}
+    <Shell loginNext="/download">
+      <PageHead title={t("download.hero")} description={t("download.heroDesc")} />
+      <Panel title={t("download.androidTitle")} action={status(androidReady)}>
+        <p>{t("download.androidDesc")}</p>
+        {PLAY_STORE_URL ? (
+          <Button asChild className="rx-primary">
+            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
+              {t("download.playStore")} ↗
             </a>
-          ) : hasApk ? (
-            <>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {dl.wearUrl && (
-                  <a href={dl.wearUrl} download className={apkBtn}>
+          </Button>
+        ) : hasApk ? (
+          <>
+            <div className="rx-actions">
+              {dl.wearUrl && (
+                <Button asChild className="rx-primary">
+                  <a href={dl.wearUrl} download>
                     {t("download.wearApk")}
                   </a>
-                )}
-                {dl.phoneUrl && (
-                  <a
-                    href={dl.phoneUrl}
-                    download
-                    className="rounded-md border border-accent-line px-5 py-2.5 text-sm font-semibold text-gold hover:bg-accent/10"
-                  >
+                </Button>
+              )}
+              {dl.phoneUrl && (
+                <Button asChild variant="outline">
+                  <a href={dl.phoneUrl} download>
                     {t("download.phoneApk")}
                   </a>
-                )}
-              </div>
+                </Button>
+              )}
               {dl.version && (
-                <p className="mt-2 font-mono text-xs text-muted">
+                <Chip>
                   v{dl.version}
                   {dl.build != null && ` · build ${dl.build}`}
-                </p>
+                </Chip>
               )}
-              <p className="mt-3 text-xs leading-relaxed text-muted">
-                {t("download.sideloadNote")}
-              </p>
-            </>
-          ) : (
-            <p className="mt-4 text-sm text-muted">{t("download.androidPending")}</p>
-          )}
-        </div>
-
-        {/* 가민 (Connect IQ) */}
-        <div className="mt-4 rounded-md bg-surface px-5 py-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="font-semibold">{t("download.garminTitle")}</h2>
-              <p className="mt-1 text-sm text-muted">{t("download.garminDesc")}</p>
             </div>
-            <span className="shrink-0 rounded-full bg-background px-3 py-1 text-xs text-muted">
-              {hasGarmin ? t("download.beta") : t("download.comingSoon")}
-            </span>
-          </div>
-          {hasGarmin ? (
-            <>
-              <a href={GARMIN_PRG_URL} download className={`mt-4 inline-block ${apkBtn}`}>
+            <Hint>{t("download.sideloadNote")}</Hint>
+          </>
+        ) : (
+          <Hint>{t("download.androidPending")}</Hint>
+        )}
+      </Panel>
+
+      <Panel title={t("download.garminTitle")} action={status(hasGarmin)}>
+        <p>{t("download.garminDesc")}</p>
+        {hasGarmin ? (
+          <>
+            <Button asChild className="rx-primary">
+              <a href={GARMIN_PRG_URL} download>
                 {t("download.garminPrg")}
               </a>
-              <p className="mt-3 text-xs leading-relaxed text-muted">
-                {t("download.garminNote")}
-              </p>
-            </>
-          ) : (
-            <p className="mt-4 text-sm text-muted">{t("download.garminPending")}</p>
-          )}
-        </div>
+            </Button>
+            <Hint>{t("download.garminNote")}</Hint>
+          </>
+        ) : (
+          <Hint>{t("download.garminPending")}</Hint>
+        )}
+      </Panel>
 
-        {/* 어메이즈핏 (Zepp OS) */}
-        <div className="mt-4 rounded-md bg-surface px-5 py-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="font-semibold">{t("download.amazfitTitle")}</h2>
-              <p className="mt-1 text-sm text-muted">{t("download.amazfitDesc")}</p>
-            </div>
-            <span className="shrink-0 rounded-full bg-background px-3 py-1 text-xs text-muted">
-              {hasAmazfit ? t("download.beta") : t("download.comingSoon")}
-            </span>
-          </div>
-          {hasAmazfit ? (
-            <>
-              <a href={AMAZFIT_ZAB_URL} download className={`mt-4 inline-block ${apkBtn}`}>
+      <Panel title={t("download.amazfitTitle")} action={status(hasAmazfit)}>
+        <p>{t("download.amazfitDesc")}</p>
+        {hasAmazfit ? (
+          <>
+            <Button asChild className="rx-primary">
+              <a href={AMAZFIT_ZAB_URL} download>
                 {t("download.amazfitZab")}
               </a>
-              <p className="mt-3 text-xs leading-relaxed text-muted">
-                {t("download.amazfitNote")}
-              </p>
-            </>
-          ) : (
-            <p className="mt-4 text-sm text-muted">{t("download.amazfitPending")}</p>
-          )}
-        </div>
+            </Button>
+            <Hint>{t("download.amazfitNote")}</Hint>
+          </>
+        ) : (
+          <Hint>{t("download.amazfitPending")}</Hint>
+        )}
+      </Panel>
 
-        {/* iOS는 직접 설치 불가 — App Store 등록 후에만 노출 예정이라 여기서는 생략 */}
-
-        <p className="mt-8 text-center text-sm text-muted">
-          {t("download.webCta")}{" "}
-          <Link href="/signup" className="text-gold hover:underline">
-            {t("common.signup")}
-          </Link>
-        </p>
-      </section>
-    </main>
+      {/* iOS는 직접 설치 불가 — App Store 등록 후에만 노출 예정이라 여기서는 생략 */}
+      <Hint>
+        {t("download.webCta")} <Link href="/signup">{t("common.signup")}</Link>
+      </Hint>
+    </Shell>
   );
 }

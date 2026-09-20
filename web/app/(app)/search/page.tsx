@@ -1,9 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
-import { Avatar, Card } from "@/components/ui/crew-ui";
-import { SearchBox } from "@/components/search-box";
-import { RowLink } from "@/components/row-link";
+import { QueryFind, QuerySegments } from "@/components/rox/query-filters";
+import { Chip, Empty, Hint, PageHead, Panel, RecordRow } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -24,15 +23,16 @@ type EventHit = {
   start_date: string;
 };
 
-/** 통합 검색 — 네비의 검색이 갈 곳. 크루와 공식 대회를 함께 찾는다. */
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const { q } = await searchParams;
+/**
+ * 통합 검색 — 시안 account.tsx SearchPage() 그대로 (PORT_PLAN §3-f):
+ * PageHead · Panel[ Find · Segments(전체 · 크루 · 대회) · RowLink(end Chip 종류) · Empty ].
+ * 검색은 서버가 하므로 QueryFind(?q=)·QuerySegments(?kind=). 크루와 공식 대회를 함께 찾는다.
+ */
+export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string; kind?: string }> }) {
+  const { q, kind } = await searchParams;
   const { t, tag, tz } = await getT();
   const query = (q ?? "").trim();
+  const which = kind === "crews" || kind === "events" ? kind : "all";
 
   let crews: CrewHit[] = [];
   let events: EventHit[] = [];
@@ -42,19 +42,10 @@ export default async function SearchPage({
     // ilike 패턴의 와일드카드는 이스케이프한다 — "%" 를 넣으면 전체가 걸린다
     const like = `%${query.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
     const [{ data: c }, { data: e }] = await Promise.all([
-      supabase
-        .from("crews")
-        .select("slug, name, tagline, location, member_count")
-        .eq("status", "active")
-        .eq("is_public", true)
-        .or(`name.ilike.${like},location.ilike.${like},tagline.ilike.${like}`)
-        .limit(20),
-      supabase
-        .from("race_events")
-        .select("id, name, city, start_date")
-        .or(`name.ilike.${like},city.ilike.${like}`)
-        .order("start_date", { ascending: false })
-        .limit(20),
+      which === "events"
+        ? Promise.resolve({ data: [] })
+        : supabase.from("crews").select("slug, name, tagline, location, member_count").eq("status", "active").eq("is_public", true).or(`name.ilike.${like},location.ilike.${like},tagline.ilike.${like}`).limit(20),
+      which === "crews" ? Promise.resolve({ data: [] }) : supabase.from("race_events").select("id, name, city, start_date").or(`name.ilike.${like},city.ilike.${like}`).order("start_date", { ascending: false }).limit(20),
     ]);
     crews = (c ?? []) as CrewHit[];
     events = (e ?? []) as EventHit[];
@@ -63,74 +54,29 @@ export default async function SearchPage({
   const empty = query.length >= 1 && !crews.length && !events.length;
 
   return (
-    <main>
-      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("nav.search")}</h1>
-      <div className="mt-4 max-w-lg">
-        <SearchBox initial={query} />
-      </div>
-
-      {empty && (
-        <Card className="mt-6 px-4 py-12 text-center">
-          <p className="text-sm text-muted">{t("search.empty")}</p>
-        </Card>
-      )}
-
-      {crews.length > 0 && (
-        <section className="mt-6">
-          <p className="mb-2 text-xs font-bold text-muted">{t("nav.crews")}</p>
-          <Card className="divide-y divide-line overflow-hidden">
-            {crews.map((c) => (
-              <RowLink
-                key={c.slug}
-                href={`/crews/${c.slug}`}
-                className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-card-hover"
-              >
-                <Avatar name={c.name} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-bold">
-                    {c.name}
-                  </span>
-                  <span className="block truncate text-[13px] text-muted">
-                    {[c.location, c.tagline].filter(Boolean).join(" · ")}
-                  </span>
-                </span>
-                <span className="tabular shrink-0 text-[13px] text-muted">
-                  {c.member_count}
-                </span>
-              </RowLink>
-            ))}
-          </Card>
-        </section>
-      )}
-
-      {events.length > 0 && (
-        <section className="mt-6">
-          <p className="mb-2 text-xs font-bold text-muted">{t("nav.events")}</p>
-          <Card className="divide-y divide-line overflow-hidden">
-            {events.map((e) => (
-              <RowLink
-                key={e.id}
-                href={`/events/${e.id}`}
-                className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-card-hover"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-bold">
-                    {e.name}
-                  </span>
-                  {e.city && (
-                    <span className="block truncate text-[13px] text-muted">
-                      {e.city}
-                    </span>
-                  )}
-                </span>
-                <span className="tabular shrink-0 text-[13px] text-muted">
-                  {formatDateShort(e.start_date, tag, tz)}
-                </span>
-              </RowLink>
-            ))}
-          </Card>
-        </section>
-      )}
-    </main>
+    <>
+      <PageHead title={t("search.hero")} description={t("search.heroDesc")} />
+      <Panel>
+        <QueryFind param="q" value={query} placeholder={t("nav.searchPh")} />
+        <QuerySegments
+          label={t("nav.search")}
+          param="kind"
+          value={which}
+          options={[
+            ["all", t("crew.finKindAll")],
+            ["crews", t("nav.crews")],
+            ["events", t("nav.events")],
+          ]}
+        />
+        {crews.map((c) => (
+          <RecordRow key={c.slug} href={`/crews/${c.slug}`} title={c.name} note={[c.location, c.tagline].filter(Boolean).join(" · ") || `${c.member_count} ${t("crew.members")}`} end={<Chip>{t("nav.crews")}</Chip>} />
+        ))}
+        {events.map((e) => (
+          <RecordRow key={e.id} href={`/events/${e.id}`} title={e.name} note={[e.city, formatDateShort(e.start_date, tag, tz)].filter(Boolean).join(" · ")} end={<Chip>{t("nav.events")}</Chip>} />
+        ))}
+        {empty && <Empty title={t("search.empty")} description={t("search.heroDesc")} />}
+        {!query && <Hint>{t("nav.searchPh")}</Hint>}
+      </Panel>
+    </>
   );
 }

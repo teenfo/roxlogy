@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Choice, Field, Hint } from "@/components/rox/ui";
 
 const CATEGORIES = ["strength", "conditioning", "running", "mobility"] as const;
 const STATIONS = Array.from({ length: 8 }, (_, i) => `station_${i + 1}`);
 
 /** 관리자: 운동 DB 편집 (분류·스테이션 매핑·타겟 부위·별칭·설명·미디어).
- *  exercises admin RLS로 허용. */
+ *  exercises admin RLS로 허용. 시안 콘텐츠 표의 한 행을 펼치면 Field 폼이 나오는 모양. */
 export function AdminExerciseEditor({
   id,
   name,
@@ -37,18 +42,14 @@ export function AdminExerciseEditor({
   const [desc, setDesc] = useState(description ?? "");
   const [media, setMedia] = useState(mediaUrl ?? "");
   const [state, setState] = useState<"idle" | "saving" | "saved" | "err">("idle");
+  const [err, setErr] = useState<string | null>(null);
 
   async function save() {
     setState("saving");
+    setErr(null);
     const supabase = createClient();
-    const musclesArr = m
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const aliasesArr = al
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const musclesArr = m.split(",").map((s) => s.trim()).filter(Boolean);
+    const aliasesArr = al.split(",").map((s) => s.trim()).filter(Boolean);
     const { error } = await supabase
       .from("exercises")
       .update({
@@ -60,121 +61,93 @@ export function AdminExerciseEditor({
         media_url: media.trim() || null,
       })
       .eq("id", id);
+    if (error) setErr(error.message);
     setState(error ? "err" : "saved");
   }
-
-  const inputCls =
-    "w-full rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
+  const touch = () => setState("idle");
 
   return (
-    <div className="rounded-md bg-surface px-4 py-3">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between text-left"
-      >
-        <span className="text-sm font-semibold">{name}</span>
-        <span className="text-xs text-muted">{open ? "−" : t("admin.edit")}</span>
-      </button>
+    <div className="rx-record-row" style={{ cursor: "default", flexWrap: "wrap" }}>
+      <span style={{ flex: 1 }}>
+        <b>{name}</b>
+        <small>{[cat ? t(`exercises.cat.${cat}` as Parameters<typeof t>[0]) : null, station ? `Station ${station.replace("station_", "")}` : null].filter(Boolean).join(" · ") || "—"}</small>
+      </span>
+      <Button type="button" variant="ghost" size="sm" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        {t("admin.edit")}
+        {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+      </Button>
       {open && (
-        <div className="mt-3 grid gap-2">
-          <div className="flex gap-2">
-            <label className="flex-1 text-xs text-muted">
-              {t("exercises.detCategory")}
-              <select
-                value={cat}
-                onChange={(e) => {
-                  setCat(e.target.value);
-                  setState("idle");
+        <div style={{ flexBasis: "100%", marginTop: 8 }}>
+          <div className="rx-form-grid">
+            <Field label={t("exercises.detCategory")}>
+              <Choice
+                label={t("exercises.detCategory")}
+                value={cat || "none"}
+                onChange={(v) => {
+                  setCat(v === "none" ? "" : v);
+                  touch();
                 }}
-                className={inputCls}
-              >
-                <option value="">—</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {t(`exercises.cat.${c}` as Parameters<typeof t>[0])}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex-1 text-xs text-muted">
-              {t("exercises.detStation")}
-              <select
-                value={station}
-                onChange={(e) => {
-                  setStation(e.target.value);
-                  setState("idle");
+                options={[["none", "—"], ...CATEGORIES.map((c) => [c, t(`exercises.cat.${c}` as Parameters<typeof t>[0])] as [string, string])]}
+              />
+            </Field>
+            <Field label={t("exercises.detStation")}>
+              <Choice
+                label={t("exercises.detStation")}
+                value={station || "none"}
+                onChange={(v) => {
+                  setStation(v === "none" ? "" : v);
+                  touch();
                 }}
-                className={inputCls}
-              >
-                <option value="">—</option>
-                {STATIONS.map((st, i) => (
-                  <option key={st} value={st}>
-                    {`Station ${i + 1}`}
-                  </option>
-                ))}
-              </select>
-            </label>
+                options={[["none", "—"], ...STATIONS.map((st, i) => [st, `Station ${i + 1}`] as [string, string])]}
+              />
+            </Field>
+            <Field label={`${t("exercises.detTarget")} (${t("admin.commaKeys")})`}>
+              <Input
+                value={m}
+                onChange={(e) => {
+                  setM(e.target.value);
+                  touch();
+                }}
+              />
+            </Field>
+            <Field label={`${t("admin.exAliases")} (${t("admin.commaKeys")})`}>
+              <Input
+                value={al}
+                onChange={(e) => {
+                  setAl(e.target.value);
+                  touch();
+                }}
+              />
+            </Field>
           </div>
-          <label className="text-xs text-muted">
-            {t("exercises.detTarget")} ({t("admin.commaKeys")})
-            <input
-              value={m}
-              onChange={(e) => {
-                setM(e.target.value);
-                setState("idle");
-              }}
-              className={inputCls}
-            />
-          </label>
-          <label className="text-xs text-muted">
-            {t("admin.exAliases")} ({t("admin.commaKeys")})
-            <input
-              value={al}
-              onChange={(e) => {
-                setAl(e.target.value);
-                setState("idle");
-              }}
-              className={inputCls}
-            />
-          </label>
-          <label className="text-xs text-muted">
-            {t("exercises.detHowTo")}
-            <textarea
+          <Field label={t("exercises.detHowTo")}>
+            <Textarea
               value={desc}
               onChange={(e) => {
                 setDesc(e.target.value);
-                setState("idle");
+                touch();
               }}
               rows={3}
-              className={inputCls}
             />
-          </label>
-          <label className="text-xs text-muted">
-            {t("admin.mediaUrl")}
-            <input
+          </Field>
+          <Field label={t("admin.mediaUrl")}>
+            <Input
               value={media}
               onChange={(e) => {
                 setMedia(e.target.value);
-                setState("idle");
+                touch();
               }}
-              className={inputCls}
             />
-          </label>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={save}
-              disabled={state === "saving"}
-              className="rounded-md bg-accent px-4 py-1.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-            >
+          </Field>
+          <div className="rx-actions">
+            <Button type="button" className="rx-primary" onClick={save} disabled={state === "saving"}>
               {state === "saving" ? t("common.saving") : t("common.save")}
-            </button>
-            {state === "saved" && (
-              <span className="text-xs text-track">{t("profile.saved")}</span>
-            )}
+            </Button>
+            {state === "saved" && <Hint>{t("profile.saved")}</Hint>}
             {state === "err" && (
-              <span className="text-xs text-danger">{t("common.needLogin")}</span>
+              <span role="alert" className="rx-error">
+                {err ?? t("common.needLogin")}
+              </span>
             )}
           </div>
         </div>

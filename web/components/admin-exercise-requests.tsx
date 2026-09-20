@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
+import { Chip, Empty, Find, Hint } from "@/components/rox/ui";
 
 export type ExerciseRequest = {
   id: string;
@@ -21,7 +23,8 @@ export type ExerciseRequest = {
 };
 
 /** 운동 등록 요청 처리 — 관리자 전용.
- *  승인하면 exercises 에 추가되고(즉시 워크아웃에 사용 가능) 요청이 종결된다. */
+ *  승인하면 exercises 에 추가되고(즉시 워크아웃에 사용 가능) 요청이 종결된다.
+ *  시안에 없는 화면(§4) — .rx-record-row 행 + Chip + Button + Find 로만 그린다. */
 export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -59,123 +62,82 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
     router.refresh();
   }
 
-  const approve = (r: ExerciseRequest) =>
-    call(r.id, "approve_exercise_request", {
-      p_request: r.id,
-      p_exercise: null,
-      p_name_en: r.name_en,
-    });
-  const link = (r: ExerciseRequest, exerciseId: string) =>
-    call(r.id, "approve_exercise_request", {
-      p_request: r.id,
-      p_exercise: exerciseId,
-      p_name_en: null,
-    });
-  const reject = (r: ExerciseRequest) =>
-    call(r.id, "reject_exercise_request", { p_request: r.id }, false);
+  const approve = (r: ExerciseRequest) => call(r.id, "approve_exercise_request", { p_request: r.id, p_exercise: null, p_name_en: r.name_en });
+  const link = (r: ExerciseRequest, exerciseId: string) => call(r.id, "approve_exercise_request", { p_request: r.id, p_exercise: exerciseId, p_name_en: null });
+  const reject = (r: ExerciseRequest) => call(r.id, "reject_exercise_request", { p_request: r.id }, false);
 
   async function searchExercises(id: string, q: string) {
     setLinking({ id, q, hits: [] });
     const term = q.trim();
     if (!term) return;
     const supabase = createClient();
-    const { data } = await supabase
-      .from("exercises")
-      .select("id, name_ko, name_en")
-      .or(`name_ko.ilike.%${term}%,name_en.ilike.%${term}%`)
-      .limit(8);
-    setLinking((cur) =>
-      cur && cur.id === id && cur.q === q ? { ...cur, hits: (data ?? []) as ExHit[] } : cur,
-    );
+    const { data } = await supabase.from("exercises").select("id, name_ko, name_en").or(`name_ko.ilike.%${term}%,name_en.ilike.%${term}%`).limit(8);
+    setLinking((cur) => (cur && cur.id === id && cur.q === q ? { ...cur, hits: (data ?? []) as ExHit[] } : cur));
   }
 
   if (!items.length) {
-    return <p className="text-sm text-muted">{t("admin.exReqNone")}</p>;
+    return <Empty title={t("admin.exReqNone")} description={t("admin.exReqDesc")} />;
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      {err && <p role="alert" className="text-sm text-danger">{err}</p>}
-      {notice && <p role="status" className="text-sm text-gold">{notice}</p>}
+    <>
+      {err && (
+        <p role="alert" className="rx-error">
+          {err}
+        </p>
+      )}
+      {notice && <Hint>{notice}</Hint>}
       {items.map((r) => (
-        <div key={r.id} className="rounded-md bg-surface px-4 py-2.5">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {r.source !== "user" && (
-              <span
-                title={t(r.source === "ai" ? "admin.exReqAiHint" : "admin.exReqMcpHint")}
-                className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gold"
-              >
-                {t(r.source === "ai" ? "admin.exReqAi" : "admin.exReqMcp")}
-              </span>
-            )}
-            <span className="text-sm font-semibold">{r.name_ko}</span>
-            {r.name_en && <span className="text-xs text-muted">{r.name_en}</span>}
-            {r.waitingItems > 0 && (
-              <span
-                title={t("admin.exReqWaitingHint")}
-                className="shrink-0 rounded-md border border-line-mid bg-background px-1.5 py-0.5 text-xs font-bold tabular"
-              >
-                {t("admin.exReqWaiting", { n: r.waitingItems, p: r.waitingPrograms })}
-              </span>
-            )}
-            {r.note && (
-              <span className="min-w-0 flex-1 truncate text-xs text-muted">
-                {r.source !== "user" ? `${t("admin.exReqAiProgram")}: ${r.note}` : r.note}
-              </span>
-            )}
-            <span className="ml-auto shrink-0 text-xs text-muted">{r.requester}</span>
-            <button
-              onClick={() => approve(r)}
-              disabled={busy != null}
-              className="shrink-0 rounded-md bg-accent px-3 py-1 text-xs font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-            >
+        <div key={r.id} className="rx-record-row" style={{ cursor: "default", flexWrap: "wrap" }}>
+          {/* 제목 칸 최소 폭 — 좁은 화면에서는 버튼 묶음이 아래 줄로 내려간다(글자가 세로로 쪼개지지 않게) */}
+          <span style={{ flex: 1, minWidth: 200 }}>
+            <b>
+              {r.name_ko}
+              {r.name_en ? <small className="rx-muted"> {r.name_en}</small> : null}
+            </b>
+            <small>
+              {r.requester}
+              {r.note ? ` · ${r.source !== "user" ? `${t("admin.exReqAiProgram")}: ${r.note}` : r.note}` : ""}
+            </small>
+          </span>
+          {r.source !== "user" && (
+            <Chip tone="yellow">
+              <span title={t(r.source === "ai" ? "admin.exReqAiHint" : "admin.exReqMcpHint")}>{t(r.source === "ai" ? "admin.exReqAi" : "admin.exReqMcp")}</span>
+            </Chip>
+          )}
+          {r.waitingItems > 0 && (
+            <Chip>
+              <span title={t("admin.exReqWaitingHint")}>{t("admin.exReqWaiting", { n: r.waitingItems, p: r.waitingPrograms })}</span>
+            </Chip>
+          )}
+          <span className="rx-actions" style={{ marginTop: 0, flexWrap: "nowrap" }}>
+            <Button type="button" size="sm" className="rx-primary" onClick={() => approve(r)} disabled={busy != null}>
               {t("admin.exReqApprove")}
-            </button>
-            <button
-              onClick={() =>
-                linking?.id === r.id ? setLinking(null) : searchExercises(r.id, "")
-              }
-              disabled={busy != null}
-              className="shrink-0 rounded-md bg-background px-3 py-1 text-xs disabled:opacity-40"
-            >
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => (linking?.id === r.id ? setLinking(null) : searchExercises(r.id, ""))} disabled={busy != null}>
               {linking?.id === r.id ? t("common.cancel") : t("admin.exReqLink")}
-            </button>
-            <button
-              onClick={() => reject(r)}
-              disabled={busy != null}
-              className="shrink-0 rounded-md bg-background px-3 py-1 text-xs text-danger disabled:opacity-40"
-            >
+            </Button>
+            <Button type="button" size="sm" variant="ghost" className="rx-pft-close" onClick={() => reject(r)} disabled={busy != null}>
               {t("admin.exReqReject")}
-            </button>
-          </div>
+            </Button>
+          </span>
           {linking?.id === r.id && (
-            <div className="mt-2 flex flex-col gap-1.5">
-              <input
-                autoFocus
-                value={linking.q}
-                onChange={(e) => searchExercises(r.id, e.target.value)}
-                placeholder={t("admin.exReqLinkSearch")}
-                className="h-9 w-full rounded-md border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line"
-              />
+            <div style={{ flexBasis: "100%", marginTop: 8 }}>
+              <Find value={linking.q} onChange={(v) => searchExercises(r.id, v)} placeholder={t("admin.exReqLinkSearch")} />
               {linking.hits.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="rx-actions">
                   {linking.hits.map((ex) => (
-                    <button
-                      key={ex.id}
-                      onClick={() => link(r, ex.id)}
-                      disabled={busy != null}
-                      className="rounded-md border border-line-mid bg-background px-2.5 py-1 text-xs hover:border-accent-line disabled:opacity-40"
-                    >
+                    <Button key={ex.id} type="button" size="sm" variant="outline" onClick={() => link(r, ex.id)} disabled={busy != null}>
                       {locale === "ko" ? ex.name_ko : ex.name_en}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
-              <p className="text-xs text-muted">{t("admin.exReqLinkHint")}</p>
+              <Hint>{t("admin.exReqLinkHint")}</Hint>
             </div>
           )}
         </div>
       ))}
-    </div>
+    </>
   );
 }

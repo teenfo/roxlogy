@@ -5,7 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import type { ShellCrew } from "@/lib/shell";
-import { Field, Hint } from "@/components/rox/ui";
+import { Choice, Field, Hint } from "@/components/rox/ui";
 
 /**
  * 사이드바 푸터에 고정할 크루 고르기 (PORT_PLAN §7-5, 마이그레이션 111).
@@ -24,7 +24,7 @@ export function SidebarCrewSelect({
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const [value, setValue] = useState(current ?? "");
+  const [value, setValue] = useState(current ?? "auto");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   if (crews.length < 2) return null;
@@ -36,7 +36,7 @@ export function SidebarCrewSelect({
     const supabase = createClient();
     const { error } = await supabase
       .from("profiles")
-      .update({ sidebar_crew_id: next || null })
+      .update({ sidebar_crew_id: next === "auto" ? null : next })
       .eq("id", userId);
     setSaving(false);
     if (error) {
@@ -47,24 +47,17 @@ export function SidebarCrewSelect({
   }
 
   return (
-    <div>
+    <div aria-busy={saving}>
       <Field label={t("shell.sidebarCrew")}>
-        <select
-          value={value}
-          disabled={saving}
-          onChange={(e) => change(e.target.value)}
-          className="rx-locale"
-          style={{ maxWidth: "none", width: "100%" }}
-        >
-          <option value="">{t("shell.sidebarCrewAuto")}</option>
-          {crews.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <Choice label={t("shell.sidebarCrew")} value={value} onChange={change} options={[["auto", t("shell.sidebarCrewAuto")], ...crews.map((c) => [c.id, c.name] as [string, string])]} />
       </Field>
-      <Hint>{error ?? t("shell.sidebarCrewHint")}</Hint>
+      {error ? (
+        <p role="alert" className="rx-error">
+          {error}
+        </p>
+      ) : (
+        <Hint>{t("shell.sidebarCrewHint")}</Hint>
+      )}
     </div>
   );
 }

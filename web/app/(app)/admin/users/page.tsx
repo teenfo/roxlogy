@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
 import { AdminUserActions } from "@/components/admin-user-actions";
+import { QueryFind } from "@/components/rox/query-filters";
+import { Chip, DataTable, Empty, Hint, Panel } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -20,11 +22,8 @@ type AdminUser = {
   session_count: number;
 };
 
-export default async function AdminUsersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
+/** 사용자 관리 — 시안 Admin(users): Panel 사용자 목록[ Find · DataTable[사용자 · 상태 · 권한 · 세션] · Hint ]. 가입일·토글 버튼은 우리 열(§4). */
+export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const supabase = await createClient();
   const { t, tag, tz } = await getT();
@@ -33,90 +32,36 @@ export default async function AdminUsersPage({
   const users = (data ?? []) as AdminUser[];
 
   return (
-    <main>
-      <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("admin.usersTitle")}</h1>
-      <form className="mt-4" action="/admin/users">
-        <input
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder={t("admin.searchName")}
-          className="w-full max-w-sm rounded-md border border-line-mid bg-surface px-3 py-2 text-sm outline-none focus:border-accent-line"
+    <Panel title={t("admin.userList")}>
+      <QueryFind param="q" value={q ?? ""} placeholder={t("admin.searchName")} />
+      {users.length ? (
+        <DataTable
+          headers={[t("admin.colUser"), t("admin.colStatus"), t("admin.colRole"), t("admin.colJoined"), t("admin.colSessions"), ""]}
+          rows={users.map((u) => [
+            <span key="u">
+              <Link href={`/admin/users/${u.id}`}>
+                <b>{u.display_name ?? t("admin.noName")}</b>
+              </Link>
+              <small className="rx-muted" style={{ display: "block" }}>
+                {u.email ?? u.id.slice(0, 8)}
+              </small>
+            </span>,
+            <span key="s" className="rx-actions" style={{ marginTop: 0, flexWrap: "nowrap" }}>
+              <Chip tone={u.disabled ? "red" : "green"}>{u.disabled ? t("admin.flagDisabled") : t("admin.statusActive")}</Chip>
+              {u.leaderboard_opt_in && <Chip tone="blue">LB</Chip>}
+            </span>,
+            u.is_admin ? <Chip key="r" tone="yellow">{t("admin.roleAdmin")}</Chip> : <span key="r">{t("admin.roleUser")}</span>,
+            formatDateShort(u.created_at, tag, tz),
+            <span key="n" className="rx-number">
+              {u.session_count}
+            </span>,
+            <AdminUserActions key="a" userId={u.id} isAdmin={u.is_admin} disabled={u.disabled} />,
+          ])}
         />
-      </form>
-
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-surface text-left text-xs text-muted">
-              <th className="py-2 pr-4 font-normal">{t("admin.colUser")}</th>
-              <th className="py-2 pr-4 font-normal">{t("admin.colJoined")}</th>
-              <th className="py-2 pr-4 text-right font-normal">{t("admin.colSessions")}</th>
-              <th className="py-2 pr-4 font-normal">{t("admin.colFlags")}</th>
-              <th className="py-2 text-right font-normal">{t("admin.colActions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-b border-surface/60">
-                <td className="py-2.5 pr-4">
-                  <Link
-                    href={`/admin/users/${u.id}`}
-                    className="font-medium hover:text-gold"
-                  >
-                    {u.display_name ?? t("admin.noName")}
-                  </Link>
-                  <span className="mt-0.5 block text-xs text-muted">
-                    {u.email ?? (
-                      <span className="font-mono text-[10px]">
-                        {u.id.slice(0, 8)}
-                      </span>
-                    )}
-                  </span>
-                </td>
-                <td className="py-2.5 pr-4 text-muted">
-                  {formatDateShort(u.created_at, tag, tz)}
-                </td>
-                <td className="py-2.5 pr-4 text-right tabular-nums">
-                  {u.session_count}
-                </td>
-                <td className="py-2.5 pr-4">
-                  <span className="flex flex-wrap gap-1">
-                    {u.is_admin && (
-                      <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-gold">
-                        admin
-                      </span>
-                    )}
-                    {u.disabled && (
-                      <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-bold text-danger">
-                        {t("admin.flagDisabled")}
-                      </span>
-                    )}
-                    {u.leaderboard_opt_in && (
-                      <span className="rounded bg-track/15 px-1.5 py-0.5 text-[10px] font-bold text-track">
-                        LB
-                      </span>
-                    )}
-                  </span>
-                </td>
-                <td className="py-2.5">
-                  <AdminUserActions
-                    userId={u.id}
-                    isAdmin={u.is_admin}
-                    disabled={u.disabled}
-                  />
-                </td>
-              </tr>
-            ))}
-            {!users.length && (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-sm text-muted">
-                  {t("admin.noUsers")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </main>
+      ) : (
+        <Empty title={t("admin.noUsers")} description={t("admin.searchName")} />
+      )}
+      <Hint>{t("admin.editHint")}</Hint>
+    </Panel>
   );
 }

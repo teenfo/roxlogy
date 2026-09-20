@@ -1,6 +1,7 @@
-import Link from "next/link";
+import { Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
+import { getAdmin } from "@/lib/admin";
 import { getT } from "@/lib/i18n";
 import { ProfileForm } from "@/components/profile-form";
 import { NotificationSettings } from "@/components/notification-settings";
@@ -8,155 +9,107 @@ import { HyroxLinkForm } from "@/components/hyrox-link-form";
 import { McpConnect } from "@/components/mcp-connect";
 import { LinkedAccounts } from "@/components/linked-accounts";
 import { LocaleSwitcher } from "@/components/locale-switcher";
-import { SettingsChips, SettingsNav } from "@/components/settings-nav";
-import { SettingsCard } from "@/components/ui/settings-ui";
 import { SignOutForm } from "@/components/sign-out-form";
 import { SidebarCrewSelect } from "@/components/sidebar-crew-select";
+import { SettingsTabs } from "@/components/settings-tabs";
 import { getShellData } from "@/lib/shell";
+import { Field, Go, Hint, PageHead, Panel, RecordRow } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
   return { title: t("meta.profile") };
 }
 
+/**
+ * 내 프로필과 설정 — 시안 account.tsx Settings() 그대로 (PORT_PLAN §3-f):
+ * PageHead(+ Go 관리자) · Segments(프로필 · 계정 · 연동 · 알림) ·
+ * [프로필] Panel 공개 프로필(.rx-profile-editor · rx-form-grid · .rx-switch-row 리더보드 · 버튼)
+ * [계정] Panel 로그인과 기기(RowLink 앱 다운로드 · Hint · 버튼)
+ * [연동] Panel HYROX 공식 기록(.rx-switch-row + Chip) · Panel 내 AI 연결(.rx-info-grid)
+ * [알림] Panel 받고 싶은 알림(.rx-switch-row × N · Hint).
+ * 로그인 수단·사이드바 크루·언어·MCP 토큰은 우리 것이라 같은 Panel 안에 Field·행으로(§4).
+ */
 export default async function ProfileSettingsPage() {
   const supabase = await createClient();
   const user = await getCachedUser();
-  const [{ t, tag, tz }, shell] = await Promise.all([getT(), getShellData()]);
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user!.id)
-    .single();
+  const [{ t, tag, tz }, shell, { isAdmin }] = await Promise.all([getT(), getShellData(), getAdmin()]);
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
 
   const displayName = profile?.display_name ?? "Athlete";
   const email = user!.email ?? "";
   // 날짜·연도는 서버(KST) 기준으로 계산해 넘긴다 — 클라이언트 렌더에서
   // new Date() 를 쓰면 순수하지 않은 렌더가 된다.
   const now = new Date();
-  const lastSaved = profile?.updated_at
-    ? new Date(profile.updated_at).toLocaleDateString(tag, {
-        month: "long",
-        day: "numeric",
-        timeZone: tz,
-      })
-    : null;
+  const lastSaved = profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString(tag, { month: "long", day: "numeric", timeZone: tz }) : null;
+
+  const panels = {
+    profile: (
+      <>
+        <ProfileForm
+          initial={{
+            display_name: profile?.display_name ?? "",
+            gender: profile?.gender ?? "",
+            height_cm: profile?.height_cm?.toString() ?? "",
+            weight_kg: profile?.weight_kg?.toString() ?? "",
+            birth_year: profile?.birth_year?.toString() ?? "",
+            instagram: profile?.instagram ?? "",
+            leaderboard_opt_in: profile?.leaderboard_opt_in ?? false,
+          }}
+          currentYear={now.getFullYear()}
+          lastSaved={lastSaved}
+        />
+        {/* 사이드바에 고정할 크루 — 크루가 둘 이상일 때만 (PORT_PLAN §7-5) */}
+        {shell.crews.length >= 2 && (
+          <Panel title={t("settings.sidebarTitle")}>
+            <SidebarCrewSelect userId={user!.id} crews={shell.crews} current={shell.pinned} />
+          </Panel>
+        )}
+      </>
+    ),
+    account: (
+      <Panel title={t("settings.loginDevices")}>
+        <LinkedAccounts email={email} />
+        <RecordRow href="/download" title={t("profile.getApp")} note={t("profile.getAppDesc")} />
+        <Field label={t("profile.language")}>
+          <LocaleSwitcher className="rx-locale" />
+        </Field>
+        <Hint>{t("profile.languageDesc")}</Hint>
+        <SignOutForm buttonClassName="rx-pft-close" label={t("common.logout")} />
+      </Panel>
+    ),
+    integrations: (
+      <>
+        <HyroxLinkForm linkedName={profile?.hyrox_athlete_name ?? null} />
+        <McpConnect token={profile?.mcp_token ?? ""} writeEnabled={Boolean(profile?.mcp_write)} />
+      </>
+    ),
+    notifications: <NotificationSettings />,
+  };
 
   return (
-    <div className="mx-auto w-full max-w-[960px]">
-      {/* 모바일: 상단 고정 섹션 칩 (데스크톱은 좌측 목차) */}
-      <SettingsChips />
-
-      <div className="grid items-start gap-8 pt-1 md:grid-cols-[200px_minmax(0,1fr)]">
-        <SettingsNav name={displayName} email={email} />
-
-        <div className="flex min-w-0 flex-col gap-5">
-          <header>
-            <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
-              {t("profile.title")}
-            </h1>
-            <p className="mt-1 text-[15px] text-muted">
-              {t("profile.subtitle")}
-            </p>
-          </header>
-
-          {/* 언어 — 데스크톱은 좌측 목차 하단, 모바일은 본문 최상단 */}
-          <div className="flex items-center gap-4 rounded-xl border border-line bg-card px-4 py-3.5 md:hidden">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">{t("profile.language")}</p>
-              <p className="mt-0.5 text-xs text-muted">
-                {t("profile.languageDesc")}
-              </p>
-            </div>
-            <LocaleSwitcher />
-          </div>
-
-          <ProfileForm
-            initial={{
-              display_name: profile?.display_name ?? "",
-              gender: profile?.gender ?? "",
-              height_cm: profile?.height_cm?.toString() ?? "",
-              weight_kg: profile?.weight_kg?.toString() ?? "",
-              birth_year: profile?.birth_year?.toString() ?? "",
-              instagram: profile?.instagram ?? "",
-              leaderboard_opt_in: profile?.leaderboard_opt_in ?? false,
-            }}
-            currentYear={now.getFullYear()}
-            lastSaved={lastSaved}
-          />
-
-          {/* 사이드바에 고정할 크루 — 크루가 둘 이상일 때만 (PORT_PLAN §7-5) */}
-          <SidebarCrewSelect
-            userId={user!.id}
-            crews={shell.crews}
-            current={shell.pinned}
-          />
-
-          {/* 계정 — 로그인 수단 + 앱 다운로드 */}
-          <SettingsCard
-            id="account"
-            title={t("profile.secAccount")}
-            desc={t("profile.secAccountDesc")}
-            bodyClassName="flex flex-col"
-          >
-            <LinkedAccounts email={email} />
-            <Link
-              href="/download"
-              className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line-soft px-[22px] py-3.5 transition-colors hover:bg-card-hover max-md:px-4"
-            >
-              <span
-                aria-hidden
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-line text-muted"
-              >
-                ↓
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold">
-                  {t("profile.getApp")}
-                </span>
-                <span className="block truncate text-[13px] text-muted">
-                  {t("profile.getAppDesc")}
-                </span>
-              </span>
-              <span aria-hidden className="shrink-0 text-gold">
-                →
-              </span>
-            </Link>
-          </SettingsCard>
-
-          {/* 연동 — 카드 두 장을 한 섹션으로 묶는다 */}
-          <section id="integrations" className="scroll-mt-[110px]">
-            <h2 className="text-base font-extrabold">
-              {t("profile.secIntegrations")}
-            </h2>
-            <p className="mt-0.5 text-xs text-muted">
-              {t("profile.secIntegrationsDesc")}
-            </p>
-            <div className="mt-3 flex flex-col gap-3">
-              <div className="overflow-hidden rounded-[14px] border border-line bg-card">
-                <HyroxLinkForm
-                  linkedName={profile?.hyrox_athlete_name ?? null}
-                />
-              </div>
-              <div className="overflow-hidden rounded-[14px] border border-line bg-card">
-                <McpConnect
-                  token={profile?.mcp_token ?? ""}
-                  writeEnabled={Boolean(profile?.mcp_write)}
-                />
-              </div>
-            </div>
-          </section>
-
-          <NotificationSettings />
-
-          <div className="pb-4 text-[13px] text-muted">
-            <SignOutForm
-              buttonClassName="hover:text-foreground"
-              label={t("common.logout")}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    <>
+      <PageHead
+        title={t("settings.hero")}
+        description={`${displayName} · ${email}`}
+        action={
+          isAdmin ? (
+            <Go href="/admin">
+              <Shield size={16} />
+              {t("nav.admin")}
+            </Go>
+          ) : undefined
+        }
+      />
+      <SettingsTabs
+        label={t("settings.hero")}
+        tabs={[
+          ["profile", t("profile.secProfile")],
+          ["account", t("profile.secAccount")],
+          ["integrations", t("profile.secIntegrations")],
+          ["notifications", t("notif.title")],
+        ]}
+        panels={panels}
+      />
+    </>
   );
 }

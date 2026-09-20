@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { Button } from "@/components/ui/button";
 
 /** 관리자 크루 승인/거절 버튼 — crews.status 변경은 관리자만 가능(트리거 가드). */
 export function AdminCrewStatus({ crewId }: { crewId: string }) {
@@ -16,10 +17,7 @@ export function AdminCrewStatus({ crewId }: { crewId: string }) {
     setBusy(true);
     setErr(null);
     const supabase = createClient();
-    const { error } = await supabase
-      .from("crews")
-      .update({ status })
-      .eq("id", crewId);
+    const { error } = await supabase.from("crews").update({ status }).eq("id", crewId);
     if (error) {
       setErr(error.message);
       setBusy(false);
@@ -29,22 +27,14 @@ export function AdminCrewStatus({ crewId }: { crewId: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => setStatus("active")}
-        disabled={busy}
-        className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-      >
+    <span className="rx-actions" style={{ marginTop: 0, flexWrap: "nowrap" }}>
+      <Button type="button" size="sm" className="rx-primary" onClick={() => setStatus("active")} disabled={busy}>
         {t("admin.approve")}
-      </button>
-      <button
-        onClick={() => setStatus("rejected")}
-        disabled={busy}
-        className="rounded-md bg-surface px-3 py-1.5 text-xs text-danger disabled:opacity-50"
-      >
+      </Button>
+      <Button type="button" size="sm" variant="ghost" className="rx-pft-close" onClick={() => setStatus("rejected")} disabled={busy}>
         {t("admin.reject")}
-      </button>
-      {err && <span className="text-xs text-danger">{err}</span>}
-    </div>
+      </Button>
+      {err && <span className="rx-error">{err}</span>}
+    </span>
   );
 }
