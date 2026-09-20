@@ -10,7 +10,7 @@
  *
  * 각 폭에서 가로 스크롤(문서가 뷰포트보다 넓은지)을 같이 재서 보고한다.
  */
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 
@@ -48,6 +48,12 @@ const argOf = (k, d) => {
 };
 const OUT = argOf("--out", ".captures/before");
 const ONLY = argOf("--only", null);
+/**
+ * 다른 라우트 목록으로 찍을 때 — 시안 프로토타입(디자인 리뉴얼 P0 기준 렌더)은
+ * 엔티티 id 가 우리 픽스처와 달라서 JSON 파일로 목록을 통째로 바꿔 넣는다.
+ * 파일 모양은 아래 ROUTES 와 같다: `[["/path", "in"|"out"], …]`.
+ */
+const ROUTES_FILE = argOf("--routes", null);
 
 const ID = "00000000-0000-4000-8000-000000000001";
 const SLUG = "loop8";
@@ -148,6 +154,10 @@ const ROUTES = [
   ["/admin/moderation", "in"],
 ];
 
+const routes = ROUTES_FILE
+  ? JSON.parse(await readFile(ROUTES_FILE, "utf8"))
+  : ROUTES;
+
 const slugify = (p) =>
   p.replace(/^\//, "").replace(/[/?=&]/g, "_").replace(/^$/, "home") || "home";
 
@@ -155,7 +165,7 @@ const browser = await chromium.launch();
 const report = [];
 
 for (const width of WIDTHS) {
-  for (const [route, auth] of ROUTES) {
+  for (const [route, auth] of routes) {
     if (ONLY && !route.includes(ONLY)) continue;
     const ctx = await browser.newContext({
       viewport: { width, height: 900 },
