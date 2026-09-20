@@ -302,7 +302,7 @@ export default async function Landing({
 
               <Link
                 href="/crews"
-                className="mt-1.5 flex h-[46px] w-fit items-center rounded-[10px] border border-gold px-[22px] text-[15px] font-extrabold text-gold transition-colors hover:bg-accent hover:text-accent-foreground max-md:w-full max-md:justify-center"
+                className="mt-1.5 flex h-[46px] w-fit items-center rounded-[10px] border border-accent-line px-[22px] text-[15px] font-extrabold text-gold transition-colors hover:bg-accent hover:text-accent-foreground max-md:w-full max-md:justify-center"
               >
                 {t("landing.crewsAll")}
               </Link>

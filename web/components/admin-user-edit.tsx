@@ -8,7 +8,7 @@ import { DIVISIONS } from "@/lib/divisions";
 import { dictLabel } from "@/lib/dict-label";
 
 const input =
-  "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
+  "w-full rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
 
 export type AdminUserDetail = {
   id: string;

@@ -73,7 +73,7 @@ export function CrewUnpaidCard({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-surface px-4 py-3 text-left ring-gold/40 hover:ring-1"
+        className="rounded-md bg-surface px-4 py-3 text-left ring-accent-line/40 hover:ring-1"
       >
         {tile}
         <span className="mt-1 block text-xs text-gold">

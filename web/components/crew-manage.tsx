@@ -13,9 +13,9 @@ import { duesErrText } from "@/lib/dues-error";
 
 /** 입력 한 칸 */
 const input =
-  "h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
+  "h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line";
 const area =
-  "w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-gold";
+  "w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-accent-line";
 const fieldLabel = "mb-1.5 block text-xs text-muted";
 const CARD = "rounded-[14px] border border-line bg-card";
 const CARD_HEAD = "border-b border-line px-[18px] py-3.5 text-[15px] font-extrabold";
@@ -352,7 +352,7 @@ export function CrewInfoForm({
                       aria-checked={on}
                       onClick={() => setJoinPolicy(v)}
                       className={`rounded-[10px] border px-3.5 py-3 text-left ${
-                        on ? "border-line-accent bg-highlight" : "border-line bg-page hover:border-muted/40"
+                        on ? "border-line-accent bg-highlight" : "border-line bg-page hover:border-line-strongest"
                       }`}
                     >
                       <span className={`block text-sm font-bold ${on ? "text-gold" : ""}`}>
@@ -411,7 +411,7 @@ export function CrewInfoForm({
                 type="button"
                 onClick={revert}
                 disabled={busy}
-                className="h-10 rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+                className="h-10 rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
               >
                 {t("crew.revert")}
               </button>
@@ -598,7 +598,7 @@ export function CrewImageUpload({
       <div className="flex shrink-0 flex-col items-center gap-2">
         {picker(
           <>
-            <span className="relative block h-24 w-24 cursor-pointer rounded-full border-2 border-line-strongest hover:border-gold">
+            <span className="relative block h-24 w-24 cursor-pointer rounded-full border-2 border-line-strongest hover:border-accent-line">
               {url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={url} alt="" className="h-full w-full rounded-full object-cover" />
@@ -653,7 +653,7 @@ export function CrewImageUpload({
         )}
       </div>
       {picker(
-        <span className="relative block h-[120px] w-full cursor-pointer overflow-hidden rounded-[10px] border border-line-strong hover:border-gold">
+        <span className="relative block h-[120px] w-full cursor-pointer overflow-hidden rounded-[10px] border border-line-strong hover:border-accent-line">
           {url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={url} alt="" className="h-full w-full object-cover" />
@@ -713,7 +713,7 @@ function RowMenu({
         aria-label={label}
         aria-expanded={open}
         onClick={() => setOpen((p) => !p)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-line-strong text-base leading-none text-muted hover:border-muted/60 hover:text-foreground"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-line-strong text-base leading-none text-muted hover:border-line-strong hover:text-foreground"
       >
         ⋯
       </button>
@@ -1022,12 +1022,12 @@ export function CrewMemberManage({
               }}
               size={1}
               placeholder={t("crew.memberSearch")}
-              className="h-[34px] w-[200px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-gold"
+              className="h-[34px] w-[200px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-accent-line"
             />
             <button
               type="button"
               onClick={exportCsv}
-              className="h-[34px] shrink-0 rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold hover:border-muted/60"
+              className="h-[34px] shrink-0 rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold hover:border-line-strong"
             >
               ↓ {t("crew.memberCsv")}
             </button>
@@ -1136,7 +1136,7 @@ export function CrewMemberManage({
                   aria-label={t("crew.colTier")}
                   disabled={busy != null || m.role === "owner"}
                   onChange={(e) => setTier(m.user_id, e.target.value)}
-                  className={`h-[30px] min-w-0 rounded-md border border-line-strong bg-page px-2 text-xs font-bold outline-none focus:border-gold disabled:opacity-50 ${tierTextClass(
+                  className={`h-[30px] min-w-0 rounded-md border border-line-strong bg-page px-2 text-xs font-bold outline-none focus:border-accent-line disabled:opacity-50 ${tierTextClass(
                     m.tier_color,
                   )}`}
                 >
@@ -1254,7 +1254,7 @@ export function CrewMemberManage({
                     className={`rounded-md px-2 py-1 ${
                       n === cur
                         ? "bg-accent font-extrabold text-accent-foreground"
-                        : "border border-line-strong hover:border-muted/60"
+                        : "border border-line-strong hover:border-line-strong"
                     }`}
                   >
                     {n}

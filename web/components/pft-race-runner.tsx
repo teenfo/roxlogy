@@ -305,7 +305,7 @@ export function PftRaceRunner({
     }
   };
 
-  const btn = "flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-sm font-semibold hover:border-muted/60";
+  const btn = "flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-sm font-semibold hover:border-line-strong";
 
   return (
     <PftMeasureView
@@ -365,7 +365,7 @@ export function PftRaceRunner({
                 disabled={busy}
                 className={`h-10 rounded-lg border px-3.5 text-sm font-semibold disabled:opacity-40 ${
                   quit
-                    ? "border-line-strong bg-control hover:border-muted/60"
+                    ? "border-line-strong bg-control hover:border-line-strong"
                     : "border-danger-line-strong bg-control text-danger hover:brightness-95"
                 }`}
               >

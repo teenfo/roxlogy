@@ -21,7 +21,7 @@ export function InfoTip({ text, label = "info" }: { text: string; label?: string
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((v) => !v)}
-        className="relative ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-muted/50 text-[10px] font-bold text-muted after:absolute after:-inset-3 after:content-[''] hover:border-foreground hover:text-foreground"
+        className="relative ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-line-strongest text-[10px] font-bold text-muted after:absolute after:-inset-3 after:content-[''] hover:border-foreground hover:text-foreground"
       >
         ?
       </button>

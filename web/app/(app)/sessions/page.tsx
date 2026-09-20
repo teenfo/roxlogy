@@ -267,7 +267,7 @@ export default async function SessionsPage({
           {total > 0 && <ExportButton kind="sessions" />}
           <Link
             href="/sessions/compare"
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold text-foreground/80 hover:border-muted/60"
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold text-foreground/80 hover:border-line-strong"
           >
             {t("compare.title")}
           </Link>
@@ -409,7 +409,7 @@ export default async function SessionsPage({
                   className={`grid grid-cols-[68px_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border px-4 py-3.5 transition-colors max-sm:grid-cols-[68px_minmax(0,1fr)] ${
                     isPb
                       ? "border-line-accent bg-highlight"
-                      : "border-line bg-card hover:border-muted/50"
+                      : "border-line bg-card hover:border-line-strongest"
                   }`}
                 >
                   {/* 날짜 블록 */}

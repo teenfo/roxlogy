@@ -53,7 +53,7 @@ export function AdminSessionActions({
         className={`rounded-md border px-2.5 py-1 text-xs font-semibold disabled:opacity-40 ${
           excluded
             ? "border-track/40 text-track hover:bg-track/10"
-            : "border-muted/30 text-muted hover:text-foreground"
+            : "border-line-mid text-muted hover:text-foreground"
         }`}
       >
         {excluded ? t("admin.unhideLb") : t("admin.hideLb")}

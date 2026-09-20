@@ -131,19 +131,19 @@ export default async function PftPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/pft/leaderboard"
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
           >
             {t("pft.boardTab")}
           </Link>
           <Link
             href="/pft/new"
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
           >
             {t("pft.add")}
           </Link>
           <Link
             href="/pft/race/join"
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
           >
             {t("pft.race.join")}
           </Link>

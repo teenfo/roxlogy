@@ -77,7 +77,7 @@ export function CrewBankOpening({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           inputMode="numeric"
-          className="tabular h-9 w-32 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-gold"
+          className="tabular h-9 w-32 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-accent-line"
         />
       </label>
       <label className="flex flex-col gap-1 text-xs text-muted">
@@ -86,7 +86,7 @@ export function CrewBankOpening({
           type="date"
           value={on}
           onChange={(e) => setOn(e.target.value)}
-          className="h-9 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-gold"
+          className="h-9 rounded-lg border border-line-strong bg-page px-2 text-sm outline-none focus:border-accent-line"
         />
       </label>
       <button

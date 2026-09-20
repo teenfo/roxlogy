@@ -18,8 +18,8 @@ import { useI18n } from "@/components/i18n-provider";
 
 const KIND_BADGE: Record<string, string> = {
   run: "border-track/60 text-track",
-  station: "border-gold/60 text-gold",
-  roxzone: "border-muted/60 text-muted",
+  station: "border-accent-line/60 text-gold",
+  roxzone: "border-line-strong text-muted",
 };
 
 type Row = SegmentForm & { text: string };
@@ -219,14 +219,14 @@ export function SessionNewForm({
           type="datetime-local"
           value={startedAt}
           onChange={(e) => setStartedAt(e.target.value)}
-          className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-gold"
+          className="rounded-md border border-line-mid bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent-line"
         />
         <label className="ml-2 text-sm text-muted">{t("newSession.division")}</label>
         <select
           value={division}
           onChange={(e) => setDivision(e.target.value)}
           disabled={!!raceResultId}
-          className="rounded-md border border-muted/30 bg-surface px-3 py-1.5 text-sm outline-none focus:border-gold disabled:opacity-60"
+          className="rounded-md border border-line-mid bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent-line disabled:opacity-60"
         >
           <option value="">{t("newSession.divisionNone")}</option>
           {DIVISIONS.map((d) => (
@@ -262,8 +262,8 @@ export function SessionNewForm({
               onClick={() => setRpe(rpe === n ? null : n)}
               className={`h-8 w-8 rounded-md border text-xs font-semibold transition ${
                 rpe === n
-                  ? "border-gold bg-accent text-accent-foreground"
-                  : "border-muted/30 text-muted hover:border-foreground"
+                  ? "border-accent-line bg-accent text-accent-foreground"
+                  : "border-line-mid text-muted hover:border-foreground"
               }`}
             >
               {n}
@@ -286,8 +286,8 @@ export function SessionNewForm({
                 }
                 className={`rounded-full border px-3 py-1 text-xs transition ${
                   templateId === w.id
-                    ? "border-gold bg-accent text-accent-foreground"
-                    : "border-muted/30 text-muted hover:border-foreground"
+                    ? "border-accent-line bg-accent text-accent-foreground"
+                    : "border-line-mid text-muted hover:border-foreground"
                 }`}
               >
                 {w.title}
@@ -305,7 +305,7 @@ export function SessionNewForm({
           rows={3}
           maxLength={2000}
           placeholder={t("newSession.notesPlaceholder")}
-          className="mt-1 w-full resize-y rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-gold"
+          className="mt-1 w-full resize-y rounded-md border border-line-mid bg-surface px-3 py-2 text-sm outline-none focus:border-accent-line"
         />
       </div>
 

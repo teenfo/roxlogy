@@ -25,7 +25,7 @@ const chip = (active: boolean) =>
   `flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-bold transition-colors ${
     active
       ? "bg-accent text-accent-foreground"
-      : "border border-line-strong text-foreground-2 hover:border-muted/60"
+      : "border border-line-strong text-foreground-2 hover:border-line-strong"
   }`;
 
 /**
@@ -128,7 +128,7 @@ export function ProgramNewForm() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t("programs.titlePh")}
               maxLength={80}
-              className="h-11 rounded-lg border border-line-strong bg-page px-3 text-base font-semibold outline-none placeholder:font-normal placeholder:text-muted-3 focus:border-gold"
+              className="h-11 rounded-lg border border-line-strong bg-page px-3 text-base font-semibold outline-none placeholder:font-normal placeholder:text-muted-3 focus:border-accent-line"
             />
           </label>
 
@@ -140,7 +140,7 @@ export function ProgramNewForm() {
               rows={3}
               placeholder={t("programs.descPh")}
               maxLength={400}
-              className="resize-y rounded-lg border border-line-strong bg-page px-3 py-2.5 text-sm outline-none placeholder:text-muted-3 focus:border-gold"
+              className="resize-y rounded-lg border border-line-strong bg-page px-3 py-2.5 text-sm outline-none placeholder:text-muted-3 focus:border-accent-line"
             />
           </label>
 
@@ -178,7 +178,7 @@ export function ProgramNewForm() {
                   inputMode="numeric"
                   autoFocus
                   placeholder="10"
-                  className="tabular h-9 w-24 rounded-lg border border-line-strong bg-page px-2.5 text-sm outline-none focus:border-gold"
+                  className="tabular h-9 w-24 rounded-lg border border-line-strong bg-page px-2.5 text-sm outline-none focus:border-accent-line"
                 />
               )}
             </div>
@@ -220,7 +220,7 @@ export function ProgramNewForm() {
                     className={`flex h-11 flex-col items-center justify-center rounded-lg text-sm font-bold transition-colors max-md:h-10 ${
                       on
                         ? "bg-accent text-accent-foreground"
-                        : "border border-line-strong text-foreground-2 hover:border-muted/60"
+                        : "border border-line-strong text-foreground-2 hover:border-line-strong"
                     }`}
                   >
                     {dowLabel(tag, d)}

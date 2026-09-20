@@ -103,7 +103,7 @@ export function RaceToSessionButton({
         type="button"
         onClick={convert}
         disabled={pending}
-        className="rounded-md border border-gold/50 px-3 py-1.5 text-sm font-semibold text-gold hover:bg-accent/10 disabled:opacity-40"
+        className="rounded-md border border-accent-line/50 px-3 py-1.5 text-sm font-semibold text-gold hover:bg-accent/10 disabled:opacity-40"
       >
         {pending ? t("common.saving") : t("races.toSession")}
       </button>

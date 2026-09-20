@@ -37,8 +37,8 @@ import { FollowButton } from "@/components/follow-button";
 
 const KIND_BADGE: Record<string, string> = {
   run: "border-track/60 text-track",
-  station: "border-gold/60 text-gold",
-  roxzone: "border-muted/60 text-muted",
+  station: "border-accent-line/60 text-gold",
+  roxzone: "border-line-strong text-muted",
 };
 
 type Segment = {
@@ -419,13 +419,13 @@ export default async function SessionDetailPage({
             <ShareToggle id={session.id} shared={session.shared} />
             <Link
               href={`/sessions/${session.id}/edit`}
-              className="flex h-8 items-center rounded-lg border border-line-strong px-3 font-semibold text-foreground/80 hover:border-muted/60"
+              className="flex h-8 items-center rounded-lg border border-line-strong px-3 font-semibold text-foreground/80 hover:border-line-strong"
             >
               {t("sessions.edit")}
             </Link>
             <RecordCardButton
               data={card}
-              className="flex h-8 items-center rounded-lg border border-line-strong px-3 font-semibold text-foreground/80 hover:border-muted/60"
+              className="flex h-8 items-center rounded-lg border border-line-strong px-3 font-semibold text-foreground/80 hover:border-line-strong"
             />
             <DeleteButton kind="session" id={session.id} redirectTo="/sessions" />
           </div>

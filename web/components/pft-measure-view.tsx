@@ -232,7 +232,7 @@ export function PftMeasureView({
                     type="button"
                     onClick={onUndo}
                     disabled={!splits.length || busy || undoDisabled}
-                    className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-muted/60 disabled:opacity-40"
+                    className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-line-strong disabled:opacity-40"
                   >
                     ↶ {t("pft.mUndo")}
                   </button>
@@ -275,7 +275,7 @@ export function PftMeasureView({
                   key={st.key}
                   className={`grid grid-cols-[40px_minmax(0,1fr)] items-center gap-3 rounded-2xl border px-4 sm:grid-cols-[40px_minmax(0,1fr)_auto] sm:gap-4 sm:px-5 ${
                     isCurrent
-                      ? "border-gold bg-highlight py-4"
+                      ? "border-accent-line bg-highlight py-4"
                       : finished
                         ? "border-line bg-card py-3"
                         : "border-line-soft bg-card py-3 opacity-50"

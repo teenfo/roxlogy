@@ -79,7 +79,7 @@ export default async function LeaderboardPage({
       <div className="mt-6 flex flex-wrap gap-2">
         <Link
           href={linkFor({ station: "" })}
-          className={`rounded-full border px-3 py-1 text-xs ${!stationDef ? "border-gold text-gold" : "border-muted/40 text-muted hover:border-foreground"}`}
+          className={`rounded-full border px-3 py-1 text-xs ${!stationDef ? "border-accent-line text-gold" : "border-line-strongest text-muted hover:border-foreground"}`}
         >
           {t("leaderboard.overall")}
         </Link>
@@ -87,7 +87,7 @@ export default async function LeaderboardPage({
           <Link
             key={s.key}
             href={linkFor({ station: s.key })}
-            className={`rounded-full border px-3 py-1 text-xs ${stationDef?.key === s.key ? "border-gold text-gold" : "border-muted/40 text-muted hover:border-foreground"}`}
+            className={`rounded-full border px-3 py-1 text-xs ${stationDef?.key === s.key ? "border-accent-line text-gold" : "border-line-strongest text-muted hover:border-foreground"}`}
           >
             {t(`station.${s.key}` as Parameters<typeof t>[0])}
           </Link>

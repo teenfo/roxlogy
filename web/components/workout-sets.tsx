@@ -57,7 +57,7 @@ export function setsSummary(
 }
 
 const CELL =
-  "h-10 w-full rounded-lg border border-line-strong bg-page px-2 text-center text-sm tabular outline-none focus:border-gold";
+  "h-10 w-full rounded-lg border border-line-strong bg-page px-2 text-center text-sm tabular outline-none focus:border-accent-line";
 
 /**
  * 세트별 기록 표 — 종목 하나에 세트를 여러 줄로 적는다.
@@ -192,7 +192,7 @@ export function WorkoutSetEditor({
           type="button"
           onClick={addSet}
           disabled={rows.length >= MAX_SETS}
-          className="h-10 rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold hover:border-muted/60 disabled:opacity-40"
+          className="h-10 rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold hover:border-line-strong disabled:opacity-40"
         >
           + {t("workouts.addSet")}
         </button>

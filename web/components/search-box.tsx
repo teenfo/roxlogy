@@ -24,7 +24,7 @@ export function SearchBox({ initial = "" }: { initial?: string }) {
         placeholder={t("nav.searchPh")}
         aria-label={t("nav.search")}
         autoFocus
-        className="h-10 w-full rounded-lg border border-line-mid bg-card px-3.5 text-sm outline-none focus:border-gold"
+        className="h-10 w-full rounded-lg border border-line-mid bg-card px-3.5 text-sm outline-none focus:border-accent-line"
       />
       <button
         type="submit"

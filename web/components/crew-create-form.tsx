@@ -71,7 +71,7 @@ export function CrewCreateForm() {
   }
 
   const input =
-    "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
+    "w-full rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
   const label = "mt-4 block text-xs text-muted";
 
   return (

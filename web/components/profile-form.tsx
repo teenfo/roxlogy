@@ -222,7 +222,7 @@ export function ProfileForm({
 
         <label className={labelCls}>
           {t("profile.instagram")}
-          <span className="flex h-[42px] items-center rounded-lg border border-line-strong bg-page focus-within:border-gold">
+          <span className="flex h-[42px] items-center rounded-lg border border-line-strong bg-page focus-within:border-accent-line">
             <span className="pl-3 text-sm text-muted">@</span>
             <input
               value={fields.instagram}

@@ -25,9 +25,9 @@ import { useI18n } from "@/components/i18n-provider";
 
 const TIER_STYLE: Record<string, string> = {
   aggressive: "border-danger/60 text-danger",
-  challenging: "border-gold/60 text-gold",
+  challenging: "border-accent-line/60 text-gold",
   realistic: "border-track/60 text-track",
-  comfortable: "border-muted/60 text-muted",
+  comfortable: "border-line-strong text-muted",
 };
 
 export type PredictSession = {
@@ -328,7 +328,7 @@ export function PredictForm({
   }
 
   const inputCls =
-    "w-24 rounded-md border border-muted/30 bg-surface px-2 py-1.5 text-right font-mono text-sm text-foreground outline-none focus:border-gold";
+    "w-24 rounded-md border border-line-mid bg-surface px-2 py-1.5 text-right font-mono text-sm text-foreground outline-none focus:border-accent-line";
 
   return (
     <main>
@@ -336,7 +336,7 @@ export function PredictForm({
       <p className="mt-1 text-sm text-muted">{t("predict.desc")}</p>
 
       {goalEventName && (
-        <div className="mt-4 rounded-md border border-gold/40 bg-accent/10 px-4 py-3">
+        <div className="mt-4 rounded-md border border-accent-line/40 bg-accent/10 px-4 py-3">
           <p className="text-xs text-muted">{t("predict.forEvent")}</p>
           <p className="mt-0.5 text-sm font-semibold text-gold">
             {goalEventName}
@@ -352,7 +352,7 @@ export function PredictForm({
             value={targetText}
             onChange={(e) => setTargetText(formatTimeInput(e.target.value))}
             inputMode="numeric"
-            className="w-36 rounded-md border border-muted/30 bg-surface px-3 py-2.5 font-mono text-lg text-foreground outline-none focus:border-gold"
+            className="w-36 rounded-md border border-line-mid bg-surface px-3 py-2.5 font-mono text-lg text-foreground outline-none focus:border-accent-line"
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm text-muted">
@@ -360,7 +360,7 @@ export function PredictForm({
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as Level)}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-gold"
+            className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent-line"
           >
             {LEVELS.map((l) => (
               <option key={l} value={l}>
@@ -403,7 +403,7 @@ export function PredictForm({
             </p>
           )}
           {eventDivStat && (
-            <div className="mt-3 rounded-md border border-track/30 bg-surface/60 px-4 py-3">
+            <div className="mt-3 rounded-md border border-track/30 bg-card px-4 py-3">
               <p className="text-xs font-semibold text-track">
                 {eventStats!.source === "this"
                   ? t("predict.eventStatThis", { label: eventStats!.label })
@@ -461,7 +461,7 @@ export function PredictForm({
             const check = runGoalCheck(result.runLapMs, runFitness);
             if (!check) {
               return (
-                <section className="mt-4 rounded-md border border-muted/20 px-4 py-3">
+                <section className="mt-4 rounded-md border border-line px-4 py-3">
                   <p className="text-sm font-semibold">{t("predict.runCheck")}</p>
                   <p className="mt-1 text-xs text-muted">
                     {t("predict.runCheckNoBase")}
@@ -477,7 +477,7 @@ export function PredictForm({
             }
             const gap = Math.abs(check.gapMs);
             return (
-              <section className="mt-4 rounded-md border border-muted/20 px-4 py-3">
+              <section className="mt-4 rounded-md border border-line px-4 py-3">
                 <p className="text-sm font-semibold">
                   {t("predict.runCheck")}
                   <InfoTip text={t("predict.runCheckInfo")} />
@@ -542,7 +542,7 @@ export function PredictForm({
           </section>
 
           {isLoggedIn && eff ? (
-            <section className="mt-8 rounded-md border border-gold/25 bg-surface/50 p-4">
+            <section className="mt-8 rounded-md border border-accent-line/25 bg-card p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div>
                   <h2 className="text-lg font-semibold">
@@ -574,7 +574,7 @@ export function PredictForm({
                       setEventChoice(e.target.value);
                       setSaveState("idle");
                     }}
-                    className="max-w-64 rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
+                    className="max-w-64 rounded-md border border-line-mid bg-surface px-3 py-2 text-foreground outline-none focus:border-accent-line"
                   >
                     <option value="">{t("predict.goalEventNone")}</option>
                     {upcomingEvents.map((e) => (
@@ -596,7 +596,7 @@ export function PredictForm({
                           setSaveState("idle");
                         }}
                         maxLength={80}
-                        className="w-52 rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
+                        className="w-52 rounded-md border border-line-mid bg-surface px-3 py-2 text-foreground outline-none focus:border-accent-line"
                       />
                     </label>
                     <label className="flex flex-col gap-1.5 text-sm text-muted">
@@ -608,7 +608,7 @@ export function PredictForm({
                           setCustomEventDate(e.target.value);
                           setSaveState("idle");
                         }}
-                        className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
+                        className="rounded-md border border-line-mid bg-surface px-3 py-2 text-foreground outline-none focus:border-accent-line"
                       />
                     </label>
                   </>
@@ -644,7 +644,7 @@ export function PredictForm({
                       setDivision(e.target.value);
                       setSaveState("idle");
                     }}
-                    className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
+                    className="rounded-md border border-line-mid bg-surface px-3 py-2 text-foreground outline-none focus:border-accent-line"
                   >
                     <option value="">{t("newSession.divisionNone")}</option>
                     {DIVISIONS.map((d) => (
@@ -660,7 +660,7 @@ export function PredictForm({
                     <select
                       value={pickedSession}
                       onChange={(e) => loadSession(e.target.value)}
-                      className="max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-foreground outline-none focus:border-gold"
+                      className="max-w-sm rounded-md border border-line-mid bg-surface px-3 py-2 text-foreground outline-none focus:border-accent-line"
                     >
                       <option value="">{t("predict.fromSessionPh")}</option>
                       {sessions.map((s) => (

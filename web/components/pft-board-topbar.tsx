@@ -58,7 +58,7 @@ export function PftBoardTopBar({ closed }: { closed: boolean }) {
             onClick={toggleFull}
             aria-pressed={isFull}
             title={t(isFull ? "pft.race.exitFullscreen" : "pft.race.fullscreen")}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-control px-2.5 text-[13px] font-semibold text-foreground transition-colors hover:border-muted/60"
+            className="flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-control px-2.5 text-[13px] font-semibold text-foreground transition-colors hover:border-line-strong"
           >
             <span aria-hidden className="text-[15px] leading-none">
               {isFull ? "⤡" : "⛶"}

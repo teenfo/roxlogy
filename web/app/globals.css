@@ -109,6 +109,11 @@
    * 된다 — 옐로 버튼 글자는 테마와 무관하게 늘 어둡다(스펙 §11: 10.06:1). */
   --accent-foreground: #252b31;
 
+  /* 브랜드 색 경계(활성·강조 테두리). 옐로 원색은 흰 배경에서 1.42:1 이라
+   * 선으로 안 보인다 — 스펙 §04 의 활성 인디케이터 값을 그대로 쓴다.
+   * 장식용 경계라 3:1 대상이 아니다. 컨트롤 경계는 --line-strong 이 맡는다. */
+  --accent-line: #dfc026;
+
   /* 포커스 링 — 옐로는 밝은 면에서 안 보인다. Track Blue 로 간다(3.83:1) */
   --focus: #2d7dff;
 
@@ -192,6 +197,7 @@
   --chart-green: #35c26b;
 
   --accent-foreground: #141414;
+  --accent-line: #ffd500;
 
   /* 어두운 면에서는 옐로 포커스 링이 가장 잘 보인다 */
   --focus: #ffd500;
@@ -209,6 +215,14 @@
 }
 
 @theme inline {
+  /* 반경 — 스펙 §02 "프리미티브 반경 sm 8 / md 10 / lg 12 / xl 16px".
+   * Tailwind 기본값(md 6 · lg 8 · xl 12)을 갈아 끼운다. rounded-md 가 320곳,
+   * rounded-lg 가 186곳이라 이 한 줄이 화면 전체의 모서리를 한꺼번에 맞춘다. */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-foreground: var(--foreground);
@@ -265,6 +279,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-income: var(--income);
   --color-expense: var(--expense);
+  --color-accent-line: var(--accent-line);
 }
 
 /* 키보드 포커스 링 — 전역 (UI 감사 2026-09-12 P0).

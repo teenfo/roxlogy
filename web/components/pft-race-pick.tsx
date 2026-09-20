@@ -20,7 +20,7 @@ export type JoinableRace = {
 };
 
 const INPUT =
-  "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
+  "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line";
 
 /**
  * 레이스 참가 — 먼저 "지금 참가할 수 있는 레이스"를 보여 주고 골라서 참가한다.
@@ -101,7 +101,7 @@ export function PftRacePick({
                   disabled={busy !== null || (blocked && !r.joined)}
                   className={`h-10 shrink-0 rounded-lg px-5 text-sm font-extrabold disabled:opacity-40 ${
                     r.joined
-                      ? "border border-line-strong bg-control text-foreground hover:border-muted/60"
+                      ? "border border-line-strong bg-control text-foreground hover:border-line-strong"
                       : "bg-accent text-accent-foreground hover:brightness-95"
                   }`}
                 >
@@ -147,7 +147,7 @@ export function PftRacePick({
           <button
             type="submit"
             disabled={busy !== null || blocked || code.length !== 6}
-            className="h-11 rounded-lg border border-line-strong bg-control text-sm font-extrabold hover:border-muted/60 disabled:opacity-40"
+            className="h-11 rounded-lg border border-line-strong bg-control text-sm font-extrabold hover:border-line-strong disabled:opacity-40"
           >
             {t("pft.race.join")}
           </button>

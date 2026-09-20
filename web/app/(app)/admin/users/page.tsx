@@ -40,7 +40,7 @@ export default async function AdminUsersPage({
           name="q"
           defaultValue={q ?? ""}
           placeholder={t("admin.searchName")}
-          className="w-full max-w-sm rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-gold"
+          className="w-full max-w-sm rounded-md border border-line-mid bg-surface px-3 py-2 text-sm outline-none focus:border-accent-line"
         />
       </form>
 

@@ -128,7 +128,7 @@ export function CrewDuesLinksManage({
   }
 
   const field =
-    "h-[38px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
+    "h-[38px] w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line";
   const pill = (on: boolean) =>
     `h-7 rounded-full px-2.5 text-xs font-bold ${
       on ? "bg-accent text-accent-foreground" : "border border-line-strong bg-control text-muted hover:text-foreground"
@@ -165,7 +165,7 @@ export function CrewDuesLinksManage({
           inputMode="url"
           aria-label={t("crew.duesUrlPh")}
         />
-        <span className="flex h-[38px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-gold">
+        <span className="flex h-[38px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-accent-line">
           <span aria-hidden className="px-2 text-xs text-muted-3">
             ₩
           </span>
@@ -270,7 +270,7 @@ export function CrewDuesLinksManage({
                   onClick={() => startEdit(l)}
                   disabled={busy}
                   aria-label={t("common.edit")}
-                  className={`${iconBtn} text-foreground-2 hover:border-muted`}
+                  className={`${iconBtn} text-foreground-2 hover:border-line-strong`}
                 >
                   ✎
                 </button>

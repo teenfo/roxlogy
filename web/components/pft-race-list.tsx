@@ -28,7 +28,7 @@ export type RaceListRow = {
 
 // 목록은 한 줄에 링크 세 개가 들어가야 해서 본문 버튼보다 작게 쓴다
 const BTN =
-  "flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-muted/60";
+  "flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-line-strong";
 
 /** 레이스 전체 목록의 표시 부분 — 데이터는 페이지가 읽어 넘긴다. */
 export function PftRaceList({

@@ -287,7 +287,7 @@ export function NotificationSettings() {
                     type="time"
                     value={wodTime}
                     onChange={(e) => saveWodTime(e.target.value)}
-                    className="h-8 rounded-lg border border-line-strong bg-page px-2 text-sm text-foreground outline-none focus:border-gold"
+                    className="h-8 rounded-lg border border-line-strong bg-page px-2 text-sm text-foreground outline-none focus:border-accent-line"
                   />
                   <span>{t("notif.wodTimeHint")}</span>
                 </label>

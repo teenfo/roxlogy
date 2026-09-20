@@ -77,7 +77,7 @@ export default async function DownloadPage() {
                   <a
                     href={dl.phoneUrl}
                     download
-                    className="rounded-md border border-gold px-5 py-2.5 text-sm font-semibold text-gold hover:bg-accent/10"
+                    className="rounded-md border border-accent-line px-5 py-2.5 text-sm font-semibold text-gold hover:bg-accent/10"
                   >
                     {t("download.phoneApk")}
                   </a>

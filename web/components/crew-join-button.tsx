@@ -69,7 +69,7 @@ export function CrewJoinButton({
     return (
       <a
         href={`/login?next=/crews/${slug}`}
-        className="rounded-md border border-gold/50 px-4 py-2 text-sm font-semibold text-gold hover:bg-accent/10"
+        className="rounded-md border border-accent-line/50 px-4 py-2 text-sm font-semibold text-gold hover:bg-accent/10"
       >
         {t("crew.loginToJoin")}
       </a>
@@ -82,7 +82,7 @@ export function CrewJoinButton({
     return (
       <div className="flex flex-col items-end gap-1">
         <div className="flex items-center gap-2">
-          <span className="rounded-md border border-muted/40 px-4 py-2 text-sm font-semibold text-muted">
+          <span className="rounded-md border border-line-strongest px-4 py-2 text-sm font-semibold text-muted">
             {label}
           </span>
           {!isOwner &&

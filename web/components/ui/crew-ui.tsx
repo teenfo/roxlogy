@@ -60,7 +60,7 @@ export function Chip({
   const cls = `inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors ${
     active
       ? "bg-accent text-accent-foreground"
-      : "border border-line-strong text-muted hover:border-muted/60 hover:text-foreground"
+      : "border border-line-strong text-muted hover:border-line-strong hover:text-foreground"
   }`;
   const body = (
     <>

@@ -63,12 +63,12 @@ export default async function ExercisesPage({
           name="q"
           defaultValue={q ?? ""}
           placeholder={t("exercises.searchPh")}
-          className="min-w-52 flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
+          className="min-w-52 flex-1 rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
         />
         <select
           name="category"
           defaultValue={category ?? ""}
-          className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
+          className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
         >
           <option value="">{t("exercises.allCategories")}</option>
           {CATEGORIES.map((c) => (
@@ -80,7 +80,7 @@ export default async function ExercisesPage({
         <select
           name="equipment"
           defaultValue={equipment ?? ""}
-          className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
+          className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
         >
           <option value="">{t("exercises.allEquipment")}</option>
           {EQUIPMENT.map((e) => (
@@ -110,12 +110,12 @@ export default async function ExercisesPage({
               <li key={ex.id}>
                 <Link
                   href={`/exercises/${ex.id}`}
-                  className="block rounded-md bg-surface px-4 py-3 hover:bg-surface/70"
+                  className="block rounded-md bg-surface px-4 py-3 hover:bg-card"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold">{primary}</p>
                     {ex.station_type && (
-                      <span className="rounded border border-gold/60 px-1.5 py-0.5 text-xs text-gold">
+                      <span className="rounded border border-accent-line/60 px-1.5 py-0.5 text-xs text-gold">
                         {t("exercises.stationN", {
                           n: ex.station_type.replace("station_", ""),
                         })}

@@ -17,7 +17,7 @@ import {
 } from "@/lib/pft";
 
 const input =
-  "h-10 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
+  "h-10 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line";
 const label = "mt-3 block text-xs text-muted";
 const card = "rounded-2xl border border-line bg-card px-5 py-4";
 

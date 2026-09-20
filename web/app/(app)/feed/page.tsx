@@ -34,7 +34,7 @@ export default async function FeedPage({
   const feed = (rows ?? []) as FeedRow[];
 
   const tabCls = (active: boolean) =>
-    `rounded-full border px-3 py-1 text-xs ${active ? "border-gold text-gold" : "border-muted/40 text-muted hover:border-foreground"}`;
+    `rounded-full border px-3 py-1 text-xs ${active ? "border-accent-line text-gold" : "border-line-strongest text-muted hover:border-foreground"}`;
 
   return (
     <main>
@@ -42,7 +42,7 @@ export default async function FeedPage({
         <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("feed.title")}</h1>
         <Link
           href="/members"
-          className="rounded-md border border-gold/50 px-3 py-1.5 text-sm font-semibold text-gold hover:bg-accent/10"
+          className="rounded-md border border-accent-line/50 px-3 py-1.5 text-sm font-semibold text-gold hover:bg-accent/10"
         >
           {t("feed.findMembers")}
         </Link>

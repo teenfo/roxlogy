@@ -115,7 +115,7 @@ export default async function PftRaceListPage() {
   );
 
   const btn =
-    "flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-sm font-semibold hover:border-muted/60";
+    "flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-sm font-semibold hover:border-line-strong";
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-5">

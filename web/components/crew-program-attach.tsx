@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 
 const input =
-  "h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold";
+  "h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line";
 
 export type AttachedProgram = {
   program_id: string;
@@ -209,7 +209,7 @@ export function CrewProgramAttach({
                   <span className="ml-auto flex shrink-0 gap-2">
                     <Link
                       href={`/programs/${a.program_id}`}
-                      className="flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-muted/60"
+                      className="flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-line-strong"
                     >
                       {t("crew.progView")}
                     </Link>

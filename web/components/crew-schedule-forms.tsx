@@ -18,7 +18,7 @@ import {
 } from "@/lib/crew-role";
 
 const input =
-  "w-full min-w-0 rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
+  "w-full min-w-0 rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
 
 /** 모임 등록 — 스태프 전용. crew_events RLS(is_crew_staff)가 권한을 강제한다. */
 export type MeetupEditable = {
@@ -750,7 +750,7 @@ export function RacePlanForm({
               <li key={p.id}>
                 <form
                   onSubmit={saveEdit}
-                  className="flex flex-col gap-2 rounded-md bg-surface p-3 ring-1 ring-gold/40"
+                  className="flex flex-col gap-2 rounded-md bg-surface p-3 ring-1 ring-accent-line/40"
                 >
                   <input
                     className={input}
@@ -1035,7 +1035,7 @@ export function CrewRsvpButtons({
               className={`flex h-10 items-center justify-center rounded-lg px-2 text-sm font-bold transition-colors disabled:opacity-50 ${
                 on
                   ? waitlisted && v === "going"
-                    ? "bg-accent/25 text-gold ring-1 ring-gold/50"
+                    ? "bg-accent/25 text-gold ring-1 ring-accent-line/50"
                     : activeCls[v]
                   : "border border-line-mid bg-control text-foreground/75 hover:border-line-strong hover:text-foreground"
               }`}
@@ -1208,7 +1208,7 @@ export function CrewEventCommentForm({
           placeholder={t("crew.commentPlaceholder")}
           maxLength={500}
           rows={2}
-          className="w-full min-w-0 resize-y rounded-lg border border-line-strong bg-page px-3 py-2 text-sm outline-none transition-colors focus:border-gold"
+          className="w-full min-w-0 resize-y rounded-lg border border-line-strong bg-page px-3 py-2 text-sm outline-none transition-colors focus:border-accent-line"
         />
         <button
           type="submit"

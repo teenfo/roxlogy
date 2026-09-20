@@ -155,7 +155,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
                 value={linking.q}
                 onChange={(e) => searchExercises(r.id, e.target.value)}
                 placeholder={t("admin.exReqLinkSearch")}
-                className="h-9 w-full rounded-md border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold"
+                className="h-9 w-full rounded-md border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line"
               />
               {linking.hits.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
@@ -164,7 +164,7 @@ export function AdminExerciseRequests({ items }: { items: ExerciseRequest[] }) {
                       key={ex.id}
                       onClick={() => link(r, ex.id)}
                       disabled={busy != null}
-                      className="rounded-md border border-line-mid bg-background px-2.5 py-1 text-xs hover:border-gold disabled:opacity-40"
+                      className="rounded-md border border-line-mid bg-background px-2.5 py-1 text-xs hover:border-accent-line disabled:opacity-40"
                     >
                       {locale === "ko" ? ex.name_ko : ex.name_en}
                     </button>

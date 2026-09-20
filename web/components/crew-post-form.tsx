@@ -85,7 +85,7 @@ export function CrewPostForm({
   }
 
   const field =
-    "w-full rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm outline-none focus:border-gold";
+    "w-full rounded-md border border-line-mid bg-surface px-3 py-2 text-sm outline-none focus:border-accent-line";
 
   return (
     <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
@@ -101,8 +101,8 @@ export function CrewPostForm({
               onClick={() => setCategory(c)}
               className={`rounded-full border px-3 py-1 text-xs ${
                 category === c
-                  ? "border-gold text-gold"
-                  : "border-muted/40 text-muted hover:border-foreground"
+                  ? "border-accent-line text-gold"
+                  : "border-line-strongest text-muted hover:border-foreground"
               }`}
             >
               {t(`crew.cat.${c}` as DictKey)}

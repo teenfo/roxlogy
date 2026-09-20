@@ -293,7 +293,7 @@ export function WorkoutChecklist({
                     className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-[15px] font-extrabold transition-colors ${
                       isDone
                         ? "border-success bg-success text-accent-foreground"
-                        : "border-line-strongest text-transparent hover:border-gold"
+                        : "border-line-strongest text-transparent hover:border-accent-line"
                     }`}
                   >
                     ✓

@@ -259,7 +259,7 @@ export default async function CrewFinancePage({
       aria-current={view === v}
       className={`-mb-px flex items-center gap-1.5 border-b-2 px-1 pb-2.5 text-sm ${
         view === v
-          ? "border-gold font-bold text-gold"
+          ? "border-accent-line font-bold text-gold"
           : "border-transparent text-muted hover:text-foreground"
       }`}
     >

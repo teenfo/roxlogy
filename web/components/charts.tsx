@@ -43,7 +43,7 @@ function DarkTooltip({
   const p = payload[0]?.payload;
   if (!p) return null;
   return (
-    <div className="rounded-md border border-muted/30 bg-background px-3 py-2 text-xs">
+    <div className="rounded-md border border-line-mid bg-background px-3 py-2 text-xs">
       <p className="text-muted">{p.name ?? p.label}</p>
       <p className="mt-0.5 font-mono font-semibold text-foreground">
         {formatMs(p.ms)}
@@ -265,7 +265,7 @@ function MultiTooltip({
   const rows = payload.filter((p) => p.value != null);
   if (!rows.length) return null;
   return (
-    <div className="rounded-md border border-muted/30 bg-background px-3 py-2 text-xs">
+    <div className="rounded-md border border-line-mid bg-background px-3 py-2 text-xs">
       <p className="text-muted">{label}</p>
       {rows.map((p, i) => (
         <p key={i} className="mt-0.5 flex items-center gap-1.5 font-mono">

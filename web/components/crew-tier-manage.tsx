@@ -47,7 +47,7 @@ function FeeInput({
 }) {
   const { t } = useI18n();
   return (
-    <span className="flex h-[34px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-gold">
+    <span className="flex h-[34px] items-center overflow-hidden rounded-lg border border-line-strong bg-page focus-within:border-accent-line">
       <span aria-hidden className="px-2 text-xs text-muted-3">
         ₩
       </span>
@@ -336,7 +336,7 @@ export function CrewTierManage({
             // size 를 줄이지 않으면 input 의 기본 폭(약 300px)이 부모의 min-content 를
             // 밀어 올려 좁은 화면에서 페이지가 가로로 넘친다 — flex-1 은 이걸 못 막는다
             size={1}
-            className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-gold"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t("crew.tierNamePh")}
@@ -393,7 +393,7 @@ export function CrewTierManage({
                 <input
                   aria-label={t("crew.tierNamePh")}
                   size={1}
-                  className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2.5 text-sm font-semibold outline-none hover:border-line-strong hover:bg-page focus:border-gold focus:bg-page"
+                  className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2.5 text-sm font-semibold outline-none hover:border-line-strong hover:bg-page focus:border-accent-line focus:bg-page"
                   value={v.name}
                   maxLength={20}
                   disabled={busy != null}
@@ -451,7 +451,7 @@ export function CrewTierManage({
                     disabled={busy != null || x.is_default}
                     onClick={() => makeDefault(x)}
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                      x.is_default ? "border-gold" : "border-line-strongest hover:border-muted"
+                      x.is_default ? "border-accent-line" : "border-line-strongest hover:border-line-strong"
                     }`}
                   >
                     {x.is_default && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
@@ -505,7 +505,7 @@ export function CrewTierManage({
             type="button"
             onClick={d.reset}
             disabled={busy != null}
-            className="h-10 rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+            className="h-10 rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
           >
             {t("crew.revert")}
           </button>

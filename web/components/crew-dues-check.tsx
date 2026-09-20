@@ -485,7 +485,7 @@ export function CrewDuesMatrix({
               onChange={(e) => setQuery(e.target.value)}
               size={1}
               placeholder={t("crew.memberSearch")}
-              className="h-8 w-[150px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-gold"
+              className="h-8 w-[150px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-accent-line"
             />
             <button
               type="button"
@@ -500,7 +500,7 @@ export function CrewDuesMatrix({
                   "recalc",
                 )
               }
-              className="h-8 shrink-0 rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold hover:border-muted/60 disabled:opacity-50"
+              className="h-8 shrink-0 rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold hover:border-line-strong disabled:opacity-50"
             >
               {busy === "recalc" ? "…" : `↻ ${t("crew.duesRecalc")}`}
             </button>
@@ -535,7 +535,7 @@ export function CrewDuesMatrix({
                     "generate_session_charges",
                   )
                 }
-                className="h-9 rounded-lg border border-line-strong bg-control px-4 text-[13px] font-semibold hover:border-muted/60 disabled:opacity-50"
+                className="h-9 rounded-lg border border-line-strong bg-control px-4 text-[13px] font-semibold hover:border-line-strong disabled:opacity-50"
               >
                 {busy === "generate_session_charges"
                   ? "…"
@@ -705,7 +705,7 @@ export function CrewDuesMatrix({
                                   type="button"
                                   disabled={busy != null || locked}
                                   onClick={() => waive(c.charge_id)}
-                                  className="h-7 shrink-0 rounded-md border border-line-strong px-2.5 text-[11px] font-semibold text-muted hover:border-muted/60 hover:text-foreground disabled:opacity-50"
+                                  className="h-7 shrink-0 rounded-md border border-line-strong px-2.5 text-[11px] font-semibold text-muted hover:border-line-strong hover:text-foreground disabled:opacity-50"
                                 >
                                   {t("crew.duesWaive")}
                                 </button>

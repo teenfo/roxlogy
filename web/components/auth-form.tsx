@@ -131,7 +131,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
         <button
           type="button"
           onClick={handleGoogle}
-          className="flex items-center justify-center gap-2.5 rounded-md border border-muted/40 bg-surface px-4 py-2.5 text-sm font-semibold hover:border-foreground"
+          className="flex items-center justify-center gap-2.5 rounded-md border border-line-strongest bg-surface px-4 py-2.5 text-sm font-semibold hover:border-foreground"
         >
           <GoogleIcon />
           {t("auth.google")}
@@ -154,7 +154,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder={t("auth.displayNamePh")}
-                className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-gold"
+                className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent-line"
               />
               <span className="text-xs text-muted">{t("auth.displayNameHint")}</span>
             </label>
@@ -166,7 +166,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-foreground outline-none focus:border-gold"
+              className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent-line"
             />
           </label>
           <label className="flex flex-col gap-1.5 text-sm text-muted">
@@ -178,7 +178,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-md border border-muted/30 bg-surface px-3 py-2.5 pr-16 text-foreground outline-none focus:border-gold"
+                className="w-full rounded-md border border-line-mid bg-surface px-3 py-2.5 pr-16 text-foreground outline-none focus:border-accent-line"
               />
               <button
                 type="button"

@@ -155,7 +155,7 @@ export default async function ExerciseDetailPage({
           href={media!}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-6 flex items-center gap-2 rounded-md bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface/70"
+          className="mt-6 flex items-center gap-2 rounded-md bg-surface px-4 py-3 text-sm font-semibold text-foreground hover:bg-card"
         >
           <span className="text-lg text-danger">▶</span>
           {t("exercises.watchDemo")}

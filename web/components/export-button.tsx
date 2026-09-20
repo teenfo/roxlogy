@@ -97,7 +97,7 @@ export function ExportButton({ kind }: { kind: Kind }) {
       <button
         onClick={run}
         disabled={busy}
-        className="rounded-md border border-muted/40 px-3 py-1.5 text-xs text-muted hover:border-foreground hover:text-foreground disabled:opacity-40"
+        className="rounded-md border border-line-strongest px-3 py-1.5 text-xs text-muted hover:border-foreground hover:text-foreground disabled:opacity-40"
       >
         {busy ? t("common.saving") : t("common.exportCsv")}
       </button>

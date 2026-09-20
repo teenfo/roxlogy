@@ -427,13 +427,13 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           <Link
             href={`/board/${race.code}`}
             target="_blank"
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
           >
             {t("pft.race.openBoard")}
           </Link>
           <Link
             href={`/pft/race/${race.code}`}
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
           >
             {t("pft.race.staffRunner")}
           </Link>
@@ -533,7 +533,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         disabled={busy || closed}
                         className={`flex h-14 items-center justify-between gap-3 rounded-xl border px-4 text-left font-extrabold transition disabled:opacity-40 ${
                           picked === g.wave
-                            ? "border-gold bg-accent text-accent-foreground"
+                            ? "border-accent-line bg-accent text-accent-foreground"
                             : "border-line-accent bg-highlight text-gold hover:brightness-95"
                         }`}
                       >
@@ -576,7 +576,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     <li key={e.entry_id}>
                       <label
                         className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 ${
-                          on ? "border-gold bg-highlight" : "border-line-soft bg-inset"
+                          on ? "border-accent-line bg-highlight" : "border-line-soft bg-inset"
                         }`}
                       >
                         <input
@@ -776,7 +776,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         type="button"
                         onClick={() => undo(e)}
                         disabled={busy || closed || (!splits.length && state !== "finished")}
-                        className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-muted/60 disabled:opacity-40"
+                        className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-line-strong disabled:opacity-40"
                       >
                         ↶ {t(state === "finished" ? "pft.race.undoFinish" : "pft.mUndo")}
                       </button>
@@ -799,7 +799,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         disabled={busy || closed}
                         className={`h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40 ${
                           quit
-                            ? "border-line-strong bg-control hover:border-muted/60"
+                            ? "border-line-strong bg-control hover:border-line-strong"
                             : "border-danger-line-strong bg-control text-danger hover:brightness-95"
                         }`}
                       >

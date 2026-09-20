@@ -190,7 +190,7 @@ export function ProgramFinder({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={t("nav.searchPh")}
-                className="h-[30px] w-[180px] min-w-0 rounded-full border border-line-strong bg-page px-3 text-xs outline-none transition-colors focus:border-gold max-md:w-full"
+                className="h-[30px] w-[180px] min-w-0 rounded-full border border-line-strong bg-page px-3 text-xs outline-none transition-colors focus:border-accent-line max-md:w-full"
               />
             </span>
           </div>

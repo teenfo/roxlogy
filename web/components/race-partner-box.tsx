@@ -190,7 +190,7 @@ export function RacePartnerBox({
                 }
               }}
               placeholder={t("race.partnerSearchPh")}
-              className="h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none transition-colors focus:border-gold"
+              className="h-10 w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-sm outline-none transition-colors focus:border-accent-line"
             />
             <button
               type="button"

@@ -425,7 +425,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                   <span
                     className={`tabular flex h-10 w-10 items-center justify-center rounded-full border text-[17px] font-extrabold ${
                       r.rank === 1
-                        ? "border-gold bg-accent text-accent-foreground"
+                        ? "border-accent-line bg-accent text-accent-foreground"
                         : r.rank <= 3
                           ? "border-line-accent bg-highlight text-gold"
                           : "border-line-strong text-muted"

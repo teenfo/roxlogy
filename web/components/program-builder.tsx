@@ -78,7 +78,7 @@ const catOf = (ex: Exercise) =>
 
 /** 인라인 편집 인풋 — 평소엔 배경 없이 글자만, 손을 대면 칸이 드러난다 */
 const inlineCls =
-  "min-w-0 rounded-lg border border-transparent bg-transparent px-2 outline-none hover:border-line-strong hover:bg-page focus:border-gold focus:bg-page";
+  "min-w-0 rounded-lg border border-transparent bg-transparent px-2 outline-none hover:border-line-strong hover:bg-page focus:border-accent-line focus:bg-page";
 
 type Draft = {
   ex: string;
@@ -473,7 +473,7 @@ export function ProgramBuilder({
                   className={`flex h-[34px] shrink-0 items-center gap-2 rounded-full px-3 text-[13px] font-bold transition-colors ${
                     week === w
                       ? "bg-accent text-accent-foreground"
-                      : "border border-line-strong text-foreground-2 hover:border-muted/60"
+                      : "border border-line-strong text-foreground-2 hover:border-line-strong"
                   }`}
                 >
                   {t("programs.weekN", { n: w })}
@@ -563,7 +563,7 @@ export function ProgramBuilder({
           type="button"
           onClick={() => addDay(false)}
           disabled={busy}
-          className="flex h-12 items-center justify-center rounded-[14px] border border-dashed border-line text-sm font-semibold text-muted-2 transition-colors hover:border-muted hover:text-foreground disabled:opacity-50"
+          className="flex h-12 items-center justify-center rounded-[14px] border border-dashed border-line text-sm font-semibold text-muted-2 transition-colors hover:border-line-strong hover:text-foreground disabled:opacity-50"
         >
           + {t("programs.addRest")}
         </button>
@@ -1095,7 +1095,7 @@ function ExercisePicker({
               }
             }}
             placeholder={t("programs.searchEx")}
-            className="h-[38px] w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none placeholder:text-muted-3 focus:border-gold"
+            className="h-[38px] w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none placeholder:text-muted-3 focus:border-accent-line"
           />
           {draft.open && (
             <div className="absolute inset-x-0 top-[42px] z-20 max-h-80 overflow-y-auto rounded-[10px] border border-line-strong bg-card-hover shadow-[var(--shadow-menu)]">
@@ -1153,7 +1153,7 @@ function ExercisePicker({
                 key={ex.id}
                 type="button"
                 onClick={() => choose(ex)}
-                className="flex h-[30px] items-center rounded-full border border-line-strong px-3 text-xs font-semibold text-muted transition-colors hover:border-muted hover:text-foreground"
+                className="flex h-[30px] items-center rounded-full border border-line-strong px-3 text-xs font-semibold text-muted transition-colors hover:border-line-strong hover:text-foreground"
               >
                 + {exName(ex)}
               </button>
@@ -1194,7 +1194,7 @@ function ExercisePicker({
                   }
                 }}
                 inputMode="decimal"
-                className="tabular h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-gold"
+                className="tabular h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-accent-line"
               />
             </label>
           ))}
@@ -1211,7 +1211,7 @@ function ExercisePicker({
                 }
               }}
               maxLength={60}
-              className="h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-gold"
+              className="h-9 min-w-0 rounded-lg border border-line-strongest bg-page px-2 text-sm outline-none focus:border-accent-line"
             />
           </label>
           <button

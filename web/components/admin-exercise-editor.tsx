@@ -64,7 +64,7 @@ export function AdminExerciseEditor({
   }
 
   const inputCls =
-    "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
+    "w-full rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
 
   return (
     <div className="rounded-md bg-surface px-4 py-3">

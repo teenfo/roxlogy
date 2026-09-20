@@ -97,7 +97,7 @@ export default async function RacesPage() {
               <li key={r.id}>
                 <Link
                   href={`/races/${r.id}`}
-                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
+                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-card"
                 >
                   <div className="flex flex-col gap-0.5">
                     <span className="text-sm font-semibold">{r.event}</span>

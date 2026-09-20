@@ -83,7 +83,7 @@ export function ExerciseDrills({
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t("exercises.drillTitlePh")}
             aria-label={t("exercises.drillTitle")}
-            className="rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold"
+            className="rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line"
           />
           <textarea
             value={body}
@@ -91,7 +91,7 @@ export function ExerciseDrills({
             placeholder={t("exercises.drillBodyPh")}
             aria-label={t("exercises.drillBody")}
             rows={3}
-            className="rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold"
+            className="rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line"
           />
           {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <button

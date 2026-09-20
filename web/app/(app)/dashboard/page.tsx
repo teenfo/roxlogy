@@ -348,7 +348,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── 그룹 1: 오늘 & 일정 ── */}
-      <div className="mt-8 rounded-lg border border-muted/15 bg-surface/30 p-4 sm:p-5">
+      <div className="mt-8 rounded-lg border border-line bg-card p-4 sm:p-5">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
           {t("dash.groupToday")}
         </h2>
@@ -472,7 +472,7 @@ export default async function DashboardPage() {
                 <li key={`${r.kind}-${r.on_date}-${i}`}>
                   <RowLink
                     href={`/crews/${crew.slug}/schedule`}
-                    className="flex min-w-0 items-center gap-2 rounded-md bg-surface px-3 py-2.5 hover:bg-surface/70"
+                    className="flex min-w-0 items-center gap-2 rounded-md bg-surface px-3 py-2.5 hover:bg-card"
                   >
                     <span className="shrink-0 text-xs font-semibold text-muted">
                       {new Date(`${r.on_date}T00:00:00`).toLocaleDateString(
@@ -511,7 +511,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── 그룹 2: 내 기록 ── */}
-      <div className="mt-6 rounded-lg border border-muted/15 bg-surface/30 p-4 sm:p-5">
+      <div className="mt-6 rounded-lg border border-line bg-card p-4 sm:p-5">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
           {t("dash.groupRecords")}
         </h2>
@@ -551,7 +551,7 @@ export default async function DashboardPage() {
               <li key={s.id}>
                 <RowLink
                   href={`/sessions/${s.id}`}
-                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3 hover:bg-surface/70"
+                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3 hover:bg-card"
                 >
                   <span className="text-sm">{formatDate(s.started_at, tag, tz)}</span>
                   <span className="flex items-center gap-3 text-sm">
@@ -589,7 +589,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── 그룹 3: 분석 & 인사이트 ── */}
-      <div className="mt-6 rounded-lg border border-muted/15 bg-surface/30 p-4 sm:p-5">
+      <div className="mt-6 rounded-lg border border-line bg-card p-4 sm:p-5">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
           {t("dash.groupAnalysis")}
         </h2>

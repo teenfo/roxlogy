@@ -101,7 +101,7 @@ export default async function PublicProfilePage({
               <li key={s.id}>
                 <RowLink
                   href={`/sessions/${s.id}`}
-                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-surface/70"
+                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-card"
                 >
                   <span className="text-sm">{formatDate(s.started_at, tag, tz)}</span>
                   <span className="font-mono text-lg font-semibold text-gold">

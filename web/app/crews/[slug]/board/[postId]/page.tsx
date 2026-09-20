@@ -46,7 +46,7 @@ export default async function CrewPostPage({
 
       <article className="mt-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-muted/40 px-2 py-0.5 text-[10px] text-muted">
+          <span className="rounded-full border border-line-strongest px-2 py-0.5 text-[10px] text-muted">
             {t(`crew.cat.${post.category}` as DictKey)}
           </span>
           {post.pinned && (

@@ -66,8 +66,8 @@ export function FollowButton({ authorId }: { authorId: string }) {
         disabled={busy}
         className={`rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${
           following
-            ? "border-muted/40 text-muted hover:border-foreground"
-            : "border-gold text-gold hover:brightness-95"
+            ? "border-line-strongest text-muted hover:border-foreground"
+            : "border-accent-line text-gold hover:brightness-95"
         }`}
       >
         {following ? t("feed.following") : t("feed.follow")}

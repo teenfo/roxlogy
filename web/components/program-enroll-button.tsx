@@ -148,7 +148,7 @@ export function ProgramEnrollButton({
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm text-foreground outline-none focus:border-accent-line"
               />
             </label>
 
@@ -170,7 +170,7 @@ export function ProgramEnrollButton({
                   value={repeatEnd}
                   min={startDate || undefined}
                   onChange={(e) => setRepeatEnd(e.target.value)}
-                  className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold"
+                  className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm text-foreground outline-none focus:border-accent-line"
                 />
               </label>
             )}

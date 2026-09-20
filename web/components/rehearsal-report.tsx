@@ -72,7 +72,7 @@ export function RehearsalReport({
           <select
             value={goalId}
             onChange={(e) => setGoalId(e.target.value)}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+            className="rounded-md border border-line-mid bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent-line"
           >
             {goals.map((g) => (
               <option key={g.id} value={g.id}>
@@ -86,7 +86,7 @@ export function RehearsalReport({
           <select
             value={sessionId}
             onChange={(e) => setSessionId(e.target.value)}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+            className="rounded-md border border-line-mid bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent-line"
           >
             {sessions.map((s) => (
               <option key={s.id} value={s.id}>

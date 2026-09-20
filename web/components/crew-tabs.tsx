@@ -28,7 +28,7 @@ export function CrewTabs({ tabs }: { tabs: CrewTab[] }) {
             aria-current={active ? "page" : undefined}
             className={`-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-2.5 text-sm transition-colors sm:px-3.5 sm:text-[15px] ${
               active
-                ? "border-gold font-bold text-gold"
+                ? "border-accent-line font-bold text-gold"
                 : "border-transparent text-muted hover:text-foreground"
             }`}
           >

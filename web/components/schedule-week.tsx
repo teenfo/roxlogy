@@ -57,7 +57,7 @@ export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean })
           <div
             className={`grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 rounded-[14px] border transition-colors max-md:grid-cols-[52px_minmax(0,1fr)] max-md:gap-3 ${
               d.isToday
-                ? "border-gold bg-highlight px-5 py-[18px] max-md:px-4"
+                ? "border-accent-line bg-highlight px-5 py-[18px] max-md:px-4"
                 : rest
                   ? "border-line-soft px-5 py-3.5 opacity-55 max-md:px-4"
                   : "border-line bg-card px-5 py-3.5 hover:border-line-strong max-md:px-4"

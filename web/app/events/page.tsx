@@ -90,12 +90,12 @@ export default async function EventsPage({
             name="q"
             defaultValue={q ?? ""}
             placeholder={t("events.searchPh")}
-            className="min-w-52 flex-1 rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
+            className="min-w-52 flex-1 rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
           />
           <select
             name="region"
             defaultValue={region ?? ""}
-            className="rounded-md border border-muted/30 bg-surface px-3 py-2.5 text-sm outline-none focus:border-gold"
+            className="rounded-md border border-line-mid bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent-line"
           >
             <option value="">{t("events.allRegions")}</option>
             {REGIONS.map((r) => (
@@ -136,7 +136,7 @@ export default async function EventsPage({
                             {e.name}
                           </RowLink>
                           {e.country_code === "KR" && (
-                            <span className="ml-2 rounded border border-gold/60 px-1.5 py-0.5 text-xs text-gold">
+                            <span className="ml-2 rounded border border-accent-line/60 px-1.5 py-0.5 text-xs text-gold">
                               {t("events.koreaBadge")}
                             </span>
                           )}
@@ -174,7 +174,7 @@ export default async function EventsPage({
                             href={`/predict?event=${encodeURIComponent(e.name)}${
                               e.start_date ? `&date=${e.start_date}` : ""
                             }`}
-                            className="rounded-md border border-gold/50 px-2.5 py-1 text-xs font-semibold text-gold hover:bg-accent/10"
+                            className="rounded-md border border-accent-line/50 px-2.5 py-1 text-xs font-semibold text-gold hover:bg-accent/10"
                           >
                             {t("events.setGoal")}
                           </RowLink>
@@ -195,7 +195,7 @@ export default async function EventsPage({
                   {past.map((e) => (
                     <li
                       key={e.id}
-                      className="flex items-center justify-between rounded-md bg-surface/60 px-4 py-3 text-muted"
+                      className="flex items-center justify-between rounded-md bg-card px-4 py-3 text-muted"
                     >
                       <span className="text-sm">
                         <RowLink

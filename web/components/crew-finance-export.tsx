@@ -36,7 +36,7 @@ export function CrewFinanceExport({
       type="button"
       onClick={run}
       title={t("crew.finExportNote")}
-      className="h-9 shrink-0 rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold hover:border-muted/60"
+      className="h-9 shrink-0 rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold hover:border-line-strong"
     >
       ↓ {t("crew.finExport")}
     </button>

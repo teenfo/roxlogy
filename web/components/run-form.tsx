@@ -14,7 +14,7 @@ import {
 } from "@/lib/run";
 
 const input =
-  "w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
+  "w-full rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
 const label = "mt-4 block text-xs text-muted";
 
 /** 러닝 기록 입력·수정. 거리 + 시간만 필수고 페이스는 DB 생성 컬럼이 채운다

@@ -382,7 +382,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
   }
 
   const inputCls =
-    "rounded-md border border-muted/30 bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-gold";
+    "rounded-md border border-line-mid bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent-line";
 
   return (
     <main>
@@ -515,7 +515,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
 
         {/* ── 2단계: 결과 선택 */}
         {hits !== null && !searchError && (
-          <div className="mt-4 border-t border-muted/20 pt-3">
+          <div className="mt-4 border-t border-line pt-3">
             <p className="text-sm font-semibold">{t("raceNew.step2")}</p>
             {firstNameMiss && hits.length > 0 && (
               <p className="mt-2 text-xs text-gold">
@@ -696,7 +696,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                     )}
                   </span>
                 </p>
-                <label className="mt-3 flex items-start gap-2 border-t border-muted/20 pt-3 text-sm">
+                <label className="mt-3 flex items-start gap-2 border-t border-line pt-3 text-sm">
                   <input
                     type="checkbox"
                     checked={addSession}
@@ -795,13 +795,13 @@ function ManualImport({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://results.hyrox.com/…"
-          className="min-w-0 flex-1 rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold"
+          className="min-w-0 flex-1 rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line"
         />
         <button
           type="button"
           onClick={() => importFromUrl(url.trim())}
           disabled={importing || !url.trim()}
-          className="shrink-0 rounded-md border border-muted/40 px-4 py-2 text-sm font-semibold hover:border-foreground disabled:opacity-40"
+          className="shrink-0 rounded-md border border-line-strongest px-4 py-2 text-sm font-semibold hover:border-foreground disabled:opacity-40"
         >
           {importing
             ? t("raceNew.import.importing")
@@ -814,13 +814,13 @@ function ManualImport({
         onChange={(e) => setText(e.target.value)}
         rows={4}
         placeholder={t("raceNew.import.pastePh")}
-        className="mt-3 w-full rounded-md border border-muted/30 bg-background px-3 py-2 text-xs outline-none focus:border-gold"
+        className="mt-3 w-full rounded-md border border-line-mid bg-background px-3 py-2 text-xs outline-none focus:border-accent-line"
       />
       <button
         type="button"
         onClick={handleText}
         disabled={!text.trim()}
-        className="mt-2 rounded-md border border-muted/40 px-4 py-1.5 text-sm font-semibold hover:border-foreground disabled:opacity-40"
+        className="mt-2 rounded-md border border-line-strongest px-4 py-1.5 text-sm font-semibold hover:border-foreground disabled:opacity-40"
       >
         {t("raceNew.import.parseBtn")}
       </button>

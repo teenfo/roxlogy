@@ -302,7 +302,7 @@ export function CrewLedgerTable({
           onChange={(e) => setQuery(e.target.value)}
           size={1}
           placeholder={t("crew.finSearch")}
-          className="ml-auto h-[34px] w-[180px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-gold"
+          className="ml-auto h-[34px] w-[180px] max-w-full min-w-0 rounded-lg border border-line-strong bg-page px-3 text-[13px] outline-none focus:border-accent-line"
         />
       </div>
 

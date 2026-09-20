@@ -8,7 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { LEDGER_CATEGORIES, categoryDictKey, isValidCategory } from "@/lib/ledger-category";
 
 const input =
-  "rounded-md border border-muted/30 bg-background px-3 py-2 text-sm outline-none focus:border-gold";
+  "rounded-md border border-line-mid bg-background px-3 py-2 text-sm outline-none focus:border-accent-line";
 
 /**
  * 수단은 "어떻게 냈나"가 아니라 "이 돈이 통장에 언제 찍히나"를 가늠하려고 있다.
@@ -314,7 +314,7 @@ export function CrewLedgerForm({
         <button
           type="button"
           onClick={openModal}
-          className="flex h-9 shrink-0 items-center rounded-[10px] border border-gold/40 px-3 text-sm font-semibold text-gold transition-colors hover:bg-accent/10"
+          className="flex h-9 shrink-0 items-center rounded-[10px] border border-accent-line/40 px-3 text-sm font-semibold text-gold transition-colors hover:bg-accent/10"
         >
           + {t("crew.finAdd")}
         </button>

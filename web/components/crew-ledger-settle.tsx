@@ -76,7 +76,7 @@ export function CrewLedgerSettle({
         type="date"
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        className="h-7 rounded-md border border-line-strong bg-page px-1.5 text-xs outline-none focus:border-gold"
+        className="h-7 rounded-md border border-line-strong bg-page px-1.5 text-xs outline-none focus:border-accent-line"
       />
       <button
         type="button"

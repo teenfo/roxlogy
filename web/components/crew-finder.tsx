@@ -88,7 +88,7 @@ export function CrewFinder({ crews }: { crews: CrewDirectoryRow[] }) {
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("crew.findPh")}
           aria-label={t("crew.findCrew")}
-          className="ml-auto h-9 w-full max-w-56 rounded-lg border border-line-mid bg-card px-3 text-[13px] outline-none focus:border-gold"
+          className="ml-auto h-9 w-full max-w-56 rounded-lg border border-line-mid bg-card px-3 text-[13px] outline-none focus:border-accent-line"
         />
       </div>
 

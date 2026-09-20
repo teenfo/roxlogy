@@ -37,7 +37,7 @@ export function AdminProgramActions({ programId }: { programId: string }) {
         type="button"
         disabled={busy}
         onClick={unpublish}
-        className="rounded-md border border-muted/30 px-2.5 py-1 text-xs font-semibold text-muted hover:text-foreground disabled:opacity-40"
+        className="rounded-md border border-line-mid px-2.5 py-1 text-xs font-semibold text-muted hover:text-foreground disabled:opacity-40"
       >
         {t("admin.unpublish")}
       </button>

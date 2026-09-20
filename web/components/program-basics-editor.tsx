@@ -58,7 +58,7 @@ export function ProgramBasicsEditor({
   }
 
   const field =
-    "rounded-lg border border-line-strong bg-page px-3 py-2 text-sm outline-none focus:border-gold";
+    "rounded-lg border border-line-strong bg-page px-3 py-2 text-sm outline-none focus:border-accent-line";
 
   return (
     <>
