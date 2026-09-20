@@ -12,7 +12,7 @@ export type NavChild = {
   href: string;
   label: DictKey;
   desc: DictKey;
-  /** 아이콘 이름 — components/nav-icon.tsx 의 SVG 세트 */
+  /** 아이콘 이름 — components/rox/app-shell.tsx 가 lucide 아이콘으로 매핑한다 */
   icon: string;
 };
 
@@ -20,7 +20,7 @@ export type NavItem = {
   key: string;
   href: string;
   label: DictKey;
-  /** 아이콘 이름 — components/nav-icon.tsx 의 SVG 세트 */
+  /** 아이콘 이름 — components/rox/app-shell.tsx 가 lucide 아이콘으로 매핑한다 */
   icon: string;
   children?: NavChild[];
 };

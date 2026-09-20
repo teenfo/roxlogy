@@ -93,3 +93,109 @@ Track Blue 도 흰 배경 **3.83:1** 이라 **비텍스트(선·아이콘)까지
 4. 스크린 리더 — VoiceOver / TalkBack
 5. 운영 데이터에서의 렌더 — 캡쳐는 픽스처 기반이라 실제 길이의 이름·제목 넘침은 미확인
 6. PFT 라이브보드의 TV 원거리 가독성 — 실제 모니터 필요
+
+---
+
+## 이식 결과 (2026-09-20 · 브랜치 `claude/design-renewal` · PORT_PLAN P0–P9)
+
+시안 소스(`roxlogy-renewal/source`)의 화면 코드를 라우트별로 옮기고 데이터만 우리 것으로 갈아 끼웠다.
+셸·계약·프리미티브·스타일은 시안 것이고, 브랜드 자산(마크·워드마크·`#FFD500`)만 위 규칙대로 되돌렸다.
+
+| 단계 | 커밋 | 범위 |
+|---|---|---|
+| P0 | (스크래치패드) | 시안 자체를 띄워 68 라우트 × 1200/390 기준 캡쳐 |
+| P1 | `71e6e97` | 프리미티브 16종 · `globals.css` 통째 교체 · `components/rox/ui.tsx` 계약 · `RoxDialog` |
+| P2 | `ccb5263` | 사이드바·상단바·푸터·모바일 탭+시트 · 사이드바 고정 크루(`profiles.sidebar_crew_id`) |
+| P3 | `f652a08` | 랜딩·로그인·네이티브 인증·404·오류·권한 게이트·스켈레톤 22종 |
+| P4 | `4845208` | 대시보드·세션·레이스·입력·비교·목표·리포트·기록 카드 (13 라우트) |
+| P5 | `0264a01` | 일정·레이스 계획·프로그램·운동·라이브러리·러닝 (12 라우트) |
+| P6 | `84f2c49` | PFT 허브·측정·기록 폼·리더보드·레이스·스태프·라이브보드 (10 라우트) |
+| P7 | `27e0f21` | 크루 소개·일정·게시판·멤버·리더보드·회계·관리 · 대회 · 피드 · 공개 프로필 (19 라우트) |
+| P8 | `ae779c3` | 설정·검색·알림·다운로드·관리자 6 (11 라우트) |
+| P9 | 이 커밋 | 죽은 모듈 삭제 · 대비 스크립트 · 전수 캡쳐 · 이 보고 |
+
+### 검증 (실제로 돌린 것만 적는다)
+
+- `tsc --noEmit` 0 오류 · `eslint app components lib` 0 오류(경고 2 — `lib/session-builder.ts` 기존)
+- 픽스처 하네스 전수 캡쳐: **81 라우트 × 1200/390 = 162장**, 브라우저 `pageerror` **0**
+  - 200: 70 라우트. 404: 11 라우트 — 전부 의도한 것(`/404` 자체, `/design-coverage/*` 7종은 시안 인덱스라 넣지 않음,
+    `/records/share` 는 확정 2 로 만들지 않음, `/pft/demo-pft` 는 픽스처에 없는 id)
+  - 가로 넘침: `/sessions/[id]` 1건 → 통계 타일의 긴 값이 밀던 것을 `.rx-stat > strong { overflow-wrap:anywhere }` 로 잡고 재캡쳐 — `/sessions/[id]`·`/dashboard`·`/crews/loop8/finance` × 2폭 6장 넘침 0
+- 단계마다 해당 라우트를 1200/390 으로 캡쳐해 모바일을 육안으로 봤다(P4~P8 커밋 메시지에 건수)
+- `node scripts/check-contrast.mjs` — 시안 `:root` 토큰과 칩·힌트·수입/지출 색 33쌍 (아래 "대비")
+
+### 시안에 없어 Panel 등으로만 감싼 것 (PORT_PLAN §4 — 추정으로 만들지 않았다)
+
+시안에 대응 자리가 없는 우리 기능. 시안 프리미티브(Panel·Field·Button·Chip·DataTable·RoxDialog·RowMenu)만 써서 넣었고,
+각 파일 주석에 `시안에 없` 으로 표시해 두었다(`grep -rn "시안에 없" web/app web/components`). 캡쳐는 스크래치패드 `captures/p9/`.
+
+- **퍼포먼스**: 대시보드 위젯 7종(크루 일정·스테이션 최고·추이·훈련 vs 레이스·리허설·AI·백분위), 세션 상세 분석
+  (구성비·분포 곡선·스플릿 바·저하율·에르그 곡선·스트로크·AI), 레이스 상세(시뮬 대비표·리플레이표·세션 만들기·AI),
+  세션 입력의 RPE·워크아웃 연결·리더보드 제외, 비교의 세션 고르기, 목표의 삭제·배분, 공식 기록 연동 안내, 예측 폼 내부
+- **트레이닝**: 프로그램 빌더·미리보기(확정 1), AI 생성 버튼, 검색·레벨 필터·내/커뮤니티 구분, 러닝 1km 기준선·90일 요약,
+  운동 영상·내 추이, 레이스 계획 폼·파트너 초대
+- **PFT**: MY BEST 게이지·전체 기록 표·규격, 측정의 예상 완주·구간 PB·완주 배지, 라이브보드의 배지·중도포기·페이지·참가 코드
+  (종료 뒤 배지별 3열 정리 화면은 뺐다)
+- **크루**: 커버 이미지·가입 버튼·승인 대기 배지·관리 탭 대기 수, 모임 등록·참석 토글(목록)·출석 체크 카드·설정 토글·
+  대회일정 목록(인라인 수정은 상세로 통일), 납부 링크 관리·회비 계좌·회원 이력 다이얼로그·장부 행 메뉴·묶음·확인할 일·
+  등급 분포·통계 타일, 대회의 지난 대회·디비전 실측 통계
+- **계정·관리**: 로그인 수단 연동/해제, 사이드바 고정 크루, 언어, MCP 토큰 발급·재발급·폐기·변경 허용, 푸시 켜기·테스트·
+  WOD 시각, 알림 삭제·읽음 필터·날짜 묶음, 관리자 사용자 상세/편집·운동 편집·등록 요청·공개 프로그램·크루 승인·모더레이션
+
+### 대비 — 시안 값 그대로라 미달인 조합 (결정 필요)
+
+`check-contrast.mjs` 33쌍 중 **12쌍이 스펙 §11(4.5:1 / 비텍스트 3:1) 미달**이고 전부 **시안이 정한 값**이다.
+"시안을 그대로" 라는 지시에 따라 값을 고치지 않았다. 고칠지 결정해 주면 한 줄씩 바꾼다.
+
+| 조합 | 비율 | 시안 값 | 4.5:1 을 넘기는 최소 변경 예 |
+|---|---|---|---|
+| `.rx-hint` · `.rx-muted` / 카드 | 3.20 | `#87919d` | `#6f7a87` (4.6) |
+| `.rx-income` / 카드 | 4.47 | `#448369` | `#3f7a61` (4.9) |
+| `.rx-expense` / 카드 | 3.99 | `#b56b66` | `#a85f5a` (4.6) |
+| 기본 칩 · 옐로 칩 · `tier-yellow` | 4.47 | `#82701f` on `#fcf5d5` | `#7a6a1e` (4.9) |
+| 그린 칩 | 4.27 | `#397e5e` on `#e7f3ed` | `#377a5b` (4.5) |
+| 블루 칩 | 3.63 | `#627daf` on `#eaf0ff` | `#526da1` (4.6) |
+| `tier-gray` | 4.37 | `#69727f` on `#f0f3f6` | `#616974` (4.9) |
+| 차트 1·2 / 카드 (비텍스트 3:1) | 2.01 · 2.89 | `#cfb714` · `#8297cf` | 범례 글자와 함께 쓰므로 색만으로 구분하지 않는다 — 유지 가능 |
+
+허용 예외 4(경계선·입력 경계·옐로 면·아이브로)는 스크립트에 사유를 적어 두었다.
+
+### 잔여 — 아직 Tailwind 확장 토큰을 쓰는 클라이언트 컴포넌트 (32)
+
+페이지는 전부 시안 마크업이지만, 아래 컴포넌트는 내부가 여전히 `text-muted`·`bg-surface`·`text-gold` 같은 Tailwind
+유틸을 쓴다. 그래서 `globals.css` 끝의 **"확장 토큰" 블록은 지우지 못했다**(지우면 이 컴포넌트들의 색이 빠진다).
+새 화면에는 쓰지 말고 `.rx-*` 를 쓴다. 다시 그릴 순서 제안: 예측 폼 → 프로그램 빌더 → 레이스 입력 폼 → 리플레이 표 → 나머지.
+
+`predict-form` · `program-builder` · `race-new-form` · `race-replay-table` · `program-enroll-button` · `rehearsal-report` ·
+`charts` · `workout-checklist` · `race-edit-form` · `exercise-drills` · `program-new-form` · `record-card-button` ·
+`percentile-bar` · `distribution-curve` · `workout-sets` · `program-basics-editor` · `ai-insight` · `chart-frame` ·
+`delete-button` · `program-calendar-subscribe` · `goal-delete-button` · `ai-program-button` · `clone-program-button` ·
+`export-button` · `google-one-tap` · `info-tip` · `locale-switcher` · `race-to-session-button` · `run-form` · `share-toggle` ·
+`app/(app)/leaderboard/page.tsx` · `app/(app)/members/page.tsx`
+
+삭제한 옛 모듈: `components/ui/app-ui.tsx` · `app-filters.tsx` · `crew-ui.tsx` · `settings-ui.tsx` · `nav-icon.tsx` ·
+`settings-nav.tsx` · `search-box.tsx`. 남은 것은 `components/rox/*`(셸·계약·다이얼로그·필터·사람 행·관리자 머리)와
+`components/ui/*` 프리미티브뿐이다.
+
+### 이 이식으로도 검증되지 않은 것 (완료로 처리하지 않는다)
+
+위 "검증되지 않은 항목" 1~6 에 더해:
+
+7. **운영 데이터 렌더** — 캡쳐는 픽스처다. 픽스처가 만든 `crew.cat.dues_monthly` 같은 사전 미등록 값·`join_policy 1` 같은
+   비정상 값이 화면에 그대로 보였는데, 실데이터에서는 나오지 않는 값이다. 실제 크루명·거래명·긴 한글 제목의 넘침은 배포 후 확인
+8. **상호작용** — 캡쳐는 첫 화면이다. 다이얼로그(모임 등록·장부 수정·회원 이력·기초 잔액·PFT 확인)·행 메뉴·탭 전환·폼 제출은
+   코드 검토와 타입 검사만 했고 브라우저에서 눌러 보지 않았다
+9. **실제 계정 권한 분기** — 픽스처는 한 계정(관리자·크루 리더)이다. 비회원·일반회원·정회원·부리더 시점의 화면은 조건 분기를
+   그대로 옮겼을 뿐 각 시점으로 렌더하지 않았다
+10. **en/es 문구** — 신규 키만 3언어로 넣었다. 기존 도메인 문구의 영어·스페인어 재번역은 범위 밖
+
+### 다시 돌리는 법
+
+```bash
+cd web
+A=next; B=ser; pgrep -f "$A-${B}ver" | xargs -r kill
+ROX_FIXTURES=1 NEXT_PUBLIC_SUPABASE_URL=https://fixture.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=fixture npx next build
+ROX_FIXTURES=1 NEXT_PUBLIC_SUPABASE_URL=https://fixture.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=fixture npx next start -p 3111 &
+node scripts/capture-screens.mjs --routes <routes.json> --out <dir>   # [["/path","in"],…] · 1200/390 · report.json
+node scripts/check-contrast.mjs                                        # 미달이 있으면 exit 1
+```
