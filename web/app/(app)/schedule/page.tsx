@@ -87,7 +87,7 @@ export default async function SchedulePage({
       title={t("schedule.myRaces")}
       action={<RacePlanForm myPlans={plans} part="trigger" today={today0} />}
     >
-      <div style={{ padding: "0 24px 24px" }}>
+      <div>
         <RacePlanForm myPlans={plans} part="list" today={today0} />
       </div>
     </Panel>
@@ -293,7 +293,7 @@ export default async function SchedulePage({
         >
           <ScheduleWeek week={weekRows} solo={!!solo} />
           {weekOffset !== 0 && (
-            <div className="rx-actions" style={{ padding: "0 24px 24px" }}>
+            <div className="rx-actions">
               <Go href="/schedule">{t("schedule.goThisWeek")}</Go>
             </div>
           )}

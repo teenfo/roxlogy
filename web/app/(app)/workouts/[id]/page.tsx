@@ -171,7 +171,7 @@ export default async function WorkoutPage({
           title={t("workouts.today")}
           action={<Chip>{dictLabel(t, `programs.type.${w.type}`, w.type)}</Chip>}
         >
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <WorkoutChecklist
               items={checklist}
               initialCompletions={completions}
@@ -182,11 +182,11 @@ export default async function WorkoutPage({
         </Panel>
         <aside>
           <Panel title={t("workouts.recordAsSession")}>
-            <p className="rx-hint" style={{ padding: "0 24px" }}>
+            <p className="rx-hint">
               {t("workouts.autoSegments")}
             </p>
             <Hint>{day?.focus ?? ""}</Hint>
-            <div style={{ padding: "0 24px 24px" }}>
+            <div>
               <Go href="/sessions/new" primary>
                 {t("workouts.recordAsSession")}
               </Go>

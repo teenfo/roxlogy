@@ -110,7 +110,7 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
   return (
     <form onSubmit={save} className="rx-form-layout">
       <Panel title={t("run.info")}>
-      <div style={{ padding: "0 24px 24px" }}>
+      <div>
       <label className={label} htmlFor="run-date">
         {t("run.date")}
       </label>
@@ -276,7 +276,7 @@ export function RunForm({ initial, tz }: { initial?: Run; tz?: string }) {
             {projected != null ? ` · 1km ≈ ${formatMs(Math.round(projected))}` : ""}
           </p>
           <Hint>{t("run.paceHint")}</Hint>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <Button type="submit" className="rx-primary rx-wide" disabled={busy}>
               {busy ? t("common.saving") : t("common.save")}
             </Button>

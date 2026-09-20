@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { Dialog } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   CARD_SIZE,
   CARD_WEIGHTS,
@@ -165,16 +166,15 @@ export function RecordCardButton({
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={() => setOpen(true)}
-        className={
-          className ||
-          "rounded-md bg-background px-2.5 py-1 text-xs text-muted hover:text-foreground"
-        }
+        className={className}
       >
         {label ?? t("card.open")}
-      </button>
+      </Button>
       <Dialog
         open={open}
         onClose={close}

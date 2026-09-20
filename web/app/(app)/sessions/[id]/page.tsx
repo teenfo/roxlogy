@@ -654,7 +654,7 @@ export default async function SessionDetailPage({
       {/* ── 시안에 없는 우리 분석 (PORT_PLAN §4-1) ── */}
       {!isErg && share.totalMs > 0 && (
         <Panel title={t("sessions.timeComposition")}>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <BreakdownStackBar
               runMs={share.runMs}
               stationMs={share.stationMs}
@@ -665,7 +665,7 @@ export default async function SessionDetailPage({
       )}
       {dist && (
         <Panel>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <DistributionCurve
               percentiles={dist.percentiles}
               myMs={session.total_time_ms!}
@@ -679,14 +679,14 @@ export default async function SessionDetailPage({
       )}
       {!isErg && chartData.length > 1 && (
         <Panel title={t("sessions.segmentSplits")}>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <SegmentSplitBars data={chartData} />
           </div>
         </Panel>
       )}
       {ergSegments.length > 0 && (
         <Panel title={t("sessions.ergCurves")}>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <p className="rx-hint" style={{ marginBottom: 12 }}>
               {t("sessions.ergCurvesDesc")}
             </p>
@@ -722,7 +722,7 @@ export default async function SessionDetailPage({
               ],
             ]}
           />
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <p className="rx-section-label">{t("sessions.strokeForce")}</p>
             <StrokeForceChart
               data={ergStrokesAll.map((s) => ({ n: s.n, peak: s.peak_force, avg: s.avg_force }))}

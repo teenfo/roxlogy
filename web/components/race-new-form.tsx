@@ -395,7 +395,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       <div>
       {/* ── 1단계: 조회 조건 */}
       <Panel title={t("raceNew.step1")}>
-      <section style={{ padding: "0 24px 24px" }}>
+      <section>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
           <label className="flex flex-col gap-1 text-xs text-muted">
@@ -571,7 +571,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       {/* ── 3단계: 확인·저장 (자동 채움 후 또는 수동 입력 열기) */}
       {imported || showManual ? (
         <Panel title={t("raceNew.step3")}>
-        <section style={{ padding: "0 24px 24px" }}>
+        <section>
           <div className="mt-3 grid gap-4">
             <label className="flex flex-col gap-1.5 text-sm text-muted">
               {t("raceNew.event")}

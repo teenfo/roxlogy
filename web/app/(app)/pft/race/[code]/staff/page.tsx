@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   return { title: `${t("pft.race.staff")} ${code.toUpperCase()}` };
 }
 
-/** 스태프 타이밍 — 운영진(전체 관리자·크루 운영진)만. 아니면 참가자 화면으로 보낸다. */
+/** 스태프 타이밍(시안 PftStaff) — 운영진(전체 관리자·크루 운영진)만. 아니면 참가자 화면으로 보낸다. */
 export default async function PftRaceStaffPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const supabase = await createClient();
@@ -20,9 +20,5 @@ export default async function PftRaceStaffPage({ params }: { params: Promise<{ c
   const { data: manage } = await supabase.rpc("pft_race_can_manage", { p_race: board.race.id });
   if (manage !== true) redirect(`/pft/race/${board.race.code}`);
 
-  return (
-    <main className="mx-auto w-full max-w-5xl">
-      <PftRaceStaff initial={board} />
-    </main>
-  );
+  return <PftRaceStaff initial={board} />;
 }

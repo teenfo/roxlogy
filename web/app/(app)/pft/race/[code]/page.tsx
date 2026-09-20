@@ -13,7 +13,10 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   return { title: `${t("pft.race.title")} ${code.toUpperCase()}` };
 }
 
-/** 참가자 화면 — 내 엔트리 진행 + (운영진이면) 레이스 관리 */
+/**
+ * 참가자 화면 — 시안 pft-race.tsx PftRaceOverview(레이스 현황·나의 참가 상태) + .rx-stopwatch.
+ * 내 엔트리 진행 + (운영진이면) 레이스 관리. 화면은 PftRaceRunner 가 그린다.
+ */
 export default async function PftRaceRunPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const user = await getCachedUser();
@@ -49,7 +52,7 @@ export default async function PftRaceRunPage({ params }: { params: Promise<{ cod
     : missingForRace(me as { birth_year: number | null; gender: string | null } | null);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
+    <>
       <ProfileRequired missing={missing} />
       <PftRaceRunner
         race={board.race}
@@ -60,6 +63,6 @@ export default async function PftRaceRunPage({ params }: { params: Promise<{ cod
         best={best}
         joinBlocked={missing.length > 0}
       />
-    </main>
+    </>
   );
 }

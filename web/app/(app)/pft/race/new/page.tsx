@@ -1,15 +1,18 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { PftRaceCreateForm } from "@/components/pft-race-forms";
+import { Back, Empty, Go, PageHead } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
   return { title: t("pft.race.create") };
 }
 
-/** 레이스 만들기 — 전체 관리자 또는 내가 운영진인 크루 */
+/**
+ * 레이스 만들기 — 시안 racing.tsx PFT(new): Back · PageHead · Panel "레이스 정보"(Field·Hint).
+ * 전체 관리자 또는 내가 운영진인 크루.
+ */
 export default async function PftRaceNewPage() {
   const [{ t }, user, profile] = await Promise.all([getT(), getCachedUser(), getCachedProfile()]);
   const supabase = await createClient();
@@ -26,19 +29,18 @@ export default async function PftRaceNewPage() {
   const allowed = !!profile?.is_admin || crews.length > 0;
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
-      <div>
-        <Link href="/pft" className="text-sm text-muted hover:text-foreground">← {t("pft.title")}</Link>
-        <h1 className="mt-2 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("pft.race.create")}</h1>
-        <p className="mt-1 text-sm text-muted">{t("pft.race.createDesc")}</p>
-      </div>
+    <>
+      <Back href="/pft" label={t("pft.title")} />
+      <PageHead title={t("pft.race.create")} description={t("pft.race.createDesc")} />
       {allowed ? (
         <PftRaceCreateForm crews={crews} />
       ) : (
-        <p className="rounded-2xl border border-line bg-card p-5 text-sm text-muted">
-          {t("pft.race.err.not_allowed")}
-        </p>
+        <Empty
+          title={t("pft.race.err.not_allowed")}
+          description={t("pft.race.createDesc")}
+          action={<Go href="/pft/race/join">{t("pft.race.join")}</Go>}
+        />
       )}
-    </main>
+    </>
   );
 }

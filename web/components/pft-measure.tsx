@@ -6,6 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { PFT_STATIONS } from "@/lib/pft";
 import { PFT_MIN_TOTAL_MS, PftMeasureView, type PftBest } from "@/components/pft-measure-view";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Field, Hint } from "@/components/rox/ui";
 
 /** 진행 중인 측정을 브라우저에 남긴다 — 25분짜리라 실수로 새로고침하거나
  *  전화가 와서 앱이 내려가면 기록이 통째로 날아간다. */
@@ -14,7 +18,7 @@ const KEY = "roxlogy.pft.measure.v1";
 type Saved = { startedAt: number; splits: number[] };
 
 /** 일반 PFT 측정 — 상태는 이 폰(localStorage)에만 두고 완주 뒤 저장 버튼으로 pft_results 에 넣는다.
- *  화면은 레이스 측정과 같은 PftMeasureView. */
+ *  화면은 레이스 측정과 같은 PftMeasureView(시안 .rx-stopwatch). */
 export function PftMeasure({
   defaultAge,
   defaultGender,
@@ -175,55 +179,35 @@ export function PftMeasure({
       onReset={reset}
       finishExtra={
         <>
-          <div className="mt-5 grid gap-3 border-t border-gold-line-soft pt-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-xs text-muted">{t("pft.fLocation")}</span>
-              <input
-                className="mt-1 h-10 w-full rounded-lg border border-line-strongest bg-page px-3 text-sm outline-none focus:border-accent-line"
+          <div className="rx-form-grid">
+            <Field label={t("pft.fLocation")}>
+              <Input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 maxLength={80}
                 placeholder={t("pft.fLocationPh")}
               />
-            </label>
-            <label className="flex items-start gap-2 self-end pb-1 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1 accent-accent"
-                checked={scaled}
-                onChange={(e) => setScaled(e.target.checked)}
-              />
-              <span>
-                {t("pft.fScaled")}
-                <span className="block text-xs text-muted">{t("pft.fScaledHint")}</span>
-              </span>
-            </label>
+            </Field>
           </div>
-
+          <label className="rx-check">
+            <Checkbox checked={scaled} onCheckedChange={(v) => setScaled(v === true)} />
+            {t("pft.fScaled")}
+          </label>
+          <Hint>{t("pft.fScaledHint")}</Hint>
           {err && (
-            <p role="alert" className="mt-3 text-sm text-danger">
+            <p role="alert" className="rx-error">
               {err}
             </p>
           )}
-
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={save}
-              disabled={busy || tooShort}
-              className={`h-11 rounded-lg px-6 text-[15px] font-extrabold ${
-                tooShort ? "cursor-not-allowed bg-line-mid text-muted-2" : "bg-accent text-accent-foreground hover:brightness-95"
-              } disabled:opacity-60`}
-            >
+          <div className="rx-actions">
+            <Button className="rx-primary" onClick={save} disabled={busy || tooShort}>
               {busy ? t("common.saving") : t("pft.mSave")}
-            </button>
-            <button type="button" onClick={reset} className="text-[13px] text-muted hover:text-danger">
+            </Button>
+            <Button variant="ghost" onClick={reset}>
               {t("pft.mDiscard")}
-            </button>
-            <p className={`ml-auto text-xs ${tooShort ? "text-danger" : "text-muted"}`}>
-              {tooShort ? t("pft.errTooShort") : t("pft.mSaveHint")}
-            </p>
+            </Button>
           </div>
+          <Hint>{tooShort ? t("pft.errTooShort") : t("pft.mSaveHint")}</Hint>
         </>
       }
     />

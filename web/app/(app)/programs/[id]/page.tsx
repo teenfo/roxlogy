@@ -266,7 +266,7 @@ export default async function ProgramDetailPage({
             ]}
           />
           {myStart && (
-            <div className="rx-actions" style={{ padding: "0 24px" }}>
+            <div className="rx-actions">
               <Go href={`/programs/${program.id}/calendar.ics`}>
                 <CalendarDays size={17} />
                 {t("programs.icsDownload")}
@@ -279,7 +279,7 @@ export default async function ProgramDetailPage({
             </div>
           )}
           {myStart && <Hint>{t("programs.subscribeHint")}</Hint>}
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <Go href="/schedule">
               <CalendarDays size={17} />
               {t("schedule.title")}
@@ -290,7 +290,7 @@ export default async function ProgramDetailPage({
 
       {!readOnly && (
         <Panel title={t("programs.backToBuilder")} action={<Link href={`/programs/${program.id}?preview=1`}>{t("programs.previewLink")}</Link>}>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <ProgramBuilder
               programId={program.id}
               initialDays={days}

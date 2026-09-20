@@ -203,7 +203,7 @@ export default async function RacePlanPage({
           {isDoubles && (
             <Panel title={t("race.partners")}>
               <p className="rx-hint">{t("race.partnersDesc")}</p>
-              <div style={{ padding: "0 24px 24px" }}>
+              <div>
                 <RacePartnerBox
                   planId={plan.id}
                   partners={plan.partners}
@@ -214,7 +214,7 @@ export default async function RacePlanPage({
             </Panel>
           )}
           <Panel title={t("race.noteTitle")}>
-            <p style={{ padding: "0 24px 24px", whiteSpace: "pre-wrap" }}>{plan.note || "—"}</p>
+            <p style={{ whiteSpace: "pre-wrap" }}>{plan.note || "—"}</p>
           </Panel>
         </div>
         <aside>

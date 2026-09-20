@@ -115,7 +115,7 @@ export function ProgramNewForm() {
       <div className="rx-form-layout">
         {/* 폼 */}
         <Panel title={t("programs.newTitle")}>
-        <div className="flex flex-col gap-[18px]" style={{ padding: "0 24px 24px" }}>
+        <div className="flex flex-col gap-[18px]">
           <label className="flex flex-col gap-1.5">
             <span className={label}>
               {t("programs.fldTitle")} <span className="text-danger">*</span>
@@ -289,7 +289,7 @@ export function ProgramNewForm() {
         {/* 미리보기 */}
         <aside>
         <Panel title={t("programs.preview")}>
-        <div className="flex flex-col gap-2.5" style={{ padding: "0 24px 24px" }}>
+        <div className="flex flex-col gap-2.5">
           <p
             className={`text-[17px] font-extrabold ${title.trim() ? "" : "text-muted-3"}`}
           >

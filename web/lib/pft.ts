@@ -21,15 +21,16 @@ export const PFT_STATIONS = [
   detail: DictKey;
 }[];
 
-/** 종목 색 — 스플릿 바·스플릿 카드가 같은 색을 써야 어느 종목이 오래 걸렸는지
- *  화면을 옮겨도 눈으로 잇는다. 런은 세션 차트의 런(--info)과 맞춘다. */
+/** 종목 색 — 스플릿 띠·라이브보드 종목 카드·기록지가 같은 색을 써야 어느 종목이 오래
+ *  걸렸는지 화면을 옮겨도 눈으로 잇는다. 값은 시안 pft-race-state.ts 의 PFT 스테이지 6색
+ *  (스펙 §15) — 캔버스(기록지)에서도 그려야 해서 CSS 변수가 아니라 hex 로 둔다. */
 export const PFT_COLORS: Record<string, string> = {
-  run: "var(--info)",
-  burpee: "var(--accent-dim)",
-  lunge: "var(--cat-lime)",
-  row: "var(--cat-sky)",
-  pushup: "var(--warn)",
-  wallball: "var(--cat-violet)",
+  run: "#7bd2f2",
+  burpee: "#e4cd3e",
+  lunge: "#b6dd8c",
+  row: "#8fc8dc",
+  pushup: "#f2a362",
+  wallball: "#dab0ee",
 };
 
 export type PftStationKey = (typeof PFT_STATIONS)[number]["key"];

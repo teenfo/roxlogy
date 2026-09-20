@@ -154,7 +154,7 @@ export default async function ExerciseDetailPage({
                 {t("exercises.detHowTo")}
                 {isKoFallback ? ` · ${t("exercises.howToKoOnly")}` : ""}
               </h3>
-              <p style={{ padding: "0 24px", whiteSpace: "pre-wrap" }}>{desc}</p>
+              <p style={{ whiteSpace: "pre-wrap" }}>{desc}</p>
             </>
           ) : null}
           {muscles.length > 0 && (
@@ -171,8 +171,8 @@ export default async function ExerciseDetailPage({
             </Hint>
           )}
         </Panel>
-        <Panel title={t("exercises.drillsTitle")}>
-          <div style={{ padding: "0 24px 24px" }}>
+        <Panel>
+          <div>
             <ExerciseDrills exerciseId={id} initial={drills} />
           </div>
         </Panel>
@@ -189,7 +189,7 @@ export default async function ExerciseDetailPage({
             </Chip>
           }
         >
-          <div style={{ padding: "0 24px" }}>
+          <div>
             <RunLapLine data={trend} />
           </div>
           <Hint>{t("exercises.trendNote")}</Hint>

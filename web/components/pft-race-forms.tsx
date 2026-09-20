@@ -5,11 +5,15 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Choice, Field, Hint, Panel, Segments } from "@/components/rox/ui";
 
-const input =
-  "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line";
-
-/** 레이스 생성 — 전체 관리자, 또는 크루 운영진(크루 선택 시) */
+/**
+ * 레이스 생성 — 시안 racing.tsx 의 PFT(new) "레이스 정보" Panel 그대로 (PORT_PLAN §3-d):
+ * Panel[ Field 레이스 이름 · Hint · Go ]. 크루 선택·참가 방식은 우리 입력이라 Field·Segments 로 더한다.
+ * 전체 관리자, 또는 크루 운영진(크루 선택 시).
+ */
 export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: string }[] }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -38,65 +42,49 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-5">
-      <label className="flex flex-col gap-1 text-xs text-muted">
-        {t("pft.race.fldTitle")}
-        <input
-          className={input}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={80}
-          required
-          placeholder={t("pft.race.titlePh")}
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-muted">
-        {t("pft.race.fldCrew")}
-        <select className={input} value={crew} onChange={(e) => setCrew(e.target.value)}>
-          <option value="">{t("pft.race.noCrew")}</option>
-          {crews.map((c) => (
-            <option key={c.slug} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-xs text-muted">{t("pft.race.fldJoinMode")}</legend>
-        {(
-          [
-            ["code", true, "pft.race.joinModeCode", "pft.race.joinModeCodeHint"],
-            ["staff", false, "pft.race.joinModeStaff", "pft.race.joinModeStaffHint"],
-          ] as const
-        ).map(([key, value, label, hint]) => (
-          <label
-            key={key}
-            className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 ${
-              joinOpen === value ? "border-accent-line bg-highlight" : "border-line-soft bg-inset"
-            }`}
-          >
-            <input
-              type="radio"
-              name="join-mode"
-              className="mt-0.5 h-4 w-4 accent-accent"
-              checked={joinOpen === value}
-              onChange={() => setJoinOpen(value)}
-            />
-            <span className="min-w-0">
-              <span className="block text-sm font-bold">{t(label)}</span>
-              <span className="mt-0.5 block text-xs text-muted">{t(hint)}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      {err && <p role="alert" className="text-sm text-danger">{err}</p>}
-      <button
-        type="submit"
-        disabled={busy || !title.trim()}
-        className="h-11 rounded-lg bg-accent text-sm font-extrabold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-      >
-        {t("pft.race.create")}
-      </button>
+    <form onSubmit={submit}>
+      <Panel title={t("pft.race.raceInfo")}>
+        <Field label={t("pft.race.fldTitle")}>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={80}
+            required
+            placeholder={t("pft.race.titlePh")}
+          />
+        </Field>
+        <Field label={t("pft.race.fldCrew")}>
+          <Choice
+            label={t("pft.race.fldCrew")}
+            value={crew || "none"}
+            onChange={(v) => setCrew(v === "none" ? "" : v)}
+            options={[
+              ["none", t("pft.race.noCrew")],
+              ...crews.map((c) => [c.slug, c.name] as [string, string]),
+            ]}
+          />
+        </Field>
+        <Field label={t("pft.race.fldJoinMode")}>
+          <Segments
+            label={t("pft.race.fldJoinMode")}
+            value={joinOpen ? "code" : "staff"}
+            onChange={(v) => setJoinOpen(v === "code")}
+            options={[
+              ["code", t("pft.race.joinModeCode")],
+              ["staff", t("pft.race.joinModeStaff")],
+            ]}
+          />
+        </Field>
+        <Hint>{t(joinOpen ? "pft.race.joinModeCodeHint" : "pft.race.joinModeStaffHint")}</Hint>
+        {err && (
+          <p role="alert" className="rx-error">
+            {err}
+          </p>
+        )}
+        <Button className="rx-primary" type="submit" disabled={busy || !title.trim()}>
+          {busy ? t("common.saving") : t("pft.race.create")}
+        </Button>
+      </Panel>
     </form>
   );
 }

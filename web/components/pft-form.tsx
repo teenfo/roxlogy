@@ -7,7 +7,6 @@ import { useI18n } from "@/components/i18n-provider";
 import { formatMs, formatTimeInput, parseTimeToMs } from "@/lib/format";
 import {
   PFT_STATIONS,
-  badgeClass,
   badgeDictKey,
   badgeScale,
   cutoffsFor,
@@ -15,15 +14,21 @@ import {
   toNextBadge,
   type PftResult,
 } from "@/lib/pft";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Chip, Choice, Field, Hint, Panel } from "@/components/rox/ui";
 
-const input =
-  "h-10 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line";
-const label = "mt-3 block text-xs text-muted";
-const card = "rounded-2xl border border-line bg-card px-5 py-4";
-
-/** PFT 기록 입력·수정. 총 시간만 있으면 저장되고 구간 스플릿은 선택이다.
- *  나이·성별은 배지 판정과 리더보드 분류에 쓰이므로 저장 시점 값으로 고정한다
- *  (프로필에서 미리 채워 넣되, 여기서 덮어쓸 수 있다). */
+/**
+ * PFT 기록 입력·수정 — 시안 racing.tsx 의 PFT(new/edit) 그대로 (PORT_PLAN §3-d):
+ * form.rx-form-layout[ Panel "측정 결과"(.rx-form-grid Field·.rx-check·Hint) | aside Panel
+ * "입력 확인"(.rx-summary-time · 배지 · 저장) ]. 구간 스플릿·측정 정보는 시안보다 많은 우리
+ * 입력이라 같은 열에 Panel 을 더 쌓는다(§4-1).
+ *
+ * 총 시간만 있으면 저장되고 구간 스플릿은 선택이다. 나이·성별은 배지 판정과 리더보드
+ * 분류에 쓰이므로 저장 시점 값으로 고정한다(프로필에서 미리 채워 넣되, 여기서 덮어쓸 수 있다).
+ */
 export function PftForm({
   initial,
   defaultAge,
@@ -61,8 +66,7 @@ export function PftForm({
   const splitSum = splitMs.reduce<number>((a, v) => a + (v ?? 0), 0);
   // PFT 는 구간 사이에 쉬지 않으므로 스플릿 합이 총 시간을 넘을 수 없다.
   const splitOver = totalMs != null && splitSum > totalMs;
-  const preview =
-    totalMs != null ? pftBadge(totalMs, ageNum, scaled) : null;
+  const preview = totalMs != null ? pftBadge(totalMs, ageNum, scaled) : null;
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -112,226 +116,147 @@ export function PftForm({
       : null;
   const canSave = totalMs != null && !tooShort && !splitOver;
 
+  const splitStatus =
+    filled === 0
+      ? t("pft.splitOptional")
+      : splitOver
+        ? `${t("pft.splitSum", { sum: formatMs(splitSum) })} — ${t("pft.errSplitSum")}`
+        : splitMatch
+          ? `${t("pft.splitSum", { sum: formatMs(splitSum) })} ✓`
+          : t("pft.splitPartial", { n: filled, total: PFT_STATIONS.length, sum: formatMs(splitSum) });
+
   return (
-    <form onSubmit={save} className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_300px]">
-      {/* 모바일에서는 미리보기가 위로 온다 — 배지가 바로 보여야 입력할 맛이 난다 */}
-      <div className="flex flex-col gap-3.5 max-lg:order-2">
-        {/* 결과 */}
-        <section className={card}>
-          <h2 className="text-[15px] font-extrabold">{t("pft.fResult")}</h2>
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-xs text-muted">{t("pft.fDate")}</span>
-              <input
+    <form onSubmit={save} className="rx-form-layout">
+      <div>
+        <Panel title={t("pft.fResult")}>
+          <div className="rx-form-grid">
+            <Field label={t("pft.fDate")}>
+              <Input
                 type="date"
-                className={`${input} mt-1`}
                 value={testedOn}
                 onChange={(e) => setTestedOn(e.target.value)}
                 required
               />
-            </label>
-            <label className="block">
-              <span className="text-xs text-muted">{t("pft.fTotal")} *</span>
-              <input
-                className={`${input} tabular mt-1 h-[42px] text-lg font-bold`}
+            </Field>
+            <Field label={`${t("pft.fTotal")} *`}>
+              <Input
                 value={total}
                 onChange={(e) => setTotal(formatTimeInput(e.target.value))}
                 placeholder="mm:ss"
                 inputMode="numeric"
                 required
               />
-            </label>
+            </Field>
           </div>
           {total && totalMs == null && (
-            <p className="mt-1.5 text-xs text-danger">{t("pft.errTotal")}</p>
+            <p className="rx-error">{t("pft.errTotal")}</p>
           )}
-          {tooShort && (
-            <p className="mt-1.5 text-xs text-danger">{t("pft.errTooShort")}</p>
-          )}
-        </section>
+          {tooShort && <p className="rx-error">{t("pft.errTooShort")}</p>}
+        </Panel>
 
-        {/* 구간 기록 */}
-        <section className={card}>
-          <div className="flex flex-wrap items-baseline gap-2">
-            <h2 className="text-[15px] font-extrabold">{t("pft.fSplits")}</h2>
-            <span
-              className={`ml-auto text-xs ${
-                splitOver
-                  ? "text-danger"
-                  : splitMatch
-                    ? "text-success"
-                    : "text-muted"
-              }`}
-            >
-              {filled === 0
-                ? t("pft.splitOptional")
-                : splitOver
-                  ? `${t("pft.splitSum", { sum: formatMs(splitSum) })} — ${t("pft.errSplitSum")}`
-                  : splitMatch
-                    ? `${t("pft.splitSum", { sum: formatMs(splitSum) })} ✓`
-                    : t("pft.splitPartial", {
-                        n: filled,
-                        total: PFT_STATIONS.length,
-                        sum: formatMs(splitSum),
-                      })}
-            </span>
-          </div>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        <Panel
+          title={t("pft.fSplits")}
+          action={
+            <Chip tone={splitOver ? "red" : splitMatch ? "green" : "neutral"}>{splitStatus}</Chip>
+          }
+        >
+          <div className="rx-form-grid">
             {PFT_STATIONS.map((st, i) => (
-              <label key={st.key} className="block">
-                <span className="flex items-center gap-1.5 text-xs text-muted">
-                  <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-line text-[10px] font-bold">
-                    {i + 1}
-                  </span>
-                  {t(st.label)}
-                </span>
-                <input
-                  className={`${input} tabular mt-1`}
+              <Field key={st.key} label={`${i + 1}. ${t(st.label)}`}>
+                <Input
                   value={splits[st.key] ?? ""}
                   onChange={(e) =>
-                    setSplits((p) => ({
-                      ...p,
-                      [st.key]: formatTimeInput(e.target.value),
-                    }))
+                    setSplits((p) => ({ ...p, [st.key]: formatTimeInput(e.target.value) }))
                   }
                   placeholder="4:30"
                   inputMode="numeric"
                 />
-              </label>
+              </Field>
             ))}
           </div>
-        </section>
+        </Panel>
 
-        {/* 측정 정보 */}
-        <section className={card}>
-          <h2 className="text-[15px] font-extrabold">{t("pft.fInfo")}</h2>
-          <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_1fr_2fr]">
-            <label className="block">
-              <span className="text-xs text-muted">{t("pft.fAge")}</span>
-              <input
-                className={`${input} tabular mt-1`}
+        <Panel title={t("pft.fInfo")}>
+          <div className="rx-form-grid">
+            <Field label={t("pft.fAge")}>
+              <Input
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
                 placeholder="35"
                 inputMode="numeric"
               />
-            </label>
-            <label className="block">
-              <span className="text-xs text-muted">{t("pft.fGender")}</span>
-              <select
-                className={`${input} mt-1`}
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-              >
-                <option value="">—</option>
-                <option value="male">{t("pft.male")}</option>
-                <option value="female">{t("pft.female")}</option>
-                <option value="other">{t("pft.other")}</option>
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-xs text-muted">{t("pft.fLocation")}</span>
-              <input
-                className={`${input} mt-1`}
+            </Field>
+            <Field label={t("pft.fGender")}>
+              <Choice
+                label={t("pft.fGender")}
+                value={gender || "none"}
+                onChange={(v) => setGender(v === "none" ? "" : v)}
+                options={[
+                  ["none", "—"],
+                  ["male", t("pft.male")],
+                  ["female", t("pft.female")],
+                  ["other", t("pft.other")],
+                ]}
+              />
+            </Field>
+            <Field label={t("pft.fLocation")}>
+              <Input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 maxLength={80}
                 placeholder={t("pft.fLocationPh")}
               />
-            </label>
+            </Field>
+            <Field label={t("pft.fNote")}>
+              <Textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} />
+            </Field>
           </div>
-          <p className="mt-1.5 text-xs text-muted">{t("pft.ageHint")}</p>
-
-          <label className={label}>{t("pft.fNote")}</label>
-          <textarea
-            className={`${input} min-h-20 py-2`}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            maxLength={500}
-          />
-
-          <div className="mt-3 flex flex-col gap-2.5 border-t border-line pt-3">
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1 accent-accent"
-                checked={scaled}
-                onChange={(e) => setScaled(e.target.checked)}
-              />
-              <span>
-                {t("pft.fScaled")}
-                <span className="mt-0.5 block text-xs text-muted">
-                  {t("pft.fScaledHint")}
-                </span>
-              </span>
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="accent-accent"
-                checked={shared}
-                onChange={(e) => setShared(e.target.checked)}
-              />
-              {t("pft.fShared")}
-            </label>
-          </div>
-        </section>
+          <Hint>{t("pft.ageHint")}</Hint>
+          <label className="rx-check">
+            <Checkbox checked={scaled} onCheckedChange={(v) => setScaled(v === true)} />
+            {t("pft.fScaled")}
+          </label>
+          <Hint>{t("pft.fScaledHint")}</Hint>
+          <label className="rx-check">
+            <Checkbox checked={shared} onCheckedChange={(v) => setShared(v === true)} />
+            {t("pft.fShared")}
+          </label>
+        </Panel>
       </div>
 
-      {/* 미리보기 — 입력하는 동안 배지가 어떻게 바뀌는지 옆에서 보인다 */}
-      <aside className="max-lg:order-1 lg:sticky lg:top-20 lg:self-start">
-        <div
-          className={`rounded-2xl border px-5 py-4 ${
-            preview ? "border-line-accent bg-highlight" : "border-line bg-card"
-          }`}
-        >
-          <p className="text-xs font-extrabold tracking-[0.08em] text-muted">
-            {t("pft.previewBadge")}
+      {/* 입력 확인 — 입력하는 동안 배지가 어떻게 바뀌는지 옆에서 보인다 */}
+      <aside>
+        <Panel title={t("pft.entryCheck")}>
+          <div className="rx-summary-time">{totalMs != null ? formatMs(totalMs) : "—:—"}</div>
+          <p>
+            {preview ? (
+              <>
+                <Chip tone="yellow">{t(badgeDictKey(preview))}</Chip>
+                {next && (
+                  <>
+                    {" "}
+                    {t("pft.toNext", { badge: t(badgeDictKey(next.next)), gap: formatMs(next.gapMs) })}
+                  </>
+                )}
+              </>
+            ) : (
+              t("pft.previewBadge")
+            )}
           </p>
-          <p
-            className={`tabular mt-1 text-[40px] font-extrabold leading-none ${totalMs != null ? "text-gold" : "text-line-strongest"}`}
-          >
-            {totalMs != null ? formatMs(totalMs) : "--:--"}
-          </p>
-          {preview && (
-            <p className="mt-2 flex flex-wrap items-center gap-2">
-              <span
-                className={`rounded-md px-2.5 py-1 text-xs font-extrabold ${badgeClass(preview)}`}
-              >
-                {t(badgeDictKey(preview))}
-              </span>
-              {next && (
-                <span className="text-xs text-muted">
-                  {t("pft.toNext", {
-                    badge: t(badgeDictKey(next.next)),
-                    gap: formatMs(next.gapMs),
-                  })}
-                </span>
-              )}
-            </p>
-          )}
-          <p className="tabular mt-2 text-xs text-muted">
+          <Hint>
             {ageNum != null && ageNum >= 45 ? t("pft.o45") : t("pft.u45")} ·{" "}
             {badgeScale(t, cuts, formatMs)}
-          </p>
-          {ageNum == null && (
-            <p className="mt-1 text-xs text-muted">{t("pft.noAgeHint")}</p>
+            {ageNum == null && ` · ${t("pft.noAgeHint")}`}
+          </Hint>
+          {err && (
+            <p role="alert" className="rx-error">
+              {err}
+            </p>
           )}
-
-          {err && <p role="alert" className="mt-3 text-sm text-danger">{err}</p>}
-
-          <button
-            type="submit"
-            disabled={busy || !canSave}
-            className={`mt-4 h-11 w-full rounded-lg text-[15px] font-extrabold ${
-              canSave
-                ? "bg-accent text-accent-foreground hover:brightness-95"
-                : "cursor-not-allowed bg-line-mid text-muted-2"
-            } disabled:opacity-60`}
-          >
+          <Button className="rx-primary rx-wide" type="submit" disabled={busy || !canSave}>
             {busy ? t("common.saving") : t("common.save")}
-          </button>
-          <p className="mt-2 text-center text-xs text-muted">
+          </Button>
+          <Hint>
             {totalMs == null
               ? t("pft.hintNeedTotal")
               : tooShort
@@ -341,8 +266,8 @@ export function PftForm({
                   : shared
                     ? t("pft.hintShared")
                     : t("pft.hintPrivate")}
-          </p>
-        </div>
+          </Hint>
+        </Panel>
       </aside>
     </form>
   );
@@ -369,16 +294,11 @@ export function PftDeleteButton({ id }: { id: string }) {
   }
 
   return (
-    <span>
-      <button
-        type="button"
-        onClick={del}
-        disabled={busy}
-        className="text-xs text-muted hover:text-danger disabled:opacity-50"
-      >
+    <>
+      <Button variant="ghost" size="sm" type="button" onClick={del} disabled={busy}>
         {t("common.delete")}
-      </button>
-      {err && <span className="ml-2 text-xs text-danger">{err}</span>}
-    </span>
+      </Button>
+      {err && <span className="rx-error">{err}</span>}
+    </>
   );
 }

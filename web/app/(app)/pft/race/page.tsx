@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { Card } from "@/components/ui/crew-ui";
 import { PftRaceList, type RaceListRow } from "@/components/pft-race-list";
+import { Back, Empty, Go, PageHead } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -31,7 +30,11 @@ type EntryRow = {
 
 const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
-/** 레이스 전체 목록 — 허브의 "최근 5개" 너머로 지난 레이스를 모두 찾아간다. */
+/**
+ * 레이스 전체 목록 — 시안 허브의 "크루 PFT 레이스" Panel 을 페이지로(PORT_PLAN §3-d, 시안에는
+ * 목록 라우트가 없다). Back · PageHead(코드로 참가 · 레이스 만들기) · Panel 진행 중 · Panel 지난 레이스.
+ * 허브의 "최근 5개" 너머로 지난 레이스를 모두 찾아간다.
+ */
 export default async function PftRaceListPage() {
   const [{ t, tag, tz }, user] = await Promise.all([getT(), getCachedUser()]);
   const supabase = await createClient();
@@ -114,38 +117,36 @@ export default async function PftRaceListPage() {
     (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
   );
 
-  const btn =
-    "flex h-9 items-center rounded-lg border border-line-strong bg-control px-3 text-sm font-semibold hover:border-line-strong";
-
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5">
-      <div>
-        <Link href="/pft" className="text-[13px] text-muted hover:text-foreground">
-          ← {t("pft.title")}
-        </Link>
-        <h1 className="mt-2 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("pft.race.listTitle")}</h1>
-        <p className="mt-1 text-sm text-muted">{t("pft.race.listDesc")}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link href="/pft/race/join" className={btn}>
-            {t("pft.race.join")}
-          </Link>
-          {canCreateRace ? (
-            <Link href="/pft/race/new" className={btn}>
-              {t("pft.race.create")}
-            </Link>
-          ) : null}
-        </div>
-      </div>
-
+    <>
+      <Back href="/pft" label={t("pft.title")} />
+      <PageHead
+        title={t("pft.race.listTitle")}
+        description={t("pft.race.listDesc")}
+        action={
+          <div className="rx-actions">
+            <Go href="/pft/race/join">{t("pft.race.joinByCode")}</Go>
+            {canCreateRace && (
+              <Go href="/pft/race/new" primary>
+                {t("pft.race.create")}
+              </Go>
+            )}
+          </div>
+        }
+      />
       {loadErr ? (
-        <Card className="px-4 py-10 text-center text-sm text-danger">
-          <span role="alert">{t("pft.race.listError")}</span>
-        </Card>
+        <p role="alert" className="rx-error">
+          {t("pft.race.listError")}
+        </p>
       ) : rows.length === 0 ? (
-        <Card className="px-4 py-10 text-center text-sm text-muted">{t("pft.race.listEmpty")}</Card>
+        <Empty
+          title={t("pft.race.listEmpty")}
+          description={t("pft.race.listDesc")}
+          action={<Go href="/pft/race/join">{t("pft.race.join")}</Go>}
+        />
       ) : (
         <PftRaceList rows={rows} age={age} locale={tag} tz={tz} />
       )}
-    </main>
+    </>
   );
 }

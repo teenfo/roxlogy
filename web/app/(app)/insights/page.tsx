@@ -41,7 +41,7 @@ export default async function InsightsPage() {
             title={t("ai.weekly.title")}
             action={r.period_start ? <Chip>{r.period_start} ~</Chip> : undefined}
           >
-            <div className="rx-prose" style={{ padding: "0 24px" }}>
+            <div className="rx-prose">
               <p style={{ whiteSpace: "pre-wrap" }}>{r.content}</p>
             </div>
             <Hint>

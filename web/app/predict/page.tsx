@@ -142,7 +142,7 @@ export default async function PredictPage({
       {user && <Back href="/goals" label={t("goals.title")} />}
       <PageHead title={t("meta.predict")} description={t("predict.intro")} />
       <Panel title={t("predict.settings")}>
-        <div style={{ padding: "0 24px 24px" }}>
+        <div>
         <PredictForm
           isLoggedIn={!!user}
           sessions={sessions}

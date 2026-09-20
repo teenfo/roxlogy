@@ -85,7 +85,7 @@ export function SessionCompare({
       </div>
       {picked.length >= 2 ? (
         <>
-          <div style={{ padding: "0 24px" }}>
+          <div>
             <RunLapLine data={picked.map(({ name, ms }) => ({ name, ms }))} />
           </div>
           <DataTable
@@ -104,7 +104,7 @@ export function SessionCompare({
         <Empty title={t("compare.needMore")} description={t("compare.desc")} />
       )}
       {/* 세션 고르기 — 시안에 없는 우리 기능 */}
-      <div style={{ padding: "0 24px 24px" }}>
+      <div>
         <p className="rx-section-label">{t("compare.pick")}</p>
         {sessions.map((s) => (
           <label className="rx-check" key={s.id}>

@@ -376,7 +376,7 @@ export default async function RaceDetailPage({
 
       {hasAnySplits && (
         <Panel title={t("races.replayTitle")}>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <RaceReplayTable
               rows={replayRows}
               fieldSize={splits.field_size ?? null}

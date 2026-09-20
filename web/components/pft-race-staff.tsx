@@ -1,8 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  Check,
+  Monitor,
+  Play,
+  Plus,
+  RotateCcw,
+  Search,
+  Trash2,
+  Undo2,
+  Users,
+  WifiOff,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs } from "@/lib/format";
@@ -12,15 +23,24 @@ import {
   entryState,
   fmtClock,
   groupByWave,
-  hasWaves,
   type BoardData,
   type MyEntry,
   type RaceEntry,
 } from "@/lib/pft-race";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { PftSplitStrip } from "@/components/pft-splits";
+import { RoxDialog } from "@/components/rox/dialog";
+import { Back, Chip, Go, Hint, PageHead, Panel } from "@/components/rox/ui";
 
 /**
- * 스태프 타이밍 — 운영진이 한 기기(태블릿·폰)로 여러 참가자를 찍는다.
+ * 스태프 타이밍 — 시안 pft-race.tsx 의 PftStaff 그대로 (PORT_PLAN §3-d):
+ * .rx-pft-staff[ Back · PageHead(라이브보드·선수 화면·레이스 종료) · .rx-pft-statusline ·
+ * .rx-pft-local(연결 상태) · .rx-pft-staff-top[ Panel 선수 추가 | Panel 웨이브 출발 ] ·
+ * .rx-subhead · .rx-pft-athletes(Panel.rx-pft-athlete …) · .rx-pft-footnote ].
+ * 확인은 시안의 AlertDialog 대신 우리 RoxDialog(§1-a).
  *
  * · 참가자 등록: 이름 검색(pft_race_search_members) → pft_race_staff_add.
  * · 웨이브 출발: 대기 중 참가자를 골라 pft_race_staff_start — 서버 now() 한 값으로 같이 출발.
@@ -31,8 +51,14 @@ import type { DictKey } from "@/lib/i18n/dictionaries/en";
  */
 type Pending = Record<string, number[]>;
 type Search = { user_id: string; name: string; joined: boolean };
+type Confirm =
+  | { kind: "remove"; entry: RaceEntry }
+  | { kind: "reset"; entry: RaceEntry }
+  | { kind: "dnf"; entry: RaceEntry }
+  | { kind: "close" };
 
 const PENDING_LIMIT = 6;
+const WAVES = [1, 2, 3, 4, 5, 6] as const;
 
 export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const { t } = useI18n();
@@ -49,6 +75,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [q, setQ] = useState("");
   const [fetched, setFetched] = useState<{ q: string; rows: Search[] } | null>(null);
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [now, setNow] = useState(() => Date.parse(initial.server_now));
   // 참가자별 아직 못 보낸 스플릿(경과 ms). 서버 렌더에서는 비어 있고, 화면 반영은 마운트 뒤(isClient).
   const [pending, setPending] = useState<Pending>(() => {
@@ -259,6 +286,11 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     }
   };
 
+  const flash = (msg: string) => {
+    setNotice(msg);
+    window.setTimeout(() => setNotice(null), 2500);
+  };
+
   const add = async (userId: string) => {
     const j = (await call("pft_race_staff_add", { p_race: raceId, p_user_id: userId })) as MyEntry | null;
     if (!j) return;
@@ -275,16 +307,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     if (!j?.ok) return;
     if (j.server_now) offsetRef.current = Date.parse(j.server_now) - clockNow();
     setSelected([]);
-    setNotice(t("pft.race.staffStarted", { n: j.started ?? 0 }));
-    window.setTimeout(() => setNotice(null), 2500);
+    flash(t("pft.race.staffStarted", { n: j.started ?? 0 }));
     await refetchNow();
   };
 
-  const startWave = () => startEntries(selected);
-
   /** 중도포기 표시·해제. 서버가 출발 전·완주자·종료된 레이스를 막는다. */
   const setDnf = async (e: RaceEntry, on: boolean) => {
-    if (on && !window.confirm(t("pft.race.dnfConfirm", { name: e.name }))) return;
     const j = (await call("pft_race_staff_dnf", {
       p_race: raceId,
       p_entry: e.entry_id,
@@ -304,12 +332,11 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     })) as { ok?: boolean; updated?: number } | null;
     if (!j?.ok) return;
     setSelected([]);
-    setNotice(
+    flash(
       wave == null
         ? t("pft.race.waveCleared", { n: j.updated ?? 0 })
         : t("pft.race.waveAssigned", { n: j.updated ?? 0, wave }),
     );
-    window.setTimeout(() => setNotice(null), 2500);
     await refetchNow();
   };
 
@@ -339,14 +366,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   };
 
   const reset = async (e: RaceEntry) => {
-    if (!window.confirm(t("pft.race.staffResetConfirm", { name: e.name }))) return;
     persist({ ...pendingRef.current, [e.entry_id]: [] });
     const j = (await call("pft_race_staff_reset", { p_race: raceId, p_entry: e.entry_id })) as MyEntry | null;
     if (j) mergeEntry(j);
   };
 
   const remove = async (e: RaceEntry) => {
-    if (!window.confirm(t("pft.race.staffRemoveConfirm", { name: e.name }))) return;
     persist({ ...pendingRef.current, [e.entry_id]: [] });
     const j = (await call("pft_race_staff_remove", { p_race: raceId, p_entry: e.entry_id })) as { ok?: boolean } | null;
     if (!j?.ok) return;
@@ -355,12 +380,22 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   };
 
   const setRaceStatus = async (next: "open" | "closed") => {
-    if (next === "closed" && !window.confirm(t("pft.race.closeConfirm"))) return;
     const j = (await call("pft_race_set_status", { p_race: raceId, p_status: next })) as { ok?: boolean } | null;
     if (!j?.ok) return;
     setStatus(next);
-    setNotice(t(next === "closed" ? "pft.race.closedDone" : "pft.race.reopenedDone"));
+    flash(t(next === "closed" ? "pft.race.closedDone" : "pft.race.reopenedDone"));
     router.refresh();
+  };
+
+  /** 확인 다이얼로그의 "실행" — 종류별로 한 번만 확인하고 곧바로 서버에 보낸다 */
+  const confirmAction = async () => {
+    const c = confirm;
+    setConfirm(null);
+    if (!c) return;
+    if (c.kind === "remove") await remove(c.entry);
+    else if (c.kind === "reset") await reset(c.entry);
+    else if (c.kind === "dnf") await setDnf(c.entry, true);
+    else await setRaceStatus("closed");
   };
 
   // 검색 결과 — 입력을 지우면 바로 사라진다(마지막 응답이 아직 남아 있어도)
@@ -371,457 +406,415 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   // 스태프가 누가 어디 있었는지를 놓친다. 상태는 색·라벨로만 나타낸다.
   const entries = data.entries;
   const waiting = entries.filter((e) => entryState(e) === "waiting");
+  const timing = entries.filter((e) => entryState(e) === "running");
+  const finished = entries.filter((e) => entryState(e) === "finished");
+  const selectedWaiting = waiting.filter((e) => selected.includes(e.entry_id));
   // 아직 출발하지 않은 사람만 조로 묶는다 — 출발한 사람은 조를 바꿀 수 없다(서버도 막는다)
   const waveGroups = groupByWave(waiting);
-  const grouped = hasWaves(waiting);
-  // 선택이 어느 조와 정확히 일치하는지 — 그 조 버튼을 눌린 상태로 보여 준다
-  const picked =
-    selected.length > 0
-      ? (waveGroups.find(
-          (g) =>
-            g.wave != null &&
-            g.rows.length === selected.length &&
-            g.rows.every((e) => selected.includes(e.entry_id)),
-        )?.wave ?? null)
-      : null;
+  const select = (id: string, checked: boolean) =>
+    setSelected((s) => (checked ? [...new Set([...s, id])] : s.filter((x) => x !== id)));
   const stationLabel = (i: number) => t(PFT_STATIONS[i].label as DictKey);
 
-  return (
-    <div className="flex flex-col gap-4">
-      {/* 헤더 */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-gold">{t("pft.race.staff")}</p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{race.title}</h1>
-          <p className="mt-1 text-sm text-muted">
-            {race.join_open ? (
-              <>
-                {t("pft.race.code")}{" "}
-                <span className="font-mono font-bold tracking-[0.2em] text-foreground">{race.code}</span>
-                {" · "}
-              </>
-            ) : (
-              <>
-                {t("pft.race.staffAddedOnly")}
-                {" · "}
-              </>
-            )}
-            <span className={closed ? "text-muted" : "text-success"}>{t(closed ? "pft.race.closed" : "pft.race.open")}</span>
-            {offline && (
-              <>
-                {" · "}
-                <span role="status" className="text-danger">
-                  {t("pft.race.offline")}
-                </span>
-              </>
-            )}
-            {isClient && pendingCount > 0 && (
-              <>
-                {" · "}
-                <span role="status">{t("pft.race.staffPending", { n: pendingCount })}</span>
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/board/${race.code}`}
-            target="_blank"
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
-          >
-            {t("pft.race.openBoard")}
-          </Link>
-          <Link
-            href={`/pft/race/${race.code}`}
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-line-strong"
-          >
-            {t("pft.race.staffRunner")}
-          </Link>
-          {closed ? (
-            <button
-              type="button"
-              onClick={() => setRaceStatus("open")}
-              disabled={busy}
-              className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold"
-            >
-              {t("pft.race.reopen")}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setRaceStatus("closed")}
-              disabled={busy}
-              className="flex h-10 items-center rounded-lg border border-danger-line-strong px-4 text-sm font-semibold text-danger hover:bg-danger-card"
-            >
-              {t("pft.race.close")}
-            </button>
-          )}
-        </div>
-      </div>
+  const stateLabel = (e: RaceEntry) => {
+    const st = entryState(e);
+    const dnf = st === "dnf" || (closed && st !== "finished");
+    return dnf
+      ? t("pft.race.dnf")
+      : st === "finished"
+        ? t("pft.race.finished")
+        : st === "running"
+          ? t("pft.race.running")
+          : t("pft.race.waiting");
+  };
 
+  return (
+    <div className="rx-pft-staff">
+      <Back href="/pft/race" label={t("pft.race.title")} />
+      <PageHead
+        title={race.title}
+        description={t("pft.race.staffLine")}
+        action={
+          <div className="rx-actions">
+            <Go href={`/board/${race.code}`}>
+              <Monitor size={16} />
+              {t("pft.race.openBoard")}
+            </Go>
+            <Go href={`/pft/race/${race.code}`}>{t("pft.race.staffRunner")}</Go>
+            {closed ? (
+              <Button variant="outline" disabled={busy} onClick={() => setRaceStatus("open")}>
+                {t("pft.race.reopen")}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="rx-pft-close"
+                disabled={busy || timing.length > 0}
+                onClick={() => setConfirm({ kind: "close" })}
+              >
+                {t("pft.race.close")}
+              </Button>
+            )}
+          </div>
+        }
+      />
+      <div className="rx-pft-statusline">
+        <Chip tone={closed ? "neutral" : "green"}>{t(closed ? "pft.race.closed" : "pft.race.open")}</Chip>
+        <span>
+          {race.crew ? `${race.crew} · ` : ""}
+          {race.join_open ? race.code : t("pft.race.staffAddedOnly")}
+        </span>
+        <span>{t("pft.race.pickEntries", { n: entries.length })}</span>
+        <span>{t("pft.race.timingN", { n: timing.length })}</span>
+        <span>{t("pft.race.finishedN", { n: finished.length })}</span>
+      </div>
+      {(offline || (isClient && pendingCount > 0)) && (
+        <div className="rx-pft-local" role="status">
+          <WifiOff size={15} />
+          <span>
+            {offline && t("pft.race.offline")}
+            {offline && isClient && pendingCount > 0 && " · "}
+            {isClient && pendingCount > 0 && t("pft.race.staffPending", { n: pendingCount })}
+          </span>
+        </div>
+      )}
       {err && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="rx-error">
           {err}
         </p>
       )}
       {notice && (
-        <p role="status" className="text-sm text-success">
+        <p role="status" className="rx-hint">
           {notice}
         </p>
       )}
-      {closed && <p className="text-xs text-danger">{t("pft.race.closedNote")}</p>}
 
       {!closed && (
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* 참가자 추가 */}
-        <section className="rounded-2xl border border-line bg-card p-4 sm:p-5">
-          <p className="text-sm font-bold">{t("pft.race.staffAdd")}</p>
-          <p className="mt-1 text-xs text-muted">{t("pft.race.staffAddDesc")}</p>
-          <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t("pft.race.staffSearchPh")}
-            aria-label={t("pft.race.staffSearchPh")}
-            disabled={closed}
-            className="mt-3 h-11 w-full rounded-lg border border-line-strong bg-control px-3 text-sm disabled:opacity-40"
-          />
-          {results && (
-            <ul className="mt-2 flex max-h-64 flex-col gap-1 overflow-y-auto">
-              {results.length === 0 && <li className="px-1 py-2 text-xs text-muted">{t("pft.race.staffNoResult")}</li>}
-              {results.map((r) => (
-                <li key={r.user_id} className="flex items-center gap-2 rounded-lg bg-inset px-3 py-2">
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.name}</span>
-                  {r.joined ? (
-                    <span className="text-xs text-muted">{t("pft.race.staffJoined")}</span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => add(r.user_id)}
+        <div className="rx-pft-staff-top">
+          <Panel title={t("pft.race.staffAdd")} action={<Users size={19} />}>
+            <p className="rx-pft-help">{t("pft.race.staffAddDesc")}</p>
+            <div className="rx-find rx-pft-member-search">
+              <Search size={17} />
+              <Input
+                type="search"
+                aria-label={t("pft.race.staffSearchPh")}
+                placeholder={t("pft.race.staffSearchPh")}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <div className="rx-pft-member-results">
+              {results?.map((r) => (
+                <div className="rx-pft-member" key={r.user_id}>
+                  <span className="rx-avatar">{r.name.slice(0, 1)}</span>
+                  <span>
+                    <b>{r.name}</b>
+                    <small>{r.joined ? t("pft.race.staffJoined") : race.crew ?? ""}</small>
+                  </span>
+                  {!r.joined && (
+                    <Button
+                      variant="outline"
+                      size="sm"
                       disabled={busy || closed}
-                      className="h-8 rounded-lg bg-accent px-3 text-xs font-bold text-accent-foreground disabled:opacity-40"
+                      aria-label={`${r.name} ${t("pft.race.staffAddBtn")}`}
+                      onClick={() => add(r.user_id)}
                     >
+                      <Plus size={15} />
                       {t("pft.race.staffAddBtn")}
-                    </button>
+                    </Button>
                   )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* 웨이브 출발 */}
-        <section className="rounded-2xl border border-line bg-card p-4 sm:p-5">
-          <p className="text-sm font-bold">{t("pft.race.staffWave")}</p>
-          <p className="mt-1 text-xs text-muted">{t("pft.race.staffWaveDesc")}</p>
-          {waiting.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">{t("pft.race.staffNoWaiting")}</p>
-          ) : (
-            <>
-              {/* 조별 출발 — 조가 하나라도 배정돼 있을 때만. 누르면 그 조의 대기자가 함께 출발한다 */}
-              {grouped && (
-                <div className="mt-3 flex flex-col gap-2">
-                  {waveGroups
-                    .filter((g) => g.wave != null)
-                    .map((g) => (
-                      <button
-                        key={g.wave}
-                        type="button"
-                        // 누르면 **선택만** 한다 — 출발은 아래 큰 버튼으로. 한 번 더 확인하고
-                        // 내보내야 오출발이 나지 않는다(2026-09-13 운영 피드백).
-                        onClick={() => setSelected(g.rows.map((e) => e.entry_id))}
-                        disabled={busy || closed}
-                        className={`flex h-14 items-center justify-between gap-3 rounded-xl border px-4 text-left font-extrabold transition disabled:opacity-40 ${
-                          picked === g.wave
-                            ? "border-accent-line bg-accent text-accent-foreground"
-                            : "border-line-accent bg-highlight text-gold hover:brightness-95"
-                        }`}
-                      >
-                        <span className="text-base">
-                          {t("pft.race.waveSelectGroup", { wave: g.wave!, n: g.rows.length })}
-                        </span>
-                        <span
-                          className={`min-w-0 truncate text-xs font-semibold ${
-                            picked === g.wave ? "text-accent-foreground/70" : "text-muted"
-                          }`}
-                        >
-                          {g.rows.map((e) => e.name).join(", ")}
-                        </span>
-                      </button>
-                    ))}
                 </div>
+              ))}
+              {results && !results.length && (
+                <div className="rx-pft-small-empty">{t("pft.race.staffNoResult")}</div>
               )}
+            </div>
+            <Hint>{t("pft.race.staffHint")}</Hint>
+          </Panel>
 
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setSelected(waiting.map((e) => e.entry_id))}
-                  className="h-8 rounded-lg border border-line-strong bg-control px-3 font-semibold"
-                >
-                  {t("pft.race.staffSelectAll")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelected([])}
-                  disabled={!selected.length}
-                  className="h-8 rounded-lg border border-line-strong bg-control px-3 font-semibold disabled:opacity-40"
-                >
-                  {t("pft.race.staffClear")}
-                </button>
-              </div>
-              <ul className="mt-2 flex max-h-56 flex-col gap-1 overflow-y-auto">
-                {waiting.map((e) => {
-                  const on = selected.includes(e.entry_id);
-                  return (
-                    <li key={e.entry_id}>
-                      <label
-                        className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 ${
-                          on ? "border-accent-line bg-highlight" : "border-line-soft bg-inset"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={on}
-                          onChange={(ev) =>
-                            setSelected((s) =>
-                              ev.target.checked ? [...s, e.entry_id] : s.filter((id) => id !== e.entry_id),
-                            )
-                          }
-                          className="h-5 w-5 accent-accent"
-                        />
-                        <span className="min-w-0 flex-1 truncate text-sm font-semibold">{e.name}</span>
-                        {e.wave != null && (
-                          <span className="shrink-0 rounded bg-highlight px-1.5 py-0.5 text-[10px] font-extrabold text-gold">
-                            {t("pft.race.waveN", { n: e.wave })}
-                          </span>
-                        )}
-                        {e.scaled && (
-                          <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
-                            {t("pft.scaledTag")}
-                          </span>
-                        )}
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-              {/* 선택 → 조 배정. 조를 먼저 짜 두고 순서대로 내보내기 위한 것 */}
-              <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-xs font-semibold text-muted">
-                  {t("pft.race.waveAssignTo")}
-                </span>
-                {[1, 2, 3, 4, 5, 6].map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => assignWave(w)}
-                    disabled={busy || closed || !selected.length}
-                    className="tabular h-9 w-9 rounded-lg border border-line-strong bg-control text-sm font-extrabold disabled:opacity-40"
+          <Panel
+            title={t("pft.race.staffWave")}
+            action={<Chip tone="yellow">{t("pft.race.selectedN", { n: selectedWaiting.length })}</Chip>}
+          >
+            <p className="rx-pft-help">{t("pft.race.staffWaveDesc")}</p>
+            <div className="rx-pft-wave-picks">
+              {WAVES.map((wave) => {
+                const athletes = waveGroups.find((g) => g.wave === wave)?.rows ?? [];
+                const active = athletes.length > 0 && athletes.every((a) => selected.includes(a.entry_id));
+                return (
+                  <Button
+                    key={wave}
+                    variant="outline"
+                    disabled={busy || closed || !athletes.length}
+                    className={active ? "selected" : ""}
+                    // 누르면 **선택만** 한다 — 출발은 아래 큰 버튼으로. 한 번 더 확인하고
+                    // 내보내야 오출발이 나지 않는다(2026-09-13 운영 피드백).
+                    onClick={() => setSelected(athletes.map((a) => a.entry_id))}
                   >
-                    {w}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => assignWave(null)}
-                  disabled={busy || closed || !selected.length}
-                  className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold text-muted disabled:opacity-40"
-                >
-                  {t("pft.race.waveNone")}
-                </button>
-              </div>
-              <p className="mt-1.5 text-xs text-muted [word-break:keep-all]">
-                {t("pft.race.waveHint")}
-              </p>
-
-              <button
-                type="button"
-                onClick={startWave}
-                disabled={busy || closed || !selected.length}
-                className="mt-3 h-16 w-full rounded-2xl bg-accent text-xl font-black text-accent-foreground hover:brightness-95 disabled:opacity-40"
+                    {t("pft.race.waveN", { n: wave })}
+                    <small>{athletes.length}</small>
+                  </Button>
+                );
+              })}
+            </div>
+            <div className="rx-pft-select-actions">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy || closed || !waiting.length}
+                onClick={() => setSelected(waiting.map((a) => a.entry_id))}
               >
-                {t("pft.race.staffStart", { n: selected.length })}
-              </button>
-            </>
-          )}
-        </section>
-      </div>
+                {t("pft.race.staffSelectAll")}
+              </Button>
+              <Button variant="ghost" size="sm" disabled={!selected.length} onClick={() => setSelected([])}>
+                {t("pft.race.staffClear")}
+              </Button>
+            </div>
+            <div className="rx-pft-waiting-list">
+              {waiting.map((a) => (
+                <label key={a.entry_id}>
+                  <Checkbox
+                    disabled={busy || closed}
+                    checked={selected.includes(a.entry_id)}
+                    onCheckedChange={(checked) => select(a.entry_id, checked === true)}
+                  />
+                  <b>{a.name}</b>
+                  {a.scaled && <Chip>{t("pft.scaledTag")}</Chip>}
+                  <Chip>{a.wave ? t("pft.race.waveN", { n: a.wave }) : t("pft.race.waveNone")}</Chip>
+                </label>
+              ))}
+              {!waiting.length && (
+                <p className="rx-pft-small-empty">{t("pft.race.staffNoWaiting")}</p>
+              )}
+            </div>
+            <div className="rx-pft-assign">
+              <span>{t("pft.race.waveAssignTo")}</span>
+              <div>
+                {[...WAVES, null].map((wave) => (
+                  <Button
+                    key={wave ?? "none"}
+                    variant="outline"
+                    size="sm"
+                    disabled={busy || closed || !selectedWaiting.length}
+                    aria-label={wave ? t("pft.race.waveN", { n: wave }) : t("pft.race.waveNone")}
+                    onClick={() => assignWave(wave)}
+                  >
+                    {wave ?? t("pft.race.waveNone")}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <Hint>{t("pft.race.waveHint")}</Hint>
+            <Button
+              className="rx-primary rx-pft-start"
+              disabled={busy || closed || !selectedWaiting.length}
+              onClick={() => startEntries(selectedWaiting.map((a) => a.entry_id))}
+            >
+              <Play size={19} />
+              {t("pft.race.startTogether", { n: selectedWaiting.length })}
+            </Button>
+          </Panel>
+        </div>
       )}
 
-      {/* 참가자 카드 */}
-      <section>
-        <p className="text-sm font-bold">{t("pft.race.staffAthletes", { n: entries.length })}</p>
-        {!closed && <p className="mt-0.5 text-xs text-muted">{t("pft.race.staffHint")}</p>}
-        {entries.length === 0 ? (
-          <p className="mt-2 rounded-2xl border border-line bg-card px-4 py-8 text-center text-sm text-muted">
-            {t("pft.race.noEntries")}
-          </p>
-        ) : (
-          <ul className="mt-2 grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {entries.map((e) => {
-              const state = entryState(e);
-              const mine = isClient ? (pending[e.entry_id] ?? []) : [];
-              const splits = [...e.splits, ...mine];
-              const current = splits.length;
-              const done = state === "finished" || current >= PFT_STATIONS.length;
-              // 명시적 중도포기(101) 또는 종료된 레이스의 미완주 — 어느 쪽이든 경과가 흐르면 안 된다
-              const quit = state === "dnf";
-              const dnf = quit || (closed && state !== "finished");
-              const elapsed = e.started_at && !closed && !quit ? Math.max(0, now - Date.parse(e.started_at)) : 0;
-              const total = e.total_ms ?? (done ? splits[splits.length - 1] : null);
-              return (
-                <li
-                  key={e.entry_id}
-                  className={`rounded-2xl border p-4 ${
-                    dnf
-                      ? "border-line-soft bg-card opacity-80"
+      <div className="rx-subhead">
+        <div>
+          <h2>
+            {t("pft.race.athletes")} <span className="rx-pft-count">{entries.length}</span>
+          </h2>
+          <p>{closed ? t("pft.race.closedLocked") : t("pft.race.staffHint")}</p>
+        </div>
+        <span className="rx-pft-active-label">
+          {closed
+            ? t("pft.race.closedRace")
+            : timing.length
+              ? t("pft.race.timingN", { n: timing.length })
+              : t("pft.race.waitingStart")}
+        </span>
+      </div>
+
+      <div className="rx-pft-athletes">
+        {entries.map((e) => {
+          const state = entryState(e);
+          const mine = isClient ? (pending[e.entry_id] ?? []) : [];
+          const splits = [...e.splits, ...mine];
+          const current = splits.length;
+          const done = state === "finished" || current >= PFT_STATIONS.length;
+          // 명시적 중도포기 또는 종료된 레이스의 미완주 — 어느 쪽이든 경과가 흐르면 안 된다
+          const quit = state === "dnf";
+          const dnf = quit || (closed && state !== "finished");
+          const elapsed = e.started_at && !closed && !quit ? Math.max(0, now - Date.parse(e.started_at)) : 0;
+          const total = e.total_ms ?? (done ? splits[splits.length - 1] : null);
+          const timingNow = state === "running" && !done && !dnf;
+          const cls = dnf ? "dnf" : state === "running" ? "timing" : state;
+          return (
+            <Panel key={e.entry_id} className={`rx-pft-athlete ${cls}`}>
+              <div className="rx-pft-athlete-head">
+                <div>
+                  <h3>{e.name}</h3>
+                  <span>
+                    {stateLabel(e)}
+                    {e.wave ? ` · ${t("pft.race.waveN", { n: e.wave })}` : ""}
+                    {e.scaled ? ` · ${t("pft.scaledTag")}` : ""}
+                    {mine.length > 0 ? ` · ${t("pft.race.staffPending", { n: mine.length })}` : ""}
+                  </span>
+                </div>
+                <strong>
+                  {state === "finished"
+                    ? formatMs(total)
+                    : dnf
+                      ? "—"
                       : state === "running"
-                        ? "border-line-accent bg-highlight"
-                        : state === "finished"
-                          ? "border-line bg-card"
-                          : "border-line-soft bg-card opacity-80"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-2">
-                        <span className="truncate text-lg font-extrabold">{e.name}</span>
-                        {e.scaled && (
-                          <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
-                            {t("pft.scaledTag")}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                        {dnf
-                          ? t("pft.race.dnf")
-                          : state === "finished"
-                            ? t("pft.race.finished")
-                            : state === "running"
-                              ? t("pft.race.running")
-                              : t("pft.race.waiting")}
-                        {mine.length > 0 && ` · ${t("pft.race.staffPending", { n: mine.length })}`}
-                      </p>
-                    </div>
-                    <p className={`tabular text-3xl font-black leading-none ${!dnf && state === "running" && !done ? "text-gold" : dnf ? "text-muted" : ""}`}>
-                      {state === "finished"
-                        ? formatMs(total)
-                        : dnf
-                          ? "—"
-                          : state === "running"
-                            ? fmtClock(elapsed)
-                            : "0:00.0"}
-                    </p>
-                  </div>
-
-                  {/* 6칸 진행 */}
-                  <div className="mt-3 grid grid-cols-6 gap-1" aria-label={t("pft.race.progressLabel", { done: splits.length })}>
-                    {PFT_STATIONS.map((st, i) => {
-                      const fin = i < splits.length;
-                      const cur = state === "running" && !done && i === current;
-                      const ms = fin ? splits[i] - (i === 0 ? 0 : splits[i - 1]) : null;
-                      return (
-                        <span key={st.key} className="flex flex-col items-center gap-1">
-                          <span
-                            className={`h-2 w-full rounded-full ${cur ? "motion-safe:animate-pulse" : ""}`}
-                            style={{ background: fin || cur ? PFT_COLORS[st.key] : "var(--line)" }}
-                          />
-                          <span className="tabular text-[10px] text-muted">{ms != null ? formatMs(ms) : ""}</span>
-                        </span>
-                      );
-                    })}
-                  </div>
-
-                  {state === "running" && !done && !closed && (
-                    <button
-                      type="button"
-                      onClick={() => tap(e)}
-                      disabled={closed}
-                      // 버튼 색 = 지금 찍을 종목의 색. 6칸 바의 현재 칸과 같은 색이라
-                      // 어느 종목을 찍는 중인지 색만으로 알아본다.
-                      style={{ background: PFT_COLORS[PFT_STATIONS[current].key] }}
-                      className="mt-3 flex h-16 w-full flex-col items-center justify-center rounded-2xl text-accent-foreground hover:brightness-95 active:brightness-95 disabled:opacity-40"
-                    >
-                      <span className="text-[11px] font-bold opacity-80">{t("pft.race.tapHint", { n: current + 1 })}</span>
-                      <span className="text-xl font-black">{t("pft.race.staffTap", { station: stationLabel(current) })} ✓</span>
-                    </button>
-                  )}
-                  {state === "running" && done && (
-                    <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-sm text-muted" role="status">
-                      {t("pft.race.staffPending", { n: mine.length })}
-                    </p>
-                  )}
-                  {state === "waiting" && !closed && (
-                    <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-muted">
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(e.entry_id)}
-                        onChange={(ev) =>
-                          setSelected((s) => (ev.target.checked ? [...s, e.entry_id] : s.filter((id) => id !== e.entry_id)))
-                        }
-                        className="h-5 w-5 accent-accent"
-                      />
-                      {t("pft.race.staffWave")}
-                    </label>
-                  )}
-
-                  {closed ? (
-                    <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-xs text-muted">
-                      {t("pft.race.closedLocked")}
-                    </p>
-                  ) : (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                        ? fmtClock(elapsed)
+                        : "0:00.0"}
+                </strong>
+              </div>
+              <PftSplitStrip splits={splits} />
+              {timingNow && (
+                <div className="rx-pft-current-stage">
+                  <span style={{ background: PFT_COLORS[PFT_STATIONS[current].key] }}>{current + 1}</span>
+                  <b>{stationLabel(current)}</b>
+                  <small>{t(PFT_STATIONS[current].amount as DictKey)}</small>
+                </div>
+              )}
+              <div className="rx-pft-athlete-controls">
+                {state === "waiting" && !closed ? (
+                  <label className="rx-pft-check">
+                    <Checkbox
+                      disabled={busy}
+                      checked={selected.includes(e.entry_id)}
+                      onCheckedChange={(checked) => select(e.entry_id, checked === true)}
+                    />
+                    {t("pft.race.includeWave")}
+                  </label>
+                ) : timingNow && !closed ? (
+                  <Button
+                    className="rx-primary rx-wide"
+                    // 버튼 색 = 지금 찍을 종목의 색. 구간 띠의 현재 칸과 같은 색이라
+                    // 어느 종목을 찍는 중인지 색만으로 알아본다.
+                    style={{ background: PFT_COLORS[PFT_STATIONS[current].key], borderColor: "transparent", color: "#1c2730" }}
+                    onClick={() => tap(e)}
+                    aria-label={`${e.name} ${t("pft.race.staffTap", { station: stationLabel(current) })}`}
+                  >
+                    <Check size={17} />
+                    {t("pft.race.staffTap", { station: stationLabel(current) })}
+                  </Button>
+                ) : state === "running" && done ? (
+                  <Chip tone="yellow">{t("pft.race.staffPending", { n: mine.length })}</Chip>
+                ) : state === "finished" ? (
+                  <Chip tone="green">
+                    <Check size={14} />
+                    {t("pft.race.allDone")}
+                  </Chip>
+                ) : dnf ? (
+                  <Chip>{t("pft.race.dnf")}</Chip>
+                ) : (
+                  <Chip>{t("pft.race.closedLocked")}</Chip>
+                )}
+                {!closed && (
+                  <div className="rx-pft-athlete-bottom">
                     {(state === "running" || state === "finished") && (
-                      <button
-                        type="button"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={busy || (!splits.length && state !== "finished")}
+                        aria-label={`${e.name} ${t(state === "finished" ? "pft.race.undoFinish" : "pft.mUndo")}`}
                         onClick={() => undo(e)}
-                        disabled={busy || closed || (!splits.length && state !== "finished")}
-                        className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-line-strong disabled:opacity-40"
                       >
-                        ↶ {t(state === "finished" ? "pft.race.undoFinish" : "pft.mUndo")}
-                      </button>
+                        <Undo2 size={14} />
+                        {t(state === "finished" ? "pft.race.undoFinish" : "pft.mUndo")}
+                      </Button>
                     )}
                     {(state === "running" || quit) && (
-                      <button
-                        type="button"
-                        onClick={() => reset(e)}
-                        disabled={busy || closed || mine.length > 0}
-                        className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-danger-line-strong hover:text-danger disabled:opacity-40"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={busy || mine.length > 0}
+                        onClick={() => setConfirm({ kind: "reset", entry: e })}
                       >
+                        <RotateCcw size={14} />
                         {t("pft.mReset")}
-                      </button>
+                      </Button>
                     )}
                     {/* 중도포기 — 출발한 사람만. 누르면 시계가 멈추고 보드에서도 빠진다 */}
                     {(state === "running" || quit) && (
-                      <button
-                        type="button"
-                        onClick={() => setDnf(e, !quit)}
-                        disabled={busy || closed}
-                        className={`h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40 ${
-                          quit
-                            ? "border-line-strong bg-control hover:border-line-strong"
-                            : "border-danger-line-strong bg-control text-danger hover:brightness-95"
-                        }`}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={quit ? "" : "rx-pft-close"}
+                        disabled={busy}
+                        onClick={() => (quit ? setDnf(e, false) : setConfirm({ kind: "dnf", entry: e }))}
                       >
                         {quit ? t("pft.race.dnfUndo") : t("pft.race.dnfMark")}
-                      </button>
+                      </Button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => remove(e)}
-                      disabled={busy || closed}
-                      className="ml-auto h-9 rounded-lg border border-line-soft px-3 text-xs font-semibold text-muted hover:border-danger-line-strong hover:text-danger disabled:opacity-40"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy || timingNow}
+                      aria-label={`${e.name} ${t("pft.race.staffRemove")}`}
+                      onClick={() => setConfirm({ kind: "remove", entry: e })}
                     >
-                      {t("pft.race.staffRemove")}
-                    </button>
+                      <Trash2 size={14} />
+                    </Button>
                   </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+                )}
+              </div>
+            </Panel>
+          );
+        })}
+      </div>
+      {!entries.length && (
+        <Panel>
+          <p>{t("pft.race.noEntries")}</p>
+        </Panel>
+      )}
+
+      <div className="rx-pft-footnote">
+        <p>
+          {t("pft.race.staffDesc")}
+          {timing.length > 0 ? ` ${t("pft.race.timingN", { n: timing.length })}` : ""}
+        </p>
+      </div>
+
+      <RoxDialog
+        open={!!confirm}
+        onOpenChange={(open) => {
+          if (!open) setConfirm(null);
+        }}
+        title={
+          confirm?.kind === "remove"
+            ? t("pft.race.removeTitle", { name: confirm.entry.name })
+            : confirm?.kind === "reset"
+              ? t("pft.race.resetTitle", { name: confirm.entry.name })
+              : confirm?.kind === "dnf"
+                ? t("pft.race.dnfTitle", { name: confirm.entry.name })
+                : t("pft.race.closeTitle")
+        }
+        description={
+          confirm?.kind === "remove"
+            ? t("pft.race.staffRemoveConfirm", { name: confirm.entry.name })
+            : confirm?.kind === "reset"
+              ? t("pft.race.staffResetConfirm", { name: confirm.entry.name })
+              : confirm?.kind === "dnf"
+                ? t("pft.race.dnfConfirm", { name: confirm.entry.name })
+                : t("pft.race.manageDesc")
+        }
+      >
+        <div className="rx-actions">
+          <Button variant="outline" onClick={() => setConfirm(null)}>
+            {t("common.cancel")}
+          </Button>
+          <Button className={confirm?.kind === "close" ? "rx-pft-close" : "rx-primary"} variant={confirm?.kind === "close" ? "outline" : "default"} onClick={confirmAction}>
+            {confirm?.kind === "remove"
+              ? t("pft.race.removeBtn")
+              : confirm?.kind === "reset"
+                ? t("pft.mReset")
+                : confirm?.kind === "dnf"
+                  ? t("pft.race.dnfMark")
+                  : t("pft.race.close")}
+          </Button>
+        </div>
+      </RoxDialog>
     </div>
   );
 }

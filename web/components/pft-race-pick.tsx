@@ -2,10 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { formatDateShortYear } from "@/lib/format";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Chip, Field, Hint, Panel } from "@/components/rox/ui";
 
 /** 지금 참가할 수 있는 레이스 한 줄 (pft_race_joinable) */
 export type JoinableRace = {
@@ -19,12 +23,10 @@ export type JoinableRace = {
   joined: boolean;
 };
 
-const INPUT =
-  "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent-line";
-
 /**
- * 레이스 참가 — 먼저 "지금 참가할 수 있는 레이스"를 보여 주고 골라서 참가한다.
- * 코드 입력은 목록에 없는 레이스(남의 크루 행사 등)를 위해 아래에 남긴다.
+ * 레이스 참가 — 시안 racing.tsx 의 PFT(join) "참가 코드" Panel 그대로 (PORT_PLAN §3-d):
+ * Panel[ Field 6자리 코드 · Hint · 버튼 ]. "지금 참가할 수 있는 레이스" 목록은 우리 기능이라
+ * 시안 스태프 화면의 멤버 행(.rx-pft-member)으로 위에 얹는다(§4-1).
  */
 export function PftRacePick({
   races,
@@ -57,83 +59,67 @@ export function PftRacePick({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
       {err && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="rx-error">
           {err}
         </p>
       )}
 
-      {/* 참가 가능한 레이스 */}
-      <section className="flex flex-col gap-2">
-        <p className="text-sm font-bold">
-          {t("pft.race.pickTitle")} <span className="tabular text-muted">{races.length}</span>
-        </p>
+      <Panel title={t("pft.race.pickTitle")} action={<Chip>{races.length}</Chip>}>
         {races.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-card px-4 py-8 text-center text-sm text-muted">
-            {t("pft.race.pickEmpty")}
-          </p>
+          <p className="rx-pft-small-empty">{t("pft.race.pickEmpty")}</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <div className="rx-pft-member-results">
             {races.map((r) => (
-              <li
-                key={r.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-line bg-card p-4"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="truncate text-base font-extrabold">{r.title}</span>
-                    {r.joined && (
-                      <span className="rounded-md bg-success-bg px-2 py-0.5 text-[11px] font-bold text-success">
-                        {t("pft.race.staffJoined")}
-                      </span>
-                    )}
-                  </span>
-                  <span className="mt-0.5 block truncate text-xs text-muted">
+              <div className="rx-pft-member" key={r.id}>
+                <span className="rx-avatar">{r.title.slice(0, 1)}</span>
+                <span>
+                  <b>{r.title}</b>
+                  <small>
                     {formatDateShortYear(r.created_at, locale, tz)}
                     {r.crew && ` · ${r.crew}`}
                     {` · ${t("pft.race.pickEntries", { n: r.entries })}`}
-                  </span>
+                  </small>
                 </span>
-                <button
+                <Button
+                  variant={r.joined ? "outline" : "default"}
+                  className={r.joined ? "" : "rx-primary"}
+                  size="sm"
                   type="button"
                   onClick={() => joinByCode(r.code)}
                   disabled={busy !== null || (blocked && !r.joined)}
-                  className={`h-10 shrink-0 rounded-lg px-5 text-sm font-extrabold disabled:opacity-40 ${
-                    r.joined
-                      ? "border border-line-strong bg-control text-foreground hover:border-line-strong"
-                      : "bg-accent text-accent-foreground hover:brightness-95"
-                  }`}
+                  aria-label={`${r.title} ${t("pft.race.pickJoin")}`}
                 >
-                  {busy === r.code
-                    ? t("common.saving")
-                    : r.joined
-                      ? t("pft.race.linkMine")
-                      : t("pft.race.pickJoin")}
-                </button>
-              </li>
+                  {busy === r.code ? (
+                    t("common.saving")
+                  ) : r.joined ? (
+                    t("pft.race.linkMine")
+                  ) : (
+                    <>
+                      <Plus size={15} />
+                      {t("pft.race.pickJoin")}
+                    </>
+                  )}
+                </Button>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
-      </section>
+      </Panel>
 
       {/* 코드로 참가 — 목록에 없는 레이스용 */}
-      <section className="rounded-2xl border border-line bg-card p-5">
-        <p className="text-sm font-bold">{t("pft.race.pickByCode")}</p>
-        <p className="mt-1 text-xs text-muted">{t("pft.race.pickByCodeHint")}</p>
-        <form
-          className="mt-3 flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const c = code.trim().toUpperCase();
-            if (c.length !== 6) return setErr(t("pft.race.err.race_not_found"));
-            void joinByCode(c);
-          }}
-        >
-          <label className="flex flex-col gap-1 text-xs text-muted">
-            {t("pft.race.code")}
-            <input
-              className={`${INPUT} text-center font-mono text-2xl font-extrabold uppercase tracking-[0.3em]`}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const c = code.trim().toUpperCase();
+          if (c.length !== 6) return setErr(t("pft.race.err.race_not_found"));
+          void joinByCode(c);
+        }}
+      >
+        <Panel title={t("pft.race.joinByCode")}>
+          <Field label={t("pft.race.joinCode6")}>
+            <Input
               value={code}
               onChange={(e) =>
                 setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))
@@ -143,16 +129,17 @@ export function PftRacePick({
               autoComplete="off"
               placeholder="ABC123"
             />
-          </label>
-          <button
+          </Field>
+          <Hint>{t("pft.race.pickByCodeHint")}</Hint>
+          <Button
             type="submit"
+            variant="outline"
             disabled={busy !== null || blocked || code.length !== 6}
-            className="h-11 rounded-lg border border-line-strong bg-control text-sm font-extrabold hover:border-line-strong disabled:opacity-40"
           >
             {t("pft.race.join")}
-          </button>
-        </form>
-      </section>
-    </div>
+          </Button>
+        </Panel>
+      </form>
+    </>
   );
 }

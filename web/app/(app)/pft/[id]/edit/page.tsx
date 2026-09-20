@@ -1,11 +1,17 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { PftForm } from "@/components/pft-form";
 import type { PftResult } from "@/lib/pft";
+import { Back, PageHead } from "@/components/rox/ui";
 
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: t("pft.editTitle") };
+}
+
+/** PFT 기록 수정 — 시안 racing.tsx PFT(edit): Back · PageHead · form.rx-form-layout(PftForm) */
 export default async function PftEditPage({
   params,
 }: {
@@ -28,18 +34,10 @@ export default async function PftEditPage({
   if (!data) notFound();
 
   return (
-    <main>
-      <Link href="/pft" className="text-sm text-muted hover:text-foreground">
-        ← {t("pft.title")}
-      </Link>
-      <h1 className="mt-3 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("pft.editTitle")}</h1>
-      <div className="mt-5">
-        <PftForm
-          initial={data as PftResult}
-          defaultAge={null}
-          defaultGender={null}
-        />
-      </div>
-    </main>
+    <>
+      <Back href="/pft" label={t("pft.title")} />
+      <PageHead title={t("pft.editTitle")} description={t("pft.addDesc")} />
+      <PftForm initial={data as PftResult} defaultAge={null} defaultGender={null} />
+    </>
   );
 }

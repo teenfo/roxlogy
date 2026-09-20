@@ -5221,6 +5221,23 @@ button:focus-visible {
 .rx-finance-layout > * {
   min-width: 0;
 }
+/* 시안 칩 톤에 없는 위험 톤(측정 무효·중도포기) */
+.rx-chip.red {
+  background: #fbe9e7;
+  color: #a33f36;
+}
+/* PFT 스태프 카드 — 중도포기·종료된 미완주는 흐리게 */
+.rx-pft-athlete.dnf {
+  opacity: 0.75;
+}
+/* 라이브보드 참가 선수 상태 — 시안 3종(waiting·timing·finished)에 중도포기를 더한다 */
+.rx-live-state.dnf {
+  color: #e08a8a;
+}
+/* 라이브보드 브랜드 — 시안 "R." 사각형 대신 브랜드 앱 아이콘 */
+.rx-live-brand > img {
+  border-radius: 7px;
+}
 /* 상단바 알림 아이콘의 미확인 점 */
 .rx-top-actions > a {
   position: relative;
@@ -5305,59 +5322,6 @@ button:focus-visible {
   --shadow-hero: 0 30px 80px rgba(20, 24, 28, 0.16);
 }
 
-/* PFT 라이브보드(app/board/[code])가 시안 .rx-live-* 로 옮겨지는 P6 까지 쓰는 다크 스코프 */
-.theme-dark {
-  color-scheme: dark;
-  --background: #141414;
-  --card: #141414;
-  --foreground: #f4f4f2;
-  --muted-foreground: #9a9a96;
-  --border: #222222;
-  --surface: #1e1e1e;
-  --page: #0d0d0d;
-  --card-hover: #181818;
-  --inset: #101010;
-  --control: #171717;
-  --highlight: #181610;
-  --nav: #111111;
-  --line-soft: #1f1f1f;
-  --line: #222222;
-  --line-mid: #262626;
-  --line-strong: #333333;
-  --line-accent: #5a4d00;
-  --info: #7dd3fc;
-  --info-bg: #0c2a3a;
-  --danger: #ff8a8a;
-  --danger-bg: #3a0c0c;
-  --success: #6ee7a0;
-  --success-bg: #0f2e1c;
-  --label: #a5b4fc;
-  --label-bg: #1e2140;
-  --accent-dim: #e0c53a;
-  --muted-2: #8c8c88;
-  --muted-3: #808080;
-  --foreground-2: #c9c9c9;
-  --line-strongest: #444444;
-  --income: #6ee7a0;
-  --expense: #ff8a8a;
-  --warn: #f4a261;
-  --gold: #c9b34a;
-  --gold-dim: #8a7a2a;
-  --gold-bg: #2a2500;
-  --gold-line: #6b5a00;
-  --medal-silver: #d9d9d9;
-  --medal-bronze: #c98150;
-  --cat-sky: #8ecae6;
-  --cat-lime: #b5e48c;
-  --cat-violet: #e0aaff;
-  --cat-pink: #ffafcc;
-  --chart-green: #35c26b;
-  --focus: #ffd500;
-  --scrim: rgba(0, 0, 0, 0.6);
-  background: var(--background);
-  color: var(--foreground);
-}
-
 @theme inline {
   --color-track: var(--track);
   --color-surface: var(--surface);
@@ -5419,14 +5383,4 @@ button:focus-visible {
 
 .tabular {
   font-variant-numeric: tabular-nums;
-}
-
-/* 옛 PFT 보드 애니메이션 — 라이브보드가 옮겨지면(P6) 지운다 */
-@keyframes livepulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
-@keyframes rowin {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
 }

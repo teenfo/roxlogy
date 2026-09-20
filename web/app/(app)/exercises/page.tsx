@@ -70,7 +70,7 @@ export default async function ExercisesPage({
             ]}
           />
         </div>
-        <div style={{ padding: "0 24px 24px" }}>
+        <div>
           <QuerySegments
             param="category"
             value={cat}

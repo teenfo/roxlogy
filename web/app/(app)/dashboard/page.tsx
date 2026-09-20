@@ -744,7 +744,7 @@ export default async function DashboardPage() {
 
       {trend.length >= 2 && (
         <Panel title={t("dash.trendTitle")}>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <TrendBars data={trend} />
           </div>
         </Panel>
@@ -752,7 +752,7 @@ export default async function DashboardPage() {
 
       {showRehearsal && (
         <Panel>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <RehearsalReport goals={goalRows} sessions={rehearsalSessions} />
           </div>
         </Panel>
@@ -760,7 +760,7 @@ export default async function DashboardPage() {
 
       {showCorr && (
         <Panel title={t("dash.corrTitle")}>
-          <div style={{ padding: "0 24px 24px" }}>
+          <div>
             <p className="rx-hint" style={{ marginBottom: 12 }}>
               {t("dash.corrDesc")}
             </p>
