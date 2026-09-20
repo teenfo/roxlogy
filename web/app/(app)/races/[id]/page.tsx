@@ -1,21 +1,29 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Activity, Flag } from "lucide-react";
 import { AiInsight } from "@/components/ai-insight";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDate, formatDateOnly, formatMs } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
-import { RecordCardButton } from "@/components/record-card-button";
-import type { RecordCardData } from "@/lib/record-card";
 import { RaceEditForm } from "@/components/race-edit-form";
-import { PercentileBar } from "@/components/percentile-bar";
 import { RaceToSessionButton } from "@/components/race-to-session-button";
 import {
   RaceReplayTable,
   type ReplayRow,
   type SegHistoryPoint,
 } from "@/components/race-replay-table";
+import {
+  Back,
+  Chip,
+  DataTable,
+  Go,
+  Hint,
+  PageHead,
+  Panel,
+  Stats,
+} from "@/components/rox/ui";
 
 type RaceSplits = {
   stations?: Record<string, number>;
@@ -34,19 +42,18 @@ type RaceSplits = {
   bib?: string;
 };
 
-function Delta({ raceMs, trainMs }: { raceMs?: number; trainMs?: number }) {
-  if (raceMs == null || trainMs == null)
-    return <span className="text-muted">—</span>;
+function delta(raceMs?: number | null, trainMs?: number | null) {
+  if (raceMs == null || trainMs == null) return "—";
   const diff = raceMs - trainMs; // 음수 = 레이스가 빠름
-  const cls = diff <= 0 ? "text-track" : "text-danger";
-  return (
-    <span className={`font-mono ${cls}`}>
-      {diff <= 0 ? "-" : "+"}
-      {formatMs(Math.abs(diff))}
-    </span>
-  );
+  return `${diff <= 0 ? "−" : "+"}${formatMs(Math.abs(diff))}`;
 }
 
+/**
+ * 레이스 상세 — 시안 records.tsx 의 RecordDetail(race) 그대로 (PORT_PLAN §3-b):
+ * Back · PageHead(기록 카드·편집) · .rx-detail-hero(공식 전체 순위) · Stats ·
+ * two-col[런 페이스 흐름 | 구간별 기록] · Panel "기록에서 읽을 수 있는 것".
+ * 시안에 없는 우리 기능(시뮬 대비표·리플레이표·세션 만들기·AI)은 아래 Panel 로만.
+ */
 export default async function RaceDetailPage({
   params,
 }: {
@@ -54,7 +61,7 @@ export default async function RaceDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { t, tag, tz, locale } = await getT();
+  const { t, tag, tz } = await getT();
 
   const { data: race } = await supabase
     .from("race_results")
@@ -113,40 +120,6 @@ export default async function RaceDetailPage({
   }
 
   const hasStationSplits = Object.keys(splits.stations ?? {}).length > 0;
-
-  /** 기록지 — 사진은 브라우저에서만 합성한다(업로드하지 않음) */
-  const card: RecordCardData = {
-    kind: "RACE",
-    athlete: profile?.display_name?.trim() || "Athlete",
-    subtitle: [
-      race.event_date ? formatDateOnly(race.event_date, tag) : null,
-      race.division ? t(`division.${race.division}` as Parameters<typeof t>[0]) : null,
-      splits.bib ? `BIB ${splits.bib}` : null,
-    ]
-      .filter(Boolean)
-      .join(" · "),
-    mainLabel: t("compare.total"),
-    mainValue: formatMs(race.total_time_ms),
-    splits: hasStationSplits
-      ? STATIONS.map((st) => ({
-          label: locale === "ko" ? st.nameKo.split(" ")[0] : st.nameEn,
-          value: splits.stations?.[st.key] != null ? formatMs(splits.stations[st.key]) : "—",
-        }))
-      : undefined,
-    stats: [
-      ...(splits.run_total_ms != null
-        ? [{ label: t("kind.run"), value: formatMs(splits.run_total_ms) }]
-        : []),
-      ...(splits.rank_overall != null && splits.field_size != null
-        ? [
-            {
-              label: "RANK",
-              value: `${splits.rank_overall}/${splits.field_size}`,
-            },
-          ]
-        : []),
-    ],
-  };
   const hasAnySplits = hasStationSplits || (splits.runs?.length ?? 0) > 0;
 
   // 세그먼트 히스토리: 내 레이스들의 같은 세그먼트 기록 추이 (모달 그래프)
@@ -184,168 +157,236 @@ export default async function RaceDetailPage({
     stPlace: splits.stations_place?.[s.key] ?? null,
   }));
 
+  const divisionLabel = race.division
+    ? t(`division.${race.division}` as Parameters<typeof t>[0])
+    : null;
+  const total = race.total_time_ms ?? 0;
+  const runTotal =
+    splits.run_total_ms ?? (splits.runs?.length ? splits.runs.reduce((a, b) => a + b, 0) : null);
+  const stationTotal = hasStationSplits
+    ? Object.values(splits.stations!).reduce((a, b) => a + b, 0)
+    : null;
+  const other =
+    runTotal != null && stationTotal != null ? Math.max(0, total - runTotal - stationTotal) : null;
+  const pctOf = (ms: number | null) =>
+    ms != null && total > 0 ? ((ms / total) * 100).toFixed(1) : null;
+  const runs = splits.runs ?? [];
+  const sameDivision = (myRaces ?? []).length; // 히스토리 조회는 본인 레이스 전체
+
   return (
-    <main>
-      <div className="flex items-center justify-between">
-        <Link href="/races" className="text-sm text-muted hover:text-foreground">
-          {t("races.back")}
-        </Link>
-        <div className="flex items-center gap-3">
-          <RaceToSessionButton
-            raceId={race.id}
-            division={race.division ?? null}
-            eventDate={race.event_date ?? null}
-            bib={splits.bib ?? null}
-            splits={splits}
-          />
-          <RaceEditForm
-            raceId={race.id}
-            event={race.event}
-            eventDate={race.event_date ?? null}
-            division={race.division ?? null}
-            totalMs={race.total_time_ms ?? null}
-            bib={splits.bib ?? null}
-          />
-          <RecordCardButton data={card} />
-          <DeleteButton kind="race" id={race.id} redirectTo="/races" />
+    <>
+      <Back href="/races" label={t("races.title")} />
+      <PageHead
+        title={race.event}
+        description={[
+          race.event_date ? formatDateOnly(race.event_date, tag) : t("races.noDate"),
+          divisionLabel,
+          splits.bib ? `BIB ${splits.bib}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+        action={
+          <div className="rx-actions">
+            <Go href={`/races/${race.id}/share`}>{t("detail.card")}</Go>
+            <RaceEditForm
+              raceId={race.id}
+              event={race.event}
+              eventDate={race.event_date ?? null}
+              division={race.division ?? null}
+              totalMs={race.total_time_ms ?? null}
+              bib={splits.bib ?? null}
+            />
+            <RaceToSessionButton
+              raceId={race.id}
+              division={race.division ?? null}
+              eventDate={race.event_date ?? null}
+              bib={splits.bib ?? null}
+              splits={splits}
+            />
+            <DeleteButton kind="race" id={race.id} redirectTo="/races" />
+          </div>
+        }
+      />
+
+      <div className="rx-detail-hero">
+        <div>
+          {divisionLabel && <Chip tone="yellow">{divisionLabel}</Chip>}
+          <p>FINISH TIME</p>
+          <strong>{formatMs(race.total_time_ms)}</strong>
+        </div>
+        <div>
+          <span>
+            {splits.rank_overall != null && splits.field_size != null
+              ? t("detail.overallRank")
+              : t("detail.status")}
+          </span>
+          <h3>
+            {splits.rank_overall != null && splits.field_size != null
+              ? `${splits.rank_overall} / ${splits.field_size}`
+              : percentile != null
+                ? t("percentile.top", { pct: String(Math.round(percentile)) })
+                : t("detail.finished")}
+          </h3>
+          <p>
+            {t("detail.officialNote")}
+            {splits.bib ? ` · BIB ${splits.bib}` : ""}
+          </p>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{race.event}</h1>
-        <span className="font-mono text-3xl font-bold text-gold">
-          {formatMs(race.total_time_ms)}
-        </span>
-      </div>
-      <p className="mt-1 text-sm text-muted">
-        {race.event_date ? formatDateOnly(race.event_date, tag) : t("races.noDate")} ·{" "}
-        {race.division
-          ? t(`division.${race.division}` as Parameters<typeof t>[0])
-          : "—"}
-        {splits.bib && (
-          <span className="ml-2 rounded bg-surface px-1.5 py-0.5 font-mono text-xs font-bold">
-            BIB {splits.bib}
-          </span>
-        )}
-        {splits.rank_overall != null && splits.field_size != null && (
-          <span className="ml-2 text-xs">
-            {t("races.overallRank", {
-              rank: splits.rank_overall,
-              field: splits.field_size,
-            })}
-          </span>
-        )}
-      </p>
+      <Stats
+        items={[
+          [
+            t("kind.run"),
+            runTotal != null ? formatMs(runTotal) : "—",
+            pctOf(runTotal) != null ? t("detail.ofTotal", { pct: pctOf(runTotal)! }) : "",
+          ],
+          [
+            t("detail.station"),
+            stationTotal != null ? formatMs(stationTotal) : "—",
+            pctOf(stationTotal) != null ? t("detail.ofTotal", { pct: pctOf(stationTotal)! }) : "",
+          ],
+          [t("detail.other"), other != null ? formatMs(other) : "—", t("detail.otherNote")],
+          [
+            t("detail.sameDivision"),
+            String(sameDivision || 1),
+            sameDivision > 1 ? "" : t("detail.trendNeedMore"),
+          ],
+        ]}
+      />
 
-      {percentile != null && race.division && (
-        <PercentileBar
-          pct={percentile}
-          division={race.division}
-          gender={profile?.gender ?? null}
-        />
-      )}
-
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold">
-          {t("races.compareTitle")}
-          {sim && (
-            <span className="ml-2 text-sm font-normal text-muted">
-              {t("races.compareVs", { date: formatDate(sim.started_at, tag, tz) })}
-            </span>
+      <div className="rx-two-col">
+        <Panel title={t("detail.runPace")} action={<Chip>{runs.length} × 1 km</Chip>}>
+          {runs.length ? (
+            <div className="rx-lap-chart">
+              {runs.map((ms, i) => (
+                <div key={i}>
+                  <span>{formatMs(ms)}</span>
+                  <div style={{ height: Math.round(ms / 4000) + "px" }} />
+                  <small>RUN {i + 1}</small>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Hint>{t("detail.noSplits")}</Hint>
           )}
-        </h2>
+        </Panel>
+        <Panel title={t("detail.splits")}>
+          {hasAnySplits ? (
+            <DataTable
+              headers={[t("detail.round"), t("kind.run"), t("detail.station")]}
+              rows={STATIONS.map((s, i) => [
+                <span key="s">
+                  <small className="rx-muted">{String(i + 1).padStart(2, "0")} </small>
+                  {t(`station.${s.key}` as Parameters<typeof t>[0])}
+                </span>,
+                runs[i] != null ? formatMs(runs[i]) : "—",
+                splits.stations?.[s.key] != null ? formatMs(splits.stations[s.key]) : "—",
+              ])}
+            />
+          ) : (
+            <Hint>{t("detail.noSplits")}</Hint>
+          )}
+        </Panel>
+      </div>
 
+      <Panel title={t("detail.insights")}>
+        {runTotal != null && total > 0 && (
+          <div className="rx-insight">
+            <Flag />
+            <div>
+              <h3>{t("detail.runShare", { pct: pctOf(runTotal)! })}</h3>
+              <p>{t("detail.runShareNote", { run: formatMs(runTotal), total: formatMs(total) })}</p>
+            </div>
+          </div>
+        )}
+        {percentile != null && divisionLabel && (
+          <div className="rx-insight">
+            <Activity />
+            <div>
+              <h3>{t("percentile.top", { pct: String(Math.round(percentile)) })}</h3>
+              <p>
+                {t("detail.percentileNote", {
+                  pct: String(Math.round(percentile)),
+                  division: divisionLabel,
+                })}
+              </p>
+            </div>
+          </div>
+        )}
+        {sameDivision <= 1 && (
+          <div className="rx-insight">
+            <Activity />
+            <div>
+              <h3>{t("detail.trendNeedMore")}</h3>
+              <p>{t("goals.compareHint")}</p>
+            </div>
+          </div>
+        )}
+      </Panel>
+
+      {/* ── 시안에 없는 우리 기능 (PORT_PLAN §4-1) ── */}
+      <Panel
+        title={t("races.compareTitle")}
+        action={
+          sim ? <Chip>{t("races.compareVs", { date: formatDate(sim.started_at, tag, tz) })}</Chip> : undefined
+        }
+      >
         {!sim ? (
-          <p className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-            {t("races.noSim")}{" "}
-            <Link href="/sessions/new" className="text-gold hover:underline">
-              {t("races.noSimLink")}
-            </Link>
-          </p>
+          <Hint>
+            {t("races.noSim")} <Link href="/sessions/new">{t("races.noSimLink")}</Link>
+          </Hint>
         ) : !hasStationSplits ? (
-          <p className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
+          <Hint>
             {t("races.totalOnlyCompare", {
               race: formatMs(race.total_time_ms),
               sim: formatMs(sim.total_time_ms),
             })}
-          </p>
+          </Hint>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-surface text-left text-xs text-muted">
-                  <th className="py-2 pr-4 font-normal">{t("races.colSegment")}</th>
-                  <th className="py-2 pr-4 text-right font-normal">
-                    {t("races.colRace")}
-                  </th>
-                  <th className="py-2 pr-4 text-right font-normal">
-                    {t("races.colSim")}
-                  </th>
-                  <th className="py-2 text-right font-normal">
-                    {t("races.colDiff")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {splits.run_total_ms != null && (
-                  <tr className="border-b border-surface/60">
-                    <td className="py-2.5 pr-4">{t("races.runTotal")}</td>
-                    <td className="py-2.5 pr-4 text-right font-mono">
-                      {formatMs(splits.run_total_ms)}
-                    </td>
-                    <td className="py-2.5 pr-4 text-right font-mono">
-                      {simRunTotal ? formatMs(simRunTotal) : "—"}
-                    </td>
-                    <td className="py-2.5 text-right">
-                      <Delta
-                        raceMs={splits.run_total_ms}
-                        trainMs={simRunTotal || undefined}
-                      />
-                    </td>
-                  </tr>
-                )}
-                {STATIONS.map((s) => {
+          <>
+            <DataTable
+              headers={[t("races.colSegment"), t("races.colRace"), t("races.colSim"), t("races.colDiff")]}
+              rows={[
+                ...(splits.run_total_ms != null
+                  ? [[
+                      t("races.runTotal"),
+                      formatMs(splits.run_total_ms),
+                      simRunTotal ? formatMs(simRunTotal) : "—",
+                      delta(splits.run_total_ms, simRunTotal || null),
+                    ]]
+                  : []),
+                ...STATIONS.flatMap((s) => {
                   const raceMs = splits.stations?.[s.key];
                   const trainMs = simByExercise.get(s.exerciseId);
-                  if (raceMs == null && trainMs == null) return null;
-                  return (
-                    <tr key={s.key} className="border-b border-surface/60">
-                      <td className="py-2.5 pr-4">
-                        {t(`station.${s.key}` as Parameters<typeof t>[0])}
-                      </td>
-                      <td className="py-2.5 pr-4 text-right font-mono">
-                        {raceMs != null ? formatMs(raceMs) : "—"}
-                      </td>
-                      <td className="py-2.5 pr-4 text-right font-mono">
-                        {trainMs != null ? formatMs(trainMs) : "—"}
-                      </td>
-                      <td className="py-2.5 text-right">
-                        <Delta raceMs={raceMs} trainMs={trainMs} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <p className="mt-2 text-xs text-muted">{t("races.diffNote")}</p>
-          </div>
+                  if (raceMs == null && trainMs == null) return [];
+                  return [[
+                    t(`station.${s.key}` as Parameters<typeof t>[0]),
+                    raceMs != null ? formatMs(raceMs) : "—",
+                    trainMs != null ? formatMs(trainMs) : "—",
+                    delta(raceMs, trainMs),
+                  ]];
+                }),
+              ]}
+            />
+            <Hint>{t("races.diffNote")}</Hint>
+          </>
         )}
-      </section>
+      </Panel>
 
-      {/* Race Replay 구간별 상세 — 런/록스존/스테이션 8개 조.
-          세그먼트 클릭 → 필드 분포 모달 (place 기반 실측 백분위) */}
       {hasAnySplits && (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("races.replayTitle")}</h2>
-          <RaceReplayTable
-            rows={replayRows}
-            fieldSize={splits.field_size ?? null}
-            history={segHistory}
-          />
-        </section>
+        <Panel title={t("races.replayTitle")}>
+          <div style={{ padding: "0 24px 24px" }}>
+            <RaceReplayTable
+              rows={replayRows}
+              fieldSize={splits.field_size ?? null}
+              history={segHistory}
+            />
+          </div>
+        </Panel>
       )}
 
       <AiInsight kind="race" refId={id} />
-    </main>
+    </>
   );
 }

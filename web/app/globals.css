@@ -5210,6 +5210,17 @@ button:focus-visible {
   object-fit: cover;
   border-radius: inherit;
 }
+/* 그리드 자식의 min-content 넘침 방지 — 시안은 1fr(=minmax(auto,1fr)) 이라 좁은 폭에서
+   표·긴 값이 열을 밀어 페이지가 가로로 넘친다(시안 /sessions/new@390 실측). */
+.rx-form-layout > *,
+.rx-two-col > *,
+.rx-dashboard-grid > *,
+.rx-card-grid > *,
+.rx-detail-hero > *,
+.rx-feed-layout > *,
+.rx-finance-layout > * {
+  min-width: 0;
+}
 /* 상단바 알림 아이콘의 미확인 점 */
 .rx-top-actions > a {
   position: relative;

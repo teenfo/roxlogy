@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Activity, Flag, Link2, TriangleAlert } from "lucide-react";
 import { AiInsight } from "@/components/ai-insight";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
@@ -19,27 +20,28 @@ import {
   pacingGrade,
   runLapDeviationMs,
 } from "@/lib/analysis";
-import { formatDistance, gradeClass, gradeDictKey, type Degradation } from "@/lib/run";
+import { formatDistance, gradeDictKey, type Degradation } from "@/lib/run";
 import {
   BreakdownStackBar,
   DriveChart,
   ErgCurve,
-  RunLapLine,
   SegmentSplitBars,
   StrokeForceChart,
 } from "@/components/charts";
 import { CHART_COLORS } from "@/lib/hyrox";
 import { DeleteButton } from "@/components/delete-button";
 import { ShareToggle } from "@/components/share-toggle";
-import { RecordCardButton } from "@/components/record-card-button";
-import type { RecordCardData } from "@/lib/record-card";
 import { FollowButton } from "@/components/follow-button";
-
-const KIND_BADGE: Record<string, string> = {
-  run: "border-track/60 text-track",
-  station: "border-accent-line/60 text-gold",
-  roxzone: "border-line-strong text-muted",
-};
+import {
+  Back,
+  Chip,
+  DataTable,
+  Go,
+  Hint,
+  PageHead,
+  Panel,
+  Stats,
+} from "@/components/rox/ui";
 
 type Segment = {
   id: string;
@@ -112,6 +114,13 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * 세션 상세 — 시안 records.tsx 의 RecordDetail 그대로 (PORT_PLAN §3-b):
+ * Back · PageHead(기록 카드·편집) · .rx-detail-hero · Stats · two-col[런 페이스 흐름 |
+ * 구간별 기록] · Panel "기록에서 읽을 수 있는 것" · Panel "기록 상세".
+ * 시안에 없는 우리 분석(구성비·분포 곡선·스플릿 바·저하율·에르그 곡선·스트로크·AI)은
+ * 그 아래 Panel 로만 감싼다(§4-1).
+ */
 export default async function SessionDetailPage({
   params,
 }: {
@@ -183,6 +192,8 @@ export default async function SessionDetailPage({
   const runLaps = segments.filter(
     (s) => s.kind === "run" && s.split_time_ms != null,
   );
+  const stationSegs = segments.filter((s) => s.kind === "station");
+  const roxSegs = segments.filter((s) => s.kind === "roxzone");
   const chartData = segments
     .filter((s) => s.split_time_ms != null)
     .map((s) => ({
@@ -192,15 +203,13 @@ export default async function SessionDetailPage({
       kind: s.kind,
     }));
 
-  // 에르그 단독 세션(런·록스존 없이 머신 스테이션만) → 전용 화면.
-  // 시뮬용 섹션(페이싱·구성비·스플릿 바 등)을 걷어내고 raw 기반 차트를 채운다.
+  // 에르그 단독 세션(런·록스존 없이 머신 스테이션만) → 전용 구성.
   const isErg =
     segments.length > 0 &&
     segments.every((s) => s.kind === "station") &&
     segments.some((s) => s.machine_type);
 
-  // erg raw · 개인 최고 · 러닝 저하율은 서로 의존하지 않는다. 조건은 각각 다르지만
-  // 순차로 두면 해당되는 개수만큼 도쿄 왕복이 늘어난다 — 한 번에 기다린다.
+  // erg raw · 개인 최고 · 러닝 저하율은 서로 의존하지 않는다 — 한 번에 기다린다.
   const needsPb = isOwner;
   const needsDeg = isOwner && !isErg && runLaps.length >= 2;
   const [rawsRes, pbRes, degRes] = await Promise.all([
@@ -224,8 +233,7 @@ export default async function SessionDetailPage({
           .order("total_time_ms", { ascending: true })
           .limit(1)
       : Promise.resolve({ data: null }),
-    // 러닝 저하율 — 시뮬 랩이 순수 1km 페이스보다 얼마나 느린가.
-    // 본인 세션에서만 계산한다: 기준선은 내 러닝 기록이고 RLS 로 남에겐 안 보인다.
+    // 러닝 저하율 — 본인 세션에서만 계산한다(기준선은 내 러닝 기록).
     needsDeg
       ? supabase.rpc("session_run_degradation", { p_session: id })
       : Promise.resolve({ data: null }),
@@ -239,40 +247,6 @@ export default async function SessionDetailPage({
     | { event: string | null; event_date: string | null; season: string | null; division: string | null }
     | null
     | undefined;
-
-  const profRaw = (session as { profiles?: unknown }).profiles;
-  const prof = (Array.isArray(profRaw) ? profRaw[0] : profRaw) as
-    | { display_name: string | null }
-    | null
-    | undefined;
-
-  /** 기록지 — 사진은 브라우저에서만 합성한다(업로드하지 않음) */
-  const card: RecordCardData = {
-    kind: race ? t("sessions.race") : t("sessions.typeSim"),
-    athlete: prof?.display_name?.trim() || "Athlete",
-    subtitle: [
-      race?.event || null,
-      formatDate(session.started_at, tag, tz),
-      race?.division ?? session.division
-        ? t(`division.${race?.division ?? session.division}` as Parameters<typeof t>[0])
-        : null,
-    ]
-      .filter(Boolean)
-      .join(" · "),
-    mainLabel: t("compare.total"),
-    mainValue: formatMs(session.total_time_ms),
-    splits: segments
-      .filter((s2) => s2.kind === "station" && s2.split_time_ms != null)
-      .slice(0, 8)
-      .map((s2) => ({
-        label: exName(s2.exercises) ?? `${t("kind.station")} ${s2.seq}`,
-        value: formatMs(s2.split_time_ms),
-      })),
-    stats: [
-      { label: t("kind.run"), value: formatMs(share.runMs) },
-      { label: t("kind.roxzone"), value: formatMs(roxzoneMs) },
-    ],
-  };
 
   const pbMs: number | null =
     ((pbRes.data ?? []) as { total_time_ms: number }[])[0]?.total_time_ms ?? null;
@@ -289,7 +263,6 @@ export default async function SessionDetailPage({
   const degradation = (degRes.data ?? null) as Degradation | null;
 
   // 필드 분포 곡선 — 풀 시뮬(런8+스테이션8, 30분↑) + 본인 세션일 때만.
-  // 소유자 프로필(성별·출생연도)로 동체급·동연령 실측 분포에 위치를 찍는다.
   let dist: {
     percentiles: Record<string, number>;
     pct: number;
@@ -298,7 +271,7 @@ export default async function SessionDetailPage({
   } | null = null;
   const isFullSim =
     !isErg &&
-    segments.filter((s) => s.kind === "station").length >= 8 &&
+    stationSegs.length >= 8 &&
     segments.filter((s) => s.kind === "run").length >= 8 &&
     (session.total_time_ms ?? 0) >= 1_800_000;
   if (isFullSim && user && user.id === session.user_id) {
@@ -321,8 +294,6 @@ export default async function SessionDetailPage({
     );
     if (best) {
       const scope = best.byAge ? `age:${ageGroup}` : "overall";
-      // 백분위와 같은 규칙(표본 하한 포함)으로 고른다 — 다른 행을 쓰면
-      // 곡선과 숫자가 서로 다른 분포를 가리킨다
       const bm = pickBenchmark(
         benchmarks as Benchmark[],
         division,
@@ -330,12 +301,7 @@ export default async function SessionDetailPage({
         scope,
       );
       if (bm) {
-        dist = {
-          percentiles: bm.percentiles,
-          pct: best.pct,
-          byAge: best.byAge,
-          ageGroup,
-        };
+        dist = { percentiles: bm.percentiles, pct: best.pct, byAge: best.byAge, ageGroup };
       }
     }
   }
@@ -366,18 +332,11 @@ export default async function SessionDetailPage({
     .map((s) => ({
       key: s.id,
       name: exName(s.exercises) ?? `${t(`kind.${s.kind}`)} ${s.seq}`,
-      pace: (s.segment_metrics?.pace_curve ?? []).map(([tt, v]) => ({
-        t: tt,
-        v,
-      })),
-      power: (s.segment_metrics?.power_curve ?? []).map(([tt, v]) => ({
-        t: tt,
-        v,
-      })),
+      pace: (s.segment_metrics?.pace_curve ?? []).map(([tt, v]) => ({ t: tt, v })),
+      power: (s.segment_metrics?.power_curve ?? []).map(([tt, v]) => ({ t: tt, v })),
     }));
 
-  // 종류별 평균 — 세그먼트 표의 "평균 대비". 런은 런끼리, 스테이션은 스테이션끼리
-  // 비교해야 의미가 있다(록스존 2분과 월볼 6분을 같이 평균 내면 무의미).
+  // 종류별 평균 — 세그먼트 표의 "평균 대비"
   const kindAvg = new Map<string, number>();
   for (const k of ["run", "station", "roxzone"]) {
     const xs = segments
@@ -385,554 +344,452 @@ export default async function SessionDetailPage({
       .map((x) => x.split_time_ms!);
     if (xs.length) kindAvg.set(k, xs.reduce((a, v) => a + v, 0) / xs.length);
   }
-  // 종류별 가장 느린 구간 — 행을 붉게 표시해 눈에 걸리게 한다
-  const worstSeq = new Map<string, number>();
-  for (const k of ["run", "station"]) {
-    let worst: (typeof segments)[number] | null = null;
-    for (const x of segments) {
-      if (x.kind !== k || x.split_time_ms == null) continue;
-      if (!worst || x.split_time_ms > worst.split_time_ms!) worst = x;
-    }
-    if (worst) worstSeq.set(k, worst.seq);
-  }
+  const vsAvg = (seg: Segment) => {
+    const avg = kindAvg.get(seg.kind);
+    if (avg == null || seg.split_time_ms == null) return "";
+    const d = Math.round((seg.split_time_ms - avg) / 1000);
+    if (Math.abs(d) < 1) return "";
+    const a = Math.abs(d);
+    return `${d > 0 ? "+" : "−"}${Math.floor(a / 60)}:${String(a % 60).padStart(2, "0")}`;
+  };
 
-  // 랩 추이 헤더 요약 — 평균과 첫 랩 대비 마지막 랩 변화
+  // 랩 추이 요약 — 평균과 첫 랩 대비 마지막 랩 변화
   const lapMs = runLaps.map((x) => x.split_time_ms!);
   const lapAvg = lapMs.length
     ? Math.round(lapMs.reduce((a, v) => a + v, 0) / lapMs.length)
     : null;
-  const lapDrift =
-    lapMs.length >= 2 ? lapMs[lapMs.length - 1] - lapMs[0] : null;
+  const lapDrift = lapMs.length >= 2 ? lapMs[lapMs.length - 1] - lapMs[0] : null;
+
+  const divisionKey = race?.division ?? session.division ?? null;
+  const divisionLabel = divisionKey
+    ? t(`division.${divisionKey}` as Parameters<typeof t>[0])
+    : null;
+  const total = session.total_time_ms ?? 0;
+  const pctOf = (ms: number) => (total > 0 ? ((ms / total) * 100).toFixed(1) : "0");
+  const kindLabel = race
+    ? t("sessions.race")
+    : isErg
+      ? t("sessions.ergDedicated")
+      : t("sessions.typeSim");
+  const title = race?.event ?? formatDate(session.started_at, tag, tz);
+  const rounds = Math.max(runLaps.length, stationSegs.length, roxSegs.length);
 
   return (
-    <main className="flex flex-col gap-[22px]">
-      {/* 상단 바 */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[13px]">
-        <Link
-          href={isOwner ? "/sessions" : "/feed"}
-          className="text-muted hover:text-foreground"
-        >
-          ← {isOwner ? t("sessions.back") : t("feed.back")}
-        </Link>
-        {isOwner ? (
-          <div className="flex items-center gap-2">
-            <ShareToggle id={session.id} shared={session.shared} />
-            <Link
-              href={`/sessions/${session.id}/edit`}
-              className="flex h-8 items-center rounded-lg border border-line-strong px-3 font-semibold text-foreground/80 hover:border-line-strong"
-            >
-              {t("sessions.edit")}
-            </Link>
-            <RecordCardButton
-              data={card}
-              className="flex h-8 items-center rounded-lg border border-line-strong px-3 font-semibold text-foreground/80 hover:border-line-strong"
-            />
-            <DeleteButton kind="session" id={session.id} redirectTo="/sessions" />
+    <>
+      <Back
+        href={isOwner ? "/sessions" : "/feed"}
+        label={isOwner ? t("sessions.title") : t("nav.feed")}
+      />
+      <PageHead
+        title={title}
+        description={[
+          formatDate(session.started_at, tag, tz),
+          divisionLabel,
+          t(`source.${session.source_device}` as Parameters<typeof t>[0]),
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+        action={
+          <div className="rx-actions">
+            {isOwner ? (
+              <>
+                <ShareToggle id={session.id} shared={session.shared} />
+                <Go href={`/sessions/${session.id}/share`}>{t("detail.card")}</Go>
+                <Go href={`/sessions/${session.id}/edit`}>{t("sessions.edit")}</Go>
+                <DeleteButton kind="session" id={session.id} redirectTo="/sessions" />
+              </>
+            ) : (
+              <FollowButton authorId={session.user_id} />
+            )}
           </div>
-        ) : (
-          <FollowButton authorId={session.user_id} />
-        )}
+        }
+      />
+
+      <div className="rx-detail-hero">
+        <div>
+          <Chip tone="yellow">{kindLabel}</Chip>{" "}
+          {divisionLabel && <Chip>{divisionLabel}</Chip>}
+          <p>FINISH TIME</p>
+          <strong>{formatMs(session.total_time_ms)}</strong>
+        </div>
+        <div>
+          <span>{t("detail.status")}</span>
+          <h3>
+            {pbGap != null
+              ? pbGap <= 0
+                ? t("sessions.pb")
+                : `PB ${gapLabel(pbGap)}`
+              : session.analysis_status !== "done"
+                ? t("common.analysisPending")
+                : t("detail.finished")}
+          </h3>
+          <p>
+            {dist
+              ? t("sessions.distTop", { pct: dist.pct })
+              : t("sessions.recordedVia", {
+                  device: t(`source.${session.source_device}` as Parameters<typeof t>[0]),
+                })}
+          </p>
+        </div>
       </div>
 
-      {/* 히어로 */}
-      <section className="grid items-end gap-6 rounded-2xl border border-line-accent bg-highlight px-6 py-5 sm:grid-cols-[1fr_auto]">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            {race ? (
-              <span className="rounded-md bg-gold-bg px-2 py-0.5 text-xs font-bold text-accent-dim">
-                {t("sessions.race")}
-              </span>
-            ) : isErg ? (
-              <span className="rounded-md bg-info-bg px-2 py-0.5 text-xs font-bold text-info">
-                ⚡ {t("sessions.ergDedicated")}
-              </span>
-            ) : (
-              <span className="rounded-md bg-label-bg px-2 py-0.5 text-xs font-bold text-label">
-                {t("sessions.typeSim")}
-              </span>
-            )}
-            {(race?.division ?? session.division) && (
-              <span className="rounded bg-label-bg px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-label">
-                {t(
-                  `division.${race?.division ?? session.division}` as Parameters<typeof t>[0],
-                )}
-              </span>
-            )}
-            <span className="text-xs text-muted">
-              {race?.season ? `${race.season} · ` : ""}
-              {t("sessions.recordedVia", {
-                device: t(
-                  `source.${session.source_device}` as Parameters<typeof t>[0],
-                ),
-              })}
-            </span>
-          </div>
-          <h1 className="mt-2 truncate text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
-            {race?.event ?? formatDate(session.started_at, tag, tz)}
-          </h1>
-          {race?.event && (
-            <p className="mt-1 text-sm text-foreground/75">
-              {formatDate(session.started_at, tag, tz)}
-            </p>
-          )}
-        </div>
-
-        <div className="sm:text-right">
-          <p className="tabular text-[44px] font-extrabold leading-none tracking-tight text-gold">
-            {formatMs(session.total_time_ms)}
-          </p>
-          <p className="mt-2 flex flex-wrap items-center gap-x-2.5 text-[13px] sm:justify-end">
-            {pbGap != null && (
-              <span
-                className={`tabular font-bold ${pbGap <= 0 ? "text-gold" : "text-danger"}`}
-              >
-                {pbGap <= 0 ? t("sessions.pb") : `PB ${gapLabel(pbGap)}`}
-              </span>
-            )}
-            {dist && (
-              <span className="text-muted">
-                {t("sessions.distTop", { pct: dist.pct })}
-              </span>
-            )}
-          </p>
-        </div>
-      </section>
-
-      {/* 연결 프로그램 · RPE · 노트 */}
       {(linked || (isOwner && (session.rpe != null || session.notes))) && (
-        <section className="rounded-2xl border border-line bg-card px-5 py-4">
-          {linked && (
-            <p className="text-sm">
-              <span className="text-muted">{t("sessions.partOfProgram")} </span>
-              {linked.program_days?.programs ? (
-                <Link
-                  href={`/programs/${linked.program_days.programs.id}`}
-                  className="text-gold hover:underline"
-                >
-                  {linked.program_days.programs.title}
-                  {linked.program_days.day_index != null
-                    ? ` · ${t("programs.dayN", { n: linked.program_days.day_index })}`
-                    : ""}
-                  {` · ${linked.title}`}
-                </Link>
-              ) : (
-                <span className="text-foreground/90">{linked.title}</span>
-              )}
-            </p>
-          )}
-          {isOwner && session.rpe != null && (
-            <div className={`flex items-center gap-2 text-sm ${linked ? "mt-2" : ""}`}>
-              <span className="text-muted">{t("sessions.rpe")}</span>
-              <span className="tabular rounded-md bg-accent/15 px-2 py-0.5 text-xs font-bold text-gold">
-                {t("sessions.rpeValue", { n: session.rpe })}
-              </span>
-            </div>
-          )}
-          {isOwner && session.notes && (
-            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/80">
-              {session.notes}
-            </p>
-          )}
-        </section>
+        <div className="rx-notice">
+          <Link2 size={21} />
+          <div>
+            {linked && (
+              <b>
+                {t("sessions.partOfProgram")}{" "}
+                {linked.program_days?.programs ? (
+                  <Link href={`/programs/${linked.program_days.programs.id}`}>
+                    {linked.program_days.programs.title}
+                    {linked.program_days.day_index != null
+                      ? ` · ${t("programs.dayN", { n: linked.program_days.day_index })}`
+                      : ""}
+                    {` · ${linked.title}`}
+                  </Link>
+                ) : (
+                  linked.title
+                )}
+              </b>
+            )}
+            {isOwner && session.rpe != null && (
+              <p>
+                {t("sessions.rpe")} {t("sessions.rpeValue", { n: session.rpe })}
+              </p>
+            )}
+            {isOwner && session.notes && (
+              <p style={{ whiteSpace: "pre-wrap" }}>{session.notes}</p>
+            )}
+          </div>
+        </div>
       )}
 
-      {isErg && (
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.ergDistance")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold">
-              {ergDist != null ? `${Math.round(ergDist)} m` : "—"}
-            </p>
+      {session.analysis_status !== "done" && !isErg && (
+        <div className="rx-notice">
+          <TriangleAlert size={21} />
+          <div>
+            <b>{t("common.analysisPending")}</b>
           </div>
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.ergAvgPower")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold">
-              {ergMetrics?.avg_power != null
-                ? `${Math.round(Number(ergMetrics.avg_power))} W`
-                : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.ergAvgPace")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold">
-              {ergMetrics?.avg_pace_500 != null
+        </div>
+      )}
+
+      {isErg ? (
+        <Stats
+          items={[
+            [t("sessions.ergDistance"), ergDist != null ? `${Math.round(ergDist)} m` : "—", ""],
+            [
+              t("sessions.ergAvgPower"),
+              ergMetrics?.avg_power != null ? `${Math.round(Number(ergMetrics.avg_power))} W` : "—",
+              "",
+            ],
+            [
+              t("sessions.ergAvgPace"),
+              ergMetrics?.avg_pace_500 != null
                 ? `${fmtPace(Number(ergMetrics.avg_pace_500))} /500m`
-                : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.ergAvgSpm")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold">
-              {ergMetrics?.avg_spm != null
-                ? Math.round(Number(ergMetrics.avg_spm))
-                : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.ergStrokes")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold">
-              {ergStrokesAll.length || "—"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.ergAvgWork")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold">
-              {ergAvgWork != null ? `${Math.round(ergAvgWork)} J` : "—"}
-            </p>
-          </div>
-        </section>
+                : "—",
+              "",
+            ],
+            [
+              t("sessions.ergAvgSpm"),
+              ergMetrics?.avg_spm != null ? String(Math.round(Number(ergMetrics.avg_spm))) : "—",
+              ergStrokesAll.length ? `${t("sessions.ergStrokes")} ${ergStrokesAll.length}` : "",
+            ],
+          ]}
+        />
+      ) : (
+        <Stats
+          items={[
+            [t("kind.run"), formatMs(share.runMs), t("detail.ofTotal", { pct: pctOf(share.runMs) })],
+            [
+              t("detail.station"),
+              formatMs(share.stationMs),
+              t("detail.ofTotal", { pct: pctOf(share.stationMs) }),
+            ],
+            [t("kind.roxzone"), roxzoneMs ? formatMs(roxzoneMs) : "—", t("detail.otherNote")],
+            [
+              t("sessions.pacing"),
+              grade ? t(`pacing.${grade}`) : "—",
+              deviation != null
+                ? `${t("sessions.runLapDeviation")} ${t("sessions.deviationSec", { n: Math.round(deviation / 1000) })}`
+                : "",
+            ],
+          ]}
+        />
       )}
 
       {!isErg && (
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.pacing")}</p>
-            <p className="mt-1 text-lg font-semibold">
-              {grade ? t(`pacing.${grade}`) : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.runLapDeviation")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold">
-              {deviation != null
-                ? t("sessions.deviationSec", { n: Math.round(deviation / 1000) })
-                : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.roxzoneTotal")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold">
-              {roxzoneMs ? formatMs(roxzoneMs) : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.longestTransition")}</p>
-            <p className="tabular mt-1 text-xl font-extrabold">
-              {slowestZone ? formatMs(slowestZone.ms) : "—"}
-            </p>
-          </div>
-        </section>
+        <div className="rx-two-col">
+          <Panel
+            title={t("detail.runPace")}
+            action={<Chip>{runLaps.length} × 1 km</Chip>}
+          >
+            {runLaps.length ? (
+              <>
+                <div className="rx-lap-chart">
+                  {runLaps.map((seg, i) => (
+                    <div key={seg.id}>
+                      <span>{formatMs(seg.split_time_ms)}</span>
+                      <div style={{ height: Math.round(seg.split_time_ms! / 4000) + "px" }} />
+                      <small>RUN {i + 1}</small>
+                    </div>
+                  ))}
+                </div>
+                <Hint>
+                  {lapAvg != null && `${t("sessions.lapAvg")} ${formatMs(lapAvg)}`}
+                  {lapDrift != null &&
+                    ` · ${lapDrift >= 0 ? "+" : "−"}${formatMs(Math.abs(lapDrift))}`}
+                </Hint>
+              </>
+            ) : (
+              <Hint>{t("detail.noSplits")}</Hint>
+            )}
+          </Panel>
+          <Panel title={t("detail.splits")}>
+            {rounds > 0 ? (
+              <DataTable
+                headers={[t("detail.round"), t("kind.run"), t("kind.roxzone"), t("detail.station")]}
+                rows={Array.from({ length: rounds }, (_, i) => [
+                  <span key="s">
+                    <small className="rx-muted">{String(i + 1).padStart(2, "0")} </small>
+                    {stationSegs[i] ? (exName(stationSegs[i].exercises) ?? "") : ""}
+                  </span>,
+                  runLaps[i] ? formatMs(runLaps[i].split_time_ms) : "—",
+                  roxSegs[i]?.split_time_ms != null ? formatMs(roxSegs[i].split_time_ms) : "—",
+                  stationSegs[i]?.split_time_ms != null
+                    ? formatMs(stationSegs[i].split_time_ms)
+                    : "—",
+                ])}
+              />
+            ) : (
+              <Hint>{t("sessions.noSegments")}</Hint>
+            )}
+          </Panel>
+        </div>
       )}
 
+      <Panel title={t("detail.insights")}>
+        {!isErg && share.totalMs > 0 && (
+          <div className="rx-insight">
+            <Flag />
+            <div>
+              <h3>{t("detail.runShare", { pct: pctOf(share.runMs) })}</h3>
+              <p>
+                {t("detail.runShareNote", {
+                  run: formatMs(share.runMs),
+                  total: formatMs(total),
+                })}
+              </p>
+            </div>
+          </div>
+        )}
+        {grade && (
+          <div className="rx-insight">
+            <Activity />
+            <div>
+              <h3>
+                {t("sessions.pacing")}: {t(`pacing.${grade}`)}
+              </h3>
+              <p>
+                {deviation != null &&
+                  `${t("sessions.runLapDeviation")} ${t("sessions.deviationSec", { n: Math.round(deviation / 1000) })}`}
+                {slowestZone && ` · ${t("sessions.longestTransition")} ${formatMs(slowestZone.ms)}`}
+              </p>
+            </div>
+          </div>
+        )}
+        {degradation && degradation.degradation_pct != null && (
+          <div className="rx-insight">
+            <Activity />
+            <div>
+              <h3>{t("run.degSlower", { pct: degradation.degradation_pct })}</h3>
+              <p>
+                {t(gradeDictKey(degradation.grade))} · {t("run.degLap")}{" "}
+                {formatMs(degradation.sim_lap_avg_ms)} · {t("run.degBaseline")}{" "}
+                {formatMs(degradation.baseline!.baseline_1k_ms)} ·{" "}
+                <Link href="/runs">
+                  {t("run.baselineFrom", {
+                    distance: formatDistance(degradation.baseline!.from_distance_m),
+                    date: formatDateShortYear(degradation.baseline!.from_ran_on, tag, tz),
+                  })}
+                </Link>
+              </p>
+            </div>
+          </div>
+        )}
+        {degradation && degradation.degradation_pct == null && (
+          <div className="rx-insight">
+            <Activity />
+            <div>
+              <h3>{t("run.degTitle")}</h3>
+              <p>
+                {t("run.degNone")} <Link href="/runs/new">{t("run.add")}</Link>
+              </p>
+            </div>
+          </div>
+        )}
+        {dist && (
+          <div className="rx-insight">
+            <Flag />
+            <div>
+              <h3>{t("sessions.distTop", { pct: dist.pct })}</h3>
+              <p>
+                {dist.byAge && dist.ageGroup
+                  ? t("dist.captionAge", {
+                      division: t(`division.${(session.division as string | null) ?? "open"}` as Parameters<typeof t>[0]),
+                      age: dist.ageGroup,
+                    })
+                  : t("dist.caption", {
+                      division: t(`division.${(session.division as string | null) ?? "open"}` as Parameters<typeof t>[0]),
+                    })}
+              </p>
+            </div>
+          </div>
+        )}
+        {isErg && !ergSegments.length && !dist && !grade && (
+          <Hint>{t("sessions.ergDedicated")}</Hint>
+        )}
+      </Panel>
+
+      {/* ── 시안에 없는 우리 분석 (PORT_PLAN §4-1) ── */}
       {!isErg && share.totalMs > 0 && (
-        <section>
-          <h2 className="text-[15px] font-extrabold">{t("sessions.timeComposition")}</h2>
-          <div className="mt-3">
+        <Panel title={t("sessions.timeComposition")}>
+          <div style={{ padding: "0 24px 24px" }}>
             <BreakdownStackBar
               runMs={share.runMs}
               stationMs={share.stationMs}
               roxzoneMs={share.roxzoneMs}
             />
           </div>
-        </section>
+        </Panel>
       )}
-
-      {/* 필드 분포 + 런 랩 추이 — 나란히 봐야 "느렸는가"와 "흔들렸는가"가 같이 읽힌다 */}
-      {(dist || (!isErg && runLaps.length >= 2)) && (
-        <section className="grid gap-3 md:grid-cols-2">
-          {dist && (
-          <DistributionCurve
-            percentiles={dist.percentiles}
-            myMs={session.total_time_ms!}
-            pct={dist.pct}
-            caption={
-              dist.byAge && dist.ageGroup
-                ? t("dist.captionAge", {
-                    division: t(
-                      `division.${(session.division as string | null) ?? "open"}` as Parameters<
-                        typeof t
-                      >[0],
-                    ),
-                    age: dist.ageGroup,
-                  })
-                : t("dist.caption", {
-                    division: t(
-                      `division.${(session.division as string | null) ?? "open"}` as Parameters<
-                        typeof t
-                      >[0],
-                    ),
-                  })
-            }
-          />
-        )}
-          {!isErg && runLaps.length >= 2 && (
-            <div className="rounded-2xl border border-line bg-card px-5 py-4">
-              <div className="flex flex-wrap items-baseline gap-2">
-                <h2 className="text-[15px] font-extrabold">
-                  {t("sessions.runLapTrend")}
-                </h2>
-                <span className="text-xs text-muted">
-                  1km · {t("sessions.lapCount", { n: runLaps.length })}
-                </span>
-                <span className="tabular ml-auto text-xs text-muted">
-                  {lapAvg != null && (
-                    <>
-                      {t("sessions.lapAvg")}{" "}
-                      <b className="font-bold text-foreground">
-                        {formatMs(lapAvg)}
-                      </b>
-                    </>
-                  )}
-                  {lapDrift != null && (
-                    <span className={lapDrift > 0 ? "text-danger" : "text-success"}>
-                      {" · "}
-                      {lapDrift >= 0 ? "+" : "−"}
-                      {formatMs(Math.abs(lapDrift))}
-                    </span>
-                  )}
-                </span>
-              </div>
-              <div className="mt-2">
-                <RunLapLine
-                  data={runLaps.map((seg, i) => ({
-                    name: t("sessions.lapN", { n: i + 1 }),
-                    ms: seg.split_time_ms!,
-                  }))}
-                />
-              </div>
-            </div>
-          )}
-        </section>
+      {dist && (
+        <Panel>
+          <div style={{ padding: "0 24px 24px" }}>
+            <DistributionCurve
+              percentiles={dist.percentiles}
+              myMs={session.total_time_ms!}
+              pct={dist.pct}
+              caption={t("dist.caption", {
+                division: t(`division.${(session.division as string | null) ?? "open"}` as Parameters<typeof t>[0]),
+              })}
+            />
+          </div>
+        </Panel>
       )}
-
       {!isErg && chartData.length > 1 && (
-        <section>
-          <h2 className="text-[15px] font-extrabold">{t("sessions.segmentSplits")}</h2>
-          <div className="mt-3 rounded-xl border border-line bg-card p-4">
+        <Panel title={t("sessions.segmentSplits")}>
+          <div style={{ padding: "0 24px 24px" }}>
             <SegmentSplitBars data={chartData} />
           </div>
-        </section>
+        </Panel>
       )}
-
-      {degradation && (
-        <section>
-          <h2 className="text-[15px] font-extrabold">{t("run.degTitle")}</h2>
-          <p className="mt-1 text-sm text-muted">{t("run.degDesc")}</p>
-          <div className="mt-3 rounded-xl border border-line bg-card px-5 py-4">
-            {degradation.degradation_pct == null ? (
-              <div>
-                <p className="text-sm text-muted">{t("run.degNone")}</p>
-                <Link
-                  href="/runs/new"
-                  className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
-                >
-                  {t("run.add")}
-                </Link>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="font-mono text-3xl font-black">
-                    {t("run.degSlower", { pct: degradation.degradation_pct })}
-                  </span>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${gradeClass(degradation.grade)}`}
-                  >
-                    {t(gradeDictKey(degradation.grade))}
-                  </span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted">
-                  <span>
-                    {t("run.degLap")}{" "}
-                    <span className="font-mono text-foreground">
-                      {formatMs(degradation.sim_lap_avg_ms)}
-                    </span>
-                  </span>
-                  <span>
-                    {t("run.degBaseline")}{" "}
-                    <span className="font-mono text-foreground">
-                      {formatMs(degradation.baseline!.baseline_1k_ms)}
-                    </span>
-                  </span>
-                  <Link href="/runs" className="hover:text-gold">
-                    {t("run.baselineFrom", {
-                      distance: formatDistance(
-                        degradation.baseline!.from_distance_m,
-                      ),
-                      date: formatDateShortYear(
-                        degradation.baseline!.from_ran_on,
-                        tag,
-                        tz,
-                      ),
-                    })}
-                  </Link>
-                </div>
-                <p className="mt-3 text-xs text-muted">{t("run.gradeHint")}</p>
-              </>
-            )}
-          </div>
-        </section>
-      )}
-
       {ergSegments.length > 0 && (
-        <section>
-          <h2 className="text-[15px] font-extrabold">{t("sessions.ergCurves")}</h2>
-          <p className="mt-1 text-sm text-muted">{t("sessions.ergCurvesDesc")}</p>
-          <div className="mt-3 flex flex-col gap-4">
+        <Panel title={t("sessions.ergCurves")}>
+          <div style={{ padding: "0 24px 24px" }}>
+            <p className="rx-hint" style={{ marginBottom: 12 }}>
+              {t("sessions.ergCurvesDesc")}
+            </p>
             {ergSegments.map((e) => (
-              <div key={e.key} className="rounded-xl border border-line bg-card p-4">
-                <p className="text-sm font-semibold">{e.name}</p>
+              <div key={e.key} style={{ marginBottom: 16 }}>
+                <p className="rx-section-label">{e.name}</p>
                 {e.power.length > 1 && (
-                  <div className="mt-2">
-                    <p className="text-xs text-muted">{t("sessions.powerCurve")}</p>
-                    <ErgCurve data={e.power} color={CHART_COLORS.station} unit="W" />
-                  </div>
+                  <ErgCurve data={e.power} color={CHART_COLORS.station} unit="W" />
                 )}
                 {e.pace.length > 1 && (
-                  <div className="mt-2">
-                    <p className="text-xs text-muted">{t("sessions.paceCurve")}</p>
-                    <ErgCurve data={e.pace} color={CHART_COLORS.run} unit="/500m" />
-                  </div>
+                  <ErgCurve data={e.pace} color={CHART_COLORS.run} unit="/500m" />
                 )}
                 {isErg && spmCurve.length > 1 && (
-                  <div className="mt-2">
-                    <p className="text-xs text-muted">{t("sessions.spmCurve")}</p>
-                    <ErgCurve data={spmCurve} color="var(--chart-green)" unit="spm" />
-                  </div>
+                  <ErgCurve data={spmCurve} color="var(--chart-5)" unit="spm" />
                 )}
               </div>
             ))}
           </div>
-        </section>
+        </Panel>
       )}
-
-      {/* 스트로크 분석 — PM5 0x0035 스트로크 이벤트 (있을 때만) */}
       {isErg && ergStrokesAll.length > 1 && (
-        <section>
-          <h2 className="text-[15px] font-extrabold">{t("sessions.strokeSection")}</h2>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-              <p className="text-xs text-muted">{t("sessions.avgDriveLen")}</p>
-              <p className="tabular mt-1 text-xl font-extrabold">
-                {ergAvgDriveLen != null ? `${ergAvgDriveLen.toFixed(2)} m` : "—"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-              <p className="text-xs text-muted">{t("sessions.avgStrokeDist")}</p>
-              <p className="tabular mt-1 text-xl font-extrabold">
-                {ergAvgStrokeDist != null
-                  ? `${ergAvgStrokeDist.toFixed(2)} m`
-                  : "—"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-line bg-card px-4 py-3.5">
-              <p className="text-xs text-muted">{t("sessions.driveRatio")}</p>
-              <p className="tabular mt-1 text-xl font-extrabold">
-                {ergDriveMs != null && ergRecoverMs != null && ergDriveMs > 0
+        <Panel title={t("sessions.strokeSection")}>
+          <DataTable
+            headers={[t("sessions.avgDriveLen"), t("sessions.avgStrokeDist"), t("sessions.driveRatio"), t("sessions.ergAvgWork")]}
+            rows={[
+              [
+                ergAvgDriveLen != null ? `${ergAvgDriveLen.toFixed(2)} m` : "—",
+                ergAvgStrokeDist != null ? `${ergAvgStrokeDist.toFixed(2)} m` : "—",
+                ergDriveMs != null && ergRecoverMs != null && ergDriveMs > 0
                   ? `1 : ${(ergRecoverMs / ergDriveMs).toFixed(2)}`
-                  : "—"}
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 rounded-xl border border-line bg-card p-4">
-            <p className="text-xs text-muted">{t("sessions.strokeForce")}</p>
+                  : "—",
+                ergAvgWork != null ? `${Math.round(ergAvgWork)} J` : "—",
+              ],
+            ]}
+          />
+          <div style={{ padding: "0 24px 24px" }}>
+            <p className="rx-section-label">{t("sessions.strokeForce")}</p>
             <StrokeForceChart
-              data={ergStrokesAll.map((s) => ({
-                n: s.n,
-                peak: s.peak_force,
-                avg: s.avg_force,
-              }))}
+              data={ergStrokesAll.map((s) => ({ n: s.n, peak: s.peak_force, avg: s.avg_force }))}
               peakLabel={t("sessions.peakForce")}
               avgLabel={t("sessions.avgForce")}
             />
-          </div>
-          <div className="mt-3 rounded-xl border border-line bg-card p-4">
-            <p className="text-xs text-muted">{t("sessions.driveAnalysis")}</p>
+            <p className="rx-section-label" style={{ marginTop: 16 }}>
+              {t("sessions.driveAnalysis")}
+            </p>
             <DriveChart
               data={ergStrokesAll.map((s) => ({
                 n: s.n,
                 drive: s.drive_ms != null ? Math.round(s.drive_ms) / 1000 : null,
-                recover:
-                  s.recover_ms != null ? Math.round(s.recover_ms) / 1000 : null,
+                recover: s.recover_ms != null ? Math.round(s.recover_ms) / 1000 : null,
               }))}
               driveLabel={t("sessions.drive")}
               recoverLabel={t("sessions.recover")}
             />
           </div>
-        </section>
+        </Panel>
       )}
 
-      <section>
-        <h2 className="text-[15px] font-extrabold">{t("sessions.segments")}</h2>
+      <Panel title={t("sessions.segments")}>
         {!segments.length ? (
-          <p className="mt-4 rounded-xl border border-line bg-card px-4 py-10 text-center text-sm text-muted">
-            {t("sessions.noSegments")}
-          </p>
+          <Hint>{t("sessions.noSegments")}</Hint>
         ) : (
-          <ol className="mt-4 flex flex-col gap-1.5">
-            {segments.map((seg) => (
-              <li
-                key={seg.id}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 ${
-                  worstSeq.get(seg.kind) === seg.seq
-                    ? "border-danger-line bg-danger-card"
-                    : "border-line bg-card"
-                }`}
-              >
-                <span className="tabular w-6 text-right text-xs text-muted">
-                  {seg.seq}
-                </span>
-                <span
-                  className={`rounded border px-1.5 py-0.5 text-xs ${KIND_BADGE[seg.kind] ?? ""}`}
-                >
-                  {t(`kind.${seg.kind}`)}
-                </span>
-                <span className="flex-1 text-sm">
-                  {exName(seg.exercises) ??
-                    (seg.kind === "run"
-                      ? t("sessions.run1km")
-                      : seg.kind === "roxzone"
-                        ? t("sessions.transition")
-                        : "—")}
-                  {seg.machine_type && (
-                    <span className="ml-2 text-xs text-muted">
-                      {seg.machine_type === "ski"
-                        ? t("sessions.machineSki")
-                        : t("sessions.machineRow")}
-                      {rawOf(seg)
-                        ? ` · ${t("sessions.rawSamples", { n: rawOf(seg)!.sample_count })}`
-                        : ` · ${t("sessions.rawNone")}`}
-                    </span>
-                  )}
-                </span>
-                {seg.segment_metrics?.avg_power != null && (
-                  <span className="tabular text-xs text-muted">
-                    {Math.round(Number(seg.segment_metrics.avg_power))}W
-                  </span>
+          <DataTable
+            headers={["#", t("kind.station"), t("sessions.colTime"), t("chart.vsPrev")]}
+            rows={segments.map((seg) => [
+              <span className="rx-muted" key="n">
+                {seg.seq}
+              </span>,
+              <span key="name">
+                <Chip>{t(`kind.${seg.kind}`)}</Chip>{" "}
+                {exName(seg.exercises) ??
+                  (seg.kind === "run"
+                    ? t("sessions.run1km")
+                    : seg.kind === "roxzone"
+                      ? t("sessions.transition")
+                      : "—")}
+                {seg.machine_type && (
+                  <small className="rx-muted">
+                    {" "}
+                    {seg.machine_type === "ski" ? t("sessions.machineSki") : t("sessions.machineRow")}
+                    {rawOf(seg)
+                      ? ` · ${t("sessions.rawSamples", { n: rawOf(seg)!.sample_count })}`
+                      : ` · ${t("sessions.rawNone")}`}
+                  </small>
                 )}
                 {seg.avg_hr != null && (
-                  <span className="tabular text-xs text-danger">
+                  <small className="rx-muted">
+                    {" "}
                     ♥{seg.avg_hr}
                     {seg.max_hr != null && `/${seg.max_hr}`}
-                  </span>
+                  </small>
                 )}
-                {(() => {
-                  const avg = kindAvg.get(seg.kind);
-                  if (avg == null || seg.split_time_ms == null) return null;
-                  const d = Math.round((seg.split_time_ms - avg) / 1000);
-                  if (Math.abs(d) < 1) return null;
-                  const a = Math.abs(d);
-                  const txt = `${d > 0 ? "+" : "−"}${Math.floor(a / 60)}:${String(a % 60).padStart(2, "0")}`;
-                  return (
-                    <span
-                      className={`tabular hidden w-14 text-right text-[13px] font-semibold sm:block ${
-                        d > 30 ? "text-danger" : d < -30 ? "text-success" : "text-muted"
-                      }`}
-                    >
-                      {txt}
-                    </span>
-                  );
-                })()}
-                <span className="tabular w-16 text-right text-sm font-bold">
-                  {formatMs(seg.split_time_ms)}
-                </span>
-              </li>
-            ))}
-          </ol>
+              </span>,
+              <strong className="rx-number" key="ms">
+                {formatMs(seg.split_time_ms)}
+              </strong>,
+              vsAvg(seg),
+            ])}
+          />
         )}
-      </section>
+      </Panel>
 
       <AiInsight kind="session" refId={id} />
-    </main>
+    </>
   );
 }

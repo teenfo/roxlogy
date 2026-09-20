@@ -1,4 +1,13 @@
 import Link from "next/link";
+import {
+  Activity,
+  ArrowRight,
+  ChevronRight,
+  Dumbbell,
+  Flag,
+  Plus,
+  Target,
+} from "lucide-react";
 import { AiInsight } from "@/components/ai-insight";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
@@ -6,9 +15,11 @@ import { getRaceBenchmarks } from "@/lib/cache";
 import { getT } from "@/lib/i18n";
 import {
   formatDate,
+  formatDateShort,
   formatDateShortYear,
   formatMs,
   programDayNumber,
+  todayISOIn,
   todayMidnightIn,
 } from "@/lib/format";
 import { STATIONS } from "@/lib/hyrox";
@@ -17,12 +28,20 @@ import { RehearsalReport } from "@/components/rehearsal-report";
 import { PercentileBar } from "@/components/percentile-bar";
 import { percentileOf, type Benchmark } from "@/lib/percentile";
 import { RowLink } from "@/components/row-link";
+import { Button } from "@/components/ui/button";
+import { DataTable, PageHead, Panel, RecordRow } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
   return { title: t("meta.dashboard") };
 }
 
+/**
+ * 대시보드 — 시안 dashboard.tsx 그대로 (PORT_PLAN §3-b):
+ * PageHead · rx-stats 4 · [rx-race-feature | 오늘의 훈련] · [최근 기록 | 다음 목표].
+ * 시안에 없는 우리 위젯(크루 일정·스테이션 최고·추이·훈련 vs 레이스·리허설·AI·백분위)은
+ * 그 아래 Panel 로만 감싼다(§4-1 — 캡쳐 보고 대상).
+ */
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { t, tag, tz } = await getT();
@@ -37,12 +56,14 @@ export default async function DashboardPage() {
     { data: goals },
     benchmarks,
     { data: enrollment },
+    { data: nextPlans },
+    { data: raceSessions },
   ] = await Promise.all([
     getCachedProfile(), // 레이아웃과 공유 — 요청당 1회만 조회
 
     supabase
       .from("sessions")
-      .select("id, started_at, total_time_ms, source_device, template_id")
+      .select("id, started_at, total_time_ms, source_device, template_id, division, race_results ( event, event_date, division )")
       .eq("user_id", user!.id)
       .is("deleted_at", null)
       .order("started_at", { ascending: false })
@@ -89,6 +110,23 @@ export default async function DashboardPage() {
              workout_templates ( id, title, type ) ) )`,
       )
       .eq("active", true),
+    // 다음 레이스 — 내 레이스 계획 중 가장 가까운 것
+    supabase
+      .from("race_plans")
+      .select("id, title, race_date")
+      .eq("user_id", user!.id)
+      .gte("race_date", todayISOIn(tz))
+      .order("race_date")
+      .limit(1),
+    // 최근 레이스에 연결된 세션의 구간 — 런/스테이션/그 외 비율
+    supabase
+      .from("sessions")
+      .select("race_result_id, session_segments ( kind, split_time_ms )")
+      .eq("user_id", user!.id)
+      .is("deleted_at", null)
+      .not("race_result_id", "is", null)
+      .order("started_at", { ascending: false })
+      .limit(3),
   ]);
 
   const all = sessions ?? [];
@@ -131,7 +169,7 @@ export default async function DashboardPage() {
     if (rows.length) crewAgenda.push({ crew: c, rows });
   }
 
-  // 최근 레이스 필드 대비 백분위 (공개 분포 기준) — races는 event_date 오름차순
+  // 최근 레이스 — races 는 event_date 오름차순
   const raceList = (races ?? []) as {
     id: string;
     event: string;
@@ -140,6 +178,13 @@ export default async function DashboardPage() {
     total_time_ms: number | null;
   }[];
   const latestRace = raceList.length ? raceList[raceList.length - 1] : null;
+  const bestRace = raceList.reduce<(typeof raceList)[number] | null>(
+    (a, r) =>
+      r.total_time_ms != null && (a == null || r.total_time_ms < a.total_time_ms!)
+        ? r
+        : a,
+    null,
+  );
   const bms = (benchmarks ?? []) as Benchmark[];
   const latestRacePct = latestRace
     ? percentileOf(
@@ -149,6 +194,34 @@ export default async function DashboardPage() {
         bms,
       )
     : null;
+  // 최근 레이스의 런/스테이션/그 외 비율 — 연결된 세션의 구간에서
+  type RaceSess = {
+    race_result_id: string;
+    session_segments: { kind: string; split_time_ms: number | null }[];
+  };
+  const linked = ((raceSessions ?? []) as RaceSess[]).find(
+    (s) => latestRace && s.race_result_id === latestRace.id,
+  );
+  let split: { run: number; station: number; other: number } | null = null;
+  if (linked && latestRace?.total_time_ms) {
+    const sum = (kind: string) =>
+      linked.session_segments
+        .filter((s) => s.kind === kind)
+        .reduce((a, s) => a + (s.split_time_ms ?? 0), 0);
+    const run = sum("run");
+    const station = sum("station");
+    if (run > 0 || station > 0) {
+      split = {
+        run,
+        station,
+        other: Math.max(0, latestRace.total_time_ms - run - station),
+      };
+    }
+  }
+  const pct = (v: number) =>
+    latestRace?.total_time_ms ? (v / latestRace.total_time_ms) * 100 : 0;
+  const divisionLabel = (d: string | null) =>
+    d ? t(`division.${d}` as Parameters<typeof t>[0]) : "";
 
   // 오늘의 운동: 활성 프로그램 등록 → 시작일 기준 오늘의 day_index 매핑
   type EnrollProgram = {
@@ -167,16 +240,18 @@ export default async function DashboardPage() {
   };
   // 진행 중 프로그램은 여러 개일 수 있다(096) — maybeSingle 은 2건부터 에러를 낸다
   const enrolls = (enrollment ?? []) as unknown as EnrollProgram[];
-  type TodayPlan = {
-    programId: string;
+  type TodayWorkout = {
+    id: string;
+    title: string;
+    type: string;
     programTitle: string;
-    dayNumber: number;
-    focus: string | null;
-    workouts: { id: string; title: string; type: string }[];
+    done: boolean;
   };
-  const todayPlans: TodayPlan[] = [];
+  const todayWorkouts: TodayWorkout[] = [];
+  let anyProgram = false;
   for (const enroll of enrolls) {
     if (!enroll.programs) continue;
+    anyProgram = true;
     const start = new Date(enroll.start_date + "T00:00:00");
     // 서버는 UTC — 사용자 시간대(폴백 KST) 기준 오늘로 일차를 계산한다
     const nowMid = todayMidnightIn(tz);
@@ -196,43 +271,52 @@ export default async function DashboardPage() {
       const day = enroll.programs.program_days.find(
         (d) => d.day_index === dayNumber,
       );
-      todayPlans.push({
-        programId: enroll.programs.id,
-        programTitle: enroll.programs.title,
-        dayNumber,
-        focus: day?.focus ?? null,
-        workouts: day?.workout_templates ?? [],
-      });
+      for (const w of day?.workout_templates ?? []) {
+        todayWorkouts.push({
+          ...w,
+          programTitle: enroll.programs.title,
+          done: all.some((s) => s.template_id === w.id),
+        });
+      }
     }
   }
-  // 오늘 할 것이 있는 프로그램을 위로
-  todayPlans.sort((a, b) => b.workouts.length - a.workouts.length);
-  const planDone = (p: TodayPlan) =>
-    p.workouts.length > 0 && p.workouts.some((w) => all.some((s) => s.template_id === w.id));
+  const doneCount = todayWorkouts.filter((w) => w.done).length;
 
+  // 이번 주 세션 수 (스탯 보조 문구)
   const now = new Date();
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
   monday.setHours(0, 0, 0, 0);
   const weekly = all.filter((s) => new Date(s.started_at) >= monday);
-  const weeklyMs = weekly.reduce((acc, s) => acc + (s.total_time_ms ?? 0), 0);
 
-  // 연속 훈련일: 오늘(없으면 어제)부터 거슬러 세션이 있는 연속 일수
-  const localKey = (d: Date) => {
-    const x = new Date(d);
-    x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
-    return x.toISOString().slice(0, 10);
+  // 다음 레이스 D-day
+  const nextPlan = (nextPlans ?? [])[0] as
+    | { id: string; title: string; race_date: string }
+    | undefined;
+  const dday = nextPlan
+    ? Math.round(
+        (new Date(`${nextPlan.race_date}T00:00:00`).getTime() -
+          new Date(`${todayISOIn(tz)}T00:00:00`).getTime()) /
+          86400000,
+      )
+    : null;
+
+  // 다음 목표 — 가장 최근에 저장한 목표
+  type Goal = {
+    id: string;
+    target_total_ms: number;
+    run_total_ms: number | null;
+    roxzone_total_ms: number | null;
+    stations: { key: string; targetMs: number }[] | null;
+    division: string | null;
+    event_name: string | null;
+    event_date: string | null;
   };
-  const sessionDays = new Set(all.map((s) => localKey(new Date(s.started_at))));
-  let streak = 0;
-  const probe = new Date();
-  probe.setHours(0, 0, 0, 0);
-  if (!sessionDays.has(localKey(probe))) probe.setDate(probe.getDate() - 1);
-  while (sessionDays.has(localKey(probe))) {
-    streak++;
-    probe.setDate(probe.getDate() - 1);
-  }
+  const goalList = (goals ?? []) as Goal[];
+  const nextGoal = goalList[0] ?? null;
+  const goalStationMs = nextGoal?.stations?.reduce((a, s) => a + s.targetMs, 0) ?? 0;
 
+  // 스테이션 최고
   const pr = new Map<string, number>();
   for (const seg of stationSegs ?? []) {
     if (!seg.exercise_id || seg.split_time_ms == null) continue;
@@ -290,14 +374,7 @@ export default async function DashboardPage() {
     corr.some((c) => c.sim != null) && corr.some((c) => c.race != null);
 
   // S17 리허설 리포트: 목표·세션을 골라 스테이션별로 대비 (클라이언트 드롭박스)
-  const goalRows = ((goals ?? []) as {
-    id: string;
-    target_total_ms: number;
-    stations: { key: string; targetMs: number }[] | null;
-    division: string | null;
-    event_name: string | null;
-    event_date: string | null;
-  }[])
+  const goalRows = goalList
     .filter((g) => Array.isArray(g.stations) && g.stations.length > 0)
     .map((g) => ({
       id: g.id,
@@ -326,196 +403,279 @@ export default async function DashboardPage() {
     .filter((s) => Object.keys(s.stations).length > 0);
   const showRehearsal = goalRows.length > 0 && rehearsalSessions.length > 0;
 
+  // 오늘 날짜 블록 (시안 .rx-today-date)
+  const todayMid = todayMidnightIn(tz);
+  const weekdayShort = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: tz })
+    .format(todayMid)
+    .toUpperCase();
+  const dayNum = new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone: tz }).format(todayMid);
+  const todayLong = new Intl.DateTimeFormat(tag, {
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+    timeZone: tz,
+  }).format(todayMid);
+
+  const name = profile?.display_name ?? user!.email ?? "";
+  const raceOf = (s: (typeof all)[number]) => {
+    const rr = (s as { race_results?: unknown }).race_results;
+    return (Array.isArray(rr) ? rr[0] : rr) as
+      | { event: string | null; event_date: string | null; division: string | null }
+      | null
+      | undefined;
+  };
+
   return (
-    <main>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
-            {profile?.display_name ?? user!.email}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            <Link href="/settings/profile" className="text-gold hover:underline">
-              {t("dash.profileSettings")}
+    <>
+      <PageHead
+        title={t("dash.greeting")}
+        description={t("dash.intro", { name })}
+        action={
+          <Button asChild className="rx-primary">
+            <Link href="/sessions/new">
+              <Plus size={17} />
+              {t("dash.recordSession")}
             </Link>
+          </Button>
+        }
+      />
+      <div className="rx-stats">
+        <div className="rx-stat">
+          <span>{t("dash.totalSessions")}</span>
+          <strong>{all.length}</strong>
+          <p>
+            {t("dash.weekSessions")} {weekly.length}
           </p>
         </div>
-        <Link
-          href="/sessions/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
-        >
-          {t("dash.recordSession")}
-        </Link>
+        <div className="rx-stat">
+          <span>{t("dash.bestRace")}</span>
+          <strong>{bestRace ? formatMs(bestRace.total_time_ms) : "—"}</strong>
+          <p>{bestRace ? bestRace.event : t("dash.noRace")}</p>
+        </div>
+        <div className="rx-stat">
+          <span>{t("dash.nextRace")}</span>
+          <strong>{dday != null && dday >= 0 ? `D–${dday}` : "—"}</strong>
+          <p>
+            {nextPlan
+              ? `${nextPlan.title} · ${formatDateShort(nextPlan.race_date, tag, tz)}`
+              : t("sessions.noUpcoming")}
+          </p>
+        </div>
+        <div className="rx-stat">
+          <span>{t("dash.todayTitle")}</span>
+          <strong>
+            {doneCount} / {todayWorkouts.length}
+          </strong>
+          <p>
+            {todayWorkouts.length
+              ? [...new Set(todayWorkouts.map((w) => w.programTitle))].join(" · ")
+              : anyProgram
+                ? t("dash.todayRest")
+                : t("dash.noProgram")}
+          </p>
+        </div>
       </div>
 
-      {/* ── 그룹 1: 오늘 & 일정 ── */}
-      <div className="mt-8 rounded-lg border border-line bg-card p-4 sm:p-5">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
-          {t("dash.groupToday")}
-        </h2>
-
-      <section className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">{t("dash.streak")}</p>
-          <p className="mt-1 text-2xl font-bold">
-            {t("dash.streakDays", { n: streak })}
-          </p>
-        </div>
-        <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">{t("dash.weekSessions")}</p>
-          <p className="mt-1 text-2xl font-bold">
-            {t("dash.count", { n: weekly.length })}
-          </p>
-        </div>
-        <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">{t("dash.weekTime")}</p>
-          <p className="mt-1 font-mono text-2xl font-bold">
-            {formatMs(weeklyMs)}
-          </p>
-        </div>
-        <div className="rounded-md bg-surface px-4 py-3">
-          <p className="text-xs text-muted">{t("dash.totalSessions")}</p>
-          <p className="mt-1 text-2xl font-bold">
-            {t("dash.count", { n: all.length })}
-          </p>
-        </div>
-      </section>
-
-      {todayPlans.map((today) => {
-        const todayDone = planDone(today);
-        return (
-        <section key={today.programId} className="mt-6">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              {t("dash.todayTitle")}
-              {today.workouts.length > 0 && (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                    todayDone
-                      ? "bg-track/15 text-track"
-                      : "bg-accent/15 text-gold"
-                  }`}
-                >
-                  {todayDone ? t("dash.todayDone") : t("dash.todayTodo")}
-                </span>
-              )}
-            </h2>
-            <Link
-              href={`/programs/${today.programId}`}
-              className="text-sm text-gold hover:underline"
-            >
-              {today.programTitle}
+      <div className="rx-dashboard-grid">
+        <Panel className="rx-race-feature">
+          <div className="rx-panel-head">
+            <span className="rx-eyebrow">LATEST RACE</span>
+            <Link href="/races">
+              {t("dash.allRaces")} <ArrowRight size={16} />
             </Link>
           </div>
-          <div className="mt-3 rounded-md bg-surface px-4 py-4">
-            <p className="text-sm font-semibold">
-              {t("programs.dayN", { n: today.dayNumber })}
-              {today.focus ? ` · ${today.focus}` : ""}
-            </p>
-            {today.workouts.length ? (
-              <ul className="mt-3 flex flex-col gap-2">
-                {today.workouts.map((w) => (
-                  <li
-                    key={w.id}
-                    className="flex items-center justify-between rounded-md bg-background px-3 py-2.5"
-                  >
-                    {/* 가장 자주 쓰는 진입점 — 체크리스트로 바로 가게 한다 */}
-                    <RowLink
-                      href={`/workouts/${w.id}`}
-                      className="text-sm hover:text-gold"
-                    >
-                      {w.title}
-                    </RowLink>
-                    <span className="text-xs text-muted">
-                      {t(`programs.type.${w.type}` as Parameters<typeof t>[0])}
+          {latestRace ? (
+            <>
+              <div className="rx-feature-line">
+                <div>
+                  {latestRace.division && (
+                    <span className="rx-tag">{divisionLabel(latestRace.division)}</span>
+                  )}
+                  <h2>{latestRace.event}</h2>
+                  <p>
+                    {latestRace.event_date
+                      ? formatDateShort(latestRace.event_date, tag, tz)
+                      : ""}
+                    {latestRace.division ? ` · ${divisionLabel(latestRace.division)}` : ""}
+                  </p>
+                </div>
+                <div className="rx-race-time">
+                  <strong>{formatMs(latestRace.total_time_ms)}</strong>
+                  <span>{t("dash.officialTime")}</span>
+                </div>
+              </div>
+              {split && (
+                <>
+                  <div className="rx-race-split">
+                    <span style={{ width: `${pct(split.run)}%`, background: "#ffd500" }} />
+                    <span style={{ width: `${pct(split.station)}%`, background: "#899cd4" }} />
+                    <span style={{ width: `${pct(split.other)}%`, background: "#53606b" }} />
+                  </div>
+                  <div className="rx-split-labels">
+                    <span>
+                      <i style={{ background: "#ffd500" }} />
+                      {t("landing.m.run")} <b>{formatMs(split.run)}</b>
                     </span>
-                  </li>
-                ))}
-              </ul>
+                    <span>
+                      <i style={{ background: "#899cd4" }} />
+                      {t("landing.m.station")} <b>{formatMs(split.station)}</b>
+                    </span>
+                    <span>
+                      <i style={{ background: "#53606b" }} />
+                      {t("dash.other")} <b>{formatMs(split.other)}</b>
+                    </span>
+                  </div>
+                </>
+              )}
+              <Link className="rx-feature-link" href={`/races/${latestRace.id}`}>
+                {t("dash.analyzeSplits")} <ArrowRight size={18} />
+              </Link>
+            </>
+          ) : (
+            <div className="rx-feature-line">
+              <div>
+                <h2>{t("dash.noRace")}</h2>
+                <p>{t("dash.noRaceHint")}</p>
+              </div>
+            </div>
+          )}
+        </Panel>
+        <Panel
+          title={t("dash.todayTitle")}
+          action={
+            <Link href="/schedule">
+              {t("dash.weekSchedule")} <ArrowRight size={16} />
+            </Link>
+          }
+        >
+          <div className="rx-today-date">
+            <span>{weekdayShort}</span>
+            <strong>{dayNum}</strong>
+            <p>
+              {todayLong}
+              <br />
+              <small>
+                {todayWorkouts.length
+                  ? t("dash.todayN", { n: todayWorkouts.length })
+                  : anyProgram
+                    ? t("dash.todayRest")
+                    : t("dash.noProgram")}
+              </small>
+            </p>
+          </div>
+          {todayWorkouts.map((w) => (
+            <RowLink className="rx-workout-row" key={w.id} href={`/workouts/${w.id}`}>
+              <span className="rx-workout-icon">
+                <Dumbbell size={18} />
+              </span>
+              <span>
+                <b>{w.title}</b>
+                <small>
+                  {w.programTitle} ·{" "}
+                  {t(`programs.type.${w.type}` as Parameters<typeof t>[0])}
+                  {w.done ? ` · ${t("dash.todayDone")}` : ""}
+                </small>
+              </span>
+              <ChevronRight size={16} />
+            </RowLink>
+          ))}
+          {!todayWorkouts.length && (
+            <div className="rx-workout-row">
+              <span className="rx-workout-icon">
+                <Dumbbell size={18} />
+              </span>
+              <span>
+                <b>{anyProgram ? t("dash.todayRest") : t("dash.noProgram")}</b>
+                <small>
+                  <Link href="/programs">{t("nav.programs")}</Link>
+                </small>
+              </span>
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      <div className="rx-dashboard-grid">
+        <Panel
+          title={t("dash.recentTitle")}
+          action={
+            <Link href="/sessions">
+              {t("dash.allSessions")} <ArrowRight size={16} />
+            </Link>
+          }
+        >
+          {recent.length ? (
+            recent.map((s) => {
+              const race = raceOf(s);
+              return (
+                <RowLink className="rx-record-row" href={`/sessions/${s.id}`} key={s.id}>
+                  <span className="rx-workout-icon">
+                    {race ? <Flag size={17} /> : <Activity size={17} />}
+                  </span>
+                  <span>
+                    <b>{race?.event ?? formatDate(s.started_at, tag, tz)}</b>
+                    <small>
+                      {[
+                        divisionLabel(race?.division ?? s.division ?? null),
+                        formatDateShort(s.started_at, tag, tz),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </small>
+                  </span>
+                  <strong>{formatMs(s.total_time_ms)}</strong>
+                  <ChevronRight size={16} />
+                </RowLink>
+              );
+            })
+          ) : (
+            <div className="rx-record-row">
+              <span>
+                <b>{t("dash.empty")}</b>
+                <small>
+                  <Link href="/sessions/new">{t("dash.recordFirst")}</Link>
+                </small>
+              </span>
+            </div>
+          )}
+        </Panel>
+        <Panel title={t("dash.nextGoal")} action={<Target size={18} />}>
+          <div className="rx-target">
+            {nextGoal ? (
+              <>
+                <span className="rx-tag">
+                  {[nextGoal.event_name, divisionLabel(nextGoal.division)]
+                    .filter(Boolean)
+                    .join(" · ") || t("goals.noEvent")}
+                </span>
+                <h3>{formatMs(nextGoal.target_total_ms)}</h3>
+                <p>
+                  {t("landing.m.run")} {formatMs(nextGoal.run_total_ms)} ·{" "}
+                  {t("landing.m.station")} {formatMs(goalStationMs || null)} ·{" "}
+                  {t("landing.m.roxzone")} {formatMs(nextGoal.roxzone_total_ms)}
+                </p>
+                <Button asChild variant="outline">
+                  <Link href={`/predict?goal=${nextGoal.id}`}>
+                    {t("dash.adjustGoal")} <ArrowRight size={16} />
+                  </Link>
+                </Button>
+              </>
             ) : (
-              <p className="mt-2 text-sm text-muted">{t("dash.todayRest")}</p>
+              <>
+                <span className="rx-tag">{t("goals.empty")}</span>
+                <p>{t("goals.desc")}</p>
+                <Button asChild variant="outline">
+                  <Link href="/predict">
+                    {t("dash.makeGoal")} <ArrowRight size={16} />
+                  </Link>
+                </Button>
+              </>
             )}
           </div>
-        </section>
-        );
-      })}
-
-      {/* 크루 일정 — 다가오는 14일 (모임·대회·프로그램) */}
-      {crewAgenda.map(({ crew, rows }) => (
-        <section key={crew.slug} className="mt-6">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold">
-              {t("dash.crewSched")}{" "}
-              <span className="text-sm font-normal text-muted">
-                · {crew.name}
-              </span>
-            </h2>
-            <Link
-              href={`/crews/${crew.slug}/schedule`}
-              className="text-sm text-gold hover:underline"
-            >
-              {t("dash.viewAll")}
-            </Link>
-          </div>
-          <ul className="mt-3 flex flex-col gap-1.5">
-            {rows.map((r, i) => {
-              const kindCls = {
-                meetup: "bg-accent/15 text-gold",
-                race: "bg-track/15 text-track",
-                program: "bg-background text-muted",
-              }[r.kind];
-              const kindLabel = {
-                meetup: t("crew.schedKindMeetup"),
-                race: t("crew.schedKindRace"),
-                program: t("crew.schedKindProgram"),
-              }[r.kind];
-              return (
-                <li key={`${r.kind}-${r.on_date}-${i}`}>
-                  <RowLink
-                    href={`/crews/${crew.slug}/schedule`}
-                    className="flex min-w-0 items-center gap-2 rounded-md bg-surface px-3 py-2.5 hover:bg-card"
-                  >
-                    <span className="shrink-0 text-xs font-semibold text-muted">
-                      {new Date(`${r.on_date}T00:00:00`).toLocaleDateString(
-                        tag,
-                        { month: "short", day: "numeric", weekday: "short" },
-                      )}
-                    </span>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${kindCls}`}
-                    >
-                      {kindLabel}
-                    </span>
-                    <span className="min-w-0 truncate text-sm">{r.title}</span>
-                    {r.kind === "race" && r.member_name && (
-                      <span className="shrink-0 text-xs text-track">
-                        {r.member_name}
-                      </span>
-                    )}
-                    {r.kind === "meetup" && (
-                      <span className="ml-auto shrink-0 text-xs text-muted">
-                        ✓ {r.going_count ?? 0}
-                        {r.my_status === "going" && (
-                          <span className="ml-1 text-gold">
-                            {t("crew.rsvpGoing")}
-                          </span>
-                        )}
-                      </span>
-                    )}
-                  </RowLink>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+        </Panel>
       </div>
 
-      {/* ── 그룹 2: 내 기록 ── */}
-      <div className="mt-6 rounded-lg border border-line bg-card p-4 sm:p-5">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
-          {t("dash.groupRecords")}
-        </h2>
-
+      {/* ── 시안에 없는 위젯 (PORT_PLAN §4-1) — Panel 로만 감싼다 ── */}
       {latestRace && latestRacePct != null && latestRace.division && (
         <PercentileBar
           pct={latestRacePct}
@@ -526,103 +686,94 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* 최근 세션 — 자주 쓰는 항목이라 차트들보다 위 */}
-      <section className="mt-6">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold">{t("dash.recentTitle")}</h2>
-          <Link href="/sessions" className="text-sm text-gold hover:underline">
-            {t("dash.viewAll")}
-          </Link>
-        </div>
-
-        {!recent.length ? (
-          <div className="mt-4 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-            <p>{t("dash.empty")}</p>
-            <Link
-              href="/sessions/new"
-              className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
+      {crewAgenda.length > 0 && (
+        <div className="rx-dashboard-grid">
+          {crewAgenda.map(({ crew, rows }) => (
+            <Panel
+              key={crew.slug}
+              title={`${t("dash.crewSched")} · ${crew.name}`}
+              action={
+                <Link href={`/crews/${crew.slug}/schedule`}>
+                  {t("dash.viewAll")} <ArrowRight size={16} />
+                </Link>
+              }
             >
-              {t("dash.recordFirst")}
-            </Link>
-          </div>
-        ) : (
-          <ul className="mt-4 flex flex-col gap-2">
-            {recent.map((s) => (
-              <li key={s.id}>
-                <RowLink
-                  href={`/sessions/${s.id}`}
-                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3 hover:bg-card"
-                >
-                  <span className="text-sm">{formatDate(s.started_at, tag, tz)}</span>
-                  <span className="flex items-center gap-3 text-sm">
-                    <span className="text-muted">
-                      {t(`source.${s.source_device}` as Parameters<typeof t>[0])}
-                    </span>
-                    <span className="font-mono font-semibold">
-                      {formatMs(s.total_time_ms)}
-                    </span>
-                  </span>
-                </RowLink>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              {rows.map((r, i) => (
+                <RecordRow
+                  key={`${r.kind}-${r.on_date}-${i}`}
+                  href={`/crews/${crew.slug}/schedule`}
+                  title={r.title}
+                  note={`${new Date(`${r.on_date}T00:00:00`).toLocaleDateString(tag, {
+                    month: "short",
+                    day: "numeric",
+                    weekday: "short",
+                  })} · ${
+                    {
+                      meetup: t("crew.schedKindMeetup"),
+                      race: t("crew.schedKindRace"),
+                      program: t("crew.schedKindProgram"),
+                    }[r.kind] ?? r.kind
+                  }${r.kind === "race" && r.member_name ? ` · ${r.member_name}` : ""}`}
+                  end={
+                    r.kind === "meetup"
+                      ? `✓ ${r.going_count ?? 0}${r.my_status === "going" ? ` · ${t("crew.rsvpGoing")}` : ""}`
+                      : undefined
+                  }
+                />
+              ))}
+            </Panel>
+          ))}
+        </div>
+      )}
 
       {hasPr && (
-        <section className="mt-6">
-          <h2 className="text-lg font-semibold">{t("dash.prTitle")}</h2>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {prs.map((p) => (
-              <div key={p.key} className="rounded-md bg-surface px-3 py-2.5">
-                <p className="truncate text-xs text-muted">
-                  {t(`station.${p.key}` as Parameters<typeof t>[0])}
-                </p>
-                <p className="mt-0.5 font-mono text-sm font-semibold">
-                  {p.ms != null ? formatMs(p.ms) : "—"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+        <Panel title={t("dash.prTitle")}>
+          <DataTable
+            headers={[t("dash.rehStation"), t("sessions.pb")]}
+            rows={prs
+              .filter((p) => p.ms != null)
+              .map((p) => [
+                t(`station.${p.key}` as Parameters<typeof t>[0]),
+                <strong className="rx-number" key={p.key}>
+                  {formatMs(p.ms)}
+                </strong>,
+              ])}
+          />
+        </Panel>
       )}
-      </div>
-
-      {/* ── 그룹 3: 분석 & 인사이트 ── */}
-      <div className="mt-6 rounded-lg border border-line bg-card p-4 sm:p-5">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
-          {t("dash.groupAnalysis")}
-        </h2>
 
       {trend.length >= 2 && (
-        <section className="mt-6">
-          <h2 className="text-lg font-semibold">{t("dash.trendTitle")}</h2>
-          <div className="mt-3 rounded-md bg-surface p-4">
+        <Panel title={t("dash.trendTitle")}>
+          <div style={{ padding: "0 24px 24px" }}>
             <TrendBars data={trend} />
           </div>
-        </section>
+        </Panel>
       )}
 
       {showRehearsal && (
-        <RehearsalReport goals={goalRows} sessions={rehearsalSessions} />
+        <Panel>
+          <div style={{ padding: "0 24px 24px" }}>
+            <RehearsalReport goals={goalRows} sessions={rehearsalSessions} />
+          </div>
+        </Panel>
       )}
 
       {showCorr && (
-        <section className="mt-6">
-          <h2 className="text-lg font-semibold">{t("dash.corrTitle")}</h2>
-          <p className="mt-1 text-sm text-muted">{t("dash.corrDesc")}</p>
-          <div className="mt-3 rounded-md bg-surface p-4">
+        <Panel title={t("dash.corrTitle")}>
+          <div style={{ padding: "0 24px 24px" }}>
+            <p className="rx-hint" style={{ marginBottom: 12 }}>
+              {t("dash.corrDesc")}
+            </p>
             <CorrelationLine
               data={corr}
               simLabel={t("dash.corrSim")}
               raceLabel={t("dash.corrRace")}
             />
           </div>
-        </section>
+        </Panel>
       )}
 
       <AiInsight kind="weekly" />
-      </div>
-    </main>
+    </>
   );
 }

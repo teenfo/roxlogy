@@ -1,11 +1,21 @@
 import Link from "next/link";
+import { ArrowRight, Check, Plus, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
-import { formatDate, formatMs, todayISOIn } from "@/lib/format";
-import { Card, Chip } from "@/components/ui/crew-ui";
+import { formatDate, formatDateShort, formatMs, todayISOIn } from "@/lib/format";
 import { ExportButton } from "@/components/export-button";
 import { RowLink } from "@/components/row-link";
+import {
+  Chip,
+  DataTable,
+  Empty,
+  Go,
+  PageHead,
+  Panel,
+  Stats,
+} from "@/components/rox/ui";
+import { QueryChoice, QuerySegments } from "@/components/rox/query-filters";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -27,6 +37,11 @@ const PERIOD_DAYS: Record<Period, number | null> = {
   "90d": 90,
 };
 
+/**
+ * 세션 기록 — 시안 records.tsx 의 Records 그대로 (PORT_PLAN §3-b):
+ * PageHead(CSV·세션 기록) · Stats 4 · Panel "기록 목록"(툴바 · DataTable · Empty).
+ * 필터는 시안의 클라이언트 상태 대신 쿼리스트링(서버 WHERE)이다 — QueryChoice/QuerySegments.
+ */
 export default async function SessionsPage({
   searchParams,
 }: {
@@ -165,24 +180,15 @@ export default async function SessionsPage({
     const rr = Array.isArray(r.race_results) ? r.race_results[0] : r.race_results;
     return { id: r.id, ms: r.total_time_ms!, ...rr };
   });
-  // 개인 최고 = 대회 기록 중 최소. 대회가 없으면 요약을 띄우지 않는다
+  // 개인 최고 = 대회 기록 중 최소. 대회가 없으면 "—"
   // (시뮬 최소를 PB 라고 부르면 실제 대회 기록과 뒤섞인다)
   const pb = races.reduce<(typeof races)[number] | null>(
     (a, r) => (a == null || r.ms < a.ms ? r : a),
     null,
   );
-  const raceAvg = races.length
-    ? Math.round(races.reduce((a, r) => a + r.ms, 0) / races.length)
-    : null;
   const latest = (latestRows ?? [])[0] as
     | { id: string; total_time_ms: number; started_at: string }
     | undefined;
-  // 시즌 = 데이터에 있는 가장 최근 시즌 문자열 (규칙을 새로 만들지 않는다)
-  const seasons = [...new Set(races.map((r) => r.season).filter(Boolean))].sort();
-  const curSeason = seasons[seasons.length - 1] ?? null;
-  const seasonRaces = curSeason
-    ? races.filter((r) => r.season === curSeason).length
-    : 0;
   const nextPlan = (nextPlans ?? [])[0] as
     | { title: string; race_date: string }
     | undefined;
@@ -195,8 +201,6 @@ export default async function SessionsPage({
     : null;
 
   // 에르그(PM5) 세션 표시 — 이 페이지의 세션만 조회해 머신 종류를 뽑는다.
-  // 시뮬은 스테이션이 8개라 머신 세그먼트가 있어도 에르그 전용 기록이 아니므로,
-  // 세그먼트가 머신 하나뿐인 세션만 에르그로 본다(단독 기록·WOD 에르그 항목).
   const pageIds = (sessions ?? []).map((s) => s.id);
   const ergMachine = new Map<string, string>();
   if (pageIds.length) {
@@ -217,15 +221,14 @@ export default async function SessionsPage({
   }
   const ergLabel = (m: string) => (m === "ski" ? "SkiErg" : m === "row" ? "RowErg" : "Erg");
 
-  // 필터를 유지하며 쿼리스트링 구성 (필터 변경 시 page 리셋)
-  const qs = (over: Record<string, string>) => {
-    const p = new URLSearchParams();
-    const merged = { source, period, type, ...over };
-    if (merged.source !== "all") p.set("source", merged.source);
-    if (merged.period !== "all") p.set("period", merged.period);
-    if (merged.type !== "all") p.set("type", merged.type);
-    if (over.page) p.set("page", over.page);
-    const s = p.toString();
+  // 페이지 이동 — 필터를 유지한다
+  const pageHref = (p: number) => {
+    const q = new URLSearchParams();
+    if (source !== "all") q.set("source", source);
+    if (period !== "all") q.set("period", period);
+    if (type !== "all") q.set("type", type);
+    if (p > 1) q.set("page", String(p));
+    const s = q.toString();
     return s ? `/sessions?${s}` : "/sessions";
   };
 
@@ -235,288 +238,184 @@ export default async function SessionsPage({
     const a = Math.abs(d);
     return `${sign}${Math.floor(a / 60)}:${String(a % 60).padStart(2, "0")}`;
   };
-  const srcIcon: Record<string, string> = { web: "▯", watch: "◔", phone: "▮" };
+  const divLabel = (d: string | null | undefined) =>
+    d ? t(`division.${d}` as Parameters<typeof t>[0]) : "";
+  const filtered = source !== "all" || period !== "all" || type !== "all";
+
+  const rows = (sessions ?? []).map((sess) => {
+    const raceRaw = (sess as { race_results?: unknown }).race_results;
+    const race = (Array.isArray(raceRaw) ? raceRaw[0] : raceRaw) as
+      | { event: string | null; event_date: string | null; season: string | null; division: string | null }
+      | null
+      | undefined;
+    const erg = ergMachine.get(sess.id) ?? null;
+    const isPb = !!pb && sess.id === pb.id;
+    const ms = sess.total_time_ms;
+    const gap = pb && ms != null && !isPb ? ms - pb.ms : null;
+    const name = race?.event ?? formatDate(sess.started_at, tag, tz);
+    const pending = sess.analysis_status !== "done";
+    return [
+      <RowLink className="rx-table-name" href={`/sessions/${sess.id}`} key="name">
+        {name}{" "}
+        {race ? (
+          <Chip tone="yellow">{t("sessions.race")}</Chip>
+        ) : erg ? (
+          <Chip tone="blue">{ergLabel(erg)}</Chip>
+        ) : (
+          <Chip>{t("sessions.typeSim")}</Chip>
+        )}
+        {isPb && <Chip tone="yellow">PB</Chip>}
+        <small>
+          {formatDateShort(sess.started_at, tag, tz)}
+          {race?.season ? ` · ${race.season}` : ""}
+          {gap != null ? ` · PB ${gapLabel(gap)}` : ""}
+        </small>
+      </RowLink>,
+      <Chip key="div">{divLabel(race?.division ?? sess.division) || "—"}</Chip>,
+      <span className="rx-source" key="src">
+        {pending ? <TriangleAlert size={14} /> : <Check size={14} />}{" "}
+        {t(`source.${sess.source_device}` as Parameters<typeof t>[0])}
+        {pending ? ` · ${t("common.analysisPending")}` : ""}
+      </span>,
+      <strong className="rx-number" key="time">
+        {formatMs(ms)}
+      </strong>,
+      <RowLink
+        aria-label={t("sessions.detailOf", { name })}
+        href={`/sessions/${sess.id}`}
+        key="go"
+      >
+        <ArrowRight size={17} />
+      </RowLink>,
+    ];
+  });
 
   return (
-    <main className="flex flex-col gap-[22px]">
-      {/* 헤더 */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">
-            {t("sessions.title")}
-          </h1>
-          <p className="mt-1 text-[15px] text-muted">
-            {t("sessions.total", { n: total })}
-            {races.length > 0 && (
-              <>
-                {" · "}
-                {t("sessions.race")}{" "}
-                <b className="font-bold text-foreground">{races.length}</b>
-              </>
-            )}
-            {simIds.length > 0 && (
-              <>
-                {" · "}
-                {t("sessions.typeSim")}{" "}
-                <b className="font-bold text-foreground">{simIds.length}</b>
-              </>
-            )}
-          </p>
+    <>
+      <PageHead
+        title={t("sessions.title")}
+        description={t("sessions.intro")}
+        action={
+          <div className="rx-actions">
+            {total > 0 && <ExportButton kind="sessions" />}
+            <Go href="/sessions/new" primary>
+              <Plus size={16} />
+              {t("sessions.record")}
+            </Go>
+          </div>
+        }
+      />
+      <Stats
+        items={[
+          [
+            t("dash.totalSessions"),
+            String(total),
+            `${t("sessions.race")} ${races.length} · ${t("sessions.typeSim")} ${simIds.length}`,
+          ],
+          [
+            t("sessions.latest"),
+            latest ? formatMs(latest.total_time_ms) : "—",
+            latest && pb ? `PB ${gapLabel(latest.total_time_ms - pb.ms)}` : "",
+          ],
+          [
+            t("sessions.pb"),
+            pb ? formatMs(pb.ms) : "—",
+            pb ? [pb.event, divLabel(pb.division)].filter(Boolean).join(" · ") : t("dash.noRace"),
+          ],
+          [
+            t("dash.nextRace"),
+            dday != null && dday >= 0 ? `D–${dday}` : "—",
+            nextPlan ? nextPlan.title : t("sessions.noUpcoming"),
+          ],
+        ]}
+      />
+      <Panel
+        title={t("sessions.list")}
+        action={
+          <Go href="/sessions/compare">
+            {t("compare.title")} <ArrowRight size={16} />
+          </Go>
+        }
+      >
+        <div className="rx-toolbar">
+          <QueryChoice
+            param="source"
+            value={source}
+            label={t("sessions.fltSource")}
+            options={SOURCES.map((sc) => [
+              sc,
+              sc === "all"
+                ? `${t("sessions.fltSource")}: ${t("sessions.fltAll")}`
+                : t(`source.${sc}` as Parameters<typeof t>[0]),
+            ])}
+          />
+          <QueryChoice
+            param="period"
+            value={period}
+            label={t("sessions.fltPeriod")}
+            options={PERIODS.map((pr) => [
+              pr,
+              pr === "all"
+                ? `${t("sessions.fltPeriod")}: ${t("sessions.fltAll")}`
+                : t(`sessions.period.${pr}` as Parameters<typeof t>[0]),
+            ])}
+          />
+          <QuerySegments
+            param="type"
+            value={type}
+            label={t("sessions.fltType")}
+            options={[
+              ["all", t("sessions.fltAll")],
+              ["sim", t("sessions.typeSim")],
+              ["erg", t("sessions.typeErg")],
+            ]}
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {total > 0 && <ExportButton kind="sessions" />}
-          <Link
-            href="/sessions/compare"
-            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold text-foreground/80 hover:border-line-strong"
-          >
-            {t("compare.title")}
-          </Link>
-          <Link
-            href="/sessions/new"
-            className="flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-extrabold text-accent-foreground hover:brightness-95"
-          >
-            + {t("sessions.record")}
-          </Link>
-        </div>
-      </div>
-
-      {/* 요약 4카드 — 대회 기록이 있을 때만 (PB 는 대회 기준) */}
-      {pb && (
-        <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          <Card highlight className="px-4 py-3.5">
-            <p className="text-xs text-gold">{t("sessions.pb")}</p>
-            <p className="tabular mt-1 text-[22px] font-extrabold text-gold">
-              {formatMs(pb.ms)}
-            </p>
-            <p className="mt-0.5 truncate text-xs text-gold-dim">
-              {[pb.event, pb.division && t(`division.${pb.division}` as Parameters<typeof t>[0])]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </Card>
-          <Card className="px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.latest")}</p>
-            <p className="tabular mt-1 text-[22px] font-extrabold">
-              {latest ? formatMs(latest.total_time_ms) : "—"}
-            </p>
-            {latest && (
-              <p
-                className={`tabular mt-0.5 text-xs ${
-                  latest.total_time_ms <= pb.ms ? "text-success" : "text-danger"
-                }`}
-              >
-                PB {gapLabel(latest.total_time_ms - pb.ms)}
-              </p>
+        {rows.length > 0 && (
+          <DataTable
+            headers={[
+              t("sessions.colDate"),
+              t("sessions.colDivision"),
+              t("sessions.colSource"),
+              t("sessions.colTime"),
+              "",
+            ]}
+            rows={rows}
+          />
+        )}
+        {!rows.length && (
+          <Empty
+            title={filtered ? t("sessions.emptyFiltered") : t("sessions.empty")}
+            description={filtered ? "" : t("dash.recordFirst")}
+            action={
+              filtered ? (
+                <Go href="/sessions">{t("sessions.resetFilters")}</Go>
+              ) : (
+                <Go href="/sessions/new" primary>
+                  {t("sessions.record")}
+                </Go>
+              )
+            }
+          />
+        )}
+        {lastPage > 1 && (
+          <div className="rx-actions" style={{ padding: "16px 24px 24px" }}>
+            {page > 1 && <Go href={pageHref(page - 1)}>{t("sessions.pagePrev")}</Go>}
+            <span className="rx-list-count" style={{ margin: 0 }}>
+              {page} / {lastPage}
+            </span>
+            {page < lastPage && (
+              <Go href={pageHref(page + 1)}>{t("sessions.pageNext")}</Go>
             )}
-          </Card>
-          <Card className="px-4 py-3.5">
-            <p className="text-xs text-muted">{t("sessions.raceAvg")}</p>
-            <p className="tabular mt-1 text-[22px] font-extrabold">
-              {raceAvg ? formatMs(raceAvg) : "—"}
-            </p>
-            <p className="mt-0.5 text-xs text-muted">
-              {t("sessions.raceFinishes", { n: races.length })}
-            </p>
-          </Card>
-          <Card className="px-4 py-3.5">
-            <p className="text-xs text-muted">
-              {curSeason ? curSeason : t("sessions.season")}
-            </p>
-            <p className="tabular mt-1 text-[22px] font-extrabold">
-              {seasonRaces}
-            </p>
-            <p className="mt-0.5 truncate text-xs text-muted">
-              {nextPlan && dday != null
-                ? `${nextPlan.title} D-${dday}`
-                : t("sessions.noUpcoming")}
-            </p>
-          </Card>
-        </section>
+          </div>
+        )}
+      </Panel>
+      {/* 시안에 없는 링크 — 접근성용 목록 첫 페이지 복귀 */}
+      {page > 1 && (
+        <Link href="/sessions" className="rx-back">
+          {t("sessions.back")}
+        </Link>
       )}
-
-      {/* 필터 바 */}
-      <Card className="flex flex-wrap items-center gap-2 px-3.5 py-3">
-        <span className="text-xs text-muted">{t("sessions.fltSource")}</span>
-        {SOURCES.map((sc) => (
-          <Chip key={sc} href={qs({ source: sc })} active={source === sc}>
-            {sc === "all"
-              ? t("sessions.fltAll")
-              : t(`source.${sc}` as Parameters<typeof t>[0])}
-          </Chip>
-        ))}
-        <span aria-hidden className="mx-2 h-5 w-px bg-line-mid" />
-        <span className="text-xs text-muted">{t("sessions.fltPeriod")}</span>
-        {PERIODS.map((pr) => (
-          <Chip key={pr} href={qs({ period: pr })} active={period === pr}>
-            {pr === "all"
-              ? t("sessions.fltAll")
-              : t(`sessions.period.${pr}` as Parameters<typeof t>[0])}
-          </Chip>
-        ))}
-        <span aria-hidden className="mx-2 h-5 w-px bg-line-mid" />
-        <span className="text-xs text-muted">{t("sessions.fltType")}</span>
-        {TYPES.map((ty) => (
-          <Chip key={ty} href={qs({ type: ty })} active={type === ty}>
-            {ty === "all"
-              ? t("sessions.fltAll")
-              : ty === "sim"
-                ? t("sessions.typeSim")
-                : t("sessions.typeErg")}
-          </Chip>
-        ))}
-        <span className="ml-auto text-[13px] text-muted">
-          {t("sessions.shownN", { n: total })}
-        </span>
-      </Card>
-
-      {/* 목록 */}
-      {!sessions?.length ? (
-        <Card className="px-4 py-10 text-center">
-          <p className="text-sm text-muted">
-            {total === 0 && (source !== "all" || period !== "all" || type !== "all")
-              ? t("sessions.emptyFiltered")
-              : t("sessions.empty")}
-          </p>
-        </Card>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {sessions.map((sess) => {
-            const raceRaw = (sess as { race_results?: unknown }).race_results;
-            const race = (Array.isArray(raceRaw) ? raceRaw[0] : raceRaw) as
-              | {
-                  event: string | null;
-                  event_date: string | null;
-                  season: string | null;
-                  division: string | null;
-                }
-              | null
-              | undefined;
-            const isRace = !!race;
-            const erg = ergMachine.get(sess.id) ?? null;
-            const div = isRace ? race?.division : sess.division;
-            const divLabel = div
-              ? t(`division.${div}` as Parameters<typeof t>[0])
-              : null;
-            const isPb = !!pb && sess.id === pb.id;
-            const ms = sess.total_time_ms;
-            const d = new Date(sess.started_at);
-            const gap = pb && ms != null && !isPb ? ms - pb.ms : null;
-
-            return (
-              <li key={sess.id}>
-                <RowLink
-                  href={`/sessions/${sess.id}`}
-                  className={`grid grid-cols-[68px_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border px-4 py-3.5 transition-colors max-sm:grid-cols-[68px_minmax(0,1fr)] ${
-                    isPb
-                      ? "border-line-accent bg-highlight"
-                      : "border-line bg-card hover:border-line-strongest"
-                  }`}
-                >
-                  {/* 날짜 블록 */}
-                  <span className="border-r border-line-mid pr-3.5 text-center">
-                    <span className="block text-xs font-semibold text-muted">
-                      {d.getFullYear()}
-                    </span>
-                    <span
-                      className={`tabular block text-xl font-extrabold ${isPb ? "text-gold" : ""}`}
-                    >
-                      {d.getMonth() + 1}/{d.getDate()}
-                    </span>
-                  </span>
-
-                  {/* 본문 */}
-                  <span className="min-w-0">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-[17px] font-bold">
-                        {isRace
-                          ? race?.event
-                          : formatDate(sess.started_at, tag, tz)}
-                      </span>
-                      {isRace ? (
-                        <span className="shrink-0 rounded-md bg-gold-bg px-2 py-0.5 text-xs font-bold text-accent-dim">
-                          {t("sessions.race")}
-                        </span>
-                      ) : erg ? (
-                        <span className="shrink-0 rounded-md bg-info-bg px-2 py-0.5 text-xs font-bold text-info">
-                          ⚡ {ergLabel(erg)}
-                        </span>
-                      ) : (
-                        <span className="shrink-0 rounded-md bg-label-bg px-2 py-0.5 text-xs font-bold text-label">
-                          {t("sessions.typeSim")}
-                        </span>
-                      )}
-                      {isPb && (
-                        <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-xs font-extrabold text-accent-foreground">
-                          PB
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-1 flex flex-wrap items-center gap-x-3 text-[13px] text-muted">
-                      {divLabel && (
-                        <span className="rounded bg-label-bg px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-label">
-                          {divLabel}
-                        </span>
-                      )}
-                      {isRace && race?.season && <span>{race.season}</span>}
-                      <span className="flex items-center gap-1">
-                        <span aria-hidden className="text-xs">
-                          {srcIcon[sess.source_device] ?? "▯"}
-                        </span>
-                        {t(`source.${sess.source_device}` as Parameters<typeof t>[0])}
-                      </span>
-                      {sess.analysis_status !== "done" && (
-                        <span>{t("common.analysisPending")}</span>
-                      )}
-                    </span>
-                  </span>
-
-                  {/* 기록 */}
-                  <span className="text-right max-sm:col-span-2 max-sm:mt-1 max-sm:text-left">
-                    <span
-                      className={`tabular block text-2xl font-extrabold ${isPb ? "text-gold" : ""}`}
-                    >
-                      {formatMs(ms)}
-                    </span>
-                    <span
-                      className={`tabular mt-0.5 block text-xs ${
-                        isPb
-                          ? "text-gold"
-                          : gap != null && gap > 1_800_000
-                            ? "text-danger"
-                            : "text-muted"
-                      }`}
-                    >
-                      {isPb
-                        ? t("sessions.pb")
-                        : gap != null
-                          ? `PB ${gapLabel(gap)}`
-                          : ""}
-                    </span>
-                  </span>
-                </RowLink>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {lastPage > 1 && (
-        <nav className="flex justify-center gap-4 text-sm">
-          {page > 1 && (
-            <Link href={qs({ page: String(page - 1) })} className="text-gold">
-              {t("sessions.pagePrev")}
-            </Link>
-          )}
-          <span className="tabular text-muted">
-            {page} / {lastPage}
-          </span>
-          {page < lastPage && (
-            <Link href={qs({ page: String(page + 1) })} className="text-gold">
-              {t("sessions.pageNext")}
-            </Link>
-          )}
-        </nav>
-      )}
-    </main>
+    </>
   );
 }

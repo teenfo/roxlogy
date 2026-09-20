@@ -1,8 +1,9 @@
-import Link from "next/link";
+import { ArrowRight, Plus, Target } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
-import { formatDateOnly, formatDateShort, formatMs } from "@/lib/format";
+import { formatDateOnly, formatDateShort, formatMs, todayISOIn } from "@/lib/format";
 import { GoalDeleteButton } from "@/components/goal-delete-button";
+import { Chip, Empty, Go, Hint, PageHead, Panel } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -23,6 +24,11 @@ type Goal = {
   stations: { key: string; targetMs: number }[] | null;
 };
 
+/**
+ * 목표 — 시안 racing.tsx 의 Goals 그대로: PageHead(목표 만들기) · .rx-card-grid 의
+ * .rx-goal-card(아이콘 · 칩 · 대회 · 디비전·날짜 · 목표 시간 · 스플릿 보기) · Hint.
+ * 삭제 버튼과 런/스테이션/록스존 배분은 시안에 없는 우리 정보다(§4-1).
+ */
 export default async function GoalsPage() {
   const supabase = await createClient();
   const { t, tag, tz } = await getT();
@@ -32,116 +38,78 @@ export default async function GoalsPage() {
     .select("*")
     .order("created_at", { ascending: false });
   const goals = (data ?? []) as Goal[];
+  const today = todayISOIn(tz);
+  // 다가오는 목표 = 대회 날짜가 오늘 이후인 것 중 가장 가까운 것
+  const upcoming = goals
+    .filter((g) => g.event_date && g.event_date >= today)
+    .sort((a, b) => a.event_date!.localeCompare(b.event_date!))[0];
 
   return (
-    <main>
-      <div className="flex items-center justify-between">
-        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("goals.title")}</h1>
-        <Link
-          href="/predict"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
-        >
-          {t("goals.new")}
-        </Link>
-      </div>
-      <p className="mt-1 text-sm text-muted">{t("goals.desc")}</p>
-
-      {!goals.length ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("goals.empty")}{" "}
-          <Link href="/predict" className="text-gold hover:underline">
+    <>
+      <PageHead
+        title={t("goals.title")}
+        description={t("goals.desc")}
+        action={
+          <Go href="/predict" primary>
+            <Plus size={16} />
             {t("goals.new")}
-          </Link>
-        </p>
+          </Go>
+        }
+      />
+      {!goals.length ? (
+        <Panel>
+          <Empty
+            title={t("goals.empty")}
+            description={t("goals.desc")}
+            action={
+              <Go href="/predict" primary>
+                {t("goals.new")}
+              </Go>
+            }
+          />
+        </Panel>
       ) : (
-        <ul className="mt-6 flex flex-col gap-3">
-          {goals.map((g) => (
-            <li key={g.id} className="rounded-md bg-surface px-4 py-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xl font-bold text-gold">
-                      {formatMs(g.target_total_ms)}
-                    </span>
-                    {g.division && (
-                      <span className="rounded-full bg-track/15 px-2 py-0.5 text-xs font-semibold text-track">
-                        {t(`division.${g.division}` as Parameters<typeof t>[0])}
-                      </span>
-                    )}
-                    {g.level && (
-                      <span className="text-xs text-muted">
-                        {t(`predict.level.${g.level}` as Parameters<typeof t>[0])}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-muted">
-                    {g.event_name ? `${g.event_name}` : t("goals.noEvent")}
-                    {g.event_name && g.event_date
-                      ? ` · ${formatDateOnly(g.event_date, tag)}`
-                      : ""}
-                    {" · "}
-                    {t("goals.savedOn", {
-                      date: formatDateShort(g.created_at, tag, tz),
-                    })}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <Link
-                    href={`/predict?goal=${g.id}`}
-                    className="text-xs font-semibold text-gold hover:underline"
-                  >
-                    {t("common.edit")}
-                  </Link>
+        <div className="rx-card-grid">
+          {goals.map((g) => {
+            const isUpcoming = upcoming?.id === g.id;
+            return (
+              <Panel className="rx-goal-card" key={g.id}>
+                <Target size={25} />
+                <Chip tone={isUpcoming ? "yellow" : "neutral"}>
+                  {isUpcoming ? t("goals.upcoming") : t("goals.saved")}
+                </Chip>
+                <h2>{g.event_name || t("goals.noEvent")}</h2>
+                <p>
+                  {[
+                    g.division ? t(`division.${g.division}` as Parameters<typeof t>[0]) : null,
+                    g.event_date ? formatDateOnly(g.event_date, tag) : null,
+                    g.level ? t(`predict.level.${g.level}` as Parameters<typeof t>[0]) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+                <strong>{formatMs(g.target_total_ms)}</strong>
+                <p>
+                  {t("predict.runPerKm")}{" "}
+                  {formatMs(g.run_total_ms != null ? Math.round(g.run_total_ms / 8) : null)} ·{" "}
+                  {t("predict.stationSum")} {formatMs(g.station_total_ms)} ·{" "}
+                  {t("predict.roxzoneBudget")} {formatMs(g.roxzone_total_ms)}
+                </p>
+                <div className="rx-actions">
+                  <Go href={`/predict?goal=${g.id}`}>
+                    {t("goals.viewSplits")} <ArrowRight size={16} />
+                  </Go>
                   <GoalDeleteButton goalId={g.id} />
                 </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <span className="rounded bg-background px-2 py-1">
-                  {t("predict.runPerKm")}:{" "}
-                  <span className="font-mono font-semibold text-track">
-                    {formatMs(
-                      g.run_total_ms != null
-                        ? Math.round(g.run_total_ms / 8)
-                        : g.run_total_ms,
-                    )}
-                  </span>
-                </span>
-                <span className="rounded bg-background px-2 py-1">
-                  {t("predict.stationSum")}:{" "}
-                  <span className="font-mono font-semibold text-gold">
-                    {formatMs(g.station_total_ms)}
-                  </span>
-                </span>
-                <span className="rounded bg-background px-2 py-1">
-                  {t("predict.roxzoneBudget")}:{" "}
-                  <span className="font-mono font-semibold">
-                    {formatMs(g.roxzone_total_ms)}
-                  </span>
-                </span>
-              </div>
-
-              {Array.isArray(g.stations) && g.stations.length > 0 && (
-                <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                  {g.stations.map((s) => (
-                    <span
-                      key={s.key}
-                      className="flex items-center justify-between rounded bg-background px-2 py-1 text-xs"
-                    >
-                      <span className="truncate text-muted">
-                        {t(`hstation.${s.key}` as Parameters<typeof t>[0])}
-                      </span>
-                      <span className="ml-2 shrink-0 font-mono font-semibold">
-                        {formatMs(s.targetMs)}
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+                <small className="rx-muted">
+                  {t("goals.savedOn", { date: formatDateShort(g.created_at, tag, tz) })}
+                </small>
+              </Panel>
+            );
+          })}
+        </div>
       )}
-    </main>
+      <Hint>{t("goals.compareHint")}</Hint>
+    </>
   );
 }

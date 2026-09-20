@@ -9,11 +9,13 @@ export function TimeInput({
   onChange,
   placeholder = "mm:ss",
   className = "",
+  "aria-label": ariaLabel,
 }: {
   value: string;
   onChange: (text: string, ms: number | null) => void;
   placeholder?: string;
   className?: string;
+  "aria-label"?: string;
 }) {
   const [touched, setTouched] = useState(false);
   const ms = parseTimeToMs(value);
@@ -23,6 +25,7 @@ export function TimeInput({
     <input
       type="text"
       inputMode="numeric"
+      aria-label={ariaLabel}
       value={value}
       placeholder={placeholder}
       onChange={(e) => {

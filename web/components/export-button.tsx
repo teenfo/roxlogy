@@ -1,5 +1,8 @@
 "use client";
 
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
@@ -94,13 +97,10 @@ export function ExportButton({ kind }: { kind: Kind }) {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
-        onClick={run}
-        disabled={busy}
-        className="rounded-md border border-line-strongest px-3 py-1.5 text-xs text-muted hover:border-foreground hover:text-foreground disabled:opacity-40"
-      >
+      <Button variant="outline" type="button" onClick={run} disabled={busy}>
+        <Download size={16} />
         {busy ? t("common.saving") : t("common.exportCsv")}
-      </button>
+      </Button>
       {err && <p role="alert" className="text-xs text-danger">{err}</p>}
     </div>
   );

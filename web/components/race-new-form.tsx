@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +21,8 @@ import {
 import { DIVISIONS } from "@/lib/divisions";
 import { TimeInput } from "@/components/time-input";
 import { useI18n } from "@/components/i18n-provider";
+import { Back, Hint, PageHead, Panel } from "@/components/rox/ui";
+import { formatMs as fmtMs } from "@/lib/format";
 // 폴백 — 실제 목록은 /api/races/search-meta?seasons=1 로 대체됨
 const DEFAULT_SEASON_OPTIONS = [
   { value: "season-9", label: "2026/27 (S9)" },
@@ -385,16 +386,16 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
     "rounded-md border border-line-mid bg-background px-2 py-2 text-sm text-foreground outline-none focus:border-accent-line";
 
   return (
-    <main>
-      <Link href="/races" className="text-sm text-muted hover:text-foreground">
-        {t("races.back")}
-      </Link>
-      <h1 className="mt-4 text-2xl font-bold">{t("raceNew.title")}</h1>
-      <p className="mt-1 text-sm text-muted">{t("raceNew.import.desc")}</p>
-
+    <>
+      {/* 시안 RecordForm(race) 의 바깥 구조 — Back · PageHead · .rx-form-layout · Panel.
+          3단계 공식 기록 검색 내부는 시안에 없는 우리 흐름이라 Panel 안에 그대로 둔다(§4-1) */}
+      <Back href="/races" label={t("races.title")} />
+      <PageHead title={t("raceNew.title")} description={t("raceNew.import.desc")} />
+      <div className="rx-form-layout">
+      <div>
       {/* ── 1단계: 조회 조건 */}
-      <section className="mt-6 max-w-lg rounded-md border border-track/30 bg-surface px-4 py-4">
-        <p className="text-sm font-semibold">{t("raceNew.step1")}</p>
+      <Panel title={t("raceNew.step1")}>
+      <section style={{ padding: "0 24px 24px" }}>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
           <label className="flex flex-col gap-1 text-xs text-muted">
@@ -565,11 +566,12 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           <p className="mt-2 text-xs text-track">{importNotice}</p>
         )}
       </section>
+      </Panel>
 
       {/* ── 3단계: 확인·저장 (자동 채움 후 또는 수동 입력 열기) */}
       {imported || showManual ? (
-        <section className="mt-6 max-w-lg">
-          <p className="text-sm font-semibold">{t("raceNew.step3")}</p>
+        <Panel title={t("raceNew.step3")}>
+        <section style={{ padding: "0 24px 24px" }}>
           <div className="mt-3 grid gap-4">
             <label className="flex flex-col gap-1.5 text-sm text-muted">
               {t("raceNew.event")}
@@ -725,14 +727,15 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             </button>
           </div>
         </section>
+        </Panel>
       ) : (
-        <button
-          type="button"
-          onClick={() => setShowManual(true)}
-          className="mt-4 text-sm text-gold hover:underline"
-        >
-          {t("raceNew.manualToggle")}
-        </button>
+        <Panel>
+          <Hint>
+            <button type="button" onClick={() => setShowManual(true)}>
+              {t("raceNew.manualToggle")}
+            </button>
+          </Hint>
+        </Panel>
       )}
 
       {/* ── 폴백: 새 탭 검색 / URL / 텍스트 (수동 모드에서만 노출) */}
@@ -745,7 +748,20 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
           importing={importing}
         />
       )}
-    </main>
+      </div>
+      <aside>
+        <Panel title={t("newSession.summary")}>
+          <div className="rx-summary-time">{totalMs != null ? fmtMs(totalMs) : "—:—"}</div>
+          <p>
+            {event || t("raceNew.event")}
+            {eventDate ? ` · ${eventDate}` : ""}
+            {division ? ` · ${t(`division.${division}` as Parameters<typeof t>[0])}` : ""}
+          </p>
+          <Hint>{t("raceNew.import.desc")}</Hint>
+        </Panel>
+      </aside>
+      </div>
+    </>
   );
 }
 

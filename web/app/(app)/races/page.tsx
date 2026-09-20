@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight, Check, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedProfile, getCachedUser } from "@/lib/supabase/auth";
 import { getRaceBenchmarks } from "@/lib/cache";
@@ -6,12 +7,27 @@ import { getT } from "@/lib/i18n";
 import { formatDateOnly, formatMs } from "@/lib/format";
 import { percentileOf, type Benchmark } from "@/lib/percentile";
 import { ExportButton } from "@/components/export-button";
+import { RowLink } from "@/components/row-link";
+import {
+  Chip,
+  DataTable,
+  Empty,
+  Go,
+  Hint,
+  PageHead,
+  Panel,
+  Stats,
+} from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
   return { title: t("meta.races") };
 }
 
+/**
+ * 레이스 결과 — 시안 records.tsx 의 Records(races) 그대로 (PORT_PLAN §3-b).
+ * 공식 기록 연동 안내(시안에 없음)는 목록 Panel 의 Hint 로 둔다.
+ */
 export default async function RacesPage() {
   const supabase = await createClient();
   const { t, tag } = await getT();
@@ -28,102 +44,135 @@ export default async function RacesPage() {
   const bms = (benchmarks ?? []) as Benchmark[];
   const gender = profile?.gender ?? null;
   const linkedName = profile?.hyrox_athlete_name ?? null;
+  const list = races ?? [];
+  const divLabel = (d: string | null) =>
+    d ? t(`division.${d}` as Parameters<typeof t>[0]) : "—";
+
+  const best = list.reduce<(typeof list)[number] | null>(
+    (a, r) =>
+      r.total_time_ms != null && (a == null || r.total_time_ms < a.total_time_ms!) ? r : a,
+    null,
+  );
+  const latest = list[0] ?? null;
+  const latestPct = latest
+    ? percentileOf(latest.total_time_ms, latest.division, gender, bms)
+    : null;
 
   return (
-    <main>
-      <div className="flex items-center justify-between">
-        <h1 className="text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("races.title")}</h1>
-        <div className="flex items-center gap-3">
-          {!!races?.length && <ExportButton kind="races" />}
-          <Link
-            href="/races/new"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
-          >
-            {t("races.register")}
-          </Link>
-        </div>
-      </div>
-
-      {/* 공식 기록 연동 안내 — 연동 여부에 따라 문구·행동이 달라진다.
-          연동은 이미 동작하는 기능이다(설정 → 선수 연동 → 주간 자동 등록). */}
-      <section className="mt-4 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm">
-        {linkedName ? (
-          <>
-            <p className="font-semibold">
-              {t("races.syncedTitle", { name: linkedName })}
-            </p>
-            <p className="mt-1 text-muted">{t("races.syncedDesc")}</p>
-            <Link
-              href="/settings/profile"
-              className="mt-2 inline-block text-gold hover:underline"
-            >
-              {t("races.syncedCta")}
-            </Link>
-          </>
-        ) : (
-          <>
-            <p className="font-semibold">{t("races.syncTitle")}</p>
-            <p className="mt-1 text-muted">{t("races.syncDesc")}</p>
-            <Link
-              href="/settings/profile"
-              className="mt-2 inline-block text-gold hover:underline"
-            >
-              {t("races.syncCta")}
-            </Link>
-            <p className="mt-2 text-xs text-muted">
+    <>
+      <PageHead
+        title={t("races.title")}
+        description={t("races.intro")}
+        action={
+          <div className="rx-actions">
+            {list.length > 0 && <ExportButton kind="races" />}
+            <Go href="/races/new" primary>
+              <Plus size={16} />
+              {t("races.import")}
+            </Go>
+          </div>
+        }
+      />
+      <Stats
+        items={[
+          [t("races.official"), String(list.length), linkedName ?? t("races.syncTitle")],
+          [
+            t("sessions.latest"),
+            latest ? formatMs(latest.total_time_ms) : "—",
+            latest ? [latest.event, divLabel(latest.division)].join(" · ") : t("dash.noRace"),
+          ],
+          [
+            t("sessions.pb"),
+            best ? formatMs(best.total_time_ms) : "—",
+            best ? [best.event, divLabel(best.division)].join(" · ") : "",
+          ],
+          [
+            t("percentile.title"),
+            latestPct != null ? t("percentile.top", { pct: String(Math.round(latestPct)) }) : "—",
+            latest ? latest.event : "",
+          ],
+        ]}
+      />
+      <Panel
+        title={t("sessions.list")}
+        action={
+          <Go href="/sessions/compare">
+            {t("compare.title")} <ArrowRight size={16} />
+          </Go>
+        }
+      >
+        {list.length > 0 && (
+          <DataTable
+            headers={[
+              t("sessions.colDate"),
+              t("sessions.colDivision"),
+              t("percentile.title"),
+              t("sessions.colTime"),
+              "",
+            ]}
+            rows={list.map((r) => {
+              const pct = percentileOf(r.total_time_ms, r.division, gender, bms);
+              return [
+                <RowLink className="rx-table-name" href={`/races/${r.id}`} key="name">
+                  {r.event}
+                  <small>
+                    {r.event_date ? formatDateOnly(r.event_date, tag) : t("races.noDate")}
+                  </small>
+                </RowLink>,
+                <Chip key="div">{divLabel(r.division)}</Chip>,
+                <span className="rx-source" key="pct">
+                  {pct != null ? (
+                    <>
+                      <Check size={14} /> {t("percentile.top", { pct: String(Math.round(pct)) })}
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </span>,
+                <strong className="rx-number" key="time">
+                  {formatMs(r.total_time_ms)}
+                </strong>,
+                <RowLink
+                  aria-label={t("sessions.detailOf", { name: r.event })}
+                  href={`/races/${r.id}`}
+                  key="go"
+                >
+                  <ArrowRight size={17} />
+                </RowLink>,
+              ];
+            })}
+          />
+        )}
+        {!list.length && (
+          <Empty
+            title={t("races.empty")}
+            description={t("races.syncDesc")}
+            action={
+              <Go href="/races/new" primary>
+                {t("races.import")}
+              </Go>
+            }
+          />
+        )}
+        {/* 공식 기록 연동 — 시안에 없는 안내(§4-1) */}
+        <Hint>
+          {linkedName ? (
+            <>
+              {t("races.syncedTitle", { name: linkedName })} {t("races.syncedDesc")}{" "}
+              <Link href="/settings/profile">{t("races.syncedCta")}</Link>
+            </>
+          ) : (
+            <>
+              {t("races.syncDesc")} <Link href="/settings/profile">{t("races.syncCta")}</Link>
+              {" · "}
               {t("races.findManual")}{" "}
-              <a
-                href="https://results.hyrox.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gold hover:underline"
-              >
+              <a href="https://results.hyrox.com" target="_blank" rel="noopener noreferrer">
                 {t("races.findLink")}
               </a>
-            </p>
-          </>
-        )}
-      </section>
-
-      {!races?.length ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("races.empty")}
-        </p>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-2">
-          {races.map((r) => {
-            const pct = percentileOf(r.total_time_ms, r.division, gender, bms);
-            return (
-              <li key={r.id}>
-                <Link
-                  href={`/races/${r.id}`}
-                  className="flex items-center justify-between rounded-md bg-surface px-4 py-3.5 hover:bg-card"
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-sm font-semibold">{r.event}</span>
-                    <span className="text-xs text-muted">
-                      {r.event_date ? formatDateOnly(r.event_date, tag) : t("races.noDate")} ·{" "}
-                      {r.division
-                        ? t(`division.${r.division}` as Parameters<typeof t>[0])
-                        : "—"}
-                    </span>
-                  </div>
-                  <span className="flex items-center gap-3">
-                    {pct != null && (
-                      <span className="rounded-full bg-track/15 px-2 py-0.5 text-xs font-semibold text-track">
-                        {t("percentile.top", { pct: String(Math.round(pct)) })}
-                      </span>
-                    )}
-                    <span className="font-mono text-lg font-semibold text-gold">
-                      {formatMs(r.total_time_ms)}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </main>
+            </>
+          )}
+        </Hint>
+      </Panel>
+    </>
   );
 }

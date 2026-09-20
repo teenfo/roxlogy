@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -15,12 +14,20 @@ import {
 } from "@/lib/session-builder";
 import { TimeInput } from "@/components/time-input";
 import { useI18n } from "@/components/i18n-provider";
-
-const KIND_BADGE: Record<string, string> = {
-  run: "border-track/60 text-track",
-  station: "border-accent-line/60 text-gold",
-  roxzone: "border-line-strong text-muted",
-};
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Back,
+  Chip,
+  Choice,
+  DataTable,
+  Field,
+  Hint,
+  NavTabs,
+  PageHead,
+  Panel,
+} from "@/components/rox/ui";
 
 type Row = SegmentForm & { text: string };
 
@@ -78,6 +85,13 @@ function toLocalInput(iso: string): string {
   return d.toISOString().slice(0, 16);
 }
 
+/**
+ * 세션 기록·편집 — 시안 records.tsx 의 RecordForm 그대로 (PORT_PLAN §3-b):
+ * Back · PageHead · form.rx-form-layout[Panel "01 · 기본 정보"(rx-form-grid) ·
+ * Panel "02 · 구간 기록"(DataTable 라운드×런/록스존/스테이션) | aside Panel "기록 요약"].
+ * 시안의 대회/시뮬 Segments 는 우리에선 별도 라우트(/races/new)라 NavTabs 로 잇는다.
+ * RPE·워크아웃 연결·리더보드 제외는 시안에 없는 우리 입력(§4-1) — 01 패널 안에 둔다.
+ */
 export function SessionNewForm({
   initial,
   todayWorkouts = [],
@@ -121,20 +135,14 @@ export function SessionNewForm({
     [rows],
   );
 
-  function rowLabel(row: Row): string {
-    if (row.kind === "station" && row.stationKey)
-      return t(`station.${row.stationKey}` as Parameters<typeof t>[0]);
-    if (row.kind === "run") return t("newSession.runLabel", { n: row.n });
-    return t("newSession.roxzoneLabel", { n: row.n });
-  }
-
   function update(idx: number, text: string, ms: number | null) {
     setRows((prev) =>
       prev.map((r, i) => (i === idx ? { ...r, text, splitMs: ms } : r)),
     );
   }
 
-  async function handleSave() {
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
     // 시작 시각을 비우면 Invalid Date → toISOString() 이 던져서
     // pending 이 true 로 남아 저장 버튼이 영구 잠긴다. 먼저 검증한다.
@@ -181,7 +189,6 @@ export function SessionNewForm({
 
     // 워치·폰과 같은 진입점(ingest_session) — client_updated_at LWW 가드와
     // 세그먼트 꼬리 삭제(전체 스냅샷)를 한 트랜잭션으로 처리한다.
-    // 직접 upsert 는 가드를 표현할 수 없어 최신 동기화분을 되돌릴 수 있다.
     const { data: res, error: rErr } = await supabase.rpc("ingest_session", {
       p: toIngestPayload(built),
     });
@@ -198,158 +205,169 @@ export function SessionNewForm({
     router.refresh();
   }
 
+  // 라운드별 행: 템플릿은 [런, 록스존, 스테이션] × 8 순서다
+  const rounds = Array.from({ length: rows.length / 3 }, (_, i) => ({
+    run: i * 3,
+    rox: i * 3 + 1,
+    station: i * 3 + 2,
+  }));
+  const kindLabel = [t("kind.run"), t("kind.roxzone"), t("kind.station")];
+  const divisionLabel = division
+    ? t(`division.${division}` as Parameters<typeof t>[0])
+    : t("newSession.divisionNone");
+
   return (
-    <main>
-      <Link
+    <>
+      <Back
         href={initial ? `/sessions/${initial.id}` : "/sessions"}
-        className="text-sm text-muted hover:text-foreground"
-      >
-        {t("sessions.back")}
-      </Link>
-      <h1 className="mt-4 text-2xl font-bold">
-        {initial ? t("newSession.editTitle") : t("newSession.title")}
-      </h1>
-      <p className="mt-1 text-sm text-muted">
-        {initial ? t("newSession.editDesc") : t("newSession.desc")}
-      </p>
-
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <label className="text-sm text-muted">{t("newSession.startTime")}</label>
-        <input
-          type="datetime-local"
-          value={startedAt}
-          onChange={(e) => setStartedAt(e.target.value)}
-          className="rounded-md border border-line-mid bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent-line"
+        label={t("sessions.title")}
+      />
+      <PageHead
+        title={initial ? t("newSession.editTitle") : t("newSession.title")}
+        description={initial ? t("newSession.editDesc") : t("newSession.desc")}
+      />
+      {!initial && (
+        <NavTabs
+          path="/sessions/new"
+          items={[
+            [t("sessions.typeSim"), "/sessions/new"],
+            [t("sessions.race"), "/races/new"],
+          ]}
         />
-        <label className="ml-2 text-sm text-muted">{t("newSession.division")}</label>
-        <select
-          value={division}
-          onChange={(e) => setDivision(e.target.value)}
-          disabled={!!raceResultId}
-          className="rounded-md border border-line-mid bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent-line disabled:opacity-60"
-        >
-          <option value="">{t("newSession.divisionNone")}</option>
-          {DIVISIONS.map((d) => (
-            <option key={d} value={d}>
-              {t(`division.${d}` as Parameters<typeof t>[0])}
-            </option>
-          ))}
-        </select>
-        {raceResultId && (
-          <span className="basis-full text-xs text-muted">
-            {t("newSession.raceLinked")}
-          </span>
-        )}
-      </div>
-
-      <label className="mt-3 flex items-center gap-2 text-sm text-muted">
-        <input
-          type="checkbox"
-          checked={lbExcluded}
-          onChange={(e) => setLbExcluded(e.target.checked)}
-          className="h-4 w-4 accent-accent"
-        />
-        {t("newSession.excludeLeaderboard")}
-      </label>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label className="text-sm text-muted">{t("newSession.rpe")}</label>
-        <div className="flex flex-wrap gap-1">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setRpe(rpe === n ? null : n)}
-              className={`h-8 w-8 rounded-md border text-xs font-semibold transition ${
-                rpe === n
-                  ? "border-accent-line bg-accent text-accent-foreground"
-                  : "border-line-mid text-muted hover:border-foreground"
-              }`}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <span className="text-xs text-muted">{t("newSession.rpeHint")}</span>
-      </div>
-
-      {todayWorkouts.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <label className="text-sm text-muted">{t("newSession.linkWorkout")}</label>
-          <div className="flex flex-wrap gap-1.5">
-            {todayWorkouts.map((w) => (
-              <button
-                key={w.id}
-                type="button"
-                onClick={() =>
-                  setTemplateId(templateId === w.id ? null : w.id)
-                }
-                className={`rounded-full border px-3 py-1 text-xs transition ${
-                  templateId === w.id
-                    ? "border-accent-line bg-accent text-accent-foreground"
-                    : "border-line-mid text-muted hover:border-foreground"
-                }`}
-              >
-                {w.title}
-              </button>
-            ))}
-          </div>
-        </div>
       )}
-
-      <div className="mt-4">
-        <label className="text-sm text-muted">{t("newSession.notes")}</label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          maxLength={2000}
-          placeholder={t("newSession.notesPlaceholder")}
-          className="mt-1 w-full resize-y rounded-md border border-line-mid bg-surface px-3 py-2 text-sm outline-none focus:border-accent-line"
-        />
-      </div>
-
-      <ol className="mt-6 flex flex-col gap-1.5">
-        {rows.map((row, idx) => (
-          <li
-            key={idx}
-            className="flex items-center gap-3 rounded-md bg-surface px-4 py-2"
-          >
-            <span className="w-6 text-right font-mono text-xs text-muted">
-              {idx + 1}
-            </span>
-            <span
-              className={`rounded border px-1.5 py-0.5 text-xs ${KIND_BADGE[row.kind]}`}
-            >
-              {t(`kind.${row.kind}`)}
-            </span>
-            <span className="flex-1 text-sm">{rowLabel(row)}</span>
-            <TimeInput
-              value={row.text}
-              onChange={(text, ms) => update(idx, text, ms)}
+      <form onSubmit={handleSave} className="rx-form-layout">
+        <div>
+          <Panel title={t("newSession.basics")}>
+            <div className="rx-form-grid">
+              <Field label={t("newSession.startTime")}>
+                <Input
+                  type="datetime-local"
+                  required
+                  value={startedAt}
+                  onChange={(e) => setStartedAt(e.target.value)}
+                />
+              </Field>
+              <Field label={t("newSession.division")}>
+                {raceResultId ? (
+                  <Input value={divisionLabel} readOnly />
+                ) : (
+                  <Choice
+                    label={t("newSession.division")}
+                    value={division || "__none"}
+                    onChange={(v) => setDivision(v === "__none" ? "" : v)}
+                    options={[
+                      ["__none", t("newSession.divisionNone")],
+                      ...DIVISIONS.map(
+                        (d) => [d, t(`division.${d}` as Parameters<typeof t>[0])] as [string, string],
+                      ),
+                    ]}
+                  />
+                )}
+              </Field>
+            </div>
+            {raceResultId && <Hint>{t("newSession.raceLinked")}</Hint>}
+            <Field label={t("newSession.rpe")}>
+              <div className="rx-actions">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                  <Button
+                    key={n}
+                    type="button"
+                    size="sm"
+                    variant={rpe === n ? "default" : "outline"}
+                    className={rpe === n ? "rx-primary" : ""}
+                    onClick={() => setRpe(rpe === n ? null : n)}
+                  >
+                    {n}
+                  </Button>
+                ))}
+              </div>
+            </Field>
+            <Hint>{t("newSession.rpeHint")}</Hint>
+            {todayWorkouts.length > 0 && (
+              <Field label={t("newSession.linkWorkout")}>
+                <div className="rx-actions">
+                  {todayWorkouts.map((w) => (
+                    <Button
+                      key={w.id}
+                      type="button"
+                      size="sm"
+                      variant={templateId === w.id ? "default" : "outline"}
+                      className={templateId === w.id ? "rx-primary" : ""}
+                      onClick={() => setTemplateId(templateId === w.id ? null : w.id)}
+                    >
+                      {w.title}
+                    </Button>
+                  ))}
+                </div>
+              </Field>
+            )}
+            <Field label={t("newSession.notes")}>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder={t("newSession.notesPlaceholder")}
+              />
+            </Field>
+            <label className="rx-check">
+              <input
+                type="checkbox"
+                checked={lbExcluded}
+                onChange={(e) => setLbExcluded(e.target.checked)}
+              />
+              {t("newSession.excludeLeaderboard")}
+            </label>
+          </Panel>
+          <Panel title={t("newSession.splits")} action={<Chip>{t("newSession.optional")}</Chip>}>
+            <DataTable
+              headers={[t("newSession.round"), t("kind.run"), t("kind.roxzone"), t("kind.station")]}
+              rows={rounds.map((r, i) => [
+                <span key="s">
+                  {String(i + 1).padStart(2, "0")}
+                  <small className="rx-block">
+                    {rows[r.station].stationKey
+                      ? t(`station.${rows[r.station].stationKey}` as Parameters<typeof t>[0])
+                      : ""}
+                  </small>
+                </span>,
+                ...[r.run, r.rox, r.station].map((idx, j) => (
+                  <TimeInput
+                    key={idx}
+                    className="rx-time-input"
+                    value={rows[idx].text}
+                    onChange={(text, ms) => update(idx, text, ms)}
+                    placeholder="mm:ss"
+                    aria-label={`${i + 1} ${kindLabel[j]}`}
+                  />
+                )),
+              ])}
             />
-          </li>
-        ))}
-      </ol>
-
-      <div className="sticky bottom-0 mt-6 flex items-center justify-between gap-4 border-t border-surface bg-background py-4">
-        <p className="text-sm text-muted">
-          {t("newSession.totalLabel")}{" "}
-          <span className="font-mono text-lg font-semibold text-foreground">
-            {formatMs(totalMs)}
-          </span>
-        </p>
-        <div className="flex items-center gap-4">
-          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-          <button
-            onClick={handleSave}
-            disabled={pending || totalMs === 0}
-            className="rounded-md bg-accent px-6 py-2.5 font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
-          >
-            {pending ? t("common.saving") : t("newSession.save")}
-          </button>
+            <Hint>{t("newSession.splitsHint")}</Hint>
+          </Panel>
         </div>
-      </div>
-    </main>
+        <aside>
+          <Panel title={t("newSession.summary")}>
+            <div className="rx-summary-time">{totalMs ? formatMs(totalMs) : "—:—"}</div>
+            <p>
+              {divisionLabel} · {startedAt.slice(0, 10)}
+            </p>
+            <Hint>{t("newSession.totalLabel")}</Hint>
+            {error && (
+              <p className="rx-error" role="alert">
+                {error}
+              </p>
+            )}
+            <Button
+              className="rx-primary rx-wide"
+              disabled={pending || totalMs === 0}
+              type="submit"
+            >
+              {pending ? t("common.saving") : t("newSession.save")}
+            </Button>
+          </Panel>
+        </aside>
+      </form>
+    </>
   );
 }

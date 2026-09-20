@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { getT } from "@/lib/i18n";
 import { STATIONS } from "@/lib/hyrox";
 import { SessionCompare, type CompareSession } from "@/components/session-compare";
+import { Back, Empty, Go, PageHead, Panel } from "@/components/rox/ui";
 
 export async function generateMetadata() {
   const { t } = await getT();
@@ -12,6 +12,7 @@ export async function generateMetadata() {
 
 const EX_TO_KEY = new Map(STATIONS.map((s) => [s.exerciseId, s.key]));
 
+/** 기록 비교 — 시안 records.tsx 의 Compare 구조: Back · PageHead · Panel "기록 비교" · Empty */
 export default async function SessionComparePage() {
   const supabase = await createClient();
   const { t } = await getT();
@@ -58,20 +59,20 @@ export default async function SessionComparePage() {
   const stationKeys = STATIONS.map((s) => s.key);
 
   return (
-    <main>
-      <Link href="/sessions" className="text-sm text-muted hover:text-foreground">
-        {t("sessions.title")}
-      </Link>
-      <h1 className="mt-4 text-[30px] font-extrabold leading-[1.4] tracking-[-1px] max-[1000px]:text-[27px] max-[600px]:text-[25px]">{t("compare.title")}</h1>
-      <p className="mt-1 text-sm text-muted">{t("compare.desc")}</p>
-
+    <>
+      <Back href="/sessions" label={t("sessions.title")} />
+      <PageHead title={t("compare.title")} description={t("compare.desc")} />
       {sessions.length < 2 ? (
-        <p className="mt-6 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
-          {t("compare.needMore")}
-        </p>
+        <Panel title={t("compare.title")}>
+          <Empty
+            title={t("compare.needMore")}
+            description={t("compare.desc")}
+            action={<Go href="/sessions/new">{t("sessions.record")}</Go>}
+          />
+        </Panel>
       ) : (
         <SessionCompare sessions={sessions} stationKeys={stationKeys} />
       )}
-    </main>
+    </>
   );
 }

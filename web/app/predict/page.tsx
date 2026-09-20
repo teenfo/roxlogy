@@ -13,6 +13,7 @@ import {
 import { todayISOIn } from "@/lib/format";
 import type { RunFitness } from "@/lib/run";
 import { Shell } from "@/components/rox/shell";
+import { Back, PageHead, Panel } from "@/components/rox/ui";
 
 const EX_TO_KEY = new Map(STATIONS.map((s) => [s.exerciseId, s.key]));
 
@@ -32,7 +33,7 @@ export default async function PredictPage({
   }>;
 }) {
   const sp = await searchParams;
-  const { tag, tz } = await getT();
+  const { t, tag, tz } = await getT();
   const supabase = await createClient();
   const user = await getCachedUser();
 
@@ -136,7 +137,12 @@ export default async function PredictPage({
 
   return (
     <Shell loginNext="/predict">
-      <div>
+      {/* 시안 racing.tsx 의 Goals(predict): Back · PageHead · .rx-form-layout. 계산 폼
+          내부(PredictForm)는 시안에 없는 우리 구성이라 Panel 로만 감싼다(§4-1) */}
+      {user && <Back href="/goals" label={t("goals.title")} />}
+      <PageHead title={t("meta.predict")} description={t("predict.intro")} />
+      <Panel title={t("predict.settings")}>
+        <div style={{ padding: "0 24px 24px" }}>
         <PredictForm
           isLoggedIn={!!user}
           sessions={sessions}
@@ -157,7 +163,8 @@ export default async function PredictPage({
             }[]
           }
         />
-      </div>
+        </div>
+      </Panel>
     </Shell>
   );
 }
