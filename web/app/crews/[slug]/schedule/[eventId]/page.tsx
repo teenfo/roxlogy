@@ -10,6 +10,7 @@ import {
   CrewEventShare,
   CrewEventStaffActions,
   CrewEventCommentForm,
+  CrewEventInstaCopy,
   CrewMeetupCancel,
   CrewRsvpButtons,
   type AttendanceRow,
@@ -148,6 +149,8 @@ export default async function CrewEventPage({ params }: { params: Promise<{ slug
         action={
           <div className="rx-actions" style={{ marginTop: 0 }}>
             <CrewEventShare url={shareUrl} title={ev.title} />
+            {/* 인스타 태그 복사 — 사진 태그용이라 공유 옆. 명단은 크루원만 받으므로 크루원만 */}
+            {isMember && <CrewEventInstaCopy rows={attendance} />}
             {ev.is_staff && (
               /* 수정·종료·취소를 ⋯ 하나로. 수정 폼은 열면 RoxDialog 로 뜬다 */
               <CrewEventStaffActions

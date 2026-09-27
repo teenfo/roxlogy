@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { DIVISIONS } from "@/lib/divisions";
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { AtSign, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { dictLabel } from "@/lib/dict-label";
@@ -784,49 +784,116 @@ export type AttendanceRow = {
   charge_id: string | null;
   charge_amount: number | null;
   charge_status: "pending" | "reported" | "confirmed" | "waived" | null;
+  /** 프로필에 적어 둔 인스타 핸들(@ 없이). 없으면 null (마이그레이션 112) */
+  instagram: string | null;
 };
 
-/**
- * 출석자 인스타 핸들 복사 — 모임 사진에 태그할 때 한 줄로 붙여 넣는다.
- *
- * 핸들은 누를 때 가져온다(목록에 늘 실어 나를 이유가 없다). 핸들을 적어 두지
- * 않은 사람이 있으면 몇 명이 빠졌는지 함께 알려 준다 — 조용히 빼면 태그가
- * 누락된 걸 나중에 알게 된다.
- */
-export function CrewEventInstaCopy({ eventId }: { eventId: string }) {
+/** 이름 옆 인스타 표시 — 등록한 사람만. 명단·복사 다이얼로그가 같이 쓴다. */
+function InstaMark({ handle }: { handle: string | null }) {
   const { t } = useI18n();
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
+  if (!handle) return null;
+  return (
+    <span className="rx-insta" title={t("crew.instaRegistered")}>
+      <AtSign size={12} aria-hidden />{handle.replace(/^@/, "")}
+    </span>
+  );
+}
 
-  async function copy() {
-    setBusy(true);
+/**
+ * 인스타 태그 복사 — 모임 사진에 태그할 사람을 골라 핸들을 한 줄로 복사한다.
+ * 모임 머리의 "링크 공유" 옆 버튼이고, 누르면 RoxDialog 가 뜬다.
+ *
+ * 대상은 출석했거나 참석 신청한 크루원. 출석자 전체를 한 번에 복사하거나,
+ * 체크해서 고른 사람만 복사한다. 인스타를 등록하지 않은 사람은 체크할 수 없고
+ * "미등록"으로 표시한다 — 조용히 빼면 태그 누락을 나중에 알게 된다.
+ */
+export function CrewEventInstaCopy({ rows }: { rows: AttendanceRow[] }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  // 출석자 먼저(RPC 정렬 그대로), 그 다음 참석 신청자
+  const candidates = rows.filter((r) => r.checked_in || r.rsvp_status === "going" || r.rsvp_status === "waitlisted");
+  const present = candidates.filter((r) => r.checked_in);
+  const taggable = (list: AttendanceRow[]) => list.filter((r) => !!r.instagram);
+  // 기본 선택 = 인스타를 등록한 출석자
+  const [sel, setSel] = useState<Set<string>>(() => new Set(taggable(present).map((r) => r.user_id)));
+
+  const handles = (list: AttendanceRow[]) => taggable(list).map((r) => `@${r.instagram!.replace(/^@/, "")}`);
+
+  async function copy(list: AttendanceRow[]) {
     setNote(null);
-    const { data, error } = await createClient().rpc("crew_event_instagrams", { p_event: eventId });
-    setBusy(false);
-    if (error) return setNote(error.message);
-    const rows = (data ?? []) as { display_name: string; instagram: string | null }[];
-    const handles = rows
-      .map((r) => r.instagram)
-      .filter((h): h is string => !!h)
-      .map((h) => `@${h.replace(/^@/, "")}`);
-    if (!handles.length) return setNote(t("crew.instaNone"));
+    const hs = handles(list);
+    if (!hs.length) return setNote(t("crew.instaNone"));
     try {
-      await navigator.clipboard.writeText(handles.join(" "));
+      await navigator.clipboard.writeText(hs.join(" "));
     } catch {
-      window.prompt(t("crew.shareCopyManual"), handles.join(" "));
+      window.prompt(t("crew.shareCopyManual"), hs.join(" "));
       return;
     }
-    const missing = rows.length - handles.length;
-    setNote(missing > 0 ? t("crew.instaCopiedSome", { n: handles.length, missing }) : t("crew.instaCopied", { n: handles.length }));
-    window.setTimeout(() => setNote(null), 4000);
+    const missing = list.length - hs.length;
+    setNote(missing > 0 ? t("crew.instaCopiedSome", { n: hs.length, missing }) : t("crew.instaCopied", { n: hs.length }));
   }
+
+  const toggle = (id: string, on: boolean) =>
+    setSel((s) => {
+      const n = new Set(s);
+      if (on) n.add(id);
+      else n.delete(id);
+      return n;
+    });
+  const selected = candidates.filter((r) => sel.has(r.user_id));
+  const registered = taggable(candidates).length;
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={copy} disabled={busy}>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          setNote(null);
+          setOpen(true);
+        }}
+      >
         {t("crew.instaCopy")}
       </Button>
-      {note && <span className="rx-muted">{note}</span>}
+      <RoxDialog open={open} onOpenChange={setOpen} title={t("crew.instaCopy")} description={t("crew.instaDialogDesc")}>
+        {candidates.length === 0 ? (
+          <Empty title={t("crew.instaNoCandidates")} description={t("crew.instaDialogDesc")} />
+        ) : (
+          <>
+            <div className="rx-actions" style={{ marginTop: 0 }}>
+              <Button type="button" className="rx-primary" onClick={() => copy(present)} disabled={taggable(present).length === 0}>
+                {t("crew.instaCopyAll", { n: taggable(present).length })}
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setSel(new Set(taggable(candidates).map((r) => r.user_id)))}>
+                {t("crew.instaSelectAll")}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setSel(new Set())} disabled={sel.size === 0}>
+                {t("crew.instaClearAll")}
+              </Button>
+            </div>
+            <Hint>{t("crew.instaCount", { k: registered, m: candidates.length - registered })}</Hint>
+            {candidates.map((r) => (
+              <label key={r.user_id} className="rx-check" style={{ margin: "10px 0" }}>
+                <Checkbox checked={sel.has(r.user_id)} disabled={!r.instagram} onCheckedChange={(v) => toggle(r.user_id, v === true)} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <Person
+                    name={r.display_name}
+                    note={r.instagram ? <InstaMark handle={r.instagram} /> : <Chip>{t("crew.instaUnregistered")}</Chip>}
+                    chip={r.checked_in ? <Chip tone="green">{t("crew.attendPresent")}</Chip> : <Chip tone={r.rsvp_status === "waitlisted" ? "yellow" : "blue"}>{t(r.rsvp_status === "waitlisted" ? "crew.rsvpWaitlisted" : "crew.rsvpGoing")}</Chip>}
+                  />
+                </span>
+              </label>
+            ))}
+            <div className="rx-actions">
+              <Button type="button" className="rx-primary" onClick={() => copy(selected)} disabled={selected.length === 0}>
+                {t("crew.instaCopySelected", { n: selected.length })}
+              </Button>
+              {note && <span className="rx-muted">{note}</span>}
+            </div>
+          </>
+        )}
+      </RoxDialog>
     </>
   );
 }
@@ -1031,7 +1098,17 @@ export function CrewAttendanceCheck({
             <DataTable
               headers={[t("crew.colMember"), canEdit ? t("crew.eventFee") : "", t("crew.attendCheckTab")]}
               rows={shown.map((r) => [
-                <Person key="p" name={r.display_name} note={rsvpChip(r.rsvp_status)} chip={roleChip(r)} />,
+                <Person
+                  key="p"
+                  name={r.display_name}
+                  note={
+                    <>
+                      {rsvpChip(r.rsvp_status)}
+                      <InstaMark handle={r.instagram} />
+                    </>
+                  }
+                  chip={roleChip(r)}
+                />,
                 // 회차비 — 청구가 있을 때만. 무료 행사·회차비 없는 등급은 안 뜬다
                 canEdit && r.charge_id && r.charge_amount != null ? (
                   r.charge_status === "waived" ? (
@@ -1061,16 +1138,16 @@ export function CrewAttendanceCheck({
           ) : (
             <Empty title={t("crew.attendNoRsvp")} description={t("crew.attendTabNote")} />
           )}
-          {/* 출석 탭 동작 줄 — 전원 출석(운영진) · 인스타 태그 복사(출석자가 있을 때) · 나머지 크루원 펼치기 */}
-          {((canEdit && noShow.length > 0) || present.length > 0 || (canEdit && rest.length > 0)) && (
+          {/* 출석 탭 동작 줄 — 전원 출석(운영진) · 나머지 크루원 펼치기.
+              인스타 태그 복사는 모임 머리의 공유 버튼 옆으로 갔다(CrewEventInstaCopy). */}
+          {canEdit && (noShow.length > 0 || rest.length > 0) && (
             <div className="rx-actions">
-              {canEdit && noShow.length > 0 && (
+              {noShow.length > 0 && (
                 <Button type="button" variant="outline" size="sm" onClick={checkAllGoing} disabled={busy != null}>
                   {t("crew.checkAllGoing")}
                 </Button>
               )}
-              {present.length > 0 && <CrewEventInstaCopy eventId={eventId} />}
-              {canEdit && rest.length > 0 && (
+              {rest.length > 0 && (
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
                   {showAll ? t("crew.attendHideOthers") : t("crew.attendShowOthers", { n: rest.length })}
                 </Button>

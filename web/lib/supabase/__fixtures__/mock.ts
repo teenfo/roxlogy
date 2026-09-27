@@ -73,6 +73,10 @@ function valueFor(col: string, i: number): unknown {
   if (ENUMS[c]) return ENUMS[c][i % ENUMS[c].length];
   // 권한·상태는 **항상 가장 센 값**으로 고정한다. 운영진 전용 화면(크루 관리·
   // PFT 스태프)이 notFound() 로 떨어지면 그 화면을 아예 못 찍는다.
+  // 출석 명단(crew_event_attendance) — 응답·출석·인스타가 섞여 보여야 다이얼로그를 볼 수 있다
+  if (c === "rsvp_status") return ["going", "going", "waitlisted", "maybe", null, "going"][i % 6];
+  if (c === "checked_in") return i % 3 !== 2;
+  if (c === "instagram") return i % 3 === 1 ? null : `rox_${i + 1}`;
   if (c.endsWith("_role")) return "owner";
   if (c.endsWith("_status")) return "active";
   if (c === "splits" || c.endsWith("_splits")) return [300, 320, 310, 305, 315, 325, 318, 308];
@@ -248,8 +252,14 @@ RPC_SHAPES.crew_overview =
 RPC_SHAPES.leaderboard_overall = "rank, display_name, division, best_ms";
 RPC_SHAPES.leaderboard_station = RPC_SHAPES.leaderboard_overall;
 RPC_SHAPES.discover_members = "id, display_name, shared_count, follower_count, is_following";
+RPC_SHAPES.crew_event_attendance =
+  "user_id, display_name, email, role, rsvp_status, checked_in, charge_id, charge_amount, charge_status, instagram";
 RPC_SHAPES.crew_roster =
   "user_id, display_name, email, division, role, joined_at, session_count, attend_count, attend_paid_count, tier_id, tier_name, tier_color";
+
+/** 사람 목록 RPC — rowsFor 가 user_id 를 전부 내 것으로 덮어쓰므로(소유권 판정용)
+ *  행마다 다른 user_id 를 다시 준다. 같은 id 면 선택·React key 가 겹친다. */
+const RPC_DISTINCT_USERS: Record<string, true> = { crew_event_attendance: true };
 
 /** jsonb 로 **객체 하나**를 돌려주는 RPC — 목록이 아니라 행 하나여야 한다 */
 const RPC_OBJECTS: Record<string, string> = {
@@ -395,6 +405,9 @@ export function makeClient(options?: Options) {
       if (name in RPC_SCALARS) return builder({ value: RPC_SCALARS[name] });
       if (name in RPC_OBJECTS) {
         return builder({ value: rowsFor(RPC_OBJECTS[name], 1)[0] });
+      }
+      if (name in RPC_DISTINCT_USERS) {
+        return builder({ value: rowsFor(RPC_SHAPES[name], 6).map((r, i) => ({ ...r, user_id: uuid(i + 1) })) });
       }
       if (name in RPC_SHAPES) return builder({ select: RPC_SHAPES[name] });
       return builder({ value: [] });
