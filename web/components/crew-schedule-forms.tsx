@@ -977,6 +977,8 @@ export function CrewAttendanceCheck({
         ) : undefined
       }
     >
+      {/* 툴바는 탭(필터)만 — 출석 탭의 동작(전원 출석·인스타 복사)은 표 아래 동작 줄에 둔다.
+          필터 옆에 두면 버튼이 필터의 일부처럼 읽힌다. */}
       <div className="rx-toolbar">
         {/* 크루원도 탭을 다 본다 — 출석 탭이 읽기 전용일 뿐이다 */}
         <Segments
@@ -991,16 +993,6 @@ export function CrewAttendanceCheck({
             ["none", `${t("crew.rsvpNone")} ${noneRows.length}`],
           ]}
         />
-        {tab === "attend" && (canEdit || present.length > 0) && (
-          <span className="rx-actions" style={{ marginTop: 0 }}>
-            {canEdit && noShow.length > 0 && (
-              <Button type="button" variant="outline" size="sm" onClick={checkAllGoing} disabled={busy != null}>
-                {t("crew.checkAllGoing")}
-              </Button>
-            )}
-            {present.length > 0 && <CrewEventInstaCopy eventId={eventId} />}
-          </span>
-        )}
       </div>
 
       <Hint>
@@ -1069,11 +1061,20 @@ export function CrewAttendanceCheck({
           ) : (
             <Empty title={t("crew.attendNoRsvp")} description={t("crew.attendTabNote")} />
           )}
-          {canEdit && rest.length > 0 && (
+          {/* 출석 탭 동작 줄 — 전원 출석(운영진) · 인스타 태그 복사(출석자가 있을 때) · 나머지 크루원 펼치기 */}
+          {((canEdit && noShow.length > 0) || present.length > 0 || (canEdit && rest.length > 0)) && (
             <div className="rx-actions">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
-                {showAll ? t("crew.attendHideOthers") : t("crew.attendShowOthers", { n: rest.length })}
-              </Button>
+              {canEdit && noShow.length > 0 && (
+                <Button type="button" variant="outline" size="sm" onClick={checkAllGoing} disabled={busy != null}>
+                  {t("crew.checkAllGoing")}
+                </Button>
+              )}
+              {present.length > 0 && <CrewEventInstaCopy eventId={eventId} />}
+              {canEdit && rest.length > 0 && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
+                  {showAll ? t("crew.attendHideOthers") : t("crew.attendShowOthers", { n: rest.length })}
+                </Button>
+              )}
             </div>
           )}
         </>
