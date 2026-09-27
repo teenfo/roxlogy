@@ -865,14 +865,21 @@ export function CrewEventInstaCopy({ rows }: { rows: AttendanceRow[] }) {
               <Button type="button" className="rx-primary" onClick={() => copy(present)} disabled={taggable(present).length === 0}>
                 {t("crew.instaCopyAll", { n: taggable(present).length })}
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setSel(new Set(taggable(candidates).map((r) => r.user_id)))}>
-                {t("crew.instaSelectAll")}
-              </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setSel(new Set())} disabled={sel.size === 0}>
-                {t("crew.instaClearAll")}
-              </Button>
             </div>
-            <Hint>{t("crew.instaCount", { k: registered, m: candidates.length - registered })}</Hint>
+            {/* 등록 수 + 전체 선택·해제 — 한 줄(390px 에서도 안 접힌다) */}
+            <div className="rx-toolbar" style={{ marginBottom: 4 }}>
+              <span className="rx-hint" style={{ margin: 0 }}>
+                {t("crew.instaCount", { k: registered, m: candidates.length - registered })}
+              </span>
+              <span className="rx-actions" style={{ marginTop: 0, flexWrap: "nowrap" }}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setSel(new Set(taggable(candidates).map((r) => r.user_id)))}>
+                  {t("crew.instaSelectAll")}
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSel(new Set())} disabled={sel.size === 0}>
+                  {t("crew.instaClearAll")}
+                </Button>
+              </span>
+            </div>
             {candidates.map((r) => (
               <label key={r.user_id} className="rx-check" style={{ margin: "10px 0" }}>
                 <Checkbox checked={sel.has(r.user_id)} disabled={!r.instagram} onCheckedChange={(v) => toggle(r.user_id, v === true)} />
