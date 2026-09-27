@@ -9,7 +9,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { dictLabel } from "@/lib/dict-label";
 import { duesErrText } from "@/lib/dues-error";
 import { formatMs as fmtMs } from "@/lib/format";
-import { Avatar } from "@/components/ui/crew-ui";
+import { Avatar, Badge } from "@/components/ui/crew-ui";
 import {
   crewRoleBadgeClass,
   crewRoleDictKey,
@@ -1272,65 +1272,199 @@ export type AttendanceRow = {
   charge_id: string | null;
   charge_amount: number | null;
   charge_status: "pending" | "reported" | "confirmed" | "waived" | null;
+  /** 프로필에 적어 둔 인스타 핸들(@ 없이). 없으면 null (마이그레이션 112) */
+  instagram: string | null;
 };
 
 /** 모임 출석 체크 — 운영진만 토글할 수 있다(권한은 crew_event_check_in RPC 가 강제).
  *  RSVP(오겠다)와 출석(실제로 왔다)은 별개라, 신청하지 않은 워크인도 체크된다. */
 const won = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 
-/**
- * 출석자 인스타 핸들 복사 — 모임 사진에 태그할 때 한 줄로 붙여 넣는다.
- *
- * 핸들은 누를 때 가져온다(목록에 늘 실어 나를 이유가 없다). 핸들을 적어 두지
- * 않은 사람이 있으면 몇 명이 빠졌는지 함께 알려 준다 — 조용히 빼면 태그가
- * 누락된 걸 나중에 알게 된다.
- */
-export function CrewEventInstaCopy({ eventId }: { eventId: string }) {
+/** 이름 옆 인스타 표시 — 등록한 사람만. 명단·복사 다이얼로그가 같이 쓴다. */
+function InstaMark({ handle }: { handle: string | null }) {
   const { t } = useI18n();
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
+  if (!handle) return null;
+  return (
+    <span className="inline-flex items-center text-xs text-muted" title={t("crew.instaRegistered")}>
+      @{handle.replace(/^@/, "")}
+    </span>
+  );
+}
 
-  async function copy() {
-    setBusy(true);
+/**
+ * 인스타 태그 복사 — 모임 사진에 태그할 사람을 골라 핸들을 한 줄로 복사한다.
+ * 모임 머리의 "링크 공유" 옆 버튼이고, 누르면 Dialog 가 뜬다.
+ *
+ * 대상은 출석했거나 참석 신청한 크루원. 출석자 전체를 한 번에 복사하거나,
+ * 체크해서 고른 사람만 복사한다. 인스타를 등록하지 않은 사람은 체크할 수 없고
+ * "미등록"으로 표시한다 — 조용히 빼면 태그 누락을 나중에 알게 된다.
+ * 핸들은 출석 명단(crew_event_attendance.instagram)에 실려 온다.
+ */
+export function CrewEventInstaCopy({ rows }: { rows: AttendanceRow[] }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  // 출석자 먼저(RPC 정렬 그대로), 그 다음 참석 신청자
+  const candidates = rows.filter(
+    (r) => r.checked_in || r.rsvp_status === "going" || r.rsvp_status === "waitlisted",
+  );
+  const present = candidates.filter((r) => r.checked_in);
+  const taggable = (list: AttendanceRow[]) => list.filter((r) => !!r.instagram);
+  // 기본 선택 = 인스타를 등록한 출석자
+  const [sel, setSel] = useState<Set<string>>(
+    () => new Set(taggable(present).map((r) => r.user_id)),
+  );
+
+  const handles = (list: AttendanceRow[]) =>
+    taggable(list).map((r) => `@${r.instagram!.replace(/^@/, "")}`);
+
+  async function copy(list: AttendanceRow[]) {
     setNote(null);
-    const { data, error } = await createClient().rpc("crew_event_instagrams", {
-      p_event: eventId,
-    });
-    setBusy(false);
-    if (error) return setNote(error.message);
-    const rows = (data ?? []) as { display_name: string; instagram: string | null }[];
-    const handles = rows
-      .map((r) => r.instagram)
-      .filter((h): h is string => !!h)
-      .map((h) => `@${h.replace(/^@/, "")}`);
-    if (!handles.length) return setNote(t("crew.instaNone"));
+    const hs = handles(list);
+    if (!hs.length) return setNote(t("crew.instaNone"));
     try {
-      await navigator.clipboard.writeText(handles.join(" "));
+      await navigator.clipboard.writeText(hs.join(" "));
     } catch {
-      window.prompt(t("crew.shareCopyManual"), handles.join(" "));
+      window.prompt(t("crew.shareCopyManual"), hs.join(" "));
       return;
     }
-    const missing = rows.length - handles.length;
+    const missing = list.length - hs.length;
     setNote(
       missing > 0
-        ? t("crew.instaCopiedSome", { n: handles.length, missing })
-        : t("crew.instaCopied", { n: handles.length }),
+        ? t("crew.instaCopiedSome", { n: hs.length, missing })
+        : t("crew.instaCopied", { n: hs.length }),
     );
-    window.setTimeout(() => setNote(null), 4000);
   }
 
+  const toggle = (id: string, on: boolean) =>
+    setSel((s) => {
+      const n = new Set(s);
+      if (on) n.add(id);
+      else n.delete(id);
+      return n;
+    });
+  const selected = candidates.filter((r) => sel.has(r.user_id));
+  const registered = taggable(candidates).length;
+
+  const btn =
+    "flex h-[34px] shrink-0 items-center rounded-lg border border-line-strong bg-control px-3.5 text-[13px] font-semibold transition-colors hover:border-line-strong";
+  const primary =
+    "flex h-9 shrink-0 items-center rounded-lg bg-accent px-3.5 text-[13px] font-bold text-background disabled:opacity-40";
+  const small =
+    "flex h-8 shrink-0 items-center rounded-lg border border-line-strong px-2.5 text-xs font-semibold disabled:opacity-40";
+
   return (
-    <span className="flex items-center gap-2">
+    <>
       <button
         type="button"
-        onClick={copy}
-        disabled={busy}
-        className="flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-[13px] font-semibold transition-colors hover:border-line-strong disabled:opacity-40"
+        onClick={() => {
+          setNote(null);
+          setOpen(true);
+        }}
+        className={btn}
       >
         {t("crew.instaCopy")}
       </button>
-      {note && <span className="text-xs text-muted">{note}</span>}
-    </span>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        label={t("crew.instaCopy")}
+        closeLabel={t("common.close")}
+        panelClassName="max-w-lg"
+      >
+        <div className="flex w-full flex-col gap-3 rounded-md bg-surface p-4">
+          <div>
+            <p className="text-sm font-semibold">{t("crew.instaCopy")}</p>
+            <p className="mt-1 text-xs text-muted">{t("crew.instaDialogDesc")}</p>
+          </div>
+          {candidates.length === 0 ? (
+            <p className="py-6 text-center text-[13px] text-muted">{t("crew.instaNoCandidates")}</p>
+          ) : (
+            <>
+              <div>
+                <button
+                  type="button"
+                  className={primary}
+                  onClick={() => copy(present)}
+                  disabled={taggable(present).length === 0}
+                >
+                  {t("crew.instaCopyAll", { n: taggable(present).length })}
+                </button>
+              </div>
+              {/* 등록 수 + 전체 선택·해제 — 한 줄 */}
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs text-muted">
+                  {t("crew.instaCount", { k: registered, m: candidates.length - registered })}
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    className={small}
+                    onClick={() => setSel(new Set(taggable(candidates).map((r) => r.user_id)))}
+                  >
+                    {t("crew.instaSelectAll")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${small} border-transparent text-muted`}
+                    onClick={() => setSel(new Set())}
+                    disabled={sel.size === 0}
+                  >
+                    {t("crew.instaClearAll")}
+                  </button>
+                </span>
+              </div>
+              <ul className="max-h-[50vh] overflow-y-auto">
+                {candidates.map((r) => (
+                  <li key={r.user_id}>
+                    <label
+                      className={`flex items-center gap-3 border-b border-line-soft py-2.5 ${
+                        r.instagram ? "cursor-pointer" : "opacity-70"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 shrink-0 accent-accent"
+                        checked={sel.has(r.user_id)}
+                        disabled={!r.instagram}
+                        onChange={(e) => toggle(r.user_id, e.target.checked)}
+                      />
+                      <Avatar name={r.display_name} size={32} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-bold">{r.display_name}</span>
+                        {r.instagram ? (
+                          <InstaMark handle={r.instagram} />
+                        ) : (
+                          <Badge tone="neutral">{t("crew.instaUnregistered")}</Badge>
+                        )}
+                      </span>
+                      {r.checked_in ? (
+                        <Badge tone="success">{t("crew.attendPresent")}</Badge>
+                      ) : (
+                        <Badge tone={r.rsvp_status === "waitlisted" ? "accent" : "info"}>
+                          {t(r.rsvp_status === "waitlisted" ? "crew.rsvpWaitlisted" : "crew.rsvpGoing")}
+                        </Badge>
+                      )}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  className={primary}
+                  onClick={() => copy(selected)}
+                  disabled={selected.length === 0}
+                >
+                  {t("crew.instaCopySelected", { n: selected.length })}
+                </button>
+                {note && <span className="text-xs text-muted">{note}</span>}
+              </div>
+            </>
+          )}
+        </div>
+      </Dialog>
+    </>
   );
 }
 
@@ -1541,9 +1675,6 @@ export function CrewAttendanceCheck({
                 {t("crew.checkAllGoing")}
               </button>
             )}
-            {tab === "attend" && present.length > 0 && (
-              <CrewEventInstaCopy eventId={eventId} />
-            )}
           </div>
         )}
       </div>
@@ -1625,8 +1756,9 @@ export function CrewAttendanceCheck({
                         </span>
                       )}
                     </span>
-                    <span className={`mt-0.5 block text-xs ${cls}`}>
+                    <span className={`mt-0.5 flex items-center gap-2 text-xs ${cls}`}>
                       {label}
+                      <InstaMark handle={r.instagram} />
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">

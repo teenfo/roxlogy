@@ -10,6 +10,7 @@ import {
   CrewEventShare,
   CrewEventStaffActions,
   CrewEventCommentForm,
+  CrewEventInstaCopy,
   CrewMeetupCancel,
   CrewRsvpButtons,
   type AttendanceRow,
@@ -235,7 +236,8 @@ export default async function CrewEventPage({
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5 max-md:col-span-2 max-md:justify-end">
+          {/* 모바일에서는 버튼 넷(목록·공유·인스타·⋯)이 한 줄에 안 들어가므로 줄바꿈 */}
+          <div className="flex shrink-0 items-center gap-1.5 max-md:col-span-2 max-md:flex-wrap max-md:justify-end">
             {/* 목록으로 — 상단에 따로 두는 것보다 액션들과 한 줄에 있는 편이 찾기 쉽다 */}
             <Link
               href={`/crews/${slug}/schedule`}
@@ -244,6 +246,8 @@ export default async function CrewEventPage({
               ← {t("crew.schedTab")}
             </Link>
             <CrewEventShare url={shareUrl} title={ev.title} />
+            {/* 인스타 태그 복사 — 사진 태그용이라 공유 옆. 명단은 크루원만 받으므로 크루원만 */}
+            {isMember && <CrewEventInstaCopy rows={attendance} />}
             {ev.is_staff && (
               /* 수정·종료·취소를 ⋯ 하나로. 수정 폼은 열면 오버레이로 뜬다 */
               <CrewEventStaffActions
