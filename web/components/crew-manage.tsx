@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
+import { downloadCsv } from "@/lib/csv";
 import { crewRoleBadgeClass, isStaffRole, tierTextClass } from "@/lib/crew-role";
 import { Avatar } from "@/components/ui/crew-ui";
 import { Dialog } from "@/components/ui/dialog";
@@ -907,29 +908,18 @@ export function CrewMemberManage({
       t("crew.colAttend"),
       t("crew.csvAttendAll"),
     ];
-    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
-    const body = active.map((m) =>
-      [
+    downloadCsv(
+      `${slug}-members.csv`,
+      head,
+      active.map((m) => [
         m.display_name,
         m.email ?? "",
         m.tier_name ?? "",
         roleLabel(m.role),
-        String(m.attend_paid_count),
-        String(m.attend_count),
-      ]
-        .map(esc)
-        .join(","),
+        m.attend_paid_count,
+        m.attend_count,
+      ]),
     );
-    // 엑셀이 UTF-8 로 읽게 BOM 을 붙인다 — 없으면 한글이 깨진다
-    const blob = new Blob(["﻿" + [head.map(esc).join(","), ...body].join("\r\n")], {
-      type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${slug}-members.csv`;
-    a.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   const CARD = "overflow-hidden rounded-[14px] border border-line bg-card";

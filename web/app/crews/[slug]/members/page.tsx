@@ -12,6 +12,8 @@ import {
   tierBadgeClass,
 } from "@/lib/crew-role";
 import { Avatar, Card, Chip } from "@/components/ui/crew-ui";
+import { CrewRosterDownload } from "@/components/crew-roster-download";
+import { InstaHandle } from "@/components/insta-handle";
 
 export default async function CrewMembersPage({
   params,
@@ -72,6 +74,8 @@ export default async function CrewMembersPage({
             {key === STAFF ? t("crew.staff") : key}
           </Chip>
         ))}
+        {/* 명단 다운로드 — 보이는(필터 걸린) 명단 그대로. 크루원 누구나 받는다 */}
+        <CrewRosterDownload slug={slug} rows={shown} className="ml-auto" />
       </div>
 
       <Card className="mt-5 overflow-hidden">
@@ -97,9 +101,17 @@ export default async function CrewMembersPage({
                     {m.display_name}
                   </Link>
                   {/* 계정 주소는 운영진에게만 내려온다 (동명이인·이름 미설정 구분용) */}
-                  <span className="block truncate text-xs text-muted">
+                  {/* 좁은 화면에서는 계정 주소가 한 줄을 다 먹어 인스타가 잘린다 — 모바일만 줄바꿈 */}
+                  <span className="block text-xs text-muted [overflow-wrap:anywhere] sm:truncate">
                     {m.email ? `${m.email} · ` : ""}
                     {formatDateShort(m.joined_at, tag, tz)}
+                    {/* 인스타 — 등록한 사람만. 터치하면 @핸들이 클립보드로 */}
+                    {m.instagram && (
+                      <>
+                        {" · "}
+                        <InstaHandle handle={m.instagram} />
+                      </>
+                    )}
                   </span>
                 </span>
               </span>
