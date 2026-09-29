@@ -46,6 +46,7 @@ const PROTECTED_PREFIXES = [
   "/runs",
   "/schedule",
   "/search",
+  "/timing",
   "/sessions",
   "/settings",
   "/u",

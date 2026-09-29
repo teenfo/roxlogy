@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs, formatDateShortYear } from "@/lib/format";
 import { badgeClass, badgeDictKey, pftBadge } from "@/lib/pft";
-import type { RaceFormat } from "@/lib/race-format";
+import { raceBase, type RaceFormat } from "@/lib/race-format";
 import { RaceFormatChip } from "@/components/race-format-chip";
 import { Card } from "@/components/ui/crew-ui";
 
@@ -115,11 +115,11 @@ export function PftRaceList({
                     <Link href={`/board/${r.code}`} className={BTN}>
                       {t("pft.race.linkBoard")}
                     </Link>
-                    <Link href={`/pft/race/${r.code}`} className={BTN}>
+                    <Link href={`${raceBase(r.format)}/${r.code}`} className={BTN}>
                       {r.mine ? t("pft.race.linkMine") : t("pft.race.linkOpen")}
                     </Link>
                     {r.created && (
-                      <Link href={`/pft/race/${r.code}/staff`} className={BTN}>
+                      <Link href={`${raceBase(r.format)}/${r.code}/staff`} className={BTN}>
                         {t("pft.race.linkStaff")}
                       </Link>
                     )}

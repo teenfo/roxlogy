@@ -7,5 +7,5 @@ export async function generateMetadata() {
 }
 
 export default function Page() {
-  return <RaceJoinScreen format="pft" />;
+  return <RaceJoinScreen format="hyrox_sim" />;
 }

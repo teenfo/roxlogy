@@ -5,13 +5,20 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
-import { SIM_CHECKPOINTS, type RaceFormat, type SimCheckpoints } from "@/lib/race-format";
+import { SIM_CHECKPOINTS, raceBase, type RaceFormat, type SimCheckpoints } from "@/lib/race-format";
 
 const input =
   "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
 
 /** 레이스 생성 — 전체 관리자, 또는 크루 운영진(크루 선택 시) */
-export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: string }[] }) {
+export function PftRaceCreateForm({
+  crews,
+  fixedFormat,
+}: {
+  crews: { slug: string; name: string }[];
+  /** 메뉴에서 종목이 정해져 들어온 경우(타임체크 = hyrox_sim) — 종목 선택을 숨긴다 */
+  fixedFormat?: RaceFormat;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -19,7 +26,7 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
   // 참가 방식 — 코드로 스스로 참가 vs 운영진이 추가(코드 없음)
   const [joinOpen, setJoinOpen] = useState(true);
   // 종목 — PFT(6구간) 또는 하이록스 시뮬(체크포인트 16/24/32, 마이그레이션 114)
-  const [format, setFormat] = useState<RaceFormat>("pft");
+  const [format, setFormat] = useState<RaceFormat>(fixedFormat ?? "pft");
   const [checkpoints, setCheckpoints] = useState<SimCheckpoints>(16);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -40,7 +47,7 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
     if (error) return setErr(error.message);
     const j = data as { ok?: boolean; code?: string; error?: string };
     if (!j.ok || !j.code) return setErr(t(`pft.race.err.${j.error ?? "unknown"}` as DictKey));
-    router.push(`/pft/race/${j.code}`);
+    router.push(`${raceBase(format)}/${j.code}`);
   }
 
   return (
@@ -53,9 +60,10 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
           onChange={(e) => setTitle(e.target.value)}
           maxLength={80}
           required
-          placeholder={t("pft.race.titlePh")}
+          placeholder={t(format === "hyrox_sim" ? "timing.titlePh" : "pft.race.titlePh")}
         />
       </label>
+      {!fixedFormat && (
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-xs text-muted">{t("race.fldFormat")}</legend>
         {(
@@ -84,6 +92,7 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
           </label>
         ))}
       </fieldset>
+      )}
       {format === "hyrox_sim" && (
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-xs text-muted">{t("race.fldCheckpoints")}</legend>
@@ -157,7 +166,7 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
         disabled={busy || !title.trim()}
         className="h-11 rounded-lg bg-accent text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
       >
-        {t("pft.race.create")}
+        {t(format === "hyrox_sim" ? "timing.create" : "pft.race.create")}
       </button>
     </form>
   );

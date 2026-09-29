@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { RaceFormatChip } from "@/components/race-format-chip";
+import { raceBase } from "@/lib/race-format";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
@@ -35,8 +36,11 @@ export function PftRacePick({
   locale = "en-US",
   tz,
   blocked = false,
+  base = "/pft/race",
 }: {
   races: JoinableRace[];
+  /** 코드로 참가한 뒤 갈 경로의 앞부분 — 목록에서 고른 레이스는 그 종목의 경로로 간다 */
+  base?: string;
   locale?: string;
   tz?: string;
   /** 프로필 필수값(출생연도·성별)이 비어 참가를 막아야 하는가 — 안내는 위에서 따로 띄운다 */
@@ -48,7 +52,7 @@ export function PftRacePick({
   const [err, setErr] = useState<string | null>(null);
   const [code, setCode] = useState("");
 
-  async function joinByCode(c: string) {
+  async function joinByCode(c: string, format?: string) {
     setBusy(c);
     setErr(null);
     const supabase = createClient();
@@ -57,7 +61,7 @@ export function PftRacePick({
     if (error) return setErr(error.message);
     const j = data as { ok?: boolean; code?: string; error?: string };
     if (!j?.ok) return setErr(t(`pft.race.err.${j?.error ?? "unknown"}` as DictKey));
-    router.push(`/pft/race/${j.code ?? c}`);
+    router.push(`${format ? raceBase(format) : base}/${j.code ?? c}`);
   }
 
   return (
@@ -102,7 +106,7 @@ export function PftRacePick({
                 </span>
                 <button
                   type="button"
-                  onClick={() => joinByCode(r.code)}
+                  onClick={() => joinByCode(r.code, r.format)}
                   disabled={busy !== null || (blocked && !r.joined)}
                   className={`h-10 shrink-0 rounded-lg px-5 text-sm font-extrabold disabled:opacity-40 ${
                     r.joined

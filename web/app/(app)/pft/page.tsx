@@ -45,8 +45,10 @@ export default async function PftPage() {
   const [{ data: myRaces }, { data: createdRaces }, { data: staffRows }, { data: profile }] = await Promise.all([
     supabase
       .from("pft_race_entries")
-      .select("joined_at, finished_at, total_ms, pft_races ( code, title, status, created_at, format, checkpoints )")
+      .select("joined_at, finished_at, total_ms, pft_races!inner ( code, title, status, created_at, format, checkpoints )")
       .eq("user_id", user!.id)
+      // 하이록스 시뮬은 타임체크 메뉴에서 본다 — PFT 허브는 PFT 레이스만
+      .eq("pft_races.format", "pft")
       .order("joined_at", { ascending: false })
       .limit(5),
     // 내가 만든 레이스 — 참가하지 않아도 스태프 타이밍으로 들어갈 수 있게
@@ -54,6 +56,7 @@ export default async function PftPage() {
       .from("pft_races")
       .select("code, title, status, created_at, format, checkpoints")
       .eq("created_by", user!.id)
+      .eq("format", "pft")
       .order("created_at", { ascending: false })
       .limit(5),
     supabase

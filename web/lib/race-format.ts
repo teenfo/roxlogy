@@ -91,3 +91,17 @@ export function checkpointLabel(t: TFn, cp: Checkpoint): string {
 export function formatLabel(t: TFn, format: RaceFormat | null | undefined, n: number | null | undefined): string {
   return format === "hyrox_sim" ? t("race.fmt.simN", { n: n ?? 16 }) : t("race.fmt.pft");
 }
+
+/**
+ * 종목별 경로 — 하이록스 시뮬은 PFT 와 메뉴를 나눠 /timing 아래에 둔다(2026-09-29).
+ * 레이스 한 판의 화면(선수·스태프)은 같은 페이지를 쓰고 주소만 다르다. 옛 주소
+ * /pft/race/<코드> 도 그대로 열린다.
+ */
+export function raceBase(format: RaceFormat | string | null | undefined): string {
+  return format === "hyrox_sim" ? "/timing" : "/pft/race";
+}
+
+/** 종목별 허브(뒤로 가기) — PFT 허브 또는 타임체크 목록 */
+export function raceHome(format: RaceFormat | string | null | undefined): string {
+  return format === "hyrox_sim" ? "/timing" : "/pft";
+}

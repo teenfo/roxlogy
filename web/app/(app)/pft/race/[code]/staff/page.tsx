@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { PftRaceStaff } from "@/components/pft-race-staff";
 import type { BoardData } from "@/lib/pft-race";
+import { raceBase } from "@/lib/race-format";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -18,7 +19,7 @@ export default async function PftRaceStaffPage({ params }: { params: Promise<{ c
   const board = (boardRaw as BoardData | null) ?? null;
   if (!board) notFound();
   const { data: manage } = await supabase.rpc("pft_race_can_manage", { p_race: board.race.id });
-  if (manage !== true) redirect(`/pft/race/${board.race.code}`);
+  if (manage !== true) redirect(`${raceBase(board.race.format)}/${board.race.code}`);
 
   return (
     <main className="mx-auto w-full max-w-5xl">

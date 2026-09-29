@@ -1,11 +1,11 @@
 import { getT } from "@/lib/i18n";
-import { RaceJoinScreen } from "@/components/race-screens";
+import { RaceListScreen } from "@/components/race-screens";
 
 export async function generateMetadata() {
   const { t } = await getT();
-  return { title: t("pft.race.join") };
+  return { title: t("timing.title") };
 }
 
 export default function Page() {
-  return <RaceJoinScreen format="pft" />;
+  return <RaceListScreen format="hyrox_sim" />;
 }

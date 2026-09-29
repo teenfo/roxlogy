@@ -62,6 +62,13 @@ export const NAV: NavItem[] = [
     children: [
       { href: "/races", label: "nav.races", desc: "nav.d.races", icon: "flag" },
       { href: "/pft", label: "nav.pft", desc: "nav.d.pft", icon: "target" },
+      // 하이록스 시뮬 타임체크 — PFT 레이스와 같은 계측을 종목만 바꿔 쓴다(2026-09-29 분리)
+      {
+        href: "/timing",
+        label: "nav.timing",
+        desc: "nav.d.timing",
+        icon: "clock",
+      },
       {
         href: "/events",
         label: "nav.events",

@@ -85,8 +85,8 @@ export function RaceSimMeasureView({
   return (
     <div className="flex flex-col gap-[18px]">
       <div>
-        <Link href="/pft" className="text-[13px] text-muted hover:text-foreground">
-          ← {t("pft.title")}
+        <Link href="/timing" className="text-[13px] text-muted hover:text-foreground">
+          ← {t("timing.title")}
         </Link>
         <h1 className="mt-2 text-[26px] font-extrabold">{title}</h1>
         <p className="mt-1 text-sm text-muted">

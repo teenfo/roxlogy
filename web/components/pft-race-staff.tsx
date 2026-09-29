@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs } from "@/lib/format";
-import { checkpointLabel, checkpointsFor } from "@/lib/race-format";
+import { checkpointLabel, checkpointsFor, raceBase } from "@/lib/race-format";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 import {
   clockNow,
@@ -434,7 +434,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
             {t("pft.race.openBoard")}
           </Link>
           <Link
-            href={`/pft/race/${race.code}`}
+            href={`${raceBase(race.format)}/${race.code}`}
             className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
           >
             {t("pft.race.staffRunner")}

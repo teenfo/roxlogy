@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { checkpointsFor } from "@/lib/race-format";
+import { checkpointsFor, raceBase } from "@/lib/race-format";
 import { RaceSimMeasureView } from "@/components/race-sim-measure-view";
 import { PftMeasureView, type PftBest } from "@/components/pft-measure-view";
 import type { MyEntry, RaceInfo } from "@/lib/pft-race";
@@ -432,7 +432,7 @@ export function PftRaceRunner({
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Link
-                href={`/pft/race/${race.code}/staff`}
+                href={`${raceBase(race.format)}/${race.code}/staff`}
                 className="flex h-9 items-center rounded-lg bg-accent px-3 text-sm font-bold text-background hover:brightness-110"
               >
                 {t("pft.race.staffOpen")}
@@ -639,7 +639,7 @@ export function PftRaceRunner({
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Link
-                href={`/pft/race/${race.code}/staff`}
+                href={`${raceBase(race.format)}/${race.code}/staff`}
                 className="flex h-9 items-center rounded-lg bg-accent px-3 text-sm font-bold text-background hover:brightness-110"
               >
                 {t("pft.race.staffOpen")}

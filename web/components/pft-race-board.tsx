@@ -8,7 +8,7 @@ import { PftBoardTopBar } from "@/components/pft-board-topbar";
 import { formatMs } from "@/lib/format";
 import { PFT_COLORS, PFT_CUTOFFS, PFT_STATIONS, badgeClass, badgeDictKey } from "@/lib/pft";
 import { STATIONS } from "@/lib/hyrox";
-import { checkpointLabel, checkpointsFor, formatLabel, type Checkpoint } from "@/lib/race-format";
+import { checkpointLabel, checkpointsFor, formatLabel, raceBase, raceHome, type Checkpoint } from "@/lib/race-format";
 import {
   avatarColor,
   entryState,
@@ -108,7 +108,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   // 이미 참가한 사람에게는 코드를 다시 묻지 않는다 — 코드 블록 대신 내 측정 화면으로 안내
   const joinedMe = meId != null && data.entries.some((e) => e.user_id === meId);
   const showCode = data.race.join_open && !closed && !joinedMe;
-  const raceHref = `/pft/race/${data.race.code}`;
+  const raceHref = `${raceBase(data.race.format)}/${data.race.code}`;
   // 좌측 참가자 패널 — 조가 배정돼 있으면 조별로 묶는다(참가 순서는 조 안에서 유지).
   // 중도포기(와 종료된 레이스의 미완주)는 조에서 빼서 맨 아래 따로 모은다 — 조 명단은
   // "아직 뛰고 있거나 앞으로 출발할 사람"을 보는 자리다. 판정은 상단 지표·하단 명단과 같다.
@@ -550,7 +550,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                 {t("pft.race.joinCta")} →
               </Link>
             ) : meId ? (
-              <Link href="/pft" className="font-bold text-accent hover:underline">
+              <Link href={raceHome(data.race.format)} className="font-bold text-accent hover:underline">
                 {t("pft.race.allResults")}
               </Link>
             ) : null}
