@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { RaceFormatChip } from "@/components/race-format-chip";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
@@ -17,6 +18,9 @@ export type JoinableRace = {
   crew_slug: string | null;
   entries: number;
   joined: boolean;
+  /** 종목·구간 수 (마이그레이션 114 — 옛 응답엔 없다) */
+  format?: string;
+  checkpoints?: number;
 };
 
 const INPUT =
@@ -83,6 +87,7 @@ export function PftRacePick({
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="truncate text-base font-extrabold">{r.title}</span>
+                    <RaceFormatChip format={r.format} checkpoints={r.checkpoints} />
                     {r.joined && (
                       <span className="rounded-md bg-success-bg px-2 py-0.5 text-[11px] font-bold text-success">
                         {t("pft.race.staffJoined")}

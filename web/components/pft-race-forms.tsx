@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { SIM_CHECKPOINTS, type RaceFormat, type SimCheckpoints } from "@/lib/race-format";
 
 const input =
   "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
@@ -17,6 +18,9 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
   const [crew, setCrew] = useState(crews[0]?.slug ?? "");
   // 참가 방식 — 코드로 스스로 참가 vs 운영진이 추가(코드 없음)
   const [joinOpen, setJoinOpen] = useState(true);
+  // 종목 — PFT(6구간) 또는 하이록스 시뮬(체크포인트 16/24/32, 마이그레이션 114)
+  const [format, setFormat] = useState<RaceFormat>("pft");
+  const [checkpoints, setCheckpoints] = useState<SimCheckpoints>(16);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -29,6 +33,8 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
       p_title: title.trim(),
       p_crew_slug: crew || null,
       p_join_open: joinOpen,
+      p_format: format,
+      p_checkpoints: format === "hyrox_sim" ? checkpoints : null,
     });
     setBusy(false);
     if (error) return setErr(error.message);
@@ -50,6 +56,62 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
           placeholder={t("pft.race.titlePh")}
         />
       </label>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 text-xs text-muted">{t("race.fldFormat")}</legend>
+        {(
+          [
+            ["pft", "race.fmt.pft", "race.fmt.pftHint"],
+            ["hyrox_sim", "race.fmt.sim", "race.fmt.simHint"],
+          ] as const
+        ).map(([value, label, hint]) => (
+          <label
+            key={value}
+            className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 ${
+              format === value ? "border-accent bg-highlight" : "border-line-soft bg-inset"
+            }`}
+          >
+            <input
+              type="radio"
+              name="race-format"
+              className="mt-0.5 h-4 w-4 accent-accent"
+              checked={format === value}
+              onChange={() => setFormat(value)}
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-bold">{t(label)}</span>
+              <span className="mt-0.5 block text-xs text-muted">{t(hint)}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      {format === "hyrox_sim" && (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-xs text-muted">{t("race.fldCheckpoints")}</legend>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {SIM_CHECKPOINTS.map((n) => (
+              <label
+                key={n}
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 ${
+                  checkpoints === n ? "border-accent bg-highlight" : "border-line-soft bg-inset"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="race-checkpoints"
+                  className="mt-0.5 h-4 w-4 accent-accent"
+                  checked={checkpoints === n}
+                  onChange={() => setCheckpoints(n)}
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">{t("race.cpMode", { n })}</span>
+                  <span className="mt-0.5 block text-xs text-muted">{t(`race.cpModeHint${n}` as DictKey)}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-muted">{t("race.cpModeNote")}</p>
+        </fieldset>
+      )}
       <label className="flex flex-col gap-1 text-xs text-muted">
         {t("pft.race.fldCrew")}
         <select className={input} value={crew} onChange={(e) => setCrew(e.target.value)}>

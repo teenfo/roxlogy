@@ -7,6 +7,8 @@ import { useI18n } from "@/components/i18n-provider";
 import { PftBoardTopBar } from "@/components/pft-board-topbar";
 import { formatMs } from "@/lib/format";
 import { PFT_COLORS, PFT_CUTOFFS, PFT_STATIONS, badgeClass, badgeDictKey } from "@/lib/pft";
+import { STATIONS } from "@/lib/hyrox";
+import { checkpointLabel, checkpointsFor, formatLabel, type Checkpoint } from "@/lib/race-format";
 import {
   avatarColor,
   entryState,
@@ -90,7 +92,10 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
     };
   }, [code, raceId, initial.server_now]);
 
-  const rows = rankEntries(data.entries, now);
+  // 구간 목록 — PFT 6, 하이록스 시뮬 16/24/32 (마이그레이션 114)
+  const cps = checkpointsFor(data.race.format, data.race.checkpoints);
+  const isSim = data.race.format === "hyrox_sim";
+  const rows = rankEntries(data.entries, now, cps.length);
   const running = rows.filter((r) => r.state === "running");
   const finished = rows.filter((r) => r.state === "finished");
   const waiting = rows.filter((r) => r.state === "waiting");
@@ -124,7 +129,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   }, [pages]);
   const pageRows = finished.slice((page % pages) * PAGE_SIZE, (page % pages) * PAGE_SIZE + PAGE_SIZE);
 
-  const stationLabel = (i: number) => t(PFT_STATIONS[i].label as DictKey);
+  const stationLabel = (i: number) => (cps[i] ? checkpointLabel(t, cps[i]) : "");
   const dateLine = (() => {
     const d = new Date(data.race.created_at);
     return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
@@ -139,7 +144,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
       <section className="flex flex-wrap items-center gap-6 rounded-2xl border border-line-mid bg-card px-5 py-5 md:px-[26px]">
         <div className="flex min-w-0 flex-col gap-2 md:min-w-[280px]">
           <p className="flex items-center gap-2.5 text-xs font-extrabold tracking-[0.14em] text-accent">
-            {t("pft.race.board")}
+            {isSim ? formatLabel(t, data.race.format, data.race.checkpoints) : t("pft.race.board")}
             {data.race.crew && <span className="text-[#8a7a2a]">{data.race.crew}</span>}
           </p>
           {/* 진행/종료 표시는 상단 바가 맡는다 — 여기에도 두면 한 화면에 두 번 뜬다 */}
@@ -156,24 +161,40 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
         {/* 종목 카드 — 제목과 지표 사이 빈 자리를 채운다. 순서·이름·수행 목표만 담고
             규격(경사·중량 등)은 참가자 본인 화면이 맡는다 — 보드 상단에 넣을 자리가 없다.
             배경색은 아래 스플릿 바와 같은 색이라 "지금 노란 구간"이 눈으로 이어진다. */}
+        {isSim ? (
+          /* 하이록스 시뮬 — 8 스테이션 순서. 런 1km 은 스테이션 사이마다 들어간다 */
+          <ol className="grid min-w-[240px] flex-1 grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+            {STATIONS.map((st, i) => (
+              <li
+                key={st.key}
+                className="min-w-0 rounded-xl border border-black/10 px-3 py-2.5 text-center text-[#141414]"
+                style={{ background: "#e0c53a" }}
+              >
+                <p className="text-[11px] font-bold tracking-[0.06em] opacity-70">{i + 1}</p>
+                <p className="mt-0.5 line-clamp-2 break-keep text-[13px] font-extrabold leading-tight">{t(`station.${st.key}` as DictKey)}</p>
+              </li>
+            ))}
+          </ol>
+        ) : (
         <ol className="grid min-w-[240px] flex-1 grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-          {PFT_STATIONS.map((st, i) => (
-            <li
-              key={st.key}
-              // 지표 카드(Stat)와 같은 치수 — 상단이 한 줄로 읽히려면 높이가 맞아야 한다
-              className="min-w-0 rounded-xl border border-black/10 px-4 py-3 text-center text-[#141414]"
-              style={{ background: PFT_COLORS[st.key] }}
-              title={t(st.detail as DictKey) || undefined}
-            >
-              <p className="truncate text-[11px] font-bold tracking-[0.06em] opacity-70">
-                {i + 1}. {stationLabel(i)}
-              </p>
-              <p className="tabular mt-1 truncate text-[28px] font-extrabold leading-[1.1]">
-                {t(st.amount as DictKey)}
-              </p>
-            </li>
-          ))}
-        </ol>
+            {PFT_STATIONS.map((st, i) => (
+              <li
+                key={st.key}
+                // 지표 카드(Stat)와 같은 치수 — 상단이 한 줄로 읽히려면 높이가 맞아야 한다
+                className="min-w-0 rounded-xl border border-black/10 px-4 py-3 text-center text-[#141414]"
+                style={{ background: PFT_COLORS[st.key] }}
+                title={t(st.detail as DictKey) || undefined}
+              >
+                <p className="truncate text-[11px] font-bold tracking-[0.06em] opacity-70">
+                  {i + 1}. {stationLabel(i)}
+                </p>
+                <p className="tabular mt-1 truncate text-[28px] font-extrabold leading-[1.1]">
+                  {t(st.amount as DictKey)}
+                </p>
+              </li>
+            ))}
+          </ol>
+        )}
 
         <div className="flex flex-wrap items-center gap-3.5">
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4" role="status">
@@ -304,8 +325,29 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                 {t("pft.race.finishedBoard")}
                 <span className={`${pill} bg-success-bg text-success`}>{finished.length}</span>
               </p>
-              <span className="hidden text-xs text-[#777] md:inline">{t("pft.race.badgeNote")}</span>
+              {!isSim && <span className="hidden text-xs text-[#777] md:inline">{t("pft.race.badgeNote")}</span>}
             </header>
+            {isSim ? (
+              <ol className="grid flex-1 content-start gap-2 overflow-y-auto p-4 md:grid-cols-2">
+                {finished.length === 0 ? (
+                  <li className="rounded-lg border border-dashed border-[#2a2a2a] px-3 py-5 text-center text-[13px] text-muted">—</li>
+                ) : (
+                  finished.map((r) => (
+                    <li key={r.entry_id} className="flex flex-col gap-2 rounded-lg bg-inset px-3 py-2.5">
+                      <div className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2.5">
+                        <span className="tabular text-sm font-extrabold text-muted">{r.rank}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          <Avatar name={r.name} size={26} />
+                          <span className="min-w-0 truncate text-[15px] font-bold">{r.name}</span>
+                        </span>
+                        <span className="tabular text-base font-extrabold">{formatMs(r.total_ms ?? 0)}</span>
+                      </div>
+                      <SplitStrip splits={r.splits} cps={cps} stationLabel={stationLabel} />
+                    </li>
+                  ))
+                )}
+              </ol>
+            ) : (
             <div className="grid flex-1 gap-4 overflow-y-auto p-4 md:grid-cols-3">
               {(["gold", "silver", "bronze"] as const).map((b) => {
                 const rowsOf = finished.filter((r) => (r.badge ?? "bronze") === b);
@@ -330,7 +372,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                             </span>
                             <span className="tabular text-base font-extrabold">{formatMs(r.total_ms ?? 0)}</span>
                           </div>
-                          <SplitStrip splits={r.splits} stationLabel={stationLabel} />
+                          <SplitStrip splits={r.splits} cps={cps} stationLabel={stationLabel} />
                         </div>
                       ))
                     )}
@@ -338,6 +380,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                 );
               })}
             </div>
+            )}
             {dnfRows.length > 0 && (
               <p className="border-t border-line px-5 py-3 text-[13px] text-muted">
                 <span className="font-bold">{t("pft.race.dnf")}</span>{" "}
@@ -370,6 +413,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                   closed={closed}
                   leaderSplits={leader?.splits ?? null}
                   stationLabel={stationLabel}
+                  cps={cps}
                 />
               ))
             )}
@@ -404,7 +448,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           >
             <span>{t("pft.race.colRank")}</span>
             <span>{t("pft.race.colAthlete")}</span>
-            <span className="hidden w-16 text-right md:block">{t("pft.race.colBadge")}</span>
+            <span className={`hidden w-16 text-right ${isSim ? "" : "md:block"}`}>{t("pft.race.colBadge")}</span>
             <span className="w-[90px] text-right md:w-[110px]">{t("pft.race.colTime")}</span>
           </div>
           <ol className="flex flex-1 flex-col">
@@ -490,10 +534,12 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           </ol>
           <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 text-xs text-[#777]">
             <span>
-              {t("pft.race.badgeRule", {
-                gold: formatMs(PFT_CUTOFFS.under45.gold),
-                silver: formatMs(PFT_CUTOFFS.under45.silver),
-              })}
+              {isSim
+                ? t("race.simBoardNote", { n: cps.length })
+                : t("pft.race.badgeRule", {
+                    gold: formatMs(PFT_CUTOFFS.under45.gold),
+                    silver: formatMs(PFT_CUTOFFS.under45.silver),
+                  })}
             </span>
             {joinedMe ? (
               <Link href={raceHref} className="font-bold text-accent hover:underline">
@@ -565,25 +611,47 @@ function Avatar({ name, size }: { name: string; size: number }) {
   );
 }
 
-/** 완주 카드의 6구간 스플릿 — 종목 색 막대 + 구간 시간.
- *  종목 이름은 쓰지 않는다: 배지 열은 한 칸이 좁고, 색·순서는 상단 범례가 이미 알려 준다. */
+/** 완주 카드의 구간 스플릿.
+ *  PFT(6구간)는 종목 색 막대 + 구간 시간. 시뮬(16~32구간)은 칸이 너무 많아 구간 시간 대신
+ *  **걸린 시간에 비례한 폭**의 이어 붙인 막대로 그린다 — 어느 구간이 오래 걸렸는지가 보인다. */
 function SplitStrip({
   splits,
+  cps,
   stationLabel,
 }: {
   splits: number[];
+  cps: Checkpoint[];
   stationLabel: (i: number) => string;
 }) {
+  if (cps.length > 6) {
+    const total = splits[splits.length - 1] ?? 0;
+    return (
+      <div className="flex h-[6px] overflow-hidden rounded-full bg-[#1c1c1c]" aria-hidden>
+        {cps.map((cp, i) => {
+          const ms = segmentMs(splits, i);
+          if (ms == null || total <= 0) return null;
+          return (
+            <span
+              key={cp.key}
+              title={`${stationLabel(i)} ${formatMs(ms)}`}
+              style={{ width: `${(ms / total) * 100}%`, background: cp.color }}
+              className="h-full border-r border-black/30 last:border-r-0"
+            />
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className="grid grid-cols-6 gap-1">
-      {PFT_STATIONS.map((st, i) => {
+      {cps.map((cp, i) => {
         const ms = segmentMs(splits, i);
         return (
-          <div key={st.key} className="flex flex-col gap-1" title={stationLabel(i)}>
+          <div key={cp.key} className="flex flex-col gap-1" title={stationLabel(i)}>
             <span
               aria-hidden
               className="h-[3px] rounded-full"
-              style={{ background: PFT_COLORS[st.key], opacity: ms == null ? 0.25 : 1 }}
+              style={{ background: cp.color, opacity: ms == null ? 0.25 : 1 }}
             />
             <span
               className={`tabular truncate text-center text-[11px] font-bold ${
@@ -607,6 +675,7 @@ function LiveRow({
   closed,
   leaderSplits,
   stationLabel,
+  cps,
 }: {
   r: RankedEntry;
   now: number;
@@ -614,6 +683,7 @@ function LiveRow({
   closed: boolean;
   leaderSplits: number[] | null;
   stationLabel: (i: number) => string;
+  cps: Checkpoint[];
 }) {
   const { t } = useI18n();
   const cur = r.current ?? 0;
@@ -639,7 +709,7 @@ function LiveRow({
               closed ? "bg-line text-muted" : "bg-highlight text-accent"
             }`}
           >
-            {closed ? t("pft.race.dnf") : `${cur + 1}/6 ${stationLabel(cur)}`}
+            {closed ? t("pft.race.dnf") : `${cur + 1}/${cps.length} ${stationLabel(cur)}`}
           </span>
           <span className="tabular shrink-0 text-[26px] font-extrabold leading-none md:hidden">
             {closed ? "—" : fmtClock(elapsed)}
@@ -650,22 +720,44 @@ function LiveRow({
             closed ? "bg-line text-muted" : "bg-highlight text-accent"
           }`}
         >
-          {closed ? t("pft.race.dnf") : `${cur + 1}/6 ${stationLabel(cur)}`}
+          {closed ? t("pft.race.dnf") : `${cur + 1}/${cps.length} ${stationLabel(cur)}`}
         </span>
+        {cps.length > 6 ? (
+          /* 시뮬 — 16~32칸은 이름을 다 못 쓴다. 이어 붙인 가는 칸 + 현재 구간 한 줄 */
+          <div className="flex flex-col gap-1.5" aria-label={t("race.progress", { done: r.splits.length, total: cps.length })}>
+            <div className="flex gap-[2px]">
+              {cps.map((cp, i) => {
+                const done = i < r.splits.length;
+                const isCur = i === cur && !closed;
+                return (
+                  <span
+                    key={cp.key}
+                    className={`h-2.5 flex-1 rounded-[3px] ${isCur ? "motion-safe:animate-pulse" : ""}`}
+                    style={{ background: done || isCur ? cp.color : "#1c1c1c" }}
+                  />
+                );
+              })}
+            </div>
+            <div className="tabular flex justify-between text-xs">
+              <span className="truncate text-[#777]">{stationLabel(cur)}</span>
+              <span className={`font-bold ${closed ? "text-[#555]" : "text-accent"}`}>{closed ? "—" : fmtClock(curElapsed)}</span>
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-3 gap-1.5 md:grid-cols-6" aria-label={t("pft.race.progressLabel", { done: r.splits.length })}>
-          {PFT_STATIONS.map((st, i) => {
+          {cps.map((cp, i) => {
             const done = i < r.splits.length;
             const isCur = i === cur;
             const ms = segmentMs(r.splits, i);
             const width = done ? 100 : isCur && !closed ? (progress ?? 100) : 0;
             return (
-              <div key={st.key} className="flex flex-col gap-1.5">
+              <div key={cp.key} className="flex flex-col gap-1.5">
                 <div className="relative h-2.5 overflow-hidden rounded-[5px] bg-[#1c1c1c]">
                   <div
                     className={`h-full rounded-[5px] transition-[width] duration-500 ease-linear ${
                       isCur && progress == null ? "motion-safe:animate-pulse" : ""
                     }`}
-                    style={{ width: `${width}%`, background: PFT_COLORS[st.key], opacity: done || isCur ? 1 : 0.4 }}
+                    style={{ width: `${width}%`, background: cp.color, opacity: done || isCur ? 1 : 0.4 }}
                   />
                 </div>
                 <div className="tabular flex justify-between text-xs">
@@ -678,6 +770,7 @@ function LiveRow({
             );
           })}
         </div>
+        )}
       </div>
       <div className="hidden min-w-[120px] text-right md:block">
         <p className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.elapsedLabel")}</p>

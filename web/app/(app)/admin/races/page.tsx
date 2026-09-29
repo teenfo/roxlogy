@@ -1,3 +1,4 @@
+import { RaceFormatChip } from "@/components/race-format-chip";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
@@ -20,6 +21,8 @@ type AdminRace = {
   created_by: string;
   entries: number;
   finished: number;
+  format?: string;
+  checkpoints?: number;
 };
 
 /** 관리자 전체 레이스 — 누가 만들었든 모든 PFT 레이스를 한 화면에서 본다. */
@@ -59,6 +62,7 @@ export default async function AdminRacesPage() {
                   <td className="px-4 py-3">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="font-bold">{r.title}</span>
+                      <RaceFormatChip format={r.format} checkpoints={r.checkpoints} />
                       <span
                         className={`${chip} ${
                           r.status === "closed" ? "bg-line text-muted" : "bg-success-bg text-success"

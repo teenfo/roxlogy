@@ -1,3 +1,5 @@
+import type { RaceFormat } from "@/lib/race-format";
+
 /** PFT 레이스 보드 — 보드·참가 화면이 공유하는 타입과 순위 계산.
  *  시각 규칙: 스플릿은 참가자 폰이 잰 "시작 이후 누적 ms". 진행 중 경과는 서버 started_at
  *  기준으로 보드 시계(서버 오프셋 보정)가 흐르게 하고, 찍힌 구간은 스플릿 값을 그대로 쓴다. */
@@ -14,6 +16,10 @@ export type RaceInfo = {
   created_at: string;
   /** 참가 코드로 자가 참가를 허용하는 레이스인지. false 면 운영진이 참가자를 추가한다(코드 비공개). */
   join_open: boolean;
+  /** 종목 — 옛 응답(마이그레이션 114 이전)엔 없어서 선택 */
+  format?: RaceFormat;
+  /** 선수당 구간 수 (pft 6, hyrox_sim 16/24/32) */
+  checkpoints?: number;
 };
 
 export type RaceEntry = {
@@ -46,6 +52,8 @@ export type MyEntry = {
   result_id: string | null;
   dnf_at: string | null;
   status: RaceStatus;
+  /** hyrox_sim 완주로 만든 내 세션 (마이그레이션 114) */
+  session_id?: string | null;
 };
 
 export type EntryState = "waiting" | "running" | "finished" | "dnf";
@@ -100,12 +108,12 @@ export type RankedEntry = RaceEntry & {
   rank: number;
   state: EntryState;
   elapsed: number | null;
-  /** 현재 수행 중인 종목 인덱스(0~5), 완주·대기는 null */
+  /** 현재 수행 중인 구간 인덱스(0~구간수-1), 완주·대기는 null */
   current: number | null;
 };
 
 /** 순위: 완주(총시간↑) → 진행 중(더 앞선 종목, 같으면 경과↑) → 대기(참가 순). */
-export function rankEntries(entries: RaceEntry[], nowMs: number): RankedEntry[] {
+export function rankEntries(entries: RaceEntry[], nowMs: number, checkpoints = 6): RankedEntry[] {
   const rows = entries.map((e) => {
     const state = entryState(e);
     return {
@@ -113,7 +121,7 @@ export function rankEntries(entries: RaceEntry[], nowMs: number): RankedEntry[] 
       rank: 0,
       state,
       elapsed: elapsedOf(e, nowMs),
-      current: state === "running" ? Math.min(e.splits.length, 5) : null,
+      current: state === "running" ? Math.min(e.splits.length, checkpoints - 1) : null,
     };
   });
   // 중도포기는 대기보다 뒤 — 더 볼 일이 없는 줄이다
@@ -136,13 +144,15 @@ export function rankEntries(entries: RaceEntry[], nowMs: number): RankedEntry[] 
   return rows;
 }
 
-/** 러닝 클록 — 0.1초까지 */
+/** 러닝 클록 — 0.1초까지. 1시간을 넘으면 시:분:초 (하이록스 시뮬은 대부분 1시간을 넘는다) */
 export function fmtClock(ms: number): string {
   const t = Math.max(0, ms);
-  const m = Math.floor(t / 60000);
+  const h = Math.floor(t / 3600000);
+  const m = Math.floor((t % 3600000) / 60000);
   const s = Math.floor((t % 60000) / 1000);
   const d = Math.floor((t % 1000) / 100);
-  return `${m}:${String(s).padStart(2, "0")}.${d}`;
+  const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
+  return `${h > 0 ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}.${d}`;
 }
 
 /** 기기 시계(ms). 이벤트 핸들러·effect 에서만 부른다 — 렌더 중에는 쓰지 말 것. */

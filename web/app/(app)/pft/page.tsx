@@ -1,3 +1,4 @@
+import { RaceFormatChip } from "@/components/race-format-chip";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
@@ -44,14 +45,14 @@ export default async function PftPage() {
   const [{ data: myRaces }, { data: createdRaces }, { data: staffRows }, { data: profile }] = await Promise.all([
     supabase
       .from("pft_race_entries")
-      .select("joined_at, finished_at, total_ms, pft_races ( code, title, status, created_at )")
+      .select("joined_at, finished_at, total_ms, pft_races ( code, title, status, created_at, format, checkpoints )")
       .eq("user_id", user!.id)
       .order("joined_at", { ascending: false })
       .limit(5),
     // 내가 만든 레이스 — 참가하지 않아도 스태프 타이밍으로 들어갈 수 있게
     supabase
       .from("pft_races")
-      .select("code, title, status, created_at")
+      .select("code, title, status, created_at, format, checkpoints")
       .eq("created_by", user!.id)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -68,13 +69,13 @@ export default async function PftPage() {
     joined_at: string;
     finished_at: string | null;
     total_ms: number | null;
-    pft_races: { code: string; title: string; status: string; created_at: string } | { code: string; title: string; status: string; created_at: string }[] | null;
+    pft_races: { code: string; title: string; status: string; created_at: string; format?: string; checkpoints?: number } | { code: string; title: string; status: string; created_at: string; format?: string; checkpoints?: number }[] | null;
   };
   const races = ((myRaces ?? []) as unknown as RaceRow[])
     .map((r) => ({ ...r, race: Array.isArray(r.pft_races) ? r.pft_races[0] : r.pft_races }))
     .filter((r) => r.race);
   const canCreateRace = !!profile?.is_admin || (staffRows ?? []).length > 0;
-  const created = ((createdRaces ?? []) as { code: string; title: string; status: string; created_at: string }[]).filter(
+  const created = ((createdRaces ?? []) as { code: string; title: string; status: string; created_at: string; format?: string; checkpoints?: number }[]).filter(
     (r) => !races.some((x) => x.race!.code === r.code),
   );
   const best = rows.reduce<PftResult | null>(
@@ -184,6 +185,7 @@ export default async function PftPage() {
                 >
                   <span className="font-mono text-xs font-bold tracking-[0.2em] text-muted">{r.race!.code}</span>
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.race!.title}</span>
+                  <RaceFormatChip format={r.race!.format} checkpoints={r.race!.checkpoints} />
                   <span className="text-xs text-muted">
                     {r.finished_at
                       ? formatMs(r.total_ms)
@@ -212,6 +214,7 @@ export default async function PftPage() {
                 >
                   <span className="font-mono text-xs font-bold tracking-[0.2em] text-muted">{r.code}</span>
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{r.title}</span>
+                  <RaceFormatChip format={r.format} checkpoints={r.checkpoints} />
                   <span className="text-xs text-muted">
                     {t(r.status === "closed" ? "pft.race.closed" : "pft.race.open")} · {t("pft.race.staff")}
                   </span>

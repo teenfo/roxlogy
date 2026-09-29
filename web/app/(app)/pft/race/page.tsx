@@ -1,3 +1,4 @@
+import type { RaceFormat } from "@/lib/race-format";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/auth";
@@ -17,6 +18,8 @@ type RaceRow = {
   status: string;
   created_at: string;
   join_open: boolean;
+  format: RaceFormat | null;
+  checkpoints: number | null;
   crews: { name: string } | { name: string }[] | null;
 };
 
@@ -46,14 +49,14 @@ export default async function PftRaceListPage() {
     supabase
       .from("pft_race_entries")
       .select(
-        "started_at, splits, finished_at, total_ms, scaled, pft_races ( id, code, title, status, created_at, join_open, crews ( name ) )",
+        "started_at, splits, finished_at, total_ms, scaled, pft_races ( id, code, title, status, created_at, join_open, format, checkpoints, crews ( name ) )",
       )
       .eq("user_id", user!.id)
       .order("joined_at", { ascending: false })
       .limit(200),
     supabase
       .from("pft_races")
-      .select("id, code, title, status, created_at, join_open, crews ( name )")
+      .select("id, code, title, status, created_at, join_open, format, checkpoints, crews ( name )")
       .eq("created_by", user!.id)
       .order("created_at", { ascending: false })
       .limit(200),
@@ -83,6 +86,8 @@ export default async function PftRaceListPage() {
     status: r.status,
     created_at: r.created_at,
     join_open: r.join_open,
+    format: r.format ?? "pft",
+    checkpoints: r.checkpoints ?? 6,
     crew: one(r.crews)?.name ?? null,
     mine: false,
     created: false,

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs, formatDateShortYear } from "@/lib/format";
-import { PFT_STATIONS, badgeClass, badgeDictKey, pftBadge } from "@/lib/pft";
+import { badgeClass, badgeDictKey, pftBadge } from "@/lib/pft";
+import type { RaceFormat } from "@/lib/race-format";
+import { RaceFormatChip } from "@/components/race-format-chip";
 import { Card } from "@/components/ui/crew-ui";
 
 /** 목록 한 줄이 알아야 하는 것 — 레이스와 "내가 무엇이었나" */
@@ -14,6 +16,9 @@ export type RaceListRow = {
   status: string;
   created_at: string;
   join_open: boolean;
+  /** 종목·구간 수 (마이그레이션 114) */
+  format: RaceFormat;
+  checkpoints: number;
   crew: string | null;
   /** 내가 참가자인가 */
   mine: boolean;
@@ -54,13 +59,15 @@ export function PftRaceList({
         </p>
         <ul className="flex flex-col gap-2">
           {list.map((r) => {
-            const badge = r.finished && r.total_ms != null ? pftBadge(r.total_ms, age, r.scaled) : null;
+            // 배지는 PFT 만 — 하이록스 시뮬에는 배지 기준이 없다
+            const badge = r.format === "pft" && r.finished && r.total_ms != null ? pftBadge(r.total_ms, age, r.scaled) : null;
             return (
               <li key={r.id}>
                 <Card className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4">
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-base font-extrabold">{r.title}</span>
+                      <RaceFormatChip format={r.format} checkpoints={r.checkpoints} />
                       <span
                         className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
                           r.status === "closed" ? "bg-line text-muted" : "bg-success-bg text-success"
@@ -96,7 +103,7 @@ export function PftRaceList({
                     ) : r.mine ? (
                       <span className="text-xs text-muted">
                         {r.started
-                          ? t("pft.race.progressN", { n: r.doneCount, total: PFT_STATIONS.length })
+                          ? t("pft.race.progressN", { n: r.doneCount, total: r.checkpoints })
                           : t("pft.race.waiting")}
                       </span>
                     ) : (

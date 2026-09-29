@@ -6,7 +6,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs } from "@/lib/format";
-import { PFT_COLORS, PFT_STATIONS } from "@/lib/pft";
+import { checkpointLabel, checkpointsFor } from "@/lib/race-format";
+import type { DictKey } from "@/lib/i18n/dictionaries/en";
 import {
   clockNow,
   entryState,
@@ -17,7 +18,6 @@ import {
   type MyEntry,
   type RaceEntry,
 } from "@/lib/pft-race";
-import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 /**
  * 스태프 타이밍 — 운영진이 한 기기(태블릿·폰)로 여러 참가자를 찍는다.
@@ -32,13 +32,15 @@ import type { DictKey } from "@/lib/i18n/dictionaries/en";
 type Pending = Record<string, number[]>;
 type Search = { user_id: string; name: string; joined: boolean };
 
-const PENDING_LIMIT = 6;
-
 export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const { t } = useI18n();
   const router = useRouter();
   const race = initial.race;
   const KEY = `roxlogy.pft.staff.${race.code}`;
+  // 구간 목록 — PFT 6, 하이록스 시뮬 16/24/32 (마이그레이션 114). 큐 상한도 구간 수다.
+  const cps = checkpointsFor(race.format, race.checkpoints);
+  const PENDING_LIMIT = cps.length;
+  const isSim = race.format === "hyrox_sim";
 
   const [data, setData] = useState<BoardData>(initial);
   const [status, setStatus] = useState(race.status);
@@ -384,7 +386,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
             g.rows.every((e) => selected.includes(e.entry_id)),
         )?.wave ?? null)
       : null;
-  const stationLabel = (i: number) => t(PFT_STATIONS[i].label as DictKey);
+  const stationLabel = (i: number) => (cps[i] ? checkpointLabel(t, cps[i]) : "");
 
   return (
     <div className="flex flex-col gap-4">
@@ -663,7 +665,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
               const mine = isClient ? (pending[e.entry_id] ?? []) : [];
               const splits = [...e.splits, ...mine];
               const current = splits.length;
-              const done = state === "finished" || current >= PFT_STATIONS.length;
+              const done = state === "finished" || current >= cps.length;
               // 명시적 중도포기(101) 또는 종료된 레이스의 미완주 — 어느 쪽이든 경과가 흐르면 안 된다
               const quit = state === "dnf";
               const dnf = quit || (closed && state !== "finished");
@@ -714,23 +716,52 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     </p>
                   </div>
 
-                  {/* 6칸 진행 */}
-                  <div className="mt-3 grid grid-cols-6 gap-1" aria-label={t("pft.race.progressLabel", { done: splits.length })}>
-                    {PFT_STATIONS.map((st, i) => {
-                      const fin = i < splits.length;
-                      const cur = state === "running" && !done && i === current;
-                      const ms = fin ? splits[i] - (i === 0 ? 0 : splits[i - 1]) : null;
-                      return (
-                        <span key={st.key} className="flex flex-col items-center gap-1">
-                          <span
-                            className={`h-2 w-full rounded-full ${cur ? "motion-safe:animate-pulse" : ""}`}
-                            style={{ background: fin || cur ? PFT_COLORS[st.key] : "var(--line)" }}
-                          />
-                          <span className="tabular text-[10px] text-muted">{ms != null ? formatMs(ms) : ""}</span>
+                  {/* 구간 진행 — PFT 는 6칸에 구간 시간까지, 시뮬(16~32칸)은 가는 막대 + 직전 구간 */}
+                  {cps.length <= 6 ? (
+                    <div className="mt-3 grid grid-cols-6 gap-1" aria-label={t("pft.race.progressLabel", { done: splits.length })}>
+                      {cps.map((cp, i) => {
+                        const fin = i < splits.length;
+                        const cur = state === "running" && !done && i === current;
+                        const ms = fin ? splits[i] - (i === 0 ? 0 : splits[i - 1]) : null;
+                        return (
+                          <span key={cp.key} className="flex flex-col items-center gap-1">
+                            <span
+                              className={`h-2 w-full rounded-full ${cur ? "motion-safe:animate-pulse" : ""}`}
+                              style={{ background: fin || cur ? cp.color : "var(--line)" }}
+                            />
+                            <span className="tabular text-[10px] text-muted">{ms != null ? formatMs(ms) : ""}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mt-3" aria-label={t("race.progress", { done: Math.min(splits.length, cps.length), total: cps.length })}>
+                      <div className="flex gap-[2px]">
+                        {cps.map((cp, i) => {
+                          const fin = i < splits.length;
+                          const cur = state === "running" && !done && i === current;
+                          return (
+                            <span
+                              key={cp.key}
+                              className={`h-2 flex-1 rounded-sm ${cur ? "motion-safe:animate-pulse" : ""}`}
+                              style={{ background: fin || cur ? cp.color : "var(--line)" }}
+                            />
+                          );
+                        })}
+                      </div>
+                      <p className="tabular mt-1 flex justify-between text-[11px] text-muted">
+                        <span>
+                          {Math.min(splits.length, cps.length)}/{cps.length}
                         </span>
-                      );
-                    })}
-                  </div>
+                        {splits.length > 0 && (
+                          <span>
+                            {stationLabel(Math.min(splits.length, cps.length) - 1)} ·{" "}
+                            {formatMs(splits[splits.length - 1] - (splits.length > 1 ? splits[splits.length - 2] : 0))}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
 
                   {state === "running" && !done && !closed && (
                     <button
@@ -739,10 +770,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       disabled={closed}
                       // 버튼 색 = 지금 찍을 종목의 색. 6칸 바의 현재 칸과 같은 색이라
                       // 어느 종목을 찍는 중인지 색만으로 알아본다.
-                      style={{ background: PFT_COLORS[PFT_STATIONS[current].key] }}
+                      style={{ background: cps[current]?.color }}
                       className="mt-3 flex h-16 w-full flex-col items-center justify-center rounded-2xl text-[#141414] hover:brightness-110 active:brightness-95 disabled:opacity-40"
                     >
-                      <span className="text-[11px] font-bold opacity-80">{t("pft.race.tapHint", { n: current + 1 })}</span>
+                      <span className="text-[11px] font-bold opacity-80">
+                        {isSim ? t("race.tapHint", { n: current + 1, total: cps.length }) : t("pft.race.tapHint", { n: current + 1 })}
+                      </span>
                       <span className="text-xl font-black">{t("pft.race.staffTap", { station: stationLabel(current) })} ✓</span>
                     </button>
                   )}
