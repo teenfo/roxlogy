@@ -54,6 +54,9 @@ try {
             assert.ok(input.size >= 16, `${route}: input font ${input.size}`);
             assert.ok(input.height >= 48, `${route}: input height ${input.height}`);
           }
+          for (const button of await page.locator(".rx-main .rx-primary").all()) {
+            if (await button.isVisible()) assert.ok((await button.boundingBox()).height >= 48, `${route}: primary target`);
+          }
         }
         if (route === "/sessions") {
           const tables = page.locator('[data-slot="table-container"][tabindex="0"]');
@@ -107,6 +110,11 @@ try {
           await drawer.waitFor();
           assert.ok((await drawer.getAttribute("class"))?.includes("rx-sidebar"));
           await page.screenshot({ path: `${out}/${width}_drawer_${locale}.png`, fullPage: true, animations: "disabled" });
+          await drawer.getByRole("button", { name: "닫기", exact: true }).click();
+          await drawer.waitFor({ state: "hidden" });
+          assert.equal(await page.locator('[data-slot="sidebar-trigger"]').evaluate((el) => el === document.activeElement), true, "drawer close returns focus");
+          await page.locator('[data-slot="sidebar-trigger"]').click();
+          await drawer.waitFor();
           await drawer.locator(".rx-profile").click();
           await drawer.waitFor({ state: "hidden" });
           await page.waitForURL("**/settings/profile");

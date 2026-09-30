@@ -32,6 +32,7 @@ import {
   Target,
   Trophy,
   Users,
+  X,
   Zap,
 } from "lucide-react";
 import {
@@ -98,11 +99,12 @@ export function AppShell({
         {t("a11y.skipContent")}
       </a>
       <Sidebar className="rx-sidebar">
-        <SidebarHeader>
+        <SidebarHeader className="flex-row items-center justify-between gap-2">
           <NavItemLink className="rx-brand" href="/dashboard">
             <Image src="/roxlogy-mark.svg" alt="" width={35} height={35} />
             <strong>ROXLOGY</strong>
           </NavItemLink>
+          <MobileSidebarClose />
         </SidebarHeader>
         <SidebarContent>
           {NAV_GROUPS.map((g) => (
@@ -197,6 +199,21 @@ export function AppShell({
       </SidebarInset>
       <Toaster richColors />
     </SidebarProvider>
+  );
+}
+
+function MobileSidebarClose() {
+  const { setOpenMobile } = useSidebar();
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      className="inline-flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-accent md:hidden"
+      aria-label={t("common.close")}
+      onClick={() => setOpenMobile(false)}
+    >
+      <X size={20} />
+    </button>
   );
 }
 
