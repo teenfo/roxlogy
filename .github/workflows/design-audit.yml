@@ -29,8 +29,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      - name: Share metadata privacy regression
-        run: node --test tests/renewal-public-data.test.mjs
+      - name: Share metadata privacy and image regression
+        run: node --test tests/renewal-*.test.mjs
       - name: Install browser tooling outside the application
         run: |
           npm install --prefix "$RUNNER_TEMP/rox-browser" --no-audit --no-fund playwright@1.58.2

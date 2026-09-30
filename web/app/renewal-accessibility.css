@@ -20,6 +20,17 @@
   overflow-wrap: anywhere;
 }
 
+/* Grid items must shrink with the viewport instead of their chart's min-content width. */
+.rx-landing-hero > div,
+.rx-landing-demo > div {
+  min-width: 0;
+}
+
+.rx-crew-ticker > b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 600px) {
   .rx-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
   .rx-main select,
