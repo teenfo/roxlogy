@@ -15,7 +15,7 @@ export function PublicHeader({ loginNext }: { loginNext?: string }) {
   return (
     <header className="rx-public-header">
       <Link href="/" className="rx-public-brand">
-        <Image src="/roxlogy-appicon.svg" alt="" width={34} height={34} />
+        <Image src="/roxlogy-mark.svg" alt="" width={34} height={34} />
         ROXLOGY
       </Link>
       <nav>

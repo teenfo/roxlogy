@@ -46,7 +46,7 @@ export async function AiInsight({
           {title}
         </h2>
         {kind === "weekly" && (
-          <span className="flex items-center gap-3 text-xs text-muted">
+          <span className="flex items-center gap-3 text-xs text-muted-foreground">
             {data.period_start && <span>{data.period_start} ~</span>}
             <Link href="/insights" className="text-gold hover:underline">
               {t("ai.weekly.history")}
@@ -57,7 +57,7 @@ export async function AiInsight({
       <p className="mt-3 whitespace-pre-wrap text-sm leading-[1.65] text-foreground/90">
         {data.content}
       </p>
-      <p className="mt-3 text-xs text-muted">
+      <p className="mt-3 text-xs text-muted-foreground">
         {t("ai.disclaimer")} · {data.model}
       </p>
     </section>

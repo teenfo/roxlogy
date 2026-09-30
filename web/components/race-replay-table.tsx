@@ -112,7 +112,7 @@ function SegmentCurve({
         x={medX}
         y={H - 4}
         textAnchor="middle"
-        className="fill-current text-muted"
+        className="fill-current text-muted-foreground"
         fontSize="9"
       >
         {t("dist.median")}
@@ -136,7 +136,7 @@ function SegmentCurve({
       >
         {formatMs(myMs)}
       </text>
-      <text x={2} y={10} fontSize="8" className="fill-current text-muted">
+      <text x={2} y={10} fontSize="8" className="fill-current text-muted-foreground">
         ← {t("dist.faster")}
       </text>
       <text
@@ -144,7 +144,7 @@ function SegmentCurve({
         y={10}
         fontSize="8"
         textAnchor="end"
-        className="fill-current text-muted"
+        className="fill-current text-muted-foreground"
       >
         {t("dist.slower")} →
       </text>
@@ -184,7 +184,7 @@ function HistorySpark({ points }: { points: SegHistoryPoint[] }) {
             y={y(p.ms) - 6}
             textAnchor="middle"
             fontSize="8"
-            className="fill-current text-muted"
+            className="fill-current text-muted-foreground"
           >
             {formatMs(p.ms)}
           </text>
@@ -207,7 +207,7 @@ export function RaceReplayTable({
   const [sel, setSel] = useState<Selected | null>(null);
 
   const cellBtn =
-    "cursor-pointer rounded px-1 py-0.5 text-gold underline decoration-gold/40 decoration-dotted underline-offset-2 hover:bg-accent/10";
+    "cursor-pointer rounded px-1 py-0.5 text-gold underline decoration-gold/40 decoration-dotted underline-offset-2 hover:bg-primary/10";
 
   const openRun = (r: ReplayRow) =>
     r.runMs != null &&
@@ -236,7 +236,7 @@ export function RaceReplayTable({
     <div className="mt-4 overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-surface text-left text-xs text-muted">
+          <tr className="border-b border-surface text-left text-xs text-muted-foreground">
             <th className="py-2 pr-4 font-normal">#</th>
             <th className="py-2 pr-4 text-right font-normal">
               {t("races.colRun")}
@@ -253,7 +253,7 @@ export function RaceReplayTable({
         <tbody>
           {rows.map((r) => (
             <tr key={r.stationKey} className="border-b border-surface/60">
-              <td className="py-2.5 pr-4 font-mono text-xs text-muted">{r.i}</td>
+              <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{r.i}</td>
               <td className="py-2.5 pr-4 text-right font-mono">
                 {r.runMs != null ? (
                   <button
@@ -267,7 +267,7 @@ export function RaceReplayTable({
                   "—"
                 )}
               </td>
-              <td className="py-2.5 pr-4 text-right font-mono text-muted">
+              <td className="py-2.5 pr-4 text-right font-mono text-muted-foreground">
                 {r.roxMs != null ? formatMs(r.roxMs) : "—"}
               </td>
               <td className="py-2.5 pr-4">
@@ -300,8 +300,8 @@ export function RaceReplayTable({
           ))}
         </tbody>
       </table>
-      <p className="mt-2 text-xs text-muted">{t("races.replayNote")}</p>
-      <p className="mt-1 text-xs text-muted">{t("races.replayClickNote")}</p>
+      <p className="mt-2 text-xs text-muted-foreground">{t("races.replayNote")}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{t("races.replayClickNote")}</p>
 
       <Dialog
         open={!!sel}
@@ -322,7 +322,7 @@ export function RaceReplayTable({
 
             {sel.place != null && fieldSize ? (
               <>
-                <p className="mt-1.5 text-sm text-muted">
+                <p className="mt-1.5 text-sm text-muted-foreground">
                   {t("races.segPlace", {
                     place: sel.place.toLocaleString(tag),
                     field: fieldSize.toLocaleString(tag),
@@ -334,31 +334,31 @@ export function RaceReplayTable({
                   )}
                 </p>
                 <SegmentCurve place={sel.place} field={fieldSize} myMs={sel.ms} />
-                <p className="mt-1 text-xs text-muted">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {t("races.segDistNote", {
                     field: fieldSize.toLocaleString(tag),
                   })}
                 </p>
               </>
             ) : sel.place != null ? (
-              <p className="mt-1.5 text-sm text-muted">
+              <p className="mt-1.5 text-sm text-muted-foreground">
                 {t("races.segPlaceOnly", {
                   place: sel.place.toLocaleString(tag),
                 })}
               </p>
             ) : (
-              <p className="mt-2 rounded-md bg-background px-3 py-3 text-xs text-muted">
+              <p className="mt-2 rounded-md bg-background px-3 py-3 text-xs text-muted-foreground">
                 {t("races.segNoPlace")}
               </p>
             )}
 
             {selHistory.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-xs font-semibold text-muted">
+                <h4 className="text-xs font-semibold text-muted-foreground">
                   {t("races.segHistory")}
                 </h4>
                 <HistorySpark points={selHistory} />
-                <div className="mt-0.5 flex justify-between text-[10px] text-muted">
+                <div className="mt-0.5 flex justify-between text-[10px] text-muted-foreground">
                   <span>{selHistory[0]?.date}</span>
                   {selHistory.length > 1 && (
                     <span>{selHistory[selHistory.length - 1]?.date}</span>

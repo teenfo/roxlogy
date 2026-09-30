@@ -398,7 +398,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
       <section>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <label className="flex flex-col gap-1 text-xs text-muted">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t("raceNew.search.season")}
             <select
               value={season}
@@ -412,7 +412,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-muted">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t("raceNew.search.event")} *
             <select
               value={eventGroup}
@@ -434,7 +434,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-muted">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t("raceNew.division")}
             <select
               value={searchDivision}
@@ -453,7 +453,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-muted">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t("raceNew.search.gender")}
             <select
               value={sex}
@@ -465,7 +465,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               <option value="W">{t("raceNew.search.female")}</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-muted">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t("raceNew.search.lastName")} *
             <input
               type="text"
@@ -478,7 +478,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               className={inputCls}
             />
           </label>
-          <label className="flex flex-col gap-1 text-xs text-muted">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t("raceNew.search.firstName")}
             <input
               type="text"
@@ -496,7 +496,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               type="button"
               onClick={handleSearch}
               disabled={searching || !canSearch}
-              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
+              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:brightness-95 disabled:opacity-40"
             >
               {searching
                 ? t("raceNew.import.searching")
@@ -506,7 +506,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         </div>
 
         {!eventGroup && (
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-2 text-xs text-muted-foreground">
             {t("raceNew.import.needEvent")}
           </p>
         )}
@@ -526,7 +526,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               </p>
             )}
             {hits.length === 0 ? (
-              <p className="mt-2 text-xs text-muted">
+              <p className="mt-2 text-xs text-muted-foreground">
                 {t("raceNew.import.noMatches")}
               </p>
             ) : (
@@ -543,7 +543,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                     >
                       <span className="block text-sm">{h.name}</span>
                       {h.context && (
-                        <span className="mt-0.5 block truncate text-xs text-muted">
+                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                           {h.context}
                         </span>
                       )}
@@ -553,17 +553,17 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
               </ul>
             )}
             {importing && (
-              <p className="mt-1.5 text-xs text-track">
+              <p className="mt-1.5 text-xs text-info">
                 {t("raceNew.import.loadingResult")}
               </p>
             )}
-            <p className="mt-2 text-xs text-muted">
+            <p className="mt-2 text-xs text-muted-foreground">
               {t("raceNew.import.doublesHint")}
             </p>
           </div>
         )}
         {importNotice && (
-          <p className="mt-2 text-xs text-track">{importNotice}</p>
+          <p className="mt-2 text-xs text-info">{importNotice}</p>
         )}
       </section>
       </Panel>
@@ -573,7 +573,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
         <Panel title={t("raceNew.step3")}>
         <section>
           <div className="mt-3 grid gap-4">
-            <label className="flex flex-col gap-1.5 text-sm text-muted">
+            <label className="flex flex-col gap-1.5 text-sm text-muted-foreground">
               {t("raceNew.event")}
               <input
                 list="event-names"
@@ -590,7 +590,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             </label>
 
             <div className="flex gap-4">
-              <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
+              <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted-foreground">
                 {t("raceNew.date")}
                 <input
                   type="date"
@@ -599,7 +599,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                   className={inputCls}
                 />
               </label>
-              <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
+              <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted-foreground">
                 {t("raceNew.division")}
                 <select
                   value={division}
@@ -616,7 +616,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             </div>
 
             <div className="flex gap-4">
-              <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
+              <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted-foreground">
                 {t("raceNew.total")}
                 <input
                   value={totalText}
@@ -626,7 +626,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                   className={`${inputCls} font-mono`}
                 />
               </label>
-              <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted">
+              <label className="flex flex-1 flex-col gap-1.5 text-sm text-muted-foreground">
                 {t("raceNew.runTotal")}
                 <input
                   value={runTotalText}
@@ -639,7 +639,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             </div>
 
             <fieldset>
-              <legend className="text-sm text-muted">
+              <legend className="text-sm text-muted-foreground">
                 {t("raceNew.stationSplits")}
               </legend>
               <div className="mt-2 flex flex-col gap-1.5">
@@ -668,7 +668,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                 <p className="text-sm font-semibold">
                   {t("raceNew.replay.title")}
                 </p>
-                <p className="mt-1 text-xs text-muted">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {t("raceNew.replay.desc", { n: detail.segments.length })}
                 </p>
                 <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-4">
@@ -679,7 +679,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                         key={s.n}
                         className="flex justify-between text-xs"
                       >
-                        <span className="text-muted">
+                        <span className="text-muted-foreground">
                           {t("newSession.runLabel", { n: s.n })}
                         </span>
                         <span className="font-mono">{formatMs(s.splitMs)}</span>
@@ -687,7 +687,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                     ))}
                 </div>
                 <p className="mt-2 flex justify-between text-xs">
-                  <span className="text-muted">
+                  <span className="text-muted-foreground">
                     {t("raceNew.replay.roxzoneTotal")}
                   </span>
                   <span className="font-mono">
@@ -707,7 +707,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
                   />
                   <span>
                     {t("raceNew.replay.addSession")}
-                    <span className="mt-0.5 block text-xs text-muted">
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
                       {t("raceNew.replay.addSessionHint")}
                     </span>
                   </span>
@@ -719,7 +719,7 @@ export function RaceNewForm({ eventNames }: { eventNames: string[] }) {
             <button
               onClick={handleSave}
               disabled={pending}
-              className="rounded-md bg-accent px-6 py-2.5 font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
+              className="rounded-md bg-primary px-6 py-2.5 font-bold text-primary-foreground hover:brightness-95 disabled:opacity-40"
             >
               {pending
                 ? t("common.saving")
@@ -803,7 +803,7 @@ function ManualImport({
       >
         {t("raceNew.import.openSite")} ↗
       </button>
-      <p className="mt-1 text-xs text-muted">{t("raceNew.import.steps")}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{t("raceNew.import.steps")}</p>
 
       <div className="mt-3 flex gap-2">
         <input

@@ -31,7 +31,7 @@ export function GoalDeleteButton({ goalId }: { goalId: string }) {
       <button
         type="button"
         onClick={() => setConfirming(true)}
-        className="text-xs text-muted hover:text-danger"
+        className="text-xs text-muted-foreground hover:text-danger"
       >
         {t("common.delete")}
       </button>
@@ -46,7 +46,7 @@ export function GoalDeleteButton({ goalId }: { goalId: string }) {
       >
         {pending ? t("common.deleting") : t("common.confirmDelete")}
       </button>
-      <button type="button" onClick={() => setConfirming(false)} className="text-muted">
+      <button type="button" onClick={() => setConfirming(false)} className="text-muted-foreground">
         {t("common.cancel")}
       </button>
       {err && <span className="text-danger">{err}</span>}

@@ -1,0 +1,34 @@
+/* brand/roxlogy-brand-guide.html v4: wordmarks and marketing headings only.
+ * The source font and OFL license are already present in this repository's
+ * feat/design-gaps-preview-og-onetap branch; use that asset unchanged. */
+@font-face {
+  font-family: "Archivo Black";
+  src: url("/fonts/ArchivoBlack-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.rx-brand strong,
+.rx-public-brand,
+.rx-live-brand,
+.rx-landing-hero h1,
+.rx-auth-layout aside h1 {
+  font-family: "Archivo Black", "Pretendard Variable", sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+}
+
+.rx-brand strong,
+.rx-public-brand,
+.rx-live-brand {
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+/* The transparent master mark has a Chalk R; give it the brand's dark surface. */
+.rx-brand > img,
+.rx-public-brand > img {
+  background: #141414;
+  border-radius: 7px;
+}

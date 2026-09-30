@@ -21,7 +21,7 @@ import { ChartFrame } from "@/components/chart-frame";
 // (색을 '계산'하는 경로가 없다). 덕분에 globals.css 토큰 하나만 고치면 따라온다.
 const SURFACE = "var(--card)";
 const GRID = "var(--line-mid)";
-const INK_MUTED = "var(--muted)";
+const INK_MUTED = "var(--muted-foreground)";
 const FAST = "var(--success)";
 const SLOW = "var(--danger)";
 /** 툴팁·커서처럼 반투명이 필요한 자리 */
@@ -44,7 +44,7 @@ function DarkTooltip({
   if (!p) return null;
   return (
     <div className="rounded-md border border-line-mid bg-background px-3 py-2 text-xs">
-      <p className="text-muted">{p.name ?? p.label}</p>
+      <p className="text-muted-foreground">{p.name ?? p.label}</p>
       <p className="mt-0.5 font-mono font-semibold text-foreground">
         {formatMs(p.ms)}
       </p>
@@ -55,7 +55,7 @@ function DarkTooltip({
 function LegendChips({ kinds }: { kinds: ("run" | "station" | "roxzone")[] }) {
   const { t } = useI18n();
   return (
-    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
       {kinds.map((k) => (
         <span key={k} className="flex items-center gap-1.5">
           <span
@@ -236,7 +236,7 @@ export function BreakdownStackBar({
           />
         ))}
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         {parts.map((p) => (
           <span key={p.kind} className="flex items-center gap-1.5">
             <span
@@ -266,14 +266,14 @@ function MultiTooltip({
   if (!rows.length) return null;
   return (
     <div className="rounded-md border border-line-mid bg-background px-3 py-2 text-xs">
-      <p className="text-muted">{label}</p>
+      <p className="text-muted-foreground">{label}</p>
       {rows.map((p, i) => (
         <p key={i} className="mt-0.5 flex items-center gap-1.5 font-mono">
           <span
             className="inline-block h-2 w-2 rounded-sm"
             style={{ background: p.color }}
           />
-          <span className="text-muted">{p.name}</span>
+          <span className="text-muted-foreground">{p.name}</span>
           <span className="font-semibold text-foreground">
             {formatMs(p.value)}
           </span>
@@ -344,7 +344,7 @@ export function CorrelationLine({
           />
         </LineChart>
       </ResponsiveContainer>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span
             className="inline-block h-2.5 w-2.5 rounded-sm"
@@ -521,7 +521,7 @@ export function StrokeForceChart({
           />
         </LineChart>
       </ResponsiveContainer>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: CHART_COLORS.station }} />
           {peakLabel}
@@ -592,7 +592,7 @@ export function DriveChart({
           />
         </LineChart>
       </ResponsiveContainer>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: CHART_COLORS.station }} />
           {driveLabel}

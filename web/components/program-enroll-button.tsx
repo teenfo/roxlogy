@@ -98,13 +98,13 @@ export function ProgramEnrollButton({
     return (
       <div className="flex flex-col items-start gap-1">
         <div className="flex items-center gap-3">
-          <span className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-track">
+          <span className="rounded-full bg-track/15 px-3 py-1 text-xs font-semibold text-info">
             {t("programs.enrolled")}
           </span>
           <button
             onClick={stop}
             disabled={pending}
-            className="text-xs text-muted hover:text-foreground disabled:opacity-40"
+            className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
           >
             {t("programs.stop")}
           </button>
@@ -124,7 +124,7 @@ export function ProgramEnrollButton({
           setErr(null);
           setOpen(true);
         }}
-        className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95"
+        className="rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:brightness-95"
       >
         {t("programs.start")}
       </button>
@@ -140,9 +140,9 @@ export function ProgramEnrollButton({
         {open && (
           <div>
             <h2 className="text-lg font-semibold">{t("programs.enrollTitle")}</h2>
-            <p className="mt-1 text-xs text-muted">{t("programs.enrollDesc")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("programs.enrollDesc")}</p>
 
-            <label className="mt-4 flex flex-col gap-1.5 text-sm text-muted">
+            <label className="mt-4 flex flex-col gap-1.5 text-sm text-muted-foreground">
               {t("programs.fldStartDate")}
               <input
                 type="date"
@@ -163,7 +163,7 @@ export function ProgramEnrollButton({
             </label>
 
             {repeat && (
-              <label className="mt-2 flex flex-col gap-1.5 text-sm text-muted">
+              <label className="mt-2 flex flex-col gap-1.5 text-sm text-muted-foreground">
                 {t("programs.enrollRepeatEnd")}
                 <input
                   type="date"
@@ -177,24 +177,24 @@ export function ProgramEnrollButton({
 
             <p className="mt-3 rounded-md bg-surface px-3 py-2.5 text-sm">
               {repeat && !endPreview ? (
-                <span className="text-muted">
+                <span className="text-muted-foreground">
                   🔁 {t("programs.enrollRepeatNote")}
                 </span>
               ) : endPreview ? (
                 <>
-                  <span className="text-muted">
+                  <span className="text-muted-foreground">
                     {t("programs.enrollEndPreview")}
                   </span>{" "}
-                  <b className="text-track">{fmt(endPreview)}</b>
+                  <b className="text-info">{fmt(endPreview)}</b>
                   {!repeat && (
-                    <span className="ml-1 text-xs text-muted">
+                    <span className="ml-1 text-xs text-muted-foreground">
                       ({t("programs.dayN", { n: totalDays })})
                     </span>
                   )}
                   {repeat && <span className="ml-1">🔁</span>}
                 </>
               ) : (
-                <span className="text-muted">{t("programs.emptyDays")}</span>
+                <span className="text-muted-foreground">{t("programs.emptyDays")}</span>
               )}
             </p>
 
@@ -203,14 +203,14 @@ export function ProgramEnrollButton({
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-md px-4 py-2 text-sm text-muted hover:text-foreground"
+                className="rounded-md px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
               >
                 {t("common.cancel")}
               </button>
               <button
                 onClick={start}
                 disabled={pending || !startDate}
-                className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
+                className="rounded-md bg-primary px-5 py-2 text-sm font-bold text-primary-foreground hover:brightness-95 disabled:opacity-40"
               >
                 {pending ? t("common.saving") : t("programs.start")}
               </button>

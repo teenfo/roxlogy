@@ -33,7 +33,7 @@ export function ChartFrame({
             onClick={() => setTable((v) => !v)}
             aria-pressed={table}
             aria-controls={id}
-            className="flex h-8 shrink-0 items-center rounded-lg border border-line-mid bg-control px-2.5 text-xs font-semibold text-muted transition-colors hover:text-foreground"
+            className="flex h-8 shrink-0 items-center rounded-lg border border-line-mid bg-control px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
           >
             {table ? t("chart.showChart") : t("chart.showTable")}
           </button>
@@ -43,7 +43,7 @@ export function ChartFrame({
         <div id={id} className="overflow-x-auto rounded-lg border border-line">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-line bg-inset text-left text-xs text-muted">
+              <tr className="border-b border-line bg-inset text-left text-xs text-muted-foreground">
                 {columns.map((c, i) => (
                   <th key={i} scope="col" className="px-3 py-2 font-semibold">
                     {c}

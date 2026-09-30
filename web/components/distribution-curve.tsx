@@ -52,7 +52,7 @@ export async function DistributionCurve({
   return (
     <section className="mt-6 rounded-md bg-surface px-4 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-muted">
+        <h2 className="text-sm font-semibold text-muted-foreground">
           {t("dist.title")}
         </h2>
         <span className="text-xs font-bold text-gold">
@@ -86,7 +86,7 @@ export async function DistributionCurve({
           x={medX}
           y={H - 5}
           textAnchor="middle"
-          className="fill-current text-muted"
+          className="fill-current text-muted-foreground"
           fontSize="9"
         >
           {t("dist.median")} {formatMs(p50)}
@@ -112,7 +112,7 @@ export async function DistributionCurve({
           {formatMs(myMs)}
         </text>
         {/* 축 방향 안내 */}
-        <text x={2} y={10} fontSize="8" className="fill-current text-muted">
+        <text x={2} y={10} fontSize="8" className="fill-current text-muted-foreground">
           ← {t("dist.faster")}
         </text>
         <text
@@ -120,12 +120,12 @@ export async function DistributionCurve({
           y={10}
           fontSize="8"
           textAnchor="end"
-          className="fill-current text-muted"
+          className="fill-current text-muted-foreground"
         >
           {t("dist.slower")} →
         </text>
       </svg>
-      <p className="mt-1 text-xs text-muted">{caption}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
     </section>
   );
 }

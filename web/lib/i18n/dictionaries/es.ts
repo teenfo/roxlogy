@@ -1,6 +1,7 @@
 import type { DictKey } from "./en";
 
 const es: Record<DictKey, string> = {
+  "a11y.tableScroll": "Desplázate horizontalmente para ver todas las columnas.",
   "common.save": "Guardar",
   "common.saving": "Guardando…",
   "common.delete": "Eliminar",

@@ -453,7 +453,7 @@ export function ProgramBuilder({
         {err ? (
           <span className="text-danger">{err}</span>
         ) : busy ? (
-          <span className="text-muted">{t("common.saving")}</span>
+          <span className="text-muted-foreground">{t("common.saving")}</span>
         ) : saved ? (
           <span className="text-success">● {t("programs.autoSaved")}</span>
         ) : null}
@@ -472,7 +472,7 @@ export function ProgramBuilder({
                   onClick={() => jumpToWeek(w)}
                   className={`flex h-[34px] shrink-0 items-center gap-2 rounded-full px-3 text-[13px] font-bold transition-colors ${
                     week === w
-                      ? "bg-accent text-accent-foreground"
+                      ? "bg-primary text-primary-foreground"
                       : "border border-line-strong text-foreground-2 hover:border-line-strong"
                   }`}
                 >
@@ -490,7 +490,7 @@ export function ProgramBuilder({
                         : items > 0
                           ? week === w
                             ? "bg-background"
-                            : "bg-accent"
+                            : "bg-primary"
                           : week === w
                             ? "bg-background/50"
                             : "bg-gold-dim";
@@ -555,7 +555,7 @@ export function ProgramBuilder({
           type="button"
           onClick={() => addDay(true)}
           disabled={busy}
-          className="flex h-12 items-center justify-center rounded-[14px] border border-dashed border-line-strong text-sm font-semibold text-muted transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+          className="flex h-12 items-center justify-center rounded-[14px] border border-dashed border-line-strong text-sm font-semibold text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
         >
           + {t("programs.addDay")}
         </button>
@@ -572,7 +572,7 @@ export function ProgramBuilder({
       {/* 하단 고정 바 */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-page/90 px-6 py-3 backdrop-blur max-md:bottom-[calc(62px+env(safe-area-inset-bottom))] max-md:px-4">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="text-[13px] text-muted max-md:hidden">
+          <span className="text-[13px] text-muted-foreground max-md:hidden">
             {t("programs.barCounts", {
               w: weekCount,
               d: totalDays,
@@ -581,7 +581,7 @@ export function ProgramBuilder({
           </span>
           <span className="h-1.5 min-w-0 max-w-[280px] flex-1 overflow-hidden rounded-full bg-line">
             <span
-              className="block h-full rounded-full bg-accent transition-all"
+              className="block h-full rounded-full bg-primary transition-all"
               style={{
                 width: `${plannedDays ? Math.round((filledDays / plannedDays) * 100) : 0}%`,
               }}
@@ -678,7 +678,7 @@ function DayCard({
   const isRest = day.workout_templates.length === 0;
 
   const iconBtn =
-    "flex h-7 w-7 items-center justify-center rounded-md border border-line-strong text-xs text-muted transition-colors hover:text-foreground disabled:opacity-25";
+    "flex h-7 w-7 items-center justify-center rounded-md border border-line-strong text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-25";
 
   return (
     <section
@@ -702,7 +702,7 @@ function DayCard({
           maxLength={80}
           className={`${inlineCls} h-8 flex-1 text-sm max-md:order-last max-md:w-full max-md:flex-none`}
         />
-        <span className="shrink-0 text-xs text-muted max-md:hidden">
+        <span className="shrink-0 text-xs text-muted-foreground max-md:hidden">
           {t("programs.dayCounts", {
             w: day.workout_templates.length,
             m: items,
@@ -804,7 +804,7 @@ function AddWorkoutButton({
         className={
           compact
             ? "ml-auto flex h-8 items-center rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold transition-colors hover:border-line-strong disabled:opacity-50"
-            : "flex h-9 items-center justify-center rounded-lg border border-dashed border-line-strong text-[13px] font-semibold text-muted transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+            : "flex h-9 items-center justify-center rounded-lg border border-dashed border-line-strong text-[13px] font-semibold text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
         }
       >
         + {t("programs.addWorkout")}
@@ -833,7 +833,7 @@ function AddWorkoutButton({
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="px-2 text-xs text-muted hover:text-foreground"
+        className="px-2 text-xs text-muted-foreground hover:text-foreground"
       >
         {t("common.cancel")}
       </button>
@@ -901,8 +901,8 @@ function WorkoutCard({
               onClick={() => onSetType(ty)}
               className={`flex h-6 items-center rounded-full px-2.5 text-xs font-bold transition-colors ${
                 w.type === ty
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted hover:text-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {t(`programs.type.${ty}` as DictKey)}
@@ -919,7 +919,7 @@ function WorkoutCard({
           onClick={onDel}
           disabled={busy}
           aria-label={t("common.delete")}
-          className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md text-xs text-muted transition-colors hover:text-danger disabled:opacity-40"
+          className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md text-xs text-muted-foreground transition-colors hover:text-danger disabled:opacity-40"
         >
           ✕
         </button>
@@ -941,7 +941,7 @@ function WorkoutCard({
                 {!it.exercises && it.pending_exercise && (
                   <span
                     title={t("programs.pendingHint")}
-                    className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-gold"
+                    className="ml-2 rounded bg-primary/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-gold"
                   >
                     {t("programs.pendingBadge")}
                   </span>
@@ -963,7 +963,7 @@ function WorkoutCard({
                   onClick={() => onMoveItem(it.id, -1)}
                   disabled={busy || i === 0}
                   aria-label={t("a11y.moveUp")}
-                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md text-xs text-muted hover:text-foreground disabled:opacity-20"
+                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md text-xs text-muted-foreground hover:text-foreground disabled:opacity-20"
                 >
                   ▲
                 </button>
@@ -972,7 +972,7 @@ function WorkoutCard({
                   onClick={() => onMoveItem(it.id, 1)}
                   disabled={busy || i === rows.length - 1}
                   aria-label={t("a11y.moveDown")}
-                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md text-xs text-muted hover:text-foreground disabled:opacity-20"
+                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md text-xs text-muted-foreground hover:text-foreground disabled:opacity-20"
                 >
                   ▼
                 </button>
@@ -981,7 +981,7 @@ function WorkoutCard({
                   onClick={() => onDelItem(it.id)}
                   disabled={busy}
                   aria-label={t("common.delete")}
-                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md text-xs text-muted transition-colors hover:text-danger disabled:opacity-40"
+                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md text-xs text-muted-foreground transition-colors hover:text-danger disabled:opacity-40"
                 >
                   ✕
                 </button>
@@ -1134,7 +1134,7 @@ function ExercisePicker({
                   onClick={() => onRequestExercise(draft.q)}
                   className="flex w-full flex-col gap-0.5 px-3 py-2.5 text-left hover:bg-card-hover"
                 >
-                  <span className="text-[13px] text-muted">
+                  <span className="text-[13px] text-muted-foreground">
                     {t("exercises.noResults")}
                   </span>
                   <span className="text-[13px] font-bold text-gold">
@@ -1153,7 +1153,7 @@ function ExercisePicker({
                 key={ex.id}
                 type="button"
                 onClick={() => choose(ex)}
-                className="flex h-[30px] items-center rounded-full border border-line-strong px-3 text-xs font-semibold text-muted transition-colors hover:border-line-strong hover:text-foreground"
+                className="flex h-[30px] items-center rounded-full border border-line-strong px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-line-strong hover:text-foreground"
               >
                 + {exName(ex)}
               </button>
@@ -1172,7 +1172,7 @@ function ExercisePicker({
           </span>
           {fields.map((f, i) => (
             <label key={f} className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[10px] text-muted">
+              <span className="text-[10px] text-muted-foreground">
                 {t(`programs.tgt.${f}` as DictKey)}
               </span>
               <input
@@ -1199,7 +1199,7 @@ function ExercisePicker({
             </label>
           ))}
           <label className="col-span-2 flex min-w-0 flex-col gap-0.5 md:col-span-1">
-            <span className="text-[10px] text-muted">{t("programs.targetPh")}</span>
+            <span className="text-[10px] text-muted-foreground">{t("programs.targetPh")}</span>
             <input
               value={draft.note}
               onChange={(e) => setDraft((d) => ({ ...d, note: e.target.value }))}
@@ -1221,7 +1221,7 @@ function ExercisePicker({
               setTimeout(() => searchRef.current?.focus(), 0);
             }}
             disabled={busy}
-            className="col-span-2 flex h-9 items-center justify-center self-end rounded-lg bg-accent px-3 text-[13px] font-extrabold text-accent-foreground transition hover:brightness-95 disabled:opacity-40 md:col-span-1"
+            className="col-span-2 flex h-9 items-center justify-center self-end rounded-lg bg-primary px-3 text-[13px] font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-40 md:col-span-1"
           >
             {t("programs.addItem")} ↵
           </button>

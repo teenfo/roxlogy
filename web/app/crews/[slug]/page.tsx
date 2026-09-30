@@ -12,15 +12,17 @@ import { todayISOIn } from "@/lib/format";
 import { won } from "@/lib/won";
 import { Button } from "@/components/ui/button";
 import { Chip, Empty, Go, Panel, RecordRow } from "@/components/rox/ui";
+import { getPublicCrew } from "@/lib/og/public-data";
+import { shareMetadata } from "@/lib/og/metadata";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const crew = await getCrew(slug);
-  if (!crew) return { title: "Crew" };
-  return {
-    title: `${crew.name} — ${crew.tagline ?? "Crew"}`,
-    description: crew.description?.slice(0, 160),
-  };
+  const crew = await getPublicCrew(slug);
+  if (!crew) return shareMetadata();
+  return shareMetadata(
+    `${crew.name} — ${crew.tagline ?? "Crew"}`,
+    crew.description?.slice(0, 160) ?? undefined,
+  );
 }
 
 type CalRow = {

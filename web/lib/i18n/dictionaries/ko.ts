@@ -1,6 +1,7 @@
 import type { DictKey } from "./en";
 
 const ko: Record<DictKey, string> = {
+  "a11y.tableScroll": "좌우로 이동해 나머지 항목을 확인하세요.",
   "common.save": "저장",
   "common.saving": "저장 중…",
   "common.delete": "삭제",

@@ -166,7 +166,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
       <header className="rx-live-topbar">
         <Link className="rx-live-brand" href="/pft">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/roxlogy-appicon.svg" alt="" width={28} height={28} />
+          <img src="/roxlogy-mark.svg" alt="" width={28} height={28} />
           ROXLOGY
         </Link>
         <div>

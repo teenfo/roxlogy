@@ -4,11 +4,15 @@ import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { LocaleBoundary } from "@/components/locale-boundary";
 import { TzSync } from "@/components/tz-sync";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { shareMetadata } from "@/lib/og/metadata";
+import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
+import "./brand-font.css";
+import "./renewal-accessibility.css";
 
 export const metadata: Metadata = {
-  title: "Roxlogy",
-  description: "The science of hybrid racing",
+  ...shareMetadata(),
+  metadataBase: new URL(SITE_URL),
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/roxlogy-appicon.svg",

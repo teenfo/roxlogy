@@ -4,11 +4,35 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+function Table({ className, scrollLabel, ...props }: React.ComponentProps<"table"> & {
+  /** Instruction and region name, shown only when the table overflows. */
+  scrollLabel?: string
+}) {
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [overflow, setOverflow] = React.useState(false)
+  React.useEffect(() => {
+    const container = containerRef.current
+    const table = container?.querySelector("table")
+    if (!container || !table) return
+    const measure = () => setOverflow(container.clientWidth > 0 && container.scrollWidth > container.clientWidth)
+    const observer = new ResizeObserver(measure)
+    observer.observe(container)
+    observer.observe(table)
+    const frame = requestAnimationFrame(measure)
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [])
   return (
+    <>
     <div
+      ref={containerRef}
       data-slot="table-container"
       className="relative w-full overflow-x-auto"
+      tabIndex={overflow ? 0 : undefined}
+      role={overflow && scrollLabel ? "region" : undefined}
+      aria-label={overflow ? scrollLabel : undefined}
     >
       <table
         data-slot="table"
@@ -16,6 +40,8 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
         {...props}
       />
     </div>
+    {overflow && scrollLabel && <p className="rx-hint" data-slot="table-scroll-hint">{scrollLabel}</p>}
+    </>
   )
 }
 

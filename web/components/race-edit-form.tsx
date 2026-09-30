@@ -82,7 +82,7 @@ export function RaceEditForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-sm text-muted hover:text-foreground"
+        className="text-sm text-muted-foreground hover:text-foreground"
       >
         {t("common.edit")}
       </button>
@@ -92,7 +92,7 @@ export function RaceEditForm({
     <div className="w-full rounded-md bg-surface p-4">
       <h2 className="text-sm font-bold">{t("raceEdit.title")}</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-xs text-muted">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t("raceEdit.event")}
           <input
             value={eEvent}
@@ -101,7 +101,7 @@ export function RaceEditForm({
             className={field}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t("raceEdit.date")}
           <input
             type="date"
@@ -110,7 +110,7 @@ export function RaceEditForm({
             className={field}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t("raceEdit.division")}
           <select
             value={eDiv}
@@ -125,7 +125,7 @@ export function RaceEditForm({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t("raceEdit.total")}
           <input
             value={eTotal}
@@ -134,7 +134,7 @@ export function RaceEditForm({
             className={`${field} font-mono`}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t("raceEdit.bib")}
           <input
             value={eBib}
@@ -153,7 +153,7 @@ export function RaceEditForm({
             setOpen(false);
             setErr(null);
           }}
-          className="rounded-md px-4 py-2 text-sm text-muted hover:text-foreground"
+          className="rounded-md px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
         >
           {t("common.cancel")}
         </button>
@@ -161,7 +161,7 @@ export function RaceEditForm({
           type="button"
           onClick={save}
           disabled={busy}
-          className="rounded-md bg-accent px-5 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
+          className="rounded-md bg-primary px-5 py-2 text-sm font-bold text-primary-foreground hover:brightness-95 disabled:opacity-40"
         >
           {busy ? t("common.saving") : t("common.save")}
         </button>

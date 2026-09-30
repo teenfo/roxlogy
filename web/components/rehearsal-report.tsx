@@ -67,7 +67,7 @@ export function RehearsalReport({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-3">
-        <label className="flex flex-col gap-1 text-xs text-muted">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t("dash.rehGoal")}
           <select
             value={goalId}
@@ -81,7 +81,7 @@ export function RehearsalReport({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t("dash.rehSession")}
           <select
             value={sessionId}
@@ -97,7 +97,7 @@ export function RehearsalReport({
         </label>
       </div>
 
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         {t("dash.rehearsalDesc", {
           target: formatMs(goal?.target),
           sim: session?.total ? formatMs(session.total) : "—",
@@ -105,14 +105,14 @@ export function RehearsalReport({
       </p>
 
       {rows.length === 0 ? (
-        <p className="mt-3 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
+        <p className="mt-3 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
           {t("dash.rehNoMatch")}
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto rounded-md bg-surface p-4">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-background text-left text-xs text-muted">
+              <tr className="border-b border-background text-left text-xs text-muted-foreground">
                 <th className="py-2 pr-4 font-normal">{t("dash.rehStation")}</th>
                 <th className="py-2 pr-4 text-right font-normal">
                   {t("dash.rehTarget")}
@@ -131,14 +131,14 @@ export function RehearsalReport({
                     <td className="py-2 pr-4">
                       {t(`station.${r.key}` as Parameters<typeof t>[0])}
                     </td>
-                    <td className="py-2 pr-4 text-right font-mono text-muted">
+                    <td className="py-2 pr-4 text-right font-mono text-muted-foreground">
                       {formatMs(r.target)}
                     </td>
                     <td className="py-2 pr-4 text-right font-mono">
                       {formatMs(r.actual!)}
                     </td>
                     <td
-                      className={`py-2 text-right font-mono ${gap <= 0 ? "text-track" : "text-danger"}`}
+                      className={`py-2 text-right font-mono ${gap <= 0 ? "text-info" : "text-danger"}`}
                     >
                       {gap <= 0 ? "-" : "+"}
                       {formatMs(Math.abs(gap))}
@@ -148,7 +148,7 @@ export function RehearsalReport({
               })}
             </tbody>
           </table>
-          <p className="mt-2 text-xs text-muted">{t("dash.rehNote")}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{t("dash.rehNote")}</p>
         </div>
       )}
     </section>

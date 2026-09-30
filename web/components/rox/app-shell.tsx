@@ -99,10 +99,10 @@ export function AppShell({
       </a>
       <Sidebar className="rx-sidebar">
         <SidebarHeader>
-          <Link className="rx-brand" href="/dashboard">
-            <Image src="/roxlogy-appicon.svg" alt="" width={35} height={35} />
+          <NavItemLink className="rx-brand" href="/dashboard">
+            <Image src="/roxlogy-mark.svg" alt="" width={35} height={35} />
             <strong>ROXLOGY</strong>
-          </Link>
+          </NavItemLink>
         </SidebarHeader>
         <SidebarContent>
           {NAV_GROUPS.map((g) => (
@@ -128,7 +128,7 @@ export function AppShell({
         </SidebarContent>
         <SidebarFooter>
           {crew ? (
-            <Link className="rx-crew-link" href={`/crews/${crew.slug}`}>
+            <NavItemLink className="rx-crew-link" href={`/crews/${crew.slug}`}>
               <span className="rx-crew-mark">
                 {crew.logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -145,9 +145,9 @@ export function AppShell({
                 </small>
               </span>
               <ChevronRight size={16} />
-            </Link>
+            </NavItemLink>
           ) : (
-            <Link className="rx-crew-link" href="/crews">
+            <NavItemLink className="rx-crew-link" href="/crews">
               <span className="rx-crew-mark">
                 <Users size={16} />
               </span>
@@ -156,15 +156,15 @@ export function AppShell({
                 <small>{t("shell.myCrew")}</small>
               </span>
               <ChevronRight size={16} />
-            </Link>
+            </NavItemLink>
           )}
-          <Link className="rx-profile" href="/settings/profile">
+          <NavItemLink className="rx-profile" href="/settings/profile">
             <span className="rx-avatar">{initial}</span>
             <span>
               <b>{displayName}</b>
               <small>{t("shell.profileSettings")}</small>
             </span>
-          </Link>
+          </NavItemLink>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="rx-shell">
@@ -182,7 +182,7 @@ export function AppShell({
               <Bell size={19} />
               {unread > 0 && <span className="rx-bell-dot" aria-hidden />}
             </Link>
-            <Link className="rx-avatar" href="/settings/profile">
+            <Link className="rx-avatar" href="/settings/profile" aria-label={t("shell.profileSettings")}>
               {initial}
             </Link>
           </div>
@@ -207,7 +207,9 @@ function NavItemLink({ onClick, ...props }: React.ComponentProps<typeof Link>) {
       {...props}
       onClick={(e) => {
         onClick?.(e);
-        setOpenMobile(false);
+        if (!e.defaultPrevented && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+          setOpenMobile(false);
+        }
       }}
     />
   );

@@ -79,6 +79,9 @@ export default async function ProfileSettingsPage() {
     ),
     integrations: (
       <>
+        <Panel title={t("watch.title")}>
+          <RecordRow href="/watch" title={t("watch.connect")} note={t("watch.hint")} />
+        </Panel>
         <HyroxLinkForm linkedName={profile?.hyrox_athlete_name ?? null} />
         <McpConnect token={profile?.mcp_token ?? ""} writeEnabled={Boolean(profile?.mcp_write)} />
       </>

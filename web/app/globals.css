@@ -6,8 +6,8 @@
  *   - 노란색 계열 #EFCF20 / #EFD126 / #DFC026 → Race Yellow #FFD500
  *   - .rx-brand 의 노란 사각 "R." → brand/roxlogy-mark 링 마크(img)
  *   - Pretendard 자체 호스팅(./fonts.css) 을 끼운다
- * 그 밖의 값은 손대지 않는다. 화면을 고칠 때도 이 파일의 .rx-* 규칙을 바꾸지 말고
- * 시안 마크업을 그대로 쓸 것. 파일 끝 "과도기 호환" 블록은 P9 에서 지운다.
+ * 화면 구조와 범주 색은 시안을 유지한다. 적용 누락(폰트·대비·모바일 컨트롤)은
+ * docs/design/RENEWAL_AUDIT.md 의 근거에 따라 보완한다.
  * ============================================================ */
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -103,7 +103,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans:
-    "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Pretendard Variable", "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
@@ -875,7 +875,7 @@ svg {
   border-radius: 5px;
   padding: 4px 8px;
   background: #f0f3f6;
-  color: #647180;
+  color: #616974;
   font-size: 12px;
   line-height: 1.4;
   font-weight: 600;
@@ -883,15 +883,15 @@ svg {
 }
 .rx-chip.yellow {
   background: #fcf5d5;
-  color: #82701f;
+  color: #7a6a1e;
 }
 .rx-chip.green {
   background: #e7f3ed;
-  color: #397e5e;
+  color: #377a5b;
 }
 .rx-chip.blue {
   background: #eaf0ff;
-  color: #627daf;
+  color: #526da1;
 }
 .rx-source {
   display: flex;
@@ -968,11 +968,11 @@ svg {
 .rx-hint {
   font-size: 12px !important;
   line-height: 1.8 !important;
-  color: #87919d !important;
+  color: #69727f !important;
   margin: 15px 0;
 }
 .rx-muted {
-  color: #87919d;
+  color: #69727f;
 }
 .rx-block {
   display: block;
@@ -1913,12 +1913,12 @@ svg {
   flex-shrink: 0;
 }
 .rx-income {
-  color: #448369;
+  color: #3f7a61;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .rx-expense {
-  color: #b56b66;
+  color: #a85f5a;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -5033,7 +5033,7 @@ button:focus-visible {
   overflow: auto;
   padding-bottom: calc(24px + env(safe-area-inset-bottom));
 }
-.rx-custom-sheet .rx-dialog-handle {
+.rx-custom-sheet > [aria-hidden="true"] {
   display: block;
   width: 40px;
   height: 4px;
@@ -5188,17 +5188,17 @@ button:focus-visible {
   border-radius: 7px;
 }
 /* 크루 등급·권한 칩 톤 — 크루가 고른 색 6종. 시안 칩 규격 위에 색만 얹는다 */
-.rx-chip.tier-yellow { background: #fcf5d5; color: #82701f; }
+.rx-chip.tier-yellow { background: #fcf5d5; color: #7a6a1e; }
 .rx-chip.tier-blue { background: #e3f0f6; color: #2f5f76; }
 .rx-chip.tier-chalk { background: #eceff2; color: #46515e; }
-.rx-chip.tier-gray { background: #f0f3f6; color: #69727f; }
+.rx-chip.tier-gray { background: #f0f3f6; color: #616974; }
 .rx-chip.tier-green { background: #e4f1ec; color: #2f6b52; }
 .rx-chip.tier-red { background: #fbe9e7; color: #a33f36; }
 /* 크루 찾기 카드의 아트 칸 — 시안은 "LOOP 8" 두 줄 고정. 우리는 앞글자 + 이름 */
 .rx-crew-art > span > b { display: block; }
 .rx-crew-art.small b { font-size: 88px; letter-spacing: -6px; }
 /* 표 안 사람 칸(멤버·리더보드) — 이름 아래 보조줄 */
-.rx-person > span > small { display: block; font-size: 12px; color: #87919e; margin-top: 2px; }
+.rx-person > span > small { display: block; font-size: 12px; color: #69727f; margin-top: 2px; }
 /* 이름 아래 인스타 핸들 — 등록한 사람만 붙는다 (InstaMark) */
 .rx-insta { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; color: #69727f; font-size: 12px; white-space: nowrap; }
 .rx-person > span > small > .rx-insta:first-child { margin-left: 0; }

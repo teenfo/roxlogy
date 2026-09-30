@@ -110,7 +110,7 @@ export function WorkoutSetEditor({
     <div className="flex max-w-[560px] flex-col gap-2.5">
       {/* 열 제목 */}
       <div
-        className="grid items-center gap-2 text-[11px] font-bold tracking-[0.04em] text-muted"
+        className="grid items-center gap-2 text-[11px] font-bold tracking-[0.04em] text-muted-foreground"
         style={{ gridTemplateColumns: `36px repeat(${cols - 1}, minmax(0,1fr)) 36px` }}
       >
         <span>{t("workouts.setCol")}</span>
@@ -127,7 +127,7 @@ export function WorkoutSetEditor({
           className="grid items-center gap-2"
           style={{ gridTemplateColumns: `36px repeat(${cols - 1}, minmax(0,1fr)) 36px` }}
         >
-          <span className="tabular text-sm font-extrabold text-muted">{r.setNo}</span>
+          <span className="tabular text-sm font-extrabold text-muted-foreground">{r.setNo}</span>
           {col.reps && (
             <input
               type="number"
@@ -180,7 +180,7 @@ export function WorkoutSetEditor({
             type="button"
             onClick={() => removeSet(i)}
             aria-label={t("workouts.removeSet", { n: r.setNo })}
-            className="flex h-10 w-9 items-center justify-center rounded-lg text-muted hover:text-danger"
+            className="flex h-10 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-danger"
           >
             ✕
           </button>
@@ -204,14 +204,14 @@ export function WorkoutSetEditor({
           type="button"
           onClick={onSave}
           disabled={pending}
-          className="h-10 rounded-lg bg-accent px-5 text-sm font-extrabold text-accent-foreground hover:brightness-95 disabled:opacity-40"
+          className="h-10 rounded-lg bg-primary px-5 text-sm font-extrabold text-primary-foreground hover:brightness-95 disabled:opacity-40"
         >
           {pending ? t("workouts.saving") : t("workouts.saveLog")}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="h-10 rounded-lg px-3 text-sm text-muted hover:text-foreground"
+          className="h-10 rounded-lg px-3 text-sm text-muted-foreground hover:text-foreground"
         >
           {t("common.cancel")}
         </button>

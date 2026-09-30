@@ -98,7 +98,7 @@ export function ProgramBasicsEditor({
               placeholder={t("programs.descPh")}
             />
             <div className="flex flex-wrap gap-2">
-              <label className="flex flex-col gap-1 text-xs text-muted">
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                 {t("programs.fldWeeks")}
                 <input
                   value={weeks}
@@ -107,7 +107,7 @@ export function ProgramBasicsEditor({
                   className={`${field} tabular w-24`}
                 />
               </label>
-              <label className="flex flex-col gap-1 text-xs text-muted">
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                 {t("programs.fldLevel")}
                 <select
                   value={level}
@@ -136,14 +136,14 @@ export function ProgramBasicsEditor({
               <button
                 type="submit"
                 disabled={busy}
-                className="flex h-9 items-center rounded-lg bg-accent px-4 text-[13px] font-extrabold text-accent-foreground disabled:opacity-40"
+                className="flex h-9 items-center rounded-lg bg-primary px-4 text-[13px] font-extrabold text-primary-foreground disabled:opacity-40"
               >
                 {busy ? t("common.saving") : t("common.save")}
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex h-9 items-center px-3 text-[13px] text-muted hover:text-foreground"
+                className="flex h-9 items-center px-3 text-[13px] text-muted-foreground hover:text-foreground"
               >
                 {t("common.cancel")}
               </button>

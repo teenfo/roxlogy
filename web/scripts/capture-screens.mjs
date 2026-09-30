@@ -39,13 +39,16 @@ const chromium = await (async () => {
 })();
 
 const BASE = process.env.ROX_CAPTURE_BASE ?? "http://localhost:3111";
-const WIDTHS = [1200, 390];
 
 const args = process.argv.slice(2);
 const argOf = (k, d) => {
   const i = args.indexOf(k);
   return i === -1 ? d : args[i + 1];
 };
+const WIDTHS = argOf("--widths", "1200,390").split(",").map(Number);
+if (WIDTHS.some((width) => !Number.isInteger(width) || width < 320)) {
+  throw new Error("--widths 는 320 이상의 정수 목록이어야 합니다.");
+}
 const OUT = argOf("--out", ".captures/before");
 const ONLY = argOf("--only", null);
 /**
@@ -217,4 +220,7 @@ const over = report.filter((r) => r.overflow);
 console.log(`\n캡쳐 ${report.length}건 · 실패 ${bad.length} · 가로 넘침 ${over.length}`);
 if (over.length) {
   console.log("넘침: " + over.map((r) => `${r.route}@${r.width}`).join(", "));
+}
+if (args.includes("--strict") && (bad.length || over.length || report.some((r) => r.errors?.length))) {
+  process.exitCode = 1;
 }

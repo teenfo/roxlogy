@@ -313,7 +313,7 @@ export function RunDeleteButton({ id }: { id: string }) {
         type="button"
         onClick={del}
         disabled={busy}
-        className="text-xs text-muted hover:text-danger disabled:opacity-50"
+        className="text-xs text-muted-foreground hover:text-danger disabled:opacity-50"
       >
         {t("common.delete")}
       </button>

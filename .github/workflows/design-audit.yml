@@ -1,0 +1,55 @@
+name: design-audit
+on:
+  push:
+    branches: [claude/design-renewal]
+    paths:
+      - "web/**"
+      - ".github/workflows/design-audit.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      ROX_FIXTURES: "1"
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: fixture
+      ROX_CAPTURE_BASE: http://127.0.0.1:3111
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Share metadata privacy regression
+        run: node --test tests/renewal-public-data.test.mjs
+      - name: Install browser tooling outside the application
+        run: |
+          npm install --prefix "$RUNNER_TEMP/rox-browser" --no-audit --no-fund playwright@1.58.2
+          "$RUNNER_TEMP/rox-browser/node_modules/.bin/playwright" install --with-deps chromium
+          echo "PLAYWRIGHT_PATH=$RUNNER_TEMP/rox-browser/node_modules/playwright" >> "$GITHUB_ENV"
+      - run: npm run build
+      - name: Fixture browser checks
+        run: |
+          npm run start -- -p 3111 > "$RUNNER_TEMP/rox-next.log" 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail "$ROX_CAPTURE_BASE/manifest.webmanifest" > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/verify-renewal.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: renewal-browser-audit
+          path: |
+            web/.captures/audit
+            ${{ runner.temp }}/rox-next.log
+          retention-days: 7

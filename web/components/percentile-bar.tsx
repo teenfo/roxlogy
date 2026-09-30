@@ -29,7 +29,7 @@ export async function PercentileBar({
     <section className="mt-6 rounded-md bg-surface px-4 py-4">
       <div className="flex items-baseline justify-between gap-2">
         <div className="flex min-w-0 flex-col">
-          <h2 className="text-sm font-semibold text-muted">
+          <h2 className="text-sm font-semibold text-muted-foreground">
             {heading ?? t("percentile.title")}
           </h2>
           {link && (
@@ -51,13 +51,13 @@ export async function PercentileBar({
           style={{ left: `${pos}%` }}
         />
       </div>
-      <div className="mt-1.5 flex justify-between text-[10px] text-muted">
+      <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
         <span>{t("percentile.faster")}</span>
         <span>{t("percentile.slower")}</span>
       </div>
-      <p className="mt-2.5 text-xs text-muted">
+      <p className="mt-2.5 text-xs text-muted-foreground">
         {t("percentile.beat", { pct: String(beat) })}{" "}
-        <span className="text-muted/70">
+        <span className="text-muted-foreground/70">
           {t("percentile.basis", {
             division: t(`division.${division}` as Parameters<typeof t>[0]),
             gender: gender

@@ -24,7 +24,7 @@ export function dowLabel(tag: string, d: number): string {
 const chip = (active: boolean) =>
   `flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-bold transition-colors ${
     active
-      ? "bg-accent text-accent-foreground"
+      ? "bg-primary text-primary-foreground"
       : "border border-line-strong text-foreground-2 hover:border-line-strong"
   }`;
 
@@ -104,7 +104,7 @@ export function ProgramNewForm() {
     router.refresh();
   }
 
-  const label = "text-xs font-bold tracking-[0.02em] text-muted";
+  const label = "text-xs font-bold tracking-[0.02em] text-muted-foreground";
 
   return (
     <>
@@ -216,14 +216,14 @@ export function ProgramNewForm() {
                     aria-pressed={on}
                     className={`flex h-11 flex-col items-center justify-center rounded-lg text-sm font-bold transition-colors max-md:h-10 ${
                       on
-                        ? "bg-accent text-accent-foreground"
+                        ? "bg-primary text-primary-foreground"
                         : "border border-line-strong text-foreground-2 hover:border-line-strong"
                     }`}
                   >
                     {dowLabel(tag, d)}
                     <span
                       className={`text-[10px] font-semibold ${
-                        on ? "text-accent-foreground/70" : "text-muted-2"
+                        on ? "text-primary-foreground/70" : "text-muted-2"
                       }`}
                     >
                       {on ? t("programs.dowOn") : t("programs.dowOff")}
@@ -249,13 +249,13 @@ export function ProgramNewForm() {
               <span className="block text-sm font-bold">
                 {t("programs.fldPublic")}
               </span>
-              <span className="mt-0.5 block text-xs text-muted">
+              <span className="mt-0.5 block text-xs text-muted-foreground">
                 {t("programs.publicHint")}
               </span>
             </span>
             <span
               className={`relative h-[26px] w-11 shrink-0 rounded-full transition-colors ${
-                isPublic ? "bg-accent" : "bg-line-strong"
+                isPublic ? "bg-primary" : "bg-line-strong"
               }`}
             >
               <span
@@ -275,7 +275,7 @@ export function ProgramNewForm() {
               disabled={!valid || pending}
               className={`flex h-[46px] items-center justify-center rounded-lg text-sm font-extrabold transition ${
                 valid && !pending
-                  ? "bg-accent text-accent-foreground hover:brightness-95"
+                  ? "bg-primary text-primary-foreground hover:brightness-95"
                   : "cursor-not-allowed bg-line-mid text-muted-2"
               }`}
             >
@@ -299,7 +299,7 @@ export function ProgramNewForm() {
             <span className="rounded bg-line px-1.5 py-0.5 font-bold text-foreground/80">
               {t(`predict.level.${level}` as Parameters<typeof t>[0])}
             </span>
-            <span className="text-muted">
+            <span className="text-muted-foreground">
               {t("programs.weeksN", { n: weeks || 0 })} ·{" "}
               {t("programs.perWeek", { n: perWeek })}
             </span>

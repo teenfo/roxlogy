@@ -43,15 +43,15 @@ export function AiProgramButton() {
         type="button"
         onClick={request}
         disabled={state === "busy" || state === "queued"}
-        className="rounded-md border border-accent-line/50 px-4 py-2 text-sm font-semibold text-gold hover:bg-accent/10 disabled:opacity-50"
+        className="rounded-md border border-accent-line/50 px-4 py-2 text-sm font-semibold text-gold hover:bg-primary/10 disabled:opacity-50"
       >
         {state === "busy" ? t("ai.program.requesting") : t("ai.program.button")}
       </button>
       {state === "queued" && (
-        <p className="text-xs text-track">{t("ai.program.queued")}</p>
+        <p className="text-xs text-info">{t("ai.program.queued")}</p>
       )}
       {state === "exists" && (
-        <p className="text-xs text-muted">{t("ai.program.exists")}</p>
+        <p className="text-xs text-muted-foreground">{t("ai.program.exists")}</p>
       )}
       {state === "error" && <p className="text-xs text-danger">{t("ai.program.err")}</p>}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dumbbell } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
 import { Chip, Empty, Go } from "@/components/rox/ui";
@@ -40,6 +40,21 @@ export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean })
   const { t } = useI18n();
   const todayIdx = Math.max(0, week.findIndex((d) => d.isToday));
   const [selected, setSelected] = useState(todayIdx);
+  const weekRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const keepVisible = () => {
+      const container = weekRef.current;
+      const button = container?.querySelector<HTMLElement>('[aria-pressed="true"]');
+      if (!container || !button || container.scrollWidth <= container.clientWidth) return;
+      const row = container.getBoundingClientRect();
+      const item = button.getBoundingClientRect();
+      if (item.left < row.left) container.scrollLeft += item.left - row.left;
+      else if (item.right > row.right) container.scrollLeft += item.right - row.right;
+    };
+    keepVisible();
+    window.addEventListener("resize", keepVisible);
+    return () => window.removeEventListener("resize", keepVisible);
+  }, [selected]);
   const day = week[selected] ?? week[0];
   const rows = day.plans.flatMap((pl) =>
     pl.workouts.map((w) => ({ pl, w })),
@@ -47,7 +62,7 @@ export function ScheduleWeek({ week, solo }: { week: WeekDay[]; solo: boolean })
 
   return (
     <>
-      <div className="rx-week">
+      <div className="rx-week" ref={weekRef}>
         {week.map((d, i) => (
           <button
             key={d.iso}

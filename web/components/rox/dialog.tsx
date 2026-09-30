@@ -50,7 +50,6 @@ export function RoxDialog({
       variant={sheet ? "sheet" : "center"}
       panelClassName={"rx-custom-dialog " + (sheet ? "rx-custom-sheet" : "")}
     >
-      <div className="rx-dialog-handle" />
       <header>
         <h2>{title}</h2>
         <button

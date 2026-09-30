@@ -9,7 +9,7 @@
  * 값은 CSS 변수로 둔다 — 인라인 style·SVG 어디에 넣어도 테마를 따라온다.
  */
 export const AVATAR_COLORS = [
-  "var(--accent)",
+  "var(--primary)",
   "var(--warn)",
   "var(--cat-sky)",
   "var(--cat-lime)",

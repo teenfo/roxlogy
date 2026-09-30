@@ -26,7 +26,7 @@ export async function Shell({
           {children}
         </main>
         {/* 공유 링크로 들어온 방문자가 페이지를 떠나지 않고 들어오게 (정책: 확정 4) */}
-        {loginNext && <GoogleOneTap next={loginNext} />}
+        {loginNext && (loginNext === "/crews" || loginNext.startsWith("/crews/")) && <GoogleOneTap next={loginNext} />}
       </div>
     );
   }

@@ -237,7 +237,7 @@ export function WorkoutChecklist({
     return (
       <>
         {hero}
-        <p className="rounded-[14px] border border-line bg-card px-4 py-10 text-center text-sm text-muted">
+        <p className="rounded-[14px] border border-line bg-card px-4 py-10 text-center text-sm text-muted-foreground">
           {t("workouts.noItems")}
         </p>
       </>
@@ -251,14 +251,14 @@ export function WorkoutChecklist({
         {hero}
         <div className="flex flex-col gap-2 px-6 pb-[18px] max-md:px-4">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted">{t("workouts.progressLabel")}</span>
+            <span className="text-muted-foreground">{t("workouts.progressLabel")}</span>
             <span className="tabular font-bold">
               {t("workouts.progress", { done: doneCount, total })}
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-line">
             <div
-              className="h-full rounded-full bg-accent transition-all duration-200"
+              className="h-full rounded-full bg-primary transition-all duration-200"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -292,7 +292,7 @@ export function WorkoutChecklist({
                   <span
                     className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-[15px] font-extrabold transition-colors ${
                       isDone
-                        ? "border-success bg-success text-accent-foreground"
+                        ? "border-success bg-success text-white"
                         : "border-line-strongest text-transparent hover:border-accent-line"
                     }`}
                   >
@@ -302,14 +302,14 @@ export function WorkoutChecklist({
 
                 <div className="flex min-w-0 flex-col gap-2">
                   <p className="flex flex-wrap items-baseline gap-2">
-                    <span className="tabular text-xs font-bold text-muted">
+                    <span className="tabular text-xs font-bold text-muted-foreground">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     {it.exerciseId ? (
                       <Link
                         href={`/exercises/${it.exerciseId}`}
                         className={`min-w-0 truncate text-lg font-extrabold hover:text-gold ${
-                          isDone ? "text-muted line-through" : ""
+                          isDone ? "text-muted-foreground line-through" : ""
                         }`}
                       >
                         {it.name}
@@ -317,7 +317,7 @@ export function WorkoutChecklist({
                     ) : (
                       <span
                         className={`min-w-0 truncate text-lg font-extrabold ${
-                          isDone ? "text-muted line-through" : ""
+                          isDone ? "text-muted-foreground line-through" : ""
                         }`}
                       >
                         {it.name}
@@ -389,7 +389,7 @@ export function WorkoutChecklist({
               ? `✓ ${t("workouts.doneTitle")}`
               : t("workouts.remaining", { n: total - doneCount })}
           </p>
-          <p className="mt-0.5 text-[13px] text-muted [word-break:keep-all]">
+          <p className="mt-0.5 text-[13px] text-muted-foreground [word-break:keep-all]">
             {allDone ? t("workouts.doneHint") : t("workouts.markHint")}
           </p>
         </div>
@@ -400,7 +400,7 @@ export function WorkoutChecklist({
           className={`flex h-11 items-center justify-center rounded-lg px-5 text-[15px] font-extrabold transition disabled:opacity-40 max-md:w-full ${
             allDone
               ? "bg-success-bg text-success"
-              : "bg-accent text-accent-foreground hover:brightness-95"
+              : "bg-primary text-primary-foreground hover:brightness-95"
           }`}
         >
           {pending

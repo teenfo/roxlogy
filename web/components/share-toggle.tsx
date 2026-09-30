@@ -34,7 +34,7 @@ export function ShareToggle({ id, shared }: { id: string; shared: boolean }) {
         type="button"
         onClick={toggle}
         disabled={busy}
-        className={`text-sm hover:underline disabled:opacity-50 ${on ? "text-track" : "text-muted"}`}
+        className={`text-sm hover:underline disabled:opacity-50 ${on ? "text-info" : "text-muted-foreground"}`}
         title={t("share.hint")}
       >
         {on ? t("share.shared") : t("share.share")}

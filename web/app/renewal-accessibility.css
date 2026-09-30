@@ -1,0 +1,56 @@
+/* docs/design/ROXLOGY-Mobile-Design-Guide.md §03–04, §09.
+ * Preserve the design's desktop dimensions and its internal table scrolling. */
+[data-slot="table-container"]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.rx-page-head > div,
+.rx-profile > span,
+.rx-crew-link > span,
+.rx-record-row > span {
+  min-width: 0;
+}
+
+.rx-main h1,
+.rx-panel-head h2,
+.rx-profile b,
+.rx-crew-link b,
+.rx-record-row b {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .rx-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+  .rx-main select,
+  .rx-main textarea,
+  .rx-main [data-slot="select-trigger"] {
+    font-size: 16px;
+    min-height: 48px;
+    max-width: 100%;
+  }
+
+  .rx-main .rx-primary {
+    min-height: 48px;
+  }
+
+  .rx-main .rx-actions > button,
+  .rx-main .rx-actions > a,
+  .rx-main .rx-navtabs > a,
+  .rx-main .rx-segments [role="tab"] {
+    min-height: 44px;
+  }
+
+  /* Seven dates stay in one row; scroll that row instead of shrinking targets. */
+  .rx-week {
+    grid-template-columns: repeat(7, minmax(44px, 1fr));
+    overflow-x: auto;
+    padding: 3px;
+    scroll-padding-inline: 3px;
+  }
+
+  .rx-week button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

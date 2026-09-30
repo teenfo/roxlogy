@@ -1,5 +1,6 @@
 /** 영어 — 기본 언어이자 키의 원본. 새 키는 여기 먼저 추가. */
 const en = {
+  "a11y.tableScroll": "Scroll horizontally to view all columns.",
   // 공통
   "common.save": "Save",
   "common.saving": "Saving…",

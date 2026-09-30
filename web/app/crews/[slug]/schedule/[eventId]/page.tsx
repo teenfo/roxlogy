@@ -20,6 +20,8 @@ import { siteUrl } from "@/lib/site-url";
 import { getCachedProfile } from "@/lib/supabase/auth";
 import { AccessGate } from "@/components/ui/access-gate";
 import { Back, Chip, DataTable, Empty, Hint, PageHead, Panel } from "@/components/rox/ui";
+import { getPublicEvent } from "@/lib/og/public-data";
+import { shareMetadata } from "@/lib/og/metadata";
 
 type EventComment = {
   id: string;
@@ -54,15 +56,13 @@ type EventDetail = {
 
 /** 카톡·인스타에 붙였을 때 제목·설명이 보이도록 */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; eventId: string }> }) {
-  const { eventId } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase.rpc("crew_event_detail", { p_event: eventId });
-  const ev = ((data ?? []) as EventDetail[])[0];
-  if (!ev) return { title: "Roxlogy" };
-  return {
-    title: `${ev.title} — Roxlogy`,
-    description: ev.description?.slice(0, 160) ?? ev.location ?? undefined,
-  };
+  const { slug, eventId } = await params;
+  const event = await getPublicEvent(slug, eventId);
+  if (!event) return shareMetadata();
+  return shareMetadata(
+    `${event.title} — Roxlogy`,
+    event.description?.slice(0, 160) ?? event.location ?? undefined,
+  );
 }
 
 /**

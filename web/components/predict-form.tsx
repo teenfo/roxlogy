@@ -26,8 +26,8 @@ import { useI18n } from "@/components/i18n-provider";
 const TIER_STYLE: Record<string, string> = {
   aggressive: "border-danger/60 text-danger",
   challenging: "border-accent-line/60 text-gold",
-  realistic: "border-track/60 text-track",
-  comfortable: "border-line-strong text-muted",
+  realistic: "border-track/60 text-info",
+  comfortable: "border-line-strong text-muted-foreground",
 };
 
 export type PredictSession = {
@@ -333,11 +333,11 @@ export function PredictForm({
   return (
     <main>
       <h1 className="text-2xl font-bold">{t("predict.title")}</h1>
-      <p className="mt-1 text-sm text-muted">{t("predict.desc")}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{t("predict.desc")}</p>
 
       {goalEventName && (
-        <div className="mt-4 rounded-md border border-accent-line/40 bg-accent/10 px-4 py-3">
-          <p className="text-xs text-muted">{t("predict.forEvent")}</p>
+        <div className="mt-4 rounded-md border border-accent-line/40 bg-primary/10 px-4 py-3">
+          <p className="text-xs text-muted-foreground">{t("predict.forEvent")}</p>
           <p className="mt-0.5 text-sm font-semibold text-gold">
             {goalEventName}
             {goalEventDate ? ` · ${goalEventDate}` : ""}
@@ -346,7 +346,7 @@ export function PredictForm({
       )}
 
       <div className="mt-6 flex flex-wrap items-end gap-4">
-        <label className="flex flex-col gap-1.5 text-sm text-muted">
+        <label className="flex flex-col gap-1.5 text-sm text-muted-foreground">
           {t("predict.target")}
           <input
             value={targetText}
@@ -355,7 +355,7 @@ export function PredictForm({
             className="w-36 rounded-md border border-line-mid bg-surface px-3 py-2.5 font-mono text-lg text-foreground outline-none focus:border-accent-line"
           />
         </label>
-        <label className="flex flex-col gap-1.5 text-sm text-muted">
+        <label className="flex flex-col gap-1.5 text-sm text-muted-foreground">
           {t("predict.level")}
           <select
             value={level}
@@ -372,7 +372,7 @@ export function PredictForm({
       </div>
 
       {!result ? (
-        <p className="mt-8 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
+        <p className="mt-8 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
           {t("predict.invalid")}
         </p>
       ) : (
@@ -384,13 +384,13 @@ export function PredictForm({
               >
                 {t(`predict.tier.${tier}`)}
               </span>
-              <span className="text-xs text-muted">
+              <span className="text-xs text-muted-foreground">
                 {t(`predict.tierNote.${tier}`)}
               </span>
             </div>
           )}
           {fieldPct != null && (
-            <p className="mt-2 text-xs text-track">
+            <p className="mt-2 text-xs text-info">
               📊{" "}
               {fieldPct.byAge && ageGroup
                 ? t("predict.fieldPctAge", { pct: fieldPct.pct, age: ageGroup })
@@ -398,18 +398,18 @@ export function PredictForm({
             </p>
           )}
           {result.personalized && (
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs text-muted-foreground">
               {t("predict.personalNote", { n: sessions.length })}
             </p>
           )}
           {eventDivStat && (
             <div className="mt-3 rounded-md border border-track/30 bg-card px-4 py-3">
-              <p className="text-xs font-semibold text-track">
+              <p className="text-xs font-semibold text-info">
                 {eventStats!.source === "this"
                   ? t("predict.eventStatThis", { label: eventStats!.label })
                   : t("predict.eventStatPrev", { label: eventStats!.label })}
               </p>
-              <p className="mt-1 text-xs text-muted">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {t("predict.eventStatLine", {
                   division: eventDivStat.label,
                   n: eventDivStat.count,
@@ -426,29 +426,29 @@ export function PredictForm({
 
           <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-md bg-surface px-4 py-3">
-              <p className="text-xs text-muted">{t("predict.runPerKm")}</p>
-              <p className="mt-1 font-mono text-xl font-bold text-track">
+              <p className="text-xs text-muted-foreground">{t("predict.runPerKm")}</p>
+              <p className="mt-1 font-mono text-xl font-bold text-info">
                 {formatMs(result.runLapMs)}
               </p>
-              <p className="mt-0.5 text-xs text-muted">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {t("predict.runSum", { time: formatMs(result.runTotalMs) })}
               </p>
             </div>
             <div className="rounded-md bg-surface px-4 py-3">
-              <p className="text-xs text-muted">{t("predict.stationSum")}</p>
+              <p className="text-xs text-muted-foreground">{t("predict.stationSum")}</p>
               <p className="mt-1 font-mono text-xl font-bold text-gold">
                 {formatMs(result.stationTotalMs)}
               </p>
             </div>
             <div className="rounded-md bg-surface px-4 py-3">
-              <p className="text-xs text-muted">
+              <p className="text-xs text-muted-foreground">
                 {t("predict.roxzoneBudget")}
                 <InfoTip text={t("predict.roxzoneInfo")} />
               </p>
               <p className="mt-1 font-mono text-xl font-bold">
                 {formatMs(result.roxzoneTotalMs)}
               </p>
-              <p className="mt-0.5 text-xs text-muted">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {t("predict.roxzoneEach", {
                   time: formatMs(result.roxzoneEachMs),
                 })}
@@ -463,7 +463,7 @@ export function PredictForm({
               return (
                 <section className="mt-4 rounded-md border border-line px-4 py-3">
                   <p className="text-sm font-semibold">{t("predict.runCheck")}</p>
-                  <p className="mt-1 text-xs text-muted">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {t("predict.runCheckNoBase")}
                   </p>
                   <Link
@@ -482,7 +482,7 @@ export function PredictForm({
                   {t("predict.runCheck")}
                   <InfoTip text={t("predict.runCheckInfo")} />
                 </p>
-                <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-1 text-xs text-muted">
+                <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-1 text-xs text-muted-foreground">
                   <span>
                     {t("predict.runCheckNeed")}{" "}
                     <span className="font-mono text-base font-bold text-foreground">
@@ -498,14 +498,14 @@ export function PredictForm({
                 </div>
                 <p
                   className={`mt-2 text-sm font-semibold ${
-                    check.reachable ? "text-track" : "text-gold"
+                    check.reachable ? "text-info" : "text-gold"
                   }`}
                 >
                   {check.reachable
                     ? t("predict.runCheckOk", { gap: formatMs(gap) })
                     : t("predict.runCheckShort", { gap: formatMs(gap) })}
                 </p>
-                <p className="mt-1 text-xs text-muted">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {check.assumed
                     ? t("predict.runCheckAssumed", { pct: check.degradationPct })
                     : t("predict.runCheckMeasured", {
@@ -527,7 +527,7 @@ export function PredictForm({
                   key={s.key}
                   className="flex items-center gap-3 rounded-md bg-surface px-4 py-2.5"
                 >
-                  <span className="w-6 text-right font-mono text-xs text-muted">
+                  <span className="w-6 text-right font-mono text-xs text-muted-foreground">
                     {i + 1}
                   </span>
                   <span className="flex-1 text-sm">
@@ -548,7 +548,7 @@ export function PredictForm({
                   <h2 className="text-lg font-semibold">
                     {t("predict.adjustTitle")}
                   </h2>
-                  <p className="mt-0.5 text-xs text-muted">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     {t("predict.adjustDesc")}
                   </p>
                 </div>
@@ -566,7 +566,7 @@ export function PredictForm({
               </div>
 
               <div className="mt-4 flex flex-wrap gap-4">
-                <label className="flex flex-col gap-1.5 text-sm text-muted">
+                <label className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                   {t("predict.goalEvent")}
                   <select
                     value={eventChoice}
@@ -587,7 +587,7 @@ export function PredictForm({
                 </label>
                 {eventChoice === "custom" && (
                   <>
-                    <label className="flex flex-col gap-1.5 text-sm text-muted">
+                    <label className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                       {t("predict.goalEventNamePh")}
                       <input
                         value={customEventName}
@@ -599,7 +599,7 @@ export function PredictForm({
                         className="w-52 rounded-md border border-line-mid bg-surface px-3 py-2 text-foreground outline-none focus:border-accent-line"
                       />
                     </label>
-                    <label className="flex flex-col gap-1.5 text-sm text-muted">
+                    <label className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                       {t("predict.goalEventDate")}
                       <input
                         type="date"
@@ -630,13 +630,13 @@ export function PredictForm({
                       <span className="font-semibold">
                         {t("predict.addToSchedule")}
                       </span>
-                      <span className="text-xs text-muted">
+                      <span className="text-xs text-muted-foreground">
                         {t("predict.addToScheduleHint")}
                       </span>
                     </span>
                   </label>
                 )}
-                <label className="flex flex-col gap-1.5 text-sm text-muted">
+                <label className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                   {t("newSession.division")}
                   <select
                     value={division}
@@ -655,7 +655,7 @@ export function PredictForm({
                   </select>
                 </label>
                 {sessions.length > 0 && (
-                  <label className="flex flex-col gap-1.5 text-sm text-muted">
+                  <label className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                     {t("predict.fromSession")}
                     <select
                       value={pickedSession}
@@ -674,7 +674,7 @@ export function PredictForm({
               </div>
 
               <div className="mt-4 rounded-md bg-background px-4 py-3">
-                <p className="text-xs text-muted">{t("predict.adjustedTotal")}</p>
+                <p className="text-xs text-muted-foreground">{t("predict.adjustedTotal")}</p>
                 <p className="mt-1 font-mono text-2xl font-bold text-gold">
                   {formatMs(adjustedMs)}
                 </p>
@@ -686,7 +686,7 @@ export function PredictForm({
                     key={s.key}
                     className="flex items-center gap-3 rounded-md bg-background px-4 py-2"
                   >
-                    <span className="w-6 text-right font-mono text-xs text-muted">
+                    <span className="w-6 text-right font-mono text-xs text-muted-foreground">
                       {i + 1}
                     </span>
                     <span className="flex-1 text-sm">
@@ -701,10 +701,10 @@ export function PredictForm({
                   </div>
                 ))}
                 <div className="mt-1 flex items-center gap-3 rounded-md bg-background px-4 py-2">
-                  <span className="flex-1 text-sm text-track">
+                  <span className="flex-1 text-sm text-info">
                     {t("predict.runPaceField")}
                     {effRunTotalMs != null && (
-                      <span className="ml-2 text-xs text-muted">
+                      <span className="ml-2 text-xs text-muted-foreground">
                         {t("predict.runSum", { time: formatMs(effRunTotalMs) })}
                       </span>
                     )}
@@ -734,7 +734,7 @@ export function PredictForm({
                   type="button"
                   onClick={saveGoal}
                   disabled={saveState !== "idle"}
-                  className="rounded-md bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
+                  className="rounded-md bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:brightness-95 disabled:opacity-40"
                 >
                   {saveState === "saving"
                     ? t("common.saving")
@@ -758,7 +758,7 @@ export function PredictForm({
               )}
             </section>
           ) : !isLoggedIn ? (
-            <p className="mt-6 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm text-muted">
+            <p className="mt-6 rounded-md border border-track/30 bg-surface px-4 py-3 text-sm text-muted-foreground">
               <Link href="/signup" className="text-gold hover:underline">
                 {t("predict.signupPrompt.before")}
               </Link>

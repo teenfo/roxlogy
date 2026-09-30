@@ -42,7 +42,7 @@ export function LocaleSwitcher({
       className={
         className ??
         (compact
-          ? "rounded-md border border-line-mid bg-transparent px-2 py-1 text-xs text-muted outline-none focus:border-accent-line"
+          ? "rounded-md border border-line-mid bg-transparent px-2 py-1 text-xs text-muted-foreground outline-none focus:border-accent-line"
           : "rounded-md border border-line-mid bg-surface px-3 py-2.5 text-foreground outline-none focus:border-accent-line")
       }
     >

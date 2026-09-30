@@ -11,7 +11,9 @@
  *   - 한국어로 박혀 있던 기본 문구(placeholder·aria-label)는 호출자가 t() 로 넘긴다.
  */
 import Link from "next/link";
+import { RowLink } from "@/components/row-link";
 import type { ReactNode } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { ArrowLeft, ArrowRight, Search, Inbox } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Empty as EmptyPrimitive } from "@/components/ui/empty";
@@ -235,8 +237,9 @@ export function DataTable({
   headers: string[];
   rows: ReactNode[][];
 }) {
+  const { t } = useI18n();
   return (
-    <Table>
+    <Table scrollLabel={t("a11y.tableScroll")}>
       <TableHeader>
         <TableRow>
           {headers.map((h) => (
@@ -322,14 +325,14 @@ export function RecordRow({
   end?: ReactNode;
 }) {
   return (
-    <Link className="rx-record-row" href={href}>
+    <RowLink className="rx-record-row" href={href}>
       <span>
         <b>{title}</b>
         {note && <small>{note}</small>}
       </span>
       {end && <strong>{end}</strong>}
       <ArrowRight size={16} />
-    </Link>
+    </RowLink>
   );
 }
 

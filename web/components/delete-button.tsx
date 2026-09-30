@@ -52,7 +52,7 @@ export function DeleteButton({
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="text-sm text-muted hover:text-danger"
+        className="text-sm text-muted-foreground hover:text-danger"
       >
         {t("common.delete")}
       </button>
@@ -60,7 +60,7 @@ export function DeleteButton({
   }
   return (
     <span className="flex items-center gap-3 text-sm">
-      <span className="text-muted">{t("common.confirmDelete")}</span>
+      <span className="text-muted-foreground">{t("common.confirmDelete")}</span>
       <button
         onClick={handleDelete}
         disabled={pending}
@@ -68,7 +68,7 @@ export function DeleteButton({
       >
         {pending ? t("common.deleting") : t("common.delete")}
       </button>
-      <button onClick={() => setConfirming(false)} className="text-muted">
+      <button onClick={() => setConfirming(false)} className="text-muted-foreground">
         {t("common.cancel")}
       </button>
       {err && <span className="text-xs text-danger">{err}</span>}

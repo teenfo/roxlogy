@@ -68,7 +68,7 @@ export function ProgramCalendarSubscribe({
           onClick={regenerate}
           disabled={busy}
           title={t("programs.tokenRegenConfirm")}
-          className="rounded-md bg-surface px-2.5 py-1 text-xs text-muted hover:text-danger disabled:opacity-50"
+          className="rounded-md bg-surface px-2.5 py-1 text-xs text-muted-foreground hover:text-danger disabled:opacity-50"
         >
           ↻ {t("programs.tokenRegen")}
         </button>

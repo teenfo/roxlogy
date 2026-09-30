@@ -186,7 +186,7 @@ export function RecordCardButton({
           <p className="text-sm font-semibold">{t("card.title")}</p>
 
           <div className="flex flex-wrap items-center gap-2">
-            <label className="cursor-pointer rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground hover:brightness-95">
+            <label className="cursor-pointer rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:brightness-95">
               {photo ? t("card.changePhoto") : t("card.pickPhoto")}
               <input
                 type="file"
@@ -208,7 +208,7 @@ export function RecordCardButton({
                   });
                   setPlace(DEFAULT_PLACEMENT);
                 }}
-                className={`${chip} bg-background text-muted hover:text-foreground`}
+                className={`${chip} bg-background text-muted-foreground hover:text-foreground`}
               >
                 {t("card.removePhoto")}
               </button>
@@ -222,8 +222,8 @@ export function RecordCardButton({
                   aria-pressed={ratio === r}
                   className={`${chip} ${
                     ratio === r
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-background text-muted hover:text-foreground"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {r}
@@ -242,8 +242,8 @@ export function RecordCardButton({
                 aria-pressed={theme === k}
                 className={`${chip} ${
                   theme === k
-                    ? "bg-accent text-accent-foreground"
-                    : "bg-background text-muted hover:text-foreground"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {t(k === "dark" ? "card.themeDark" : "card.themeLight")}
@@ -262,8 +262,8 @@ export function RecordCardButton({
                     aria-pressed={place.fit === f}
                     className={`${chip} ${
                       place.fit === f
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-background text-muted hover:text-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {t(f === "cover" ? "card.fitCover" : "card.fitContain")}
@@ -302,7 +302,7 @@ export function RecordCardButton({
           </div>
 
           {canDrag && (
-            <label className="flex items-center gap-3 text-[11px] text-muted">
+            <label className="flex items-center gap-3 text-[11px] text-muted-foreground">
               {t("card.zoom")}
               <input
                 type="range"
@@ -318,7 +318,7 @@ export function RecordCardButton({
               <button
                 type="button"
                 onClick={() => setPlace((p) => ({ ...p, zoom: 1, offsetX: 0, offsetY: 0 }))}
-                className="text-muted hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground"
               >
                 {t("card.reset")}
               </button>
@@ -329,7 +329,7 @@ export function RecordCardButton({
               {err}
             </p>
           )}
-          <p className="text-[11px] text-muted">
+          <p className="text-[11px] text-muted-foreground">
             {!photo
               ? t("card.transparentNote")
               : canDrag
@@ -342,14 +342,14 @@ export function RecordCardButton({
               type="button"
               onClick={() => void download()}
               disabled={busy}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:brightness-95 disabled:opacity-40"
             >
               {t("card.download")}
             </button>
             <button
               type="button"
               onClick={close}
-              className="rounded-md px-3 py-2 text-sm text-muted hover:text-foreground"
+              className="rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
             >
               {t("common.close")}
             </button>

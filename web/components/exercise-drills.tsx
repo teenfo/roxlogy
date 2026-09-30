@@ -71,7 +71,7 @@ export function ExerciseDrills({
           {t("exercises.drillAdd")}
         </button>
       </div>
-      <p className="mt-1 text-xs text-muted">{t("exercises.drillsHint")}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{t("exercises.drillsHint")}</p>
 
       {open && (
         <form
@@ -97,7 +97,7 @@ export function ExerciseDrills({
           <button
             type="submit"
             disabled={pending || !title.trim()}
-            className="justify-self-start rounded-md bg-accent px-5 py-2 text-sm font-bold text-accent-foreground hover:brightness-95 disabled:opacity-40"
+            className="justify-self-start rounded-md bg-primary px-5 py-2 text-sm font-bold text-primary-foreground hover:brightness-95 disabled:opacity-40"
           >
             {pending ? t("exercises.drillSaving") : t("exercises.drillSave")}
           </button>
@@ -105,7 +105,7 @@ export function ExerciseDrills({
       )}
 
       {drills.length === 0 ? (
-        <p className="mt-3 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted">
+        <p className="mt-3 rounded-md bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
           {t("exercises.drillEmpty")}
         </p>
       ) : (
@@ -127,7 +127,7 @@ export function ExerciseDrills({
                 type="button"
                 onClick={() => remove(d.id)}
                 aria-label={t("common.delete")}
-                className="-m-2 shrink-0 p-2 text-muted hover:text-danger"
+                className="-m-2 shrink-0 p-2 text-muted-foreground hover:text-danger"
               >
                 ✕
               </button>
