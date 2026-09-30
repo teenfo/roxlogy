@@ -36,7 +36,7 @@ export function RaceSimMeasureView({
   return (
     <>
       <Back href="/timing" label={t("timing.title")} />
-      <PageHead title={title} description={description ?? (done ? t("race.simDoneHint") : running ? t("race.progress", { done: splits.length, total: cps.length }) : t("race.simDesc"))} action={headerExtra} />
+      <PageHead title={title} description={description ?? (done ? t("race.simFinished") : running ? t("race.progress", { done: splits.length, total: cps.length }) : t("race.simDesc"))} action={headerExtra} />
       {err && <p role="alert" className="rx-error">{err}</p>}
       {beforeClock}
       {!hideTimer && (
@@ -60,7 +60,7 @@ export function RaceSimMeasureView({
               </>}
             </div>
             {clockNote}
-            <Hint>{running ? `${t("race.tapHint", { n: current + 1, total: cps.length })} · ${fmtClock(curElapsed)}` : done ? t("race.simDoneHint") : t("race.simDesc")}</Hint>
+            <Hint>{running ? `${t("race.tapHint", { n: current + 1, total: cps.length })} · ${fmtClock(curElapsed)}` : done ? t("race.simFinished") : t("race.simDesc")}</Hint>
           </Panel>
           <Panel title={t("pft.mSplitsTitle")} action={<Chip>{t("race.progress", { done: Math.min(splits.length, cps.length), total: cps.length })}</Chip>}>
             <ol className="rx-sim-laps">

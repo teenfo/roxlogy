@@ -706,7 +706,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                 ) : state === "finished" ? (
                   <Chip tone="green">
                     <Check size={14} />
-                    {t("pft.race.allDone")}
+                    {t(isSim ? "race.simFinished" : "pft.race.allDone")}
                   </Chip>
                 ) : dnf ? (
                   <Chip>{t("pft.race.dnf")}</Chip>

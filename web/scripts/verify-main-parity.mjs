@@ -31,6 +31,7 @@ try {
           assert.equal(await page.locator(".rx-live-timing .rx-sim-progress > span").count(), Number(sim[1]));
           assert.ok((await page.locator(".rx-live-footer a").first().getAttribute("href")).startsWith("/timing/"));
           assert.doesNotMatch(await page.locator(".rx-live-finish footer").innerText(), /골드|실버/);
+          assert.doesNotMatch(await page.locator(".rx-live-finish").innerText(), /6개 종목/);
         }
         if (route === "/timing") {
           assert.equal(await page.locator(".rx-record-row").count(), 3);
@@ -98,6 +99,8 @@ try {
         }
         assert.deepEqual(errors, []);
         if (width !== 320 && (route.includes("SIM032") || route === "/timing/new" || route === "/crews/loop8/members?tier=__staff__")) {
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.waitForTimeout(150);
           await page.screenshot({ path: `${out}/parity-${route.replace(/[^a-zA-Z0-9]+/g, "-")}-${width}.png`, fullPage: true, animations: "disabled" });
         }
         report.push({ width, route, pass: true });

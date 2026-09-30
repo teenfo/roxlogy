@@ -337,7 +337,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                       <p>
                         {r.wave ? t("pft.race.waveN", { n: r.wave }) : t("pft.race.waveNone")}
                         {" · "}
-                        {!isSim && r.badge ? t(badgeDictKey(r.badge)) : t("pft.race.allDone")}
+                        {!isSim && r.badge ? t(badgeDictKey(r.badge)) : t(isSim ? "race.simFinished" : "pft.race.allDone")}
                         {!isSim && r.scaled ? ` · ${t("pft.scaledTag")}` : ""}
                       </p>
                       {isSim && <PftSplitStrip splits={r.splits} cps={cps} proportional />}
