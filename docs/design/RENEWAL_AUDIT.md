@@ -43,7 +43,7 @@ OG 조회는 쿠키·service role을 사용하지 않는다. 공개·active 크�
 
 ## 검증 및 남은 범위
 
-- `git diff --check`, JavaScript 구문 검사, TS/TSX 구문 파싱을 로컬에서 실시한다.
+- `git diff --check`, JavaScript 구문 검사, TS/TSX 345개 파일의 구문 파싱을 로컬에서 실시했다.
 - 실제 TypeScript·ESLint·운영 빌드는 기존 `web-ci`에서 실행한다.
 - 신규 `design-audit`는 개인정보·실제 PNG 생성 회귀 테스트와 픽스처 빌드 후 12개 화면을
   320/360/375/390/430/600/767/768/1200px에서 검사한다. 모바일 드로어, 표 키보드 스크롤,
@@ -58,3 +58,23 @@ OG 조회는 쿠키·service role을 사용하지 않는다. 공개·active 크�
   이번 변경은 확인된 토큰 오류를 복구한다.
 - 원본 시안의 육안 비교, 실기기 키보드·safe-area·회전·확대, 스크린 리더,
   운영 데이터 길이와 실제 계정별 권한, Google One Tap 브라우저 UI는 아직 미검증이다.
+
+## 최종 실행 결과
+
+검증한 코드 커밋: `6dbe0fd7a32b04d647a3520c46cd86cda652acc8`.
+
+| 검사 | 결과 | 증거 |
+|---|---|---|
+| TypeScript · ESLint · 운영 빌드 | 통과 | [web-ci](https://github.com/teenfo/roxlogy/actions/runs/36696633884) |
+| 공개 정보·실제 OG PNG 회귀 | 8건 통과, 실패 0 | [design-audit](https://github.com/teenfo/roxlogy/actions/runs/36696634069) |
+| 12개 화면 · 9개 폭, 랜딩 ko/en/es | 126건 통과, 실패 0 | 같은 실행의 `report.json` |
+| 입력·주요 버튼·RPE 치수, 선택·해제 | 통과 | 같은 실행의 브라우저 검사 |
+| 드로어 닫기·포커스 복귀·프로필 이동 | 통과 | 같은 실행의 브라우저 검사 |
+| 표 키보드 스크롤, 모임 다이얼로그·Escape·포커스 복귀 | 통과 | 같은 실행의 브라우저 검사 |
+
+가로 넘침과 `pageerror`는 검사한 126건에서 0이다. PNG 34장(화면·드로어·열린 모임
+다이얼로그 31장, OG 3장)과 JSON·서버 로그는
+[Actions 아티팩트](https://github.com/teenfo/roxlogy/actions/runs/36696634069/artifacts/11087593789)에
+저장했다(7일 보관). 대표 모바일 랜딩·입력·예측·모임, 데스크톱 모임 다이얼로그,
+최종 드로어·RPE 입력, 크루·모임 OG를 육안으로 확인했다.
+이는 실제 앱 코드에 가짜 데이터를 공급한 검사이며 운영 DB·RLS·실기기 검증을 대체하지 않는다.
