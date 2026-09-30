@@ -45,6 +45,9 @@ try {
           assert.match(await brand.evaluate((el) => getComputedStyle(el).fontFamily), /Archivo Black/);
           assert.equal(await page.evaluate(() => [...document.fonts].some((font) => font.family.includes("Archivo Black") && font.status === "loaded")), true);
         }
+        if (route === "/") {
+          assert.equal(await page.locator(".rx-landing-hero h1").evaluate((el) => getComputedStyle(el).fontWeight), "800", "marketing heading retains Korean fallback weight");
+        }
         if (width <= 600) {
           const inputs = await page.locator('.rx-main input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"])').evaluateAll((els) => els.filter((el) => el.getClientRects().length).map((el) => ({ size: parseFloat(getComputedStyle(el).fontSize), height: el.getBoundingClientRect().height })));
           for (const input of inputs) {
@@ -83,6 +86,7 @@ try {
           if (width < 768) assert.equal(await dialog.locator(':scope > [aria-hidden="true"]').count(), 1, "one sheet handle");
           const box = await dialog.boundingBox();
           assert.ok(box && box.x >= 0 && box.x + box.width <= width, "dialog fits viewport");
+          await page.screenshot({ path: `${out}/${width}_meetup_dialog_${locale}.png`, fullPage: true });
           await page.keyboard.press("Escape");
           await dialog.waitFor({ state: "hidden" });
           assert.equal(await page.getByRole("button", { name: "인스타 태그 복사", exact: true }).evaluate((el) => el === document.activeElement), true, "dialog focus return");
@@ -92,6 +96,7 @@ try {
           const drawer = page.locator('[data-slot="sidebar"][data-mobile="true"]');
           await drawer.waitFor();
           assert.ok((await drawer.getAttribute("class"))?.includes("rx-sidebar"));
+          await page.screenshot({ path: `${out}/${width}_drawer_${locale}.png`, fullPage: true });
           await drawer.locator(".rx-profile").click();
           await drawer.waitFor({ state: "hidden" });
           await page.waitForURL("**/settings/profile");

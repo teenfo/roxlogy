@@ -26,6 +26,13 @@
   letter-spacing: -0.01em;
 }
 
+/* Archivo Black has a single Black face. Keep the design's 800 weight for its
+ * Korean Pretendard fallback, without synthesizing a heavier Latin face. */
+.rx-landing-hero h1,
+.rx-auth-layout aside h1 {
+  font-weight: 800;
+}
+
 /* The transparent master mark has a Chalk R; give it the brand's dark surface. */
 .rx-brand > img,
 .rx-public-brand > img {
