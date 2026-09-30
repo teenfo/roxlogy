@@ -75,6 +75,8 @@
 | `/predict` | `web/app/predict/page.tsx` | 공통 목록/카탈로그·필터·상태 | `form` |
 | `/signup` | `web/app/signup/page.tsx` | AuthForm: 브랜드/폼 2단 | `공통 경계` |
 
+각 페이지의 상세 디자인·권한·모바일·완료 조건은 [디자인 개선 상세 지침](ROXLOGY-Design-Improvement-Guidelines.md)의 D01–D22를 따른다. 해당 문서 §12에서 이 표의 68개 소스를 모두 연결했다. 코드/서버 렌더 대응과 브라우저 시각 검수는 별도 상태로 관리한다.
+
 ## 페이지 밖의 누락 항목
 
 | 항목 | 실제 구현 |

@@ -2,6 +2,7 @@
 
 이 문서는 1차 변경(프로그램 멤버 미리보기, 외부 공유 OG 3종, Google One Tap 정책)의 상세 기록이다.
 같은 브랜치의 후속 변경은 전체 화면 리뉴얼까지 포함하며, 현재 기준은 `ROXLOGY-Global-Design-Spec.md`, `ROXLOGY-Mobile-Design-Guide.md`, `ROXLOGY-Screen-Coverage.md`다.
+2026-09-30 추가된 [디자인 개선 상세 지침](ROXLOGY-Design-Improvement-Guidelines.md)은 이 문서의 미리보기·OG·One Tap 계약을 유지하면서 전체 화면의 상태·권한·모바일·검수 기준과 코드상 보완 항목을 정리한다.
 기준 커밋: `0e413cdfb46e774c1ec8df9629e1d6f45b600a41`.
 사용자 요청에 따라 `feat/design-gaps-preview-og-onetap` 브랜치에서 작업한다.
 

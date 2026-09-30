@@ -12,6 +12,10 @@ Wear OS 네이티브 + Concept2 PM5 raw 연동 + 훈련×레이스 상관 분석
 ## 문서
 - 전체 기획: [`docs/PLANNING.md`](docs/PLANNING.md)
 - AI 에이전트 규칙: [`CLAUDE.md`](CLAUDE.md)
+- 디자인 개선 상세 지침: [`docs/ROXLOGY-Design-Improvement-Guidelines.md`](docs/ROXLOGY-Design-Improvement-Guidelines.md) — 브랜드 자산, 전체 68페이지, 모바일·상태·권한·검수 기준과 후속 보완 목록
+- 글로벌 디자인 스펙: [`docs/ROXLOGY-Global-Design-Spec.md`](docs/ROXLOGY-Global-Design-Spec.md)
+- 모바일 디자인 가이드: [`docs/ROXLOGY-Mobile-Design-Guide.md`](docs/ROXLOGY-Mobile-Design-Guide.md)
+- 화면 대응표 / 검증 기록: [`docs/ROXLOGY-Screen-Coverage.md`](docs/ROXLOGY-Screen-Coverage.md) · [`docs/ROXLOGY-Validation.md`](docs/ROXLOGY-Validation.md)
 
 ## 개발 시작 (Phase 1 — 데이터 토대)
 1. Supabase Cloud 프로젝트 생성
