@@ -112,6 +112,7 @@ try {
           await page.screenshot({ path: `${out}/${width}_drawer_${locale}.png`, fullPage: true, animations: "disabled" });
           await drawer.getByRole("button", { name: "닫기", exact: true }).click();
           await drawer.waitFor({ state: "hidden" });
+          await page.waitForFunction(() => document.querySelector('[data-slot="sidebar-trigger"]') === document.activeElement, { timeout: 3000 });
           assert.equal(await page.locator('[data-slot="sidebar-trigger"]').evaluate((el) => el === document.activeElement), true, "drawer close returns focus");
           await page.locator('[data-slot="sidebar-trigger"]').click();
           await drawer.waitFor();
