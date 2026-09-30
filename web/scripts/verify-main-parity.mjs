@@ -26,6 +26,12 @@ try {
         assert.deepEqual(errors, []);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "document overflow");
         const sim = /SIM0(16|24|32)/.exec(route);
+        if (sim && route.startsWith("/timing/") && !route.endsWith("/staff")) {
+          for (const span of await page.locator(".rx-sim-clock .rx-sim-progress > span").all()) {
+            const rect = await span.boundingBox();
+            assert.ok(rect && rect.width > 0 && rect.height >= 8, "simulation progress segments have visible area");
+          }
+        }
         if (sim && route.startsWith("/board")) {
           assert.equal(await page.locator(".rx-live-stages > div").count(), 8);
           assert.equal(await page.locator(".rx-live-timing .rx-sim-progress > span").count(), Number(sim[1]));
