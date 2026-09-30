@@ -106,9 +106,18 @@ try {
         }
         assert.deepEqual(errors, []);
         if (width !== 320 && (route.includes("SIM032") || route === "/timing/new" || route === "/crews/loop8/members?tier=__staff__")) {
-          await page.evaluate(() => window.scrollTo(0, 0));
-          await page.waitForTimeout(150);
-          await page.screenshot({ path: `${out}/parity-${route.replace(/[^a-zA-Z0-9]+/g, "-")}-${width}.png`, fullPage: true, animations: "disabled" });
+          await page.evaluate(async () => {
+            window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          });
+          assert.equal(await page.evaluate(() => window.scrollY), 0, "capture starts at the viewport top");
+          if ((sim && route.startsWith("/timing/") && !route.endsWith("/staff")) || (route === "/timing/new" && width === 390)) {
+            const clock = await page.locator(".rx-sim-clock").boundingBox();
+            assert.ok(clock && clock.y < 600, "stopwatch returns to its normal position after scrolling");
+          }
+          // A viewport capture preserves fixed/sticky positions after interactive
+          // scrolling; Chromium full-page capture can place them at document offsets.
+          await page.screenshot({ path: `${out}/parity-${route.replace(/[^a-zA-Z0-9]+/g, "-")}-${width}.png`, fullPage: false, animations: "disabled" });
         }
         report.push({ width, route, pass: true });
       } catch (e) {
