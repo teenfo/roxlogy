@@ -458,4 +458,3 @@ begin
     if sqlerrm <> 'guard_ok' then raise; end if;
   end;
 end $$;
-

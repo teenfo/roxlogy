@@ -105,4 +105,3 @@ export function raceBase(format: RaceFormat | string | null | undefined): string
 export function raceHome(format: RaceFormat | string | null | undefined): string {
   return format === "hyrox_sim" ? "/timing" : "/pft";
 }
-

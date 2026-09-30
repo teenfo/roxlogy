@@ -674,7 +674,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
               <PftSplitStrip splits={splits} cps={cps} current={timingNow ? current : undefined} />
               {timingNow && (
                 <div className="rx-pft-current-stage">
-                  <span style={{ background: cps[current].color }}>{current + 1}</span>
+                  <span style={{ background: cps[current].color, color: isSim ? "#fff" : undefined }}>{current + 1}</span>
                   <b>{stationLabel(current)}</b>
                   <small>{isSim ? t("race.tapHint", { n: current + 1, total: cps.length }) : t(PFT_STATIONS[current].amount as DictKey)}</small>
                 </div>
@@ -694,7 +694,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     className="rx-primary rx-wide"
                     // 버튼 색 = 지금 찍을 종목의 색. 구간 띠의 현재 칸과 같은 색이라
                     // 어느 종목을 찍는 중인지 색만으로 알아본다.
-                    style={{ background: cps[current].color, borderColor: "transparent", color: "#1c2730" }}
+                    style={{ background: isSim ? "var(--primary)" : cps[current].color, borderColor: "transparent", color: "#1c2730" }}
                     onClick={() => tap(e)}
                     aria-label={`${e.name} ${t("pft.race.staffTap", { station: stationLabel(current) })}`}
                   >
@@ -821,4 +821,3 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     </div>
   );
 }
-

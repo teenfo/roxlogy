@@ -50,6 +50,7 @@ try {
           await page.getByRole("textbox").first().fill("Simulation created from timing");
           await page.getByRole("button", { name: "타임체크 만들기", exact: true }).click();
           await page.waitForURL("**/timing/SIM032");
+          await page.locator(".rx-sim-clock .rx-sim-progress > span").last().waitFor();
           assert.equal(await page.locator(".rx-sim-progress > span").count(), 32);
         }
         if (width === 390 && sim && route === `/timing/SIM0${sim[1]}`) {

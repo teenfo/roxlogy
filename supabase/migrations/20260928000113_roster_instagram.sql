@@ -78,4 +78,3 @@ begin
     raise exception '가드: crew_roster 의 로그인 조건이 빠졌습니다';
   end if;
 end $$;
-

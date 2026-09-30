@@ -204,4 +204,3 @@ export function fmtWallClock(d: Date, withSeconds = true): string {
   const ss = String(d.getSeconds()).padStart(2, "0");
   return withSeconds ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
 }
-

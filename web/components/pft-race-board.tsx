@@ -408,7 +408,7 @@ function LiveRow({ r, stationLabel, cps }: { r: RankedEntry; stationLabel: (i: n
         <strong>{fmtClock(elapsed)}</strong>
       </div>
       <div className="rx-live-stage-now">
-        <span style={{ background: cps[cur].color }}>{stationLabel(cur)}</span>
+        <span style={{ background: cps[cur].color, color: cps.length > 6 ? "#fff" : undefined }}>{stationLabel(cur)}</span>
         {cps.length <= 6 && <b>{t(PFT_STATIONS[cur].amount as DictKey)}</b>}
         <small>
           {t("pft.race.segment")} {fmtClock(curElapsed)}

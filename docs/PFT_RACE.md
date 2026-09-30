@@ -124,4 +124,3 @@
 - 화면은 구간 목록을 `checkpointsFor(format, checkpoints)` 에서 받는다. 선수 본인 측정은 시뮬이면
   `components/race-sim-measure-view.tsx`(배지·예상 완주 없음), PFT 면 기존 `PftMeasureView`.
 - 메뉴: 레이스 > **시뮬 타임체크**(`/timing`) — 목록·만들기·참가·선수(`/timing/<코드>`)·스태프(`/timing/<코드>/staff`). PFT 쪽(`/pft`, `/pft/race`)에는 PFT 레이스만 보인다. 화면 본문은 `components/race-screens.tsx` 를 종목만 바꿔 같이 쓰고, 선수·스태프 페이지는 PFT 것을 re-export 한다. 옛 주소 `/pft/race/<코드>` 도 열린다. 테이블 이름(`pft_races`)과 보드(`/board/[code]`)는 그대로.
-
