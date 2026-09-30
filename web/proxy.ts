@@ -47,6 +47,7 @@ const PROTECTED_PREFIXES = [
   "/schedule",
   "/search",
   "/sessions",
+  "/timing",
   "/watch",
   "/settings",
   "/u",
@@ -150,3 +151,4 @@ export const config = {
     "/((?!api|auth|events$|download$|_next/static|_next/image|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|txt)$).*)",
   ],
 };
+

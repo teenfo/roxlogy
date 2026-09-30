@@ -62,13 +62,15 @@ export default async function PftPage() {
     // 레이스 — 내가 참가한 최근 레이스 + 내가 만든 레이스(참가하지 않아도 스태프 타이밍으로)
     supabase
       .from("pft_race_entries")
-      .select("joined_at, finished_at, total_ms, pft_races ( code, title, status, created_at )")
+      .select("joined_at, finished_at, total_ms, pft_races!inner ( code, title, status, created_at, format, checkpoints )")
       .eq("user_id", user!.id)
+      .eq("pft_races.format", "pft")
       .order("joined_at", { ascending: false })
       .limit(5),
     supabase
       .from("pft_races")
-      .select("code, title, status, created_at")
+      .select("code, title, status, created_at, format, checkpoints")
+      .eq("format", "pft")
       .eq("created_by", user!.id)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -83,7 +85,7 @@ export default async function PftPage() {
   ]);
 
   const rows = (data ?? []) as PftResult[];
-  type Race = { code: string; title: string; status: string; created_at: string };
+  type Race = { code: string; title: string; status: string; created_at: string; format?: string; checkpoints?: number };
   type RaceRow = {
     joined_at: string;
     finished_at: string | null;
@@ -92,10 +94,10 @@ export default async function PftPage() {
   };
   const races = ((myRaces ?? []) as unknown as RaceRow[])
     .map((r) => ({ ...r, race: (Array.isArray(r.pft_races) ? r.pft_races[0] : r.pft_races) as Race | null }))
-    .filter((r): r is typeof r & { race: Race } => !!r.race);
+    .filter((r): r is typeof r & { race: Race } => !!r.race && (r.race.format ?? "pft") === "pft");
   const canCreateRace = !!profile?.is_admin || (staffRows ?? []).length > 0;
   const created = ((createdRaces ?? []) as Race[]).filter(
-    (r) => !races.some((x) => x.race.code === r.code),
+    (r) => (r.format ?? "pft") === "pft" && !races.some((x) => x.race.code === r.code),
   );
   const best = rows.reduce<PftResult | null>(
     (a, r) => (a == null || r.total_ms < a.total_ms ? r : a),
@@ -342,3 +344,4 @@ export default async function PftPage() {
     </>
   );
 }
+

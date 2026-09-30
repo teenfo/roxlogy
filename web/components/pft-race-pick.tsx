@@ -1,5 +1,7 @@
 "use client";
 
+import { raceBase, type RaceFormat } from "@/lib/race-format";
+import { RaceFormatChip } from "@/components/race-format-chip";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Plus } from "lucide-react";
@@ -21,6 +23,8 @@ export type JoinableRace = {
   crew_slug: string | null;
   entries: number;
   joined: boolean;
+  format?: RaceFormat;
+  checkpoints?: number;
 };
 
 /**
@@ -33,12 +37,14 @@ export function PftRacePick({
   locale = "en-US",
   tz,
   blocked = false,
+  base = "/pft/race",
 }: {
   races: JoinableRace[];
   locale?: string;
   tz?: string;
   /** 프로필 필수값(출생연도·성별)이 비어 참가를 막아야 하는가 — 안내는 위에서 따로 띄운다 */
   blocked?: boolean;
+  base?: string;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -55,7 +61,8 @@ export function PftRacePick({
     if (error) return setErr(error.message);
     const j = data as { ok?: boolean; code?: string; error?: string };
     if (!j?.ok) return setErr(t(`pft.race.err.${j?.error ?? "unknown"}` as DictKey));
-    router.push(`/pft/race/${j.code ?? c}`);
+    const race = races.find((r) => r.code === c);
+    router.push(`${race ? raceBase(race.format) : base}/${j.code ?? c}`);
   }
 
   return (
@@ -75,7 +82,7 @@ export function PftRacePick({
               <div className="rx-pft-member" key={r.id}>
                 <span className="rx-avatar">{r.title.slice(0, 1)}</span>
                 <span>
-                  <b>{r.title}</b>
+                  <b>{r.title} <RaceFormatChip format={r.format} checkpoints={r.checkpoints} /></b>
                   <small>
                     {formatDateShortYear(r.created_at, locale, tz)}
                     {r.crew && ` · ${r.crew}`}
@@ -143,3 +150,4 @@ export function PftRacePick({
     </>
   );
 }
+

@@ -39,6 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/runs", label: "nav.runs", icon: "run" },
       { href: "/exercises", label: "nav.exercises", icon: "diamond" },
       { href: "/pft", label: "nav.pft", icon: "target" },
+      { href: "/timing", label: "nav.timing", icon: "clock" },
     ],
   },
   {
@@ -71,3 +72,4 @@ export function activeNavHref(pathname: string): string | null {
   }
   return best;
 }
+

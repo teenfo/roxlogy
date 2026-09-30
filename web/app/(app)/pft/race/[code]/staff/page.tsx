@@ -1,3 +1,4 @@
+import { raceBase } from "@/lib/race-format";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
@@ -18,7 +19,8 @@ export default async function PftRaceStaffPage({ params }: { params: Promise<{ c
   const board = (boardRaw as BoardData | null) ?? null;
   if (!board) notFound();
   const { data: manage } = await supabase.rpc("pft_race_can_manage", { p_race: board.race.id });
-  if (manage !== true) redirect(`/pft/race/${board.race.code}`);
+  if (manage !== true) redirect(`${raceBase(board.race.format)}/${board.race.code}`);
 
   return <PftRaceStaff initial={board} />;
 }
+

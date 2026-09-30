@@ -17,7 +17,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs } from "@/lib/format";
-import { PFT_COLORS, PFT_STATIONS } from "@/lib/pft";
+import { PFT_STATIONS } from "@/lib/pft";
+import { checkpointLabel, checkpointsFor, raceBase } from "@/lib/race-format";
 import {
   clockNow,
   entryState,
@@ -57,7 +58,6 @@ type Confirm =
   | { kind: "dnf"; entry: RaceEntry }
   | { kind: "close" };
 
-const PENDING_LIMIT = 6;
 const WAVES = [1, 2, 3, 4, 5, 6] as const;
 
 export function PftRaceStaff({ initial }: { initial: BoardData }) {
@@ -65,6 +65,9 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const router = useRouter();
   const race = initial.race;
   const KEY = `roxlogy.pft.staff.${race.code}`;
+  const cps = checkpointsFor(race.format, race.checkpoints);
+  const PENDING_LIMIT = cps.length;
+  const isSim = race.format === "hyrox_sim";
 
   const [data, setData] = useState<BoardData>(initial);
   const [status, setStatus] = useState(race.status);
@@ -413,7 +416,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const waveGroups = groupByWave(waiting);
   const select = (id: string, checked: boolean) =>
     setSelected((s) => (checked ? [...new Set([...s, id])] : s.filter((x) => x !== id)));
-  const stationLabel = (i: number) => t(PFT_STATIONS[i].label as DictKey);
+  const stationLabel = (i: number) => cps[i] ? checkpointLabel(t, cps[i]) : "";
 
   const stateLabel = (e: RaceEntry) => {
     const st = entryState(e);
@@ -429,7 +432,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
 
   return (
     <div className="rx-pft-staff">
-      <Back href="/pft/race" label={t("pft.race.title")} />
+      <Back href={raceBase(race.format)} label={t(isSim ? "timing.title" : "pft.race.title")} />
       <PageHead
         title={race.title}
         description={t("pft.race.staffLine")}
@@ -439,7 +442,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
               <Monitor size={16} />
               {t("pft.race.openBoard")}
             </Go>
-            <Go href={`/pft/race/${race.code}`}>{t("pft.race.staffRunner")}</Go>
+            <Go href={`${raceBase(race.format)}/${race.code}`}>{t("pft.race.staffRunner")}</Go>
             {closed ? (
               <Button variant="outline" disabled={busy} onClick={() => setRaceStatus("open")}>
                 {t("pft.race.reopen")}
@@ -638,7 +641,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           const mine = isClient ? (pending[e.entry_id] ?? []) : [];
           const splits = [...e.splits, ...mine];
           const current = splits.length;
-          const done = state === "finished" || current >= PFT_STATIONS.length;
+          const done = state === "finished" || current >= cps.length;
           // 명시적 중도포기 또는 종료된 레이스의 미완주 — 어느 쪽이든 경과가 흐르면 안 된다
           const quit = state === "dnf";
           const dnf = quit || (closed && state !== "finished");
@@ -668,12 +671,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         : "0:00.0"}
                 </strong>
               </div>
-              <PftSplitStrip splits={splits} />
+              <PftSplitStrip splits={splits} cps={cps} current={timingNow ? current : undefined} />
               {timingNow && (
                 <div className="rx-pft-current-stage">
-                  <span style={{ background: PFT_COLORS[PFT_STATIONS[current].key] }}>{current + 1}</span>
+                  <span style={{ background: cps[current].color }}>{current + 1}</span>
                   <b>{stationLabel(current)}</b>
-                  <small>{t(PFT_STATIONS[current].amount as DictKey)}</small>
+                  <small>{isSim ? t("race.tapHint", { n: current + 1, total: cps.length }) : t(PFT_STATIONS[current].amount as DictKey)}</small>
                 </div>
               )}
               <div className="rx-pft-athlete-controls">
@@ -691,7 +694,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     className="rx-primary rx-wide"
                     // 버튼 색 = 지금 찍을 종목의 색. 구간 띠의 현재 칸과 같은 색이라
                     // 어느 종목을 찍는 중인지 색만으로 알아본다.
-                    style={{ background: PFT_COLORS[PFT_STATIONS[current].key], borderColor: "transparent", color: "#1c2730" }}
+                    style={{ background: cps[current].color, borderColor: "transparent", color: "#1c2730" }}
                     onClick={() => tap(e)}
                     aria-label={`${e.name} ${t("pft.race.staffTap", { station: stationLabel(current) })}`}
                   >
@@ -818,3 +821,4 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     </div>
   );
 }
+

@@ -73,11 +73,14 @@ export default async function CrewSchedulePage({ params, searchParams }: { param
   const isMember = crew.my_status === "active";
   const isStaff = crew.my_role === "owner" || crew.my_role === "coach";
 
-  const [{ data: rows }, { data: myPlans }] = await Promise.all([
+  const [{ data: rows }, { data: myPlans }, { data: nameRows }] = await Promise.all([
     supabase.rpc("crew_calendar", { p_slug: slug, p_from: from, p_to: to }),
     // 내가 만든 계획 + 파트너로 초대받은 계획 (RPC 가 합쳐 준다)
     isMember ? supabase.rpc("my_race_plans") : Promise.resolve({ data: [] }),
+    supabase.rpc("crew_month_going_names", { p_slug: slug, p_from: from, p_to: to }),
   ]);
+  // The same RPC as main controls which attendee names this viewer may see.
+  const goingNames = new Map<string, string[]>(((nameRows ?? []) as { event_id: string; names: string[] }[]).map((r) => [r.event_id, r.names ?? []]));
   const plans = (myPlans ?? []) as MyRacePlan[];
   const cal = ((rows ?? []) as CalRow[]).slice().sort((a, b) => a.on_date.localeCompare(b.on_date) || (a.starts_at ?? "").localeCompare(b.starts_at ?? ""));
 
@@ -174,6 +177,12 @@ export default async function CrewSchedulePage({ params, searchParams }: { param
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h3>{r.title}</h3>
                   <p>{sub}</p>
+                  {r.kind === "meetup" && (goingNames.get(r.ref_id)?.length ?? 0) > 0 && (
+                    <span className="rx-going-avatars" aria-label={goingNames.get(r.ref_id)!.join(", ")}>
+                      {goingNames.get(r.ref_id)!.slice(0, 3).map((name, i) => <span key={`${name}-${i}`} className="rx-avatar" title={name} aria-hidden>{Array.from(name)[0]}</span>)}
+                      {goingNames.get(r.ref_id)!.length > 3 && <small>+{goingNames.get(r.ref_id)!.length - 3}</small>}
+                    </span>
+                  )}
                 </div>
               </>
             );

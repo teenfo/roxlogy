@@ -18,7 +18,9 @@
 
 type Row = Record<string, unknown>;
 
-export const FIXTURE_USER_ID = "00000000-0000-4000-8000-000000000001";
+import { FIXTURE_USER_ID } from "./mock-user";
+import { fixtureRaceRpc, fixtureRaces } from "./race";
+export { FIXTURE_USER_ID } from "./mock-user";
 
 /** 값이 정해진 목록 밖으로 나가면 화면이 깨지는 컬럼들 */
 const ENUMS: Record<string, readonly string[]> = {
@@ -255,7 +257,7 @@ RPC_SHAPES.discover_members = "id, display_name, shared_count, follower_count, i
 RPC_SHAPES.crew_event_attendance =
   "user_id, display_name, email, role, rsvp_status, checked_in, charge_id, charge_amount, charge_status, instagram";
 RPC_SHAPES.crew_roster =
-  "user_id, display_name, email, division, role, joined_at, session_count, attend_count, attend_paid_count, tier_id, tier_name, tier_color";
+  "user_id, display_name, email, division, role, joined_at, session_count, attend_count, attend_paid_count, tier_id, tier_name, tier_color, instagram";
 
 /** 사람 목록 RPC — rowsFor 가 user_id 를 전부 내 것으로 덮어쓰므로(소유권 판정용)
  *  행마다 다른 user_id 를 다시 준다. 같은 id 면 선택·React key 가 겹친다. */
@@ -400,8 +402,15 @@ export function makeClient(options?: Options) {
   const session = user ? { user, access_token: "fixture", expires_at: 9e9 } : null;
 
   return {
-    from: () => builder(),
-    rpc: (name: string) => {
+    from: (table: string) => {
+      if (table === "pft_races") return builder({ value: fixtureRaces() });
+      if (table === "pft_race_entries") return builder({ value: fixtureRaces().map((r) => ({ started_at: null, splits: [], finished_at: null, total_ms: null, scaled: false, pft_races: r })) });
+      return builder();
+    },
+    rpc: (name: string, args?: Record<string, unknown>) => {
+      const race = name.startsWith("pft_race_") ? fixtureRaceRpc(name, args) : undefined;
+      if (race !== undefined) return builder({ value: race });
+      if (name === "crew_calendar") return builder({ value: rowsFor(RPC_SHAPES[name], 6).map((r, i) => ({ ...r, kind: i < 2 ? "meetup" : i % 2 ? "race" : "program" })) });
       if (name in RPC_SCALARS) return builder({ value: RPC_SCALARS[name] });
       if (name in RPC_OBJECTS) {
         return builder({ value: rowsFor(RPC_OBJECTS[name], 1)[0] });

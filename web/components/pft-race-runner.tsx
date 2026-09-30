@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { Monitor, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
-import { PFT_STATIONS } from "@/lib/pft";
+import { checkpointsFor, raceBase } from "@/lib/race-format";
+import { RaceSimMeasureView } from "@/components/race-sim-measure-view";
 import { PftMeasureView, type PftBest } from "@/components/pft-measure-view";
 import type { MyEntry, RaceInfo } from "@/lib/pft-race";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
@@ -46,6 +47,8 @@ export function PftRaceRunner({
   const { t } = useI18n();
   const router = useRouter();
   const KEY = `roxlogy.pft.race.${race.code}`;
+  const cps = checkpointsFor(race.format, race.checkpoints);
+  const isSim = race.format === "hyrox_sim";
 
   const [entry, setEntry] = useState<MyEntry | null>(initialEntry);
   const [status, setStatus] = useState(race.status);
@@ -83,7 +86,7 @@ export function PftRaceRunner({
   // 화면상의 스플릿 = 서버에 있는 것 + 아직 못 보낸 것
   const splits = [...serverSplits, ...local.pending];
   const running = joined && local.startedLocal != null && !finished && !!entry?.started_at;
-  const done = splits.length >= PFT_STATIONS.length;
+  const done = splits.length >= cps.length;
   const quit = !!entry?.dnf_at && !finished;
   const closed = status === "closed";
   // 코드는 "아직 참가하지 않은 사람"에게만 필요하다 — 이미 참가했으면 다시 보여 주지 않는다.
@@ -311,8 +314,10 @@ export function PftRaceRunner({
     }
   };
 
+  const MeasureView = isSim ? RaceSimMeasureView : PftMeasureView;
   return (
-    <PftMeasureView
+    <MeasureView
+      cps={cps}
       title={race.title}
       description={!joined ? t("pft.race.joinDesc") : running && !done ? t("pft.race.partnerHint") : undefined}
       startedAt={quit ? null : startedAt}
@@ -381,7 +386,7 @@ export function PftRaceRunner({
                 {t("pft.race.join")}
               </Button>
             )}
-            {joined && startedAt == null && !quit && (
+            {joined && startedAt == null && !quit && !isSim && (
               <label className="rx-check">
                 <Checkbox checked={scaled} onCheckedChange={(v) => setScaled(v === true)} />
                 {t("pft.fScaled")}
@@ -416,14 +421,16 @@ export function PftRaceRunner({
           <Hint>
             {local.pending.length > 0
               ? t("pft.race.syncPending", { n: local.pending.length })
-              : entry?.result_id
-                ? t("pft.race.savedNote")
-                : t("pft.race.notSavedNote")}
+              : isSim
+                ? t(entry?.session_id ? "race.simSavedNote" : "race.simNotSavedNote")
+                : t(entry?.result_id ? "pft.race.savedNote" : "pft.race.notSavedNote")}
           </Hint>
           <div className="rx-actions">
-            <Go href="/pft" primary>
-              {t("pft.title")}
-            </Go>
+            {isSim ? (
+              entry?.session_id && <Go href={`/sessions/${entry.session_id}`} primary>{t("race.viewSession")}</Go>
+            ) : (
+              <Go href="/pft" primary>{t("pft.title")}</Go>
+            )}
             {!closed && finished && (
               <Button variant="outline" type="button" onClick={undo} disabled={busy}>
                 {t("pft.race.undoFinish")}
@@ -440,7 +447,7 @@ export function PftRaceRunner({
               {t(joinOpen ? "pft.race.joinModeOpenNow" : "pft.race.joinModeClosedNow", { code: race.code })}
             </p>
             <div className="rx-actions" style={{ marginTop: 16 }}>
-              <Go href={`/pft/race/${race.code}/staff`} primary>
+              <Go href={`${raceBase(race.format)}/${race.code}/staff`} primary>
                 {t("pft.race.staffOpen")}
               </Go>
               <Button variant="outline" type="button" onClick={() => setJoinMode(!joinOpen)} disabled={busy}>
@@ -468,3 +475,4 @@ export function PftRaceRunner({
     />
   );
 }
+

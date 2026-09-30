@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { SIM_CHECKPOINTS, raceBase, type RaceFormat, type SimCheckpoints } from "@/lib/race-format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Choice, Field, Hint, Panel, Segments } from "@/components/rox/ui";
@@ -14,13 +15,15 @@ import { Choice, Field, Hint, Panel, Segments } from "@/components/rox/ui";
  * Panel[ Field 레이스 이름 · Hint · Go ]. 크루 선택·참가 방식은 우리 입력이라 Field·Segments 로 더한다.
  * 전체 관리자, 또는 크루 운영진(크루 선택 시).
  */
-export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: string }[] }) {
+export function PftRaceCreateForm({ crews, fixedFormat = "pft" }: { crews: { slug: string; name: string }[]; fixedFormat?: RaceFormat }) {
   const { t } = useI18n();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [crew, setCrew] = useState(crews[0]?.slug ?? "");
   // 참가 방식 — 코드로 스스로 참가 vs 운영진이 추가(코드 없음)
   const [joinOpen, setJoinOpen] = useState(true);
+  const format = fixedFormat;
+  const [checkpoints, setCheckpoints] = useState<SimCheckpoints>(16);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -33,12 +36,14 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
       p_title: title.trim(),
       p_crew_slug: crew || null,
       p_join_open: joinOpen,
+      p_format: format,
+      p_checkpoints: format === "hyrox_sim" ? checkpoints : null,
     });
     setBusy(false);
     if (error) return setErr(error.message);
     const j = data as { ok?: boolean; code?: string; error?: string };
     if (!j.ok || !j.code) return setErr(t(`pft.race.err.${j.error ?? "unknown"}` as DictKey));
-    router.push(`/pft/race/${j.code}`);
+    router.push(`${raceBase(format)}/${j.code}`);
   }
 
   return (
@@ -50,9 +55,20 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
             onChange={(e) => setTitle(e.target.value)}
             maxLength={80}
             required
-            placeholder={t("pft.race.titlePh")}
+            placeholder={t(format === "hyrox_sim" ? "timing.titlePh" : "pft.race.titlePh")}
           />
         </Field>
+        {format === "hyrox_sim" && (
+          <Field label={t("race.fldCheckpoints")}>
+            <Segments
+              label={t("race.fldCheckpoints")}
+              value={String(checkpoints)}
+              onChange={(v) => setCheckpoints(Number(v) as SimCheckpoints)}
+              options={SIM_CHECKPOINTS.map((n) => [String(n), t("race.cpMode", { n })])}
+            />
+            <Hint>{t(`race.cpModeHint${checkpoints}` as DictKey)} · {t("race.cpModeNote")}</Hint>
+          </Field>
+        )}
         <Field label={t("pft.race.fldCrew")}>
           <Choice
             label={t("pft.race.fldCrew")}
@@ -82,9 +98,10 @@ export function PftRaceCreateForm({ crews }: { crews: { slug: string; name: stri
           </p>
         )}
         <Button className="rx-primary" type="submit" disabled={busy || !title.trim()}>
-          {busy ? t("common.saving") : t("pft.race.create")}
+          {busy ? t("common.saving") : t(format === "hyrox_sim" ? "timing.create" : "pft.race.create")}
         </Button>
       </Panel>
     </form>
   );
 }
+

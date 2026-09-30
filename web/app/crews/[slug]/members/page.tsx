@@ -1,3 +1,5 @@
+import { CrewRosterDownload } from "@/components/crew-roster-download";
+import { InstaHandle } from "@/components/insta-handle";
 import { notFound } from "next/navigation";
 import { getCrew, getCrewRoster } from "@/lib/crew";
 import { getCachedUser } from "@/lib/supabase/auth";
@@ -47,6 +49,7 @@ export default async function CrewMembersPage({ params, searchParams }: { params
       <Panel>
         <div className="rx-toolbar">
           <span className="rx-muted">{t("crew.roster")}</span>
+          <CrewRosterDownload slug={slug} rows={shown} />
           <QueryChoice
             label={t("crew.tierFilter")}
             param="tier"
@@ -59,7 +62,7 @@ export default async function CrewMembersPage({ params, searchParams }: { params
             headers={[t("crew.colMember"), t("crew.tierFilter"), t("crew.colSharedSessions")]}
             rows={shown.map((m) => [
               // 계정 주소는 운영진에게만 내려온다 (동명이인·이름 미설정 구분용)
-              <Person key="p" name={m.display_name} note={`${m.email ? `${m.email} · ` : ""}${formatDateShort(m.joined_at, tag, tz)}`} />,
+              <Person key="p" name={m.display_name} note={<>{m.email && <span className="rx-roster-email">{m.email} · </span>}{formatDateShort(m.joined_at, tag, tz)}{m.instagram && <> · <InstaHandle handle={m.instagram} /></>}</>} />,
               // 리더·부리더는 권한 칩, 나머지는 크루가 만든 등급 칩
               isStaffRole(m.role) ? (
                 <Chip key="r" tone={crewRoleChipTone(m.role)}>
@@ -85,3 +88,4 @@ export default async function CrewMembersPage({ params, searchParams }: { params
     </>
   );
 }
+

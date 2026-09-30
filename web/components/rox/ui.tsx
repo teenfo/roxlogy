@@ -320,7 +320,7 @@ export function RecordRow({
   end,
 }: {
   href: string;
-  title: string;
+  title: ReactNode;
   note?: string;
   end?: ReactNode;
 }) {

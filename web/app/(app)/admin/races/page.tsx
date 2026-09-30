@@ -1,3 +1,5 @@
+import { raceBase } from "@/lib/race-format";
+import { RaceFormatChip } from "@/components/race-format-chip";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
 import { formatDateShortYear } from "@/lib/format";
@@ -20,6 +22,8 @@ type AdminRace = {
   created_by: string;
   entries: number;
   finished: number;
+  format?: string;
+  checkpoints?: number;
 };
 
 /** 관리자 전체 레이스 — 시안 Admin(races): Panel PFT 레이스[RowLink(제목 · 상태 · 완주)]. 스태프 화면으로 간다. */
@@ -39,8 +43,8 @@ export default async function AdminRacesPage() {
         items.map((r) => (
           <RecordRow
             key={r.id}
-            href={`/pft/race/${r.code}/staff`}
-            title={r.title}
+            href={`${raceBase(r.format)}/${r.code}/staff`}
+            title={<>{r.title} <RaceFormatChip format={r.format} checkpoints={r.checkpoints} /></>}
             note={[t(r.status === "closed" ? "pft.race.ended" : "pft.race.open"), r.join_open ? r.code : t("admin.racesNoCode"), r.crew, r.created_by, formatDateShortYear(r.created_at, tag, tz)].filter(Boolean).join(" · ")}
             end={
               <>
@@ -75,3 +79,4 @@ export default async function AdminRacesPage() {
     </>
   );
 }
+

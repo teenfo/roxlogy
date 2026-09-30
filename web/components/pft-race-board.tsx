@@ -6,6 +6,8 @@ import { ArrowRight, Flag, Maximize, Minimize } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs } from "@/lib/format";
+import { STATIONS } from "@/lib/hyrox";
+import { checkpointLabel, checkpointsFor, formatLabel, raceBase, raceHome, type Checkpoint } from "@/lib/race-format";
 import { PFT_COLORS, PFT_CUTOFFS, PFT_STATIONS, badgeDictKey } from "@/lib/pft";
 import {
   entryState,
@@ -112,7 +114,9 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
     }
   };
 
-  const rows = rankEntries(data.entries, now);
+  const cps = checkpointsFor(data.race.format, data.race.checkpoints);
+  const isSim = data.race.format === "hyrox_sim";
+  const rows = rankEntries(data.entries, now, cps.length);
   const running = rows.filter((r) => r.state === "running");
   const finished = rows.filter((r) => r.state === "finished");
   const closed = data.race.status === "closed";
@@ -126,7 +130,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   // 이미 참가한 사람에게는 코드를 다시 묻지 않는다 — 코드 대신 내 측정 화면으로 안내
   const joinedMe = meId != null && data.entries.some((e) => e.user_id === meId);
   const showCode = data.race.join_open && !closed && !joinedMe;
-  const raceHref = `/pft/race/${data.race.code}`;
+  const raceHref = `${raceBase(data.race.format)}/${data.race.code}`;
   // 참가 선수 패널 — 조가 배정돼 있으면 조별로 묶는다(참가 순서는 조 안에서 유지).
   // 중도포기(와 종료된 레이스의 미완주)는 조에서 빼서 맨 아래 따로 모은다.
   const entryGroups = groupByWave(data.entries.filter((e) => !isOut(e)));
@@ -141,7 +145,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   }, [pages]);
   const pageRows = finished.slice((page % pages) * PAGE_SIZE, (page % pages) * PAGE_SIZE + PAGE_SIZE);
 
-  const stationLabel = (i: number) => t(PFT_STATIONS[i].label as DictKey);
+  const stationLabel = (i: number) => cps[i] ? checkpointLabel(t, cps[i]) : "";
   const dateLine = (() => {
     const d = new Date(data.race.created_at);
     return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
@@ -164,7 +168,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   return (
     <div className="rx-live-board">
       <header className="rx-live-topbar">
-        <Link className="rx-live-brand" href="/pft">
+        <Link className="rx-live-brand" href={raceHome(data.race.format)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/roxlogy-mark.svg" alt="" width={28} height={28} />
           ROXLOGY
@@ -192,20 +196,25 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
         <section className="rx-live-racehead">
           <div className="rx-live-title">
             <span>
-              {t("pft.race.board").toUpperCase()}
+              {(isSim ? formatLabel(t, data.race.format, data.race.checkpoints) : t("pft.race.board")).toUpperCase()}
               {data.race.crew ? ` · ${data.race.crew}` : ""}
             </span>
             <h1>{data.race.title}</h1>
             <p>
-              PFT · {dateLine}
+              {formatLabel(t, data.race.format, data.race.checkpoints)} · {dateLine}
               {showCode ? ` · ${t("pft.race.codeInBoard", { code: data.race.code })}` : ""}
               {" · "}
               {t(closed ? "pft.race.closed" : "pft.race.open")}
               {!data.race.join_open && !joinedMe ? ` · ${t("pft.race.staffAddedOnly")}` : ""}
             </p>
           </div>
-          <div className="rx-live-stages">
-            {PFT_STATIONS.map((st, i) => (
+          <div className={`rx-live-stages ${isSim ? "rx-live-stages-sim" : ""}`}>
+            {isSim ? STATIONS.map((st, i) => (
+              <div key={st.key} style={{ background: "#FFD500" }}>
+                <span>{i + 1}</span>
+                <strong>{t(`station.${st.key}` as DictKey)}</strong>
+              </div>
+            )) : PFT_STATIONS.map((st, i) => (
               <div key={st.key} style={{ background: PFT_COLORS[st.key] }} title={t(st.detail as DictKey) || undefined}>
                 <span>
                   {i + 1}. {stationLabel(i)}
@@ -286,7 +295,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             {!closed && running.length ? (
               <div className="rx-live-timing-list">
                 {running.map((r) => (
-                  <LiveRow key={r.entry_id} r={r} stationLabel={stationLabel} />
+                  <LiveRow key={r.entry_id} r={r} stationLabel={stationLabel} cps={cps} />
                 ))}
               </div>
             ) : (
@@ -328,9 +337,10 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                       <p>
                         {r.wave ? t("pft.race.waveN", { n: r.wave }) : t("pft.race.waveNone")}
                         {" · "}
-                        {r.badge ? t(badgeDictKey(r.badge)) : t("pft.race.allDone")}
-                        {r.scaled ? ` · ${t("pft.scaledTag")}` : ""}
+                        {!isSim && r.badge ? t(badgeDictKey(r.badge)) : t("pft.race.allDone")}
+                        {!isSim && r.scaled ? ` · ${t("pft.scaledTag")}` : ""}
                       </p>
+                      {isSim && <PftSplitStrip splits={r.splits} cps={cps} proportional />}
                     </div>
                     <strong>
                       {formatMs(r.total_ms)}
@@ -342,7 +352,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             </ol>
             {!finished.length && <p className="rx-live-empty-text">{t("pft.race.noFinished")}</p>}
             <footer>
-              {t("pft.race.badgeRule", {
+              {isSim ? t("race.simBoardNote", { n: cps.length }) : t("pft.race.badgeRule", {
                 gold: formatMs(PFT_CUTOFFS.under45.gold),
                 silver: formatMs(PFT_CUTOFFS.under45.silver),
               })}
@@ -366,7 +376,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               <ArrowRight size={14} />
             </Link>
           ) : meId ? (
-            <Link href="/pft">
+            <Link href={raceHome(data.race.format)}>
               {t("pft.race.allResults")}
               <ArrowRight size={14} />
             </Link>
@@ -378,7 +388,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
 }
 
 /** 측정 중 선수 카드 — 시안 .rx-live-timing-list article 그대로: 이름·경과 / 현재 종목 / 구간 띠 */
-function LiveRow({ r, stationLabel }: { r: RankedEntry; stationLabel: (i: number) => string }) {
+function LiveRow({ r, stationLabel, cps }: { r: RankedEntry; stationLabel: (i: number) => string; cps: Checkpoint[] }) {
   const { t } = useI18n();
   const cur = r.current ?? 0;
   const elapsed = r.elapsed ?? 0;
@@ -391,21 +401,21 @@ function LiveRow({ r, stationLabel }: { r: RankedEntry; stationLabel: (i: number
           <h3>{r.name}</h3>
           <p>
             {r.wave ? t("pft.race.waveN", { n: r.wave }) : t("pft.race.individualStart")} ·{" "}
-            {t("pft.race.stageOf", { n: cur + 1 })}
-            {r.scaled ? ` · ${t("pft.scaledTag")}` : ""}
+            {cps.length > 6 ? t("race.tapHint", { n: cur + 1, total: cps.length }) : t("pft.race.stageOf", { n: cur + 1 })}
+            {cps.length <= 6 && r.scaled ? ` · ${t("pft.scaledTag")}` : ""}
           </p>
         </div>
         <strong>{fmtClock(elapsed)}</strong>
       </div>
       <div className="rx-live-stage-now">
-        <span style={{ background: PFT_COLORS[PFT_STATIONS[cur].key] }}>{stationLabel(cur)}</span>
-        <b>{t(PFT_STATIONS[cur].amount as DictKey)}</b>
+        <span style={{ background: cps[cur].color }}>{stationLabel(cur)}</span>
+        {cps.length <= 6 && <b>{t(PFT_STATIONS[cur].amount as DictKey)}</b>}
         <small>
           {t("pft.race.segment")} {fmtClock(curElapsed)}
           {segmentMs(r.splits, cur - 1) != null ? "" : ""}
         </small>
       </div>
-      <PftSplitStrip splits={r.splits} />
+      <PftSplitStrip splits={r.splits} cps={cps} current={cur} />
     </article>
   );
 }

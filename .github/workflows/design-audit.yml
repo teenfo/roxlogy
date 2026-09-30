@@ -45,6 +45,7 @@ jobs:
             sleep 1
           done
           node scripts/verify-renewal.mjs
+          node scripts/verify-main-parity.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

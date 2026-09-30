@@ -131,6 +131,8 @@ export type CrewMemberRow = {
   tier_id: string | null;
   tier_name: string | null;
   tier_color: string | null;
+  /** 프로필에 적어 둔 인스타 핸들(@ 없이). 없으면 null (마이그레이션 113) */
+  instagram: string | null;
 };
 
 /** 멤버(active)인지 — 글쓰기·RSVP 권한 판정 */

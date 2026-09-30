@@ -102,3 +102,26 @@
 
 ## 아직 없는 것
 - 게스트(비회원) 참가, QR 코드, MCP 도구.
+
+## 하이록스 시뮬레이션 레이스 (2026-09-29, 마이그레이션 114)
+
+같은 레이스 기능(코드·웨이브·DNF·스태프 계측·라이브보드)으로 하이록스 시뮬레이션도 잰다.
+레이스를 만들 때 종목을 고른다.
+
+| 종목 | 구간 | 완주하면 |
+|---|---|---|
+| `pft` | 6 | `pft_results` (배지) — 기존 그대로 |
+| `hyrox_sim` | 16 / 24 / 32 (체크포인트 모드) | 선수 본인의 `sessions` + `session_segments` (30분 이상일 때) |
+
+체크포인트 모드 (8 랩 반복, `web/lib/race-format.ts` 와 DB `_race_sim_session` 이 같아야 한다):
+- 16 = run, station — 록스존은 다음 런에 포함
+- 24 = run, roxzone, station — 웹 수동 입력·가민과 같은 구조
+- 32 = run, roxzone(입), station, roxzone(출) — Wear OS 레코더와 같은 구조
+
+- 컬럼: `pft_races.format`, `pft_races.checkpoints`(체크 제약으로 조합 고정), `pft_race_entries.session_id`.
+- 완주 취소(undo)·참가자 제거는 만든 세션을 soft delete 한다.
+- 경과 상한: PFT 3시간, 시뮬 4시간.
+- 화면은 구간 목록을 `checkpointsFor(format, checkpoints)` 에서 받는다. 선수 본인 측정은 시뮬이면
+  `components/race-sim-measure-view.tsx`(배지·예상 완주 없음), PFT 면 기존 `PftMeasureView`.
+- 메뉴: 레이스 > **시뮬 타임체크**(`/timing`) — 목록·만들기·참가·선수(`/timing/<코드>`)·스태프(`/timing/<코드>/staff`). PFT 쪽(`/pft`, `/pft/race`)에는 PFT 레이스만 보인다. 화면 본문은 `components/race-screens.tsx` 를 종목만 바꿔 같이 쓰고, 선수·스태프 페이지는 PFT 것을 re-export 한다. 옛 주소 `/pft/race/<코드>` 도 열린다. 테이블 이름(`pft_races`)과 보드(`/board/[code]`)는 그대로.
+

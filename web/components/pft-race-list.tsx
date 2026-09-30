@@ -2,7 +2,9 @@
 
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs, formatDateShortYear } from "@/lib/format";
-import { PFT_STATIONS, badgeDictKey, pftBadge } from "@/lib/pft";
+import { badgeDictKey, pftBadge } from "@/lib/pft";
+import { checkpointsFor, raceBase, type RaceFormat } from "@/lib/race-format";
+import { RaceFormatChip } from "@/components/race-format-chip";
 import { Chip, Go, Panel, RecordRow } from "@/components/rox/ui";
 
 /** 목록 한 줄이 알아야 하는 것 — 레이스와 "내가 무엇이었나" */
@@ -13,6 +15,8 @@ export type RaceListRow = {
   status: string;
   created_at: string;
   join_open: boolean;
+  format?: RaceFormat;
+  checkpoints?: number;
   crew: string | null;
   /** 내가 참가자인가 */
   mine: boolean;
@@ -48,7 +52,7 @@ export function PftRaceList({
     list.length === 0 ? null : (
       <Panel title={title} action={<Chip>{list.length}</Chip>}>
         {list.map((r) => {
-          const badge = r.finished && r.total_ms != null ? pftBadge(r.total_ms, age, r.scaled) : null;
+          const badge = r.format !== "hyrox_sim" && r.finished && r.total_ms != null ? pftBadge(r.total_ms, age, r.scaled) : null;
           const note = [
             formatDateShortYear(r.created_at, locale, tz),
             r.crew,
@@ -57,7 +61,7 @@ export function PftRaceList({
             r.created ? t("pft.race.roleStaff") : null,
             !r.finished && r.mine
               ? r.started
-                ? t("pft.race.progressN", { n: r.doneCount, total: PFT_STATIONS.length })
+                ? t("pft.race.progressN", { n: r.doneCount, total: checkpointsFor(r.format, r.checkpoints).length })
                 : t("pft.race.waiting")
               : null,
           ]
@@ -66,8 +70,8 @@ export function PftRaceList({
           return (
             <RecordRow
               key={r.id}
-              href={`/pft/race/${r.code}`}
-              title={r.title}
+              href={`${raceBase(r.format)}/${r.code}`}
+              title={<>{r.title} <RaceFormatChip format={r.format} checkpoints={r.checkpoints} /></>}
               note={note}
               end={
                 r.finished && r.total_ms != null ? (
@@ -85,7 +89,7 @@ export function PftRaceList({
             .filter((r) => r.created)
             .slice(0, 3)
             .map((r) => (
-              <Go key={r.id} href={`/pft/race/${r.code}/staff`}>
+              <Go key={r.id} href={`${raceBase(r.format)}/${r.code}/staff`}>
                 {t("pft.race.linkStaff")} · {r.title}
               </Go>
             ))}
@@ -105,3 +109,4 @@ export function PftRaceList({
     </>
   );
 }
+
