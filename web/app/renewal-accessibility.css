@@ -45,6 +45,12 @@
     min-height: 48px;
   }
 
+  /* Selecting a score must not change the row height or leave narrow targets. */
+  .rx-main .rx-rpe > button {
+    min-width: 48px;
+    min-height: 48px;
+  }
+
   .rx-main .rx-actions > button,
   .rx-main .rx-actions > a,
   .rx-main .rx-navtabs > a,

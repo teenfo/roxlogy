@@ -267,13 +267,14 @@ export function SessionNewForm({
             </div>
             {raceResultId && <Hint>{t("newSession.raceLinked")}</Hint>}
             <Field label={t("newSession.rpe")}>
-              <div className="rx-actions">
+              <div className="rx-actions rx-rpe">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                   <Button
                     key={n}
                     type="button"
                     size="sm"
                     variant={rpe === n ? "default" : "outline"}
+                    aria-pressed={rpe === n}
                     className={rpe === n ? "rx-primary" : ""}
                     onClick={() => setRpe(rpe === n ? null : n)}
                   >

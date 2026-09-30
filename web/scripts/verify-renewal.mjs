@@ -67,6 +67,16 @@ try {
             assert.ok(await table.evaluate((el) => el.scrollLeft) > start, "table keyboard scrolling");
           }
         }
+        if (route === "/sessions/new" && width <= 600) {
+          const score = page.locator(".rx-rpe").getByRole("button", { name: "4", exact: true });
+          const before = await score.boundingBox();
+          assert.ok(before && before.width >= 48 && before.height >= 48, "RPE target");
+          await score.click();
+          assert.equal(await score.getAttribute("aria-pressed"), "true");
+          assert.equal((await score.boundingBox()).height, before.height, "RPE selection keeps height");
+          await score.click();
+          assert.equal(await score.getAttribute("aria-pressed"), "false");
+        }
         if (route === "/schedule" && width <= 600) {
           for (const button of await page.locator(".rx-week button").all()) {
             const box = await button.boundingBox();
