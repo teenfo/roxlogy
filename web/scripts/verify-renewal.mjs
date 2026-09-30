@@ -96,7 +96,7 @@ try {
           if (width < 768) assert.equal(await dialog.locator(':scope > [aria-hidden="true"]').count(), 1, "one sheet handle");
           const box = await dialog.boundingBox();
           assert.ok(box && box.x >= 0 && box.x + box.width <= width, "dialog fits viewport");
-          await page.screenshot({ path: `${out}/${width}_meetup_dialog_${locale}.png`, fullPage: true });
+          await page.screenshot({ path: `${out}/${width}_meetup_dialog_${locale}.png`, fullPage: true, animations: "disabled" });
           await page.keyboard.press("Escape");
           await dialog.waitFor({ state: "hidden" });
           assert.equal(await page.getByRole("button", { name: "인스타 태그 복사", exact: true }).evaluate((el) => el === document.activeElement), true, "dialog focus return");
@@ -106,7 +106,7 @@ try {
           const drawer = page.locator('[data-slot="sidebar"][data-mobile="true"]');
           await drawer.waitFor();
           assert.ok((await drawer.getAttribute("class"))?.includes("rx-sidebar"));
-          await page.screenshot({ path: `${out}/${width}_drawer_${locale}.png`, fullPage: true });
+          await page.screenshot({ path: `${out}/${width}_drawer_${locale}.png`, fullPage: true, animations: "disabled" });
           await drawer.locator(".rx-profile").click();
           await drawer.waitFor({ state: "hidden" });
           await page.waitForURL("**/settings/profile");
@@ -114,7 +114,7 @@ try {
         }
         if (width === 390 || width === 1200) {
           const name = route.replace(/[^a-z0-9]+/gi, "_");
-          await page.screenshot({ path: `${out}/${width}${name}_${locale}.png`, fullPage: true });
+          await page.screenshot({ path: `${out}/${width}${name}_${locale}.png`, fullPage: true, animations: "disabled" });
         }
         report.push({ width, route, locale, ok: true });
       } catch (error) {
