@@ -26,6 +26,7 @@ try {
         assert.deepEqual(errors, []);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "document overflow");
         const sim = /SIM0(16|24|32)/.exec(route);
+        if (route.startsWith("/board/") && width === 1200) assert.match(await page.locator(".rx-live-clock").innerText(), /^\d{2}:\d{2}:\d{2}$/, "live board retains the wall clock");
         if (sim && route.startsWith("/timing/") && !route.endsWith("/staff")) {
           for (const span of await page.locator(".rx-sim-clock .rx-sim-progress > span").all()) {
             const rect = await span.boundingBox();

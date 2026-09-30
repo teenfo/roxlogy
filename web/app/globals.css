@@ -5381,11 +5381,13 @@ button:focus-visible {
 .rx-live-stages.rx-live-stages-sim { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 .rx-live-stages-sim strong { font-size: 16px; letter-spacing: 0; }
 .rx-live-board .rx-sim-progress > span { background: #344150; }
+.rx-live-clock { min-width: 64px; font-size: 12px; font-variant-numeric: tabular-nums; color: #acb7c3; }
 .rx-roster-email { overflow-wrap: anywhere; }
 button.rx-insta { cursor: pointer; border: 0; padding: 4px; background: transparent; color: var(--muted-foreground); }
 button.rx-insta:hover { color: var(--foreground); text-decoration: underline; }
 button.rx-insta:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 @media (max-width: 767px) {
+  .rx-live-clock { display: none; }
   .rx-live-stages.rx-live-stages-sim { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .rx-sim-clock { top: 64px; z-index: 1; }
   .rx-sim-clock > strong { font-size: clamp(32px, 9vw, 48px); }

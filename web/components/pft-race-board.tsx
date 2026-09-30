@@ -12,6 +12,7 @@ import { PFT_COLORS, PFT_CUTOFFS, PFT_STATIONS, badgeDictKey } from "@/lib/pft";
 import {
   entryState,
   fmtClock,
+  fmtWallClock,
   groupByWave,
   hasWaves,
   initialOf,
@@ -57,6 +58,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   const offsetRef = useRef(0);
   // 250ms 틱 — 렌더 중 Date.now() 를 부르지 않기 위해 상태로 둔다
   const [now, setNow] = useState(() => Date.parse(initial.server_now));
+  const [wallClock, setWallClock] = useState<string | null>(null);
   const code = initial.race.code;
   const raceId = initial.race.id;
   const isClient = useSyncExternalStore(() => () => {}, () => true, () => false);
@@ -96,7 +98,10 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
       )
       .subscribe();
     const poll = window.setInterval(() => void refetch(), 5000);
-    const tick = window.setInterval(() => setNow(Date.now() + offsetRef.current), 250);
+    const tick = window.setInterval(() => {
+      setNow(Date.now() + offsetRef.current);
+      setWallClock(fmtWallClock(new Date()));
+    }, 250);
     return () => {
       cancelled = true;
       window.clearInterval(poll);
@@ -178,6 +183,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             <i />
             {closed ? t("pft.race.ended").toUpperCase() : isClient && offline ? t("pft.race.offline") : "LIVE"}
           </span>
+          <time className="rx-live-clock" aria-live="off">{wallClock ?? ""}</time>
           {joinedMe && (
             <Link href={raceHref}>
               {t("pft.race.myScreen")}
