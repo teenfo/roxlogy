@@ -14,6 +14,8 @@ import { getCachedUser } from "@/lib/supabase/auth";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 import { postImageUrls } from "@/lib/crew-media";
 import { CrewPostBody, imagesInBody } from "@/components/crew-post-body";
+import { CrewPolls, type CrewPoll } from "@/components/crew-polls";
+import { Card } from "@/components/ui/crew-ui";
 
 export default async function CrewPostPage({
   params,
@@ -29,9 +31,16 @@ export default async function CrewPostPage({
   if (!crew) notFound();
 
   const supabase = await createClient();
-  const { data } = await supabase.rpc("crew_post_detail", { p_post: postId });
+  // 투표는 글과 따로 읽는다 — 보이는 범위는 글과 같다(RPC 가 판정)
+  const [{ data }, pollRes] = await Promise.all([
+    supabase.rpc("crew_post_detail", { p_post: postId }),
+    supabase.rpc("crew_poll_list", { p_post: postId }),
+  ]);
   const post = (data as CrewPostDetail[] | null)?.[0];
   if (!post) notFound();
+  // 투표를 못 읽어도 글은 그대로 보여 준다(투표 칸만 비운다)
+  if (pollRes.error) console.error("crew_poll_list", pollRes.error.message);
+  const polls = (pollRes.error ? [] : (pollRes.data ?? [])) as CrewPoll[];
 
   const canInteract = isActiveMember(crew);
   const isStaff = crew.my_role === "owner" || crew.my_role === "coach";
@@ -97,6 +106,13 @@ export default async function CrewPostPage({
               />
             ))}
           </div>
+        )}
+
+        {/* 투표 — 만들기는 글쓴이·운영진, 투표는 크루원 */}
+        {(polls.length > 0 || canEditPost) && (
+          <Card className="mt-6 px-[22px] py-[18px] max-md:px-4">
+            <CrewPolls postId={post.id} initial={polls} canCreate={canEditPost} />
+          </Card>
         )}
 
         <div className="mt-6 flex items-center gap-3 border-t border-surface pt-4">

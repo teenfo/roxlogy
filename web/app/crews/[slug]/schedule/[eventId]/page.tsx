@@ -19,6 +19,7 @@ import { formatDate } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url";
 import { getCachedProfile } from "@/lib/supabase/auth";
 import { Avatar, Card } from "@/components/ui/crew-ui";
+import { CrewPolls, type CrewPoll } from "@/components/crew-polls";
 
 type EventComment = {
   id: string;
@@ -131,13 +132,18 @@ export default async function CrewEventPage({
   // 외부에서 타고 들어올 수 있는 절대 주소 (카톡·인스타에 붙이는 용도)
   const shareUrl = `${siteUrl()}/crews/${slug}/schedule/${eventId}`;
   // 출석 명단 — 크루원만 (RPC 가 비회원에게는 빈 결과를 준다)
-  const [{ data: attRows }, profile] = await Promise.all([
+  const [{ data: attRows }, profile, pollRes] = await Promise.all([
     isMember
       ? supabase.rpc("crew_event_attendance", { p_event: eventId })
       : Promise.resolve({ data: [] as AttendanceRow[] }),
     getCachedProfile(),
+    // 투표 — 보이는 범위는 모임과 같다(RPC 가 판정)
+    supabase.rpc("crew_poll_list", { p_event: eventId }),
   ]);
   const attendance = (attRows ?? []) as AttendanceRow[];
+  // 투표를 못 읽어도 모임 화면은 그대로 보여 준다(투표 칸만 비운다)
+  if (pollRes.error) console.error("crew_poll_list", pollRes.error.message);
+  const polls = (pollRes.error ? [] : (pollRes.data ?? [])) as CrewPoll[];
 
   const startsAt = new Date(ev.starts_at);
   const when = startsAt.toLocaleString(tag, {
@@ -403,6 +409,13 @@ export default async function CrewEventPage({
           ) : (
             <p className="mt-3 text-[13px] text-muted">—</p>
           )}
+        </Card>
+      )}
+
+      {/* 투표 — 만들기는 운영진, 투표는 크루원 */}
+      {(polls.length > 0 || ev.is_staff) && (
+        <Card className="px-[22px] py-[18px] max-md:px-4">
+          <CrewPolls eventId={ev.id} initial={polls} canCreate={ev.is_staff} />
         </Card>
       )}
 
