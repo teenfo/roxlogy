@@ -12,6 +12,7 @@ import {
 } from "@/components/crew-post-actions";
 import { getCachedUser } from "@/lib/supabase/auth";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
+import { postImageUrls } from "@/lib/crew-media";
 
 export default async function CrewPostPage({
   params,
@@ -34,6 +35,7 @@ export default async function CrewPostPage({
   const canInteract = isActiveMember(crew);
   const isStaff = crew.my_role === "owner" || crew.my_role === "coach";
   const canEditPost = !!user && (post.author_id === user.id || isStaff);
+  const images = postImageUrls(post.image_urls);
 
   return (
     <main>
@@ -70,6 +72,24 @@ export default async function CrewPostPage({
         {post.body && (
           <div className="mt-6 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
             {post.body}
+          </div>
+        )}
+
+        {/* 첨부 이미지 — 배열 순서대로. GIF 애니메이션이 살아 있어야 해서 next/image 대신 <img>.
+            주소는 우리 스토리지 공개 경로만(lib/crew-media.ts — 외부 추적 픽셀 차단) */}
+        {images.length > 0 && (
+          <div className="mt-6 flex flex-col gap-3">
+            {images.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={`${i}-${src}`}
+                src={src}
+                alt={images.length > 1 ? `${post.title} ${i + 1}` : post.title}
+                loading={i === 0 ? "eager" : "lazy"}
+                decoding="async"
+                className="h-auto w-full rounded-md border border-surface bg-card"
+              />
+            ))}
           </div>
         )}
 

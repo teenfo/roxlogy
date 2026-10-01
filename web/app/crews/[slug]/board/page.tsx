@@ -10,6 +10,7 @@ import { getT } from "@/lib/i18n";
 import { formatDateShort } from "@/lib/format";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 import { Badge, Card, Chip } from "@/components/ui/crew-ui";
+import { postImageUrls } from "@/lib/crew-media";
 
 export default async function CrewBoardPage({
   params,
@@ -108,12 +109,16 @@ export default async function CrewBoardPage({
           </Card>
         ) : (
           <Card className="divide-y divide-line overflow-hidden">
-            {posts.map((p) => (
+            {posts.map((p) => {
+              // 첫 장만 썸네일로 — 글 성격이 목록에서 바로 읽힌다(GIF 는 움직이는 그대로)
+              const thumb = postImageUrls(p.image_urls)[0];
+              return (
               <Link
                 key={p.id}
                 href={`/crews/${slug}/board/${p.id}`}
-                className="block px-5 py-3.5 transition-colors hover:bg-card-hover"
+                className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-card-hover"
               >
+                <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2.5">
                   <Badge tone={p.category === "notice" ? "accent" : "neutral"}>
                     {t(`crew.cat.${p.category}` as DictKey)}
@@ -132,8 +137,20 @@ export default async function CrewBoardPage({
                   {p.comment_count > 0 && <span>💬 {p.comment_count}</span>}
                   {p.like_count > 0 && <span>♥ {p.like_count}</span>}
                 </p>
+                </div>
+                {thumb && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={thumb}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="h-12 w-12 shrink-0 rounded-md border border-surface bg-card object-cover sm:h-14 sm:w-14"
+                  />
+                )}
               </Link>
-            ))}
+              );
+            })}
           </Card>
         )}
       </section>
