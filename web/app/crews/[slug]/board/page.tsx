@@ -145,6 +145,7 @@ export default async function CrewBoardPage({
                     alt=""
                     loading="lazy"
                     decoding="async"
+                referrerPolicy="no-referrer"
                     className="h-12 w-12 shrink-0 rounded-md border border-surface bg-card object-cover sm:h-14 sm:w-14"
                   />
                 )}

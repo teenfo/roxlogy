@@ -81,7 +81,7 @@ export default async function CrewPostPage({
         )}
 
         {/* 첨부 이미지 — 배열 순서대로. GIF 애니메이션이 살아 있어야 해서 next/image 대신 <img>.
-            주소는 우리 스토리지 공개 경로만(lib/crew-media.ts — 외부 추적 픽셀 차단) */}
+            주소는 https 링크만(lib/crew-media.ts), 리퍼러는 보내지 않는다 */}
         {images.length > 0 && (
           <div className="mt-6 flex flex-col gap-3">
             {images.map((src, i) => (
@@ -92,6 +92,7 @@ export default async function CrewPostPage({
                 alt={images.length > 1 ? `${post.title} ${i + 1}` : post.title}
                 loading={i === 0 ? "eager" : "lazy"}
                 decoding="async"
+                referrerPolicy="no-referrer"
                 className="h-auto w-full rounded-md border border-surface bg-card"
               />
             ))}

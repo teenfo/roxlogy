@@ -2174,7 +2174,7 @@ const en = {
   "crew.allPosts": "All posts",
   "crew.postTitle": "Title",
   "crew.postBody": "Body",
-  "crew.postBodyHint": "Markdown works — **bold**, - lists, [link](url), ![caption](crew image url). HTML is not shown.",
+  "crew.postBodyHint": "Markdown works — **bold**, - lists, [link](url), ![caption](https image url). Images are links only; HTML is not shown.",
   "crew.postCategory": "Category",
   "crew.publish": "Publish",
   "crew.publishing": "Publishing…",

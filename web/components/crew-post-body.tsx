@@ -11,7 +11,7 @@ import { postImageUrls } from "@/lib/crew-media";
  *     넣는 순간 `<img onerror>` 같은 저장형 XSS 가 열리고, 그 글을 연 사람의 Supabase 세션으로
  *     RLS 가 그 사람 권한을 내준다(운영진이면 회계·가입 승인까지). dangerouslySetInnerHTML 도 금지.
  *   - 링크 주소의 `javascript:` 등은 react-markdown 기본 urlTransform 이 지운다.
- *   - 이미지는 우리 스토리지 공개 경로만(lib/crew-media.ts) — 외부 추적 픽셀 차단. 아니면 그리지 않는다.
+ *   - 이미지는 https 외부 링크만(lib/crew-media.ts) + no-referrer·lazy. 업로드 기능은 두지 않는다.
  *
  * 기존 글 호환 — 지금까지의 글은 평문이고 줄바꿈을 손으로 넣었다. remark-breaks 가 홑줄바꿈을
  * 그대로 살린다(빼면 모든 옛 글의 줄이 뭉개진다).
@@ -71,6 +71,7 @@ const components: Components = {
         alt={alt ?? ""}
         loading="lazy"
         decoding="async"
+                referrerPolicy="no-referrer"
         className="my-3 block h-auto w-full rounded-md border border-surface bg-card"
       />
     );
@@ -93,6 +94,8 @@ export function CrewPostBody({ body }: { body: string }) {
 export function imagesInBody(body: string | null): Set<string> {
   const out = new Set<string>();
   if (!body) return out;
-  for (const m of body.matchAll(/!\[[^\]]*\]\(\s*<?([^)\s>]+)>?/g)) out.add(m[1]);
+  const raw = [...body.matchAll(/!\[[^\]]*\]\(\s*<?([^)\s>]+)>?/g)].map((m) => m[1]);
+  // 글 끝 모음과 같은 기준(정규화한 https 주소)으로 비교한다
+  for (const u of postImageUrls(raw)) out.add(u);
   return out;
 }
