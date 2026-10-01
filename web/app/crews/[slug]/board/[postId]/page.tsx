@@ -38,7 +38,9 @@ export default async function CrewPostPage({
   ]);
   const post = (data as CrewPostDetail[] | null)?.[0];
   if (!post) notFound();
-  // 투표를 못 읽어도 글은 그대로 보여 준다(투표 칸만 비운다)
+  // 투표를 못 읽으면 투표 칸을 통째로 숨긴다(화면 나머지는 그대로). 만들기 버튼만 남아
+  // 눌러서 실패하는 일이 없게 — 마이그레이션 115 적용 전 배포도 이 경로로 안전하다.
+  const pollsReady = !pollRes.error;
   if (pollRes.error) console.error("crew_poll_list", pollRes.error.message);
   const polls = (pollRes.error ? [] : (pollRes.data ?? [])) as CrewPoll[];
 
@@ -109,7 +111,7 @@ export default async function CrewPostPage({
         )}
 
         {/* 투표 — 만들기는 글쓴이·운영진, 투표는 크루원 */}
-        {(polls.length > 0 || canEditPost) && (
+        {pollsReady && (polls.length > 0 || canEditPost) && (
           <Card className="mt-6 px-[22px] py-[18px] max-md:px-4">
             <CrewPolls postId={post.id} initial={polls} canCreate={canEditPost} />
           </Card>
