@@ -2153,6 +2153,7 @@ const ko: Record<DictKey, string> = {
   "crew.allPosts": "전체 글",
   "crew.postTitle": "제목",
   "crew.postBody": "내용",
+  "crew.postBodyHint": "마크다운을 쓸 수 있습니다 — **굵게**, - 목록, [링크](주소), ![설명](크루 이미지 주소). HTML 은 표시되지 않습니다.",
   "crew.postCategory": "말머리",
   "crew.publish": "등록",
   "crew.publishing": "등록 중…",

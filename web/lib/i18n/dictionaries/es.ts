@@ -2162,6 +2162,7 @@ const es: Record<DictKey, string> = {
   "crew.allPosts": "Todas las publicaciones",
   "crew.postTitle": "Título",
   "crew.postBody": "Contenido",
+  "crew.postBodyHint": "Puedes usar Markdown — **negrita**, - listas, [enlace](url), ![texto](url de imagen del club). El HTML no se muestra.",
   "crew.postCategory": "Categoría",
   "crew.publish": "Publicar",
   "crew.publishing": "Publicando…",

@@ -13,6 +13,7 @@ import {
 import { getCachedUser } from "@/lib/supabase/auth";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 import { postImageUrls } from "@/lib/crew-media";
+import { CrewPostBody, imagesInBody } from "@/components/crew-post-body";
 
 export default async function CrewPostPage({
   params,
@@ -35,7 +36,10 @@ export default async function CrewPostPage({
   const canInteract = isActiveMember(crew);
   const isStaff = crew.my_role === "owner" || crew.my_role === "coach";
   const canEditPost = !!user && (post.author_id === user.id || isStaff);
-  const images = postImageUrls(post.image_urls);
+  // 본문에 이미 마크다운으로 넣은 그림은 글 끝 모음에서 뺀다(두 번 보이지 않게).
+  // image_urls 는 목록 썸네일로 계속 쓴다.
+  const inBody = imagesInBody(post.body);
+  const images = postImageUrls(post.image_urls).filter((u) => !inBody.has(u));
 
   return (
     <main>
@@ -69,9 +73,10 @@ export default async function CrewPostPage({
           <span>{formatDate(post.created_at, tag, tz)}</span>
         </p>
 
+        {/* 본문 — 마크다운(raw HTML 은 그리지 않는다). components/crew-post-body.tsx */}
         {post.body && (
-          <div className="mt-6 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
-            {post.body}
+          <div className="mt-6">
+            <CrewPostBody body={post.body} />
           </div>
         )}
 

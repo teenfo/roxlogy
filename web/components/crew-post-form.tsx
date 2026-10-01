@@ -135,7 +135,12 @@ export function CrewPostForm({
           onChange={(e) => setBody(e.target.value)}
           rows={10}
           className={`${field} resize-y`}
+          aria-describedby="crew-post-body-hint"
         />
+        {/* 본문은 마크다운으로 그린다(components/crew-post-body.tsx) — 쓰는 법을 한 줄로 */}
+        <p id="crew-post-body-hint" className="mt-1.5 text-xs text-muted">
+          {t("crew.postBodyHint")}
+        </p>
       </div>
 
       <label className="flex cursor-pointer items-center gap-2 text-sm">
