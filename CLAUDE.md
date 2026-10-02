@@ -75,6 +75,10 @@ garmin/                  # 가민 Connect IQ(Monkey C) 시뮬 레코더 (두 링
 - **Git 워크플로: 모노레포, `main` 직접 커밋.** PR을 만들지 않는다. 기능 브랜치 없이 main에 커밋·푸시 (2026-07-05 확정)
 - 커밋: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:` ...)
 - SQL: 마이그레이션은 타임스탬프 프리픽스, 되돌릴 수 있게 작성
+- **운영 DB 적용 경로(2026-10-02 확인):** 원격 세션에서 Supabase MCP 로 `drop` 이 들어간 SQL 을 보내면 커넥터의 확인 단계로 넘어가 자동 취소된다(도구 권한이 "항상 허용"이어도). `create`·`revoke`·`do` 블록·함수 본문의 `delete` 는 통과. 그래서
+  - `drop` 없는 마이그레이션 → 에이전트가 `apply_migration` 으로 바로 적용
+  - `drop` 이 필요하면 → `drop` 부분만 따로 떼어 사용자가 SQL Editor 에서 실행하거나, 안 쓰는 함수는 남겨 두고 다음 정리 때 모아서 지운다
+  - 적용이 취소되면 같은 방식으로 반복 재시도하지 말고 SQL Editor 실행을 요청한다. 실행 후에는 반드시 조회로 반영을 확인한다
 - 비밀값: `.env`는 커밋 금지 (`.env.example`만 커밋)
 
 ## 성능 (새 기능 개발 시 — 상세는 `docs/PERF.md` §7)
