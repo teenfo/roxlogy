@@ -829,6 +829,123 @@ const handler = createMcpHandler(
         ),
     );
 
+    // ── 투표 (모임·게시글에 붙는다, 2026-10-02) ──
+    // 권한 판정은 웹과 같은 DB 본체(_crew_poll_*_u)가 한다 — 여기는 인자만 넘긴다.
+    server.registerTool(
+      "list_crew_polls",
+      {
+        title: "크루 투표 목록",
+        description:
+          "크루 투표를 본다. event_id(모임) 또는 post_id(게시글) 하나를 주면 그 대상의 투표와 can_create(내가 여기에 투표를 만들 수 있는가)를, 둘 다 없으면 slug 크루의 최근 투표 20건을 대상 정보(target: type=meetup|post, id, title)와 함께 준다. open_only=true 면 진행 중인 것만. 각 투표: question, multiple(복수 선택), anonymous(익명 — 이름 비공개), closes_at, closed, voters(참여 인원), my_votes(내가 고른 option id), options[{id,label,votes,names}], can_manage(마감·삭제 가능), can_vote(크루원 여부). 모임 id 는 get_crew_schedule, 게시글 id 는 get_crew_board 에서 얻는다.",
+        inputSchema: z.object({
+          slug: z.string().optional(),
+          event_id: z.string().uuid().optional(),
+          post_id: z.string().uuid().optional(),
+          open_only: z.boolean().optional(),
+        }),
+      },
+      async ({ slug, event_id, post_id, open_only }, ctx) =>
+        out(
+          await rpc("mcp_poll_list", {
+            p_token: tok(ctx),
+            p_slug: slug ?? null,
+            p_event: event_id ?? null,
+            p_post: post_id ?? null,
+            p_open_only: open_only ?? false,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "create_crew_poll",
+      {
+        title: "크루 투표 만들기",
+        description:
+          "모임(event_id) 또는 게시글(post_id) 중 정확히 하나에 투표를 붙인다. 모임은 운영진만, 게시글은 글쓴이·운영진만 만들 수 있다(error: not_allowed). 선택지 2~10개(각 80자 이내 — 빈 칸·중복은 자동 정리), multiple=복수 선택 허용, anonymous=익명(누가 무엇을 골랐는지 운영진 포함 아무에게도 안 보이고, 만든 뒤 바꿀 수 없음), closes_at=마감 시각(ISO 8601, 미래만 — 생략하면 수동 마감). 만들기 전 사용자에게 질문·선택지·설정을 확인받아라.",
+        inputSchema: z.object({
+          event_id: z.string().uuid().optional(),
+          post_id: z.string().uuid().optional(),
+          question: z.string().min(1).max(200),
+          options: z.array(z.string().min(1).max(80)).min(2).max(10),
+          multiple: z.boolean().optional(),
+          anonymous: z.boolean().optional(),
+          closes_at: z.string().datetime({ offset: true }).optional(),
+        }),
+      },
+      async ({ event_id, post_id, question, options, multiple, anonymous, closes_at }, ctx) =>
+        out(
+          await writeRpc("mcp_poll_create", {
+            p_token: tok(ctx),
+            p_event: event_id ?? null,
+            p_post: post_id ?? null,
+            p_question: question,
+            p_options: options,
+            p_multiple: multiple ?? false,
+            p_anonymous: anonymous ?? false,
+            p_closes_at: closes_at ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "vote_crew_poll",
+      {
+        title: "크루 투표하기",
+        description:
+          "본인 표를 option_ids 로 통째로 바꾼다(이전 표는 지워짐). 빈 배열이면 투표 취소. 단일 선택 투표에 두 개 이상이면 error: single_choice, 마감된 투표는 poll_closed, 크루원이 아니면 not_member. option id 는 list_crew_polls 에서 얻는다. 투표 전 사용자에게 고를 선택지를 확인받아라.",
+        inputSchema: z.object({
+          poll_id: z.string().uuid(),
+          option_ids: z.array(z.string().uuid()).max(10),
+        }),
+      },
+      async ({ poll_id, option_ids }, ctx) =>
+        out(
+          await writeRpc("mcp_poll_vote", {
+            p_token: tok(ctx),
+            p_poll: poll_id,
+            p_options: option_ids,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "close_crew_poll",
+      {
+        title: "크루 투표 마감/다시 열기",
+        description:
+          "투표를 마감한다(closed=true) 또는 다시 연다(closed=false). 만든 사람·운영진만 가능(error: not_allowed). 마감 시각이 지난 투표를 다시 열면 마감 시각도 지워진다. 실행 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          poll_id: z.string().uuid(),
+          closed: z.boolean(),
+        }),
+      },
+      async ({ poll_id, closed }, ctx) =>
+        out(
+          await writeRpc("mcp_poll_set_closed", {
+            p_token: tok(ctx),
+            p_poll: poll_id,
+            p_closed: closed,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "delete_crew_poll",
+      {
+        title: "크루 투표 삭제",
+        description:
+          "투표를 지운다 — 선택지와 모든 표가 함께 지워지고 되돌릴 수 없다. 만든 사람·운영진만 가능(error: not_allowed). 실행 전 반드시 사용자에게 확인받아라.",
+        inputSchema: z.object({ poll_id: z.string().uuid() }),
+      },
+      async ({ poll_id }, ctx) =>
+        out(
+          await writeRpc("mcp_poll_delete", {
+            p_token: tok(ctx),
+            p_poll: poll_id,
+          }),
+        ),
+    );
+
     server.registerTool(
       "get_crew_board",
       {
@@ -1151,7 +1268,7 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.3.0" },
+    serverInfo: { name: "roxlogy", version: "3.4.0" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
@@ -1180,7 +1297,8 @@ const handler = createMcpHandler(
       '토큰은 기본 읽기 전용이다 — 쓰기 도구는 사용자가 Roxlogy 설정(프로필 > 내 AI 연결)에서 "변경 허용"을 켠 토큰에서만 동작하고, 아니면 {"error":"read_only_token"} 이 온다. 그때는 재시도하지 말고 사용자에게 설정을 켜 달라고 안내한다. ' +
       "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
       "쓰기 도구(회계 기록·통장 반영·기초 잔액·월 마감·모임 등록/수정/상태변경·공지·승인·등급 지정·출석 체크·" +
-      "회비 확정/맞추기/면제·프로그램 생성/수정/일차 수정/시작/중지·크루 연결·PFT 기록·운동 등록 요청)는 " +
+      "회비 확정/맞추기/면제·프로그램 생성/수정/일차 수정/시작/중지·크루 연결·PFT 기록·운동 등록 요청·" +
+      "투표 만들기/투표/마감/삭제)는 " +
       "실행 전 반드시 사용자에게 내용을 확인받는다. " +
       "훈련 계획 문서를 받으면 create_program 으로 일차별 등록 후 " +
       "start_program 으로 내 일정에 시작하거나 attach_crew_program 으로 크루 " +
@@ -1198,7 +1316,9 @@ const handler = createMcpHandler(
       "수입(source=dues)이 자동으로 생기고, 그 행도 똑같이 통장 반영 대상이다. " +
       "한 달을 다 정리했으면 close_crew_month 로 마감한다 — 마감된 달은 회비 " +
       "청구도 장부도 잠기고(error: dues_month_closed / ledger_month_closed), " +
-      "통장 반영일만 열려 있다. 마감은 reopen 으로 풀 수 있다.",
+      "통장 반영일만 열려 있다. 마감은 reopen 으로 풀 수 있다. " +
+      "투표는 크루 모임 또는 게시글에 붙는다 — 모임 투표는 운영진, 게시글 투표는 글쓴이·운영진이 " +
+      "만들고, 투표는 크루원이 한다. list_crew_polls 로 진행 중인 투표와 option id 를 먼저 확인한다.",
   },
 );
 
