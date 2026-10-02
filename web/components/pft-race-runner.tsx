@@ -93,6 +93,9 @@ export function PftRaceRunner({
   // 아래 시작 시각이 함께 밀리고, 화면 시계는 멈춘 값에 머문다.
   const pausedAt = (at: number, off: number) => (entry ? pausedMsAt(entry, at + off) : 0);
   const paused = !!entry?.paused_at && running && !done;
+  // 시뮬 타임체크는 조 배정 없이 본인 출발 불가(서버도 no_wave 로 막는다, 마이그레이션 125).
+  // 키가 없는 옛 응답(undefined)은 막지 않는다 — 배포 순서가 어긋나도 잘못 막히지 않게
+  const waveMissing = isSim && joined && !entry?.started_at && entry?.wave === null;
   // 뷰에 주는 시작 시각 — 서버가 시작을 알 때만 (스태프가 초기화하면 다시 대기). 멈춘 시간만큼 뒤로 민다
   const startedAt =
     joined && entry?.started_at && local.startedLocal != null ? local.startedLocal + pausedAt(now, offset) : null;
@@ -327,7 +330,9 @@ export function PftRaceRunner({
       description={
         !joined
           ? t("pft.race.joinDesc")
-          : paused
+          : waveMissing
+            ? t("pft.race.err.no_wave")
+            : paused
             ? t("pft.race.pausedByStaff")
             : running && !done
               ? t("pft.race.partnerHint")
@@ -338,7 +343,7 @@ export function PftRaceRunner({
       now={now}
       busy={busy}
       err={err}
-      startDisabled={closed}
+      startDisabled={closed || waveMissing}
       completeDisabled={closed}
       undoDisabled={closed}
       resetDisabled={closed || local.pending.length > 0}

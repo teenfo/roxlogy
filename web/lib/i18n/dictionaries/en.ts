@@ -257,6 +257,8 @@ const en = {
   "pft.race.waveCleared": "Cleared the wave for {n}",
   "pft.race.waveN": "Wave {n}",
   "pft.race.waveNone": "Unassigned",
+  "pft.race.err.no_wave": "No wave assigned yet. You can start once staff puts you in a wave.",
+  "pft.race.waveAddExisting": "Add to wave",
   "pft.race.waveNew": "＋ Put in Wave {n}",
   "pft.race.waveAssignTo": "Put selection in wave",
   "pft.race.waveStartGroup": "Start wave {wave} ({n})",

@@ -256,6 +256,8 @@ const es: Record<DictKey, string> = {
   "pft.race.waveCleared": "Tanda eliminada para {n}",
   "pft.race.waveN": "Tanda {n}",
   "pft.race.waveNone": "Sin asignar",
+  "pft.race.err.no_wave": "Aún no tienes tanda. Podrás salir cuando el staff te asigne una.",
+  "pft.race.waveAddExisting": "Añadir a tanda",
   "pft.race.waveNew": "＋ Poner en tanda {n}",
   "pft.race.waveAssignTo": "Poner selección en tanda",
   "pft.race.waveStartGroup": "Salida tanda {wave} ({n})",

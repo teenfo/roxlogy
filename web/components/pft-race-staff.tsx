@@ -414,6 +414,14 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const unassigned = waiting.filter((e) => e.wave == null);
   // 새 웨이브 번호 — 지금까지 쓴 가장 큰 조 + 1 (출발·완주한 조 포함, 번호를 다시 쓰지 않는다)
   const nextWave = entries.reduce((m, e) => Math.max(m, e.wave ?? 0), 0) + 1;
+  // 넣을 수 있는 기존 조 — 대기 중이거나 달리는 중인 선수가 남아 있는 조
+  const openWaves = [
+    ...new Set(
+      entries
+        .filter((e) => e.wave != null && (entryState(e) === "waiting" || entryState(e) === "running"))
+        .map((e) => e.wave as number),
+    ),
+  ].sort((x, y) => x - y);
   // 조 컨테이너 — 조가 정해진 선수는 대기·진행·완주 모두 자기 조 안에 기록 카드로 남는다(2026-10-02 시안).
   // 종료된 레이스는 조 없이 전원 한 그리드.
   const waveSections = closed
@@ -902,6 +910,23 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     {t("pft.race.waveNone")}
                   </button>
                 </div>
+                {/* 기존 조에 넣기 — 아직 대기·진행 중인 선수가 있는 조만(다 끝난 조에 넣으면 끝난 선수와 섞인다) */}
+                {openWaves.length > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="mr-1 text-xs font-semibold text-muted">{t("pft.race.waveAddExisting")}</span>
+                    {openWaves.map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => assignWave(w)}
+                        disabled={busy || closed || !selected.length}
+                        className="tabular h-9 min-w-9 rounded-lg border border-line-accent bg-highlight px-2.5 text-sm font-extrabold text-accent disabled:opacity-40"
+                      >
+                        {t("pft.race.waveN", { n: w })}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p className="mt-1.5 text-xs text-muted [word-break:keep-all]">
                   {t("pft.race.waveHint")}
                 </p>

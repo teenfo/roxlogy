@@ -60,6 +60,8 @@ export type MyEntry = {
   /** 일시정지 (마이그레이션 124) */
   paused_at?: string | null;
   paused_ms?: number | null;
+  /** 출발 조 (마이그레이션 125 부터 내려온다 — 옛 응답엔 키가 없어 undefined) */
+  wave?: number | null;
 };
 
 export type EntryState = "waiting" | "running" | "finished" | "dnf";
