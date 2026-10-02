@@ -49,6 +49,8 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  /** 웨이브 출발 영역 펼침 — 레이스 중엔 접어 두고 아래 카드에 집중한다. 대기자가 없으면 저절로 접힌다 */
+  const [waveOpen, setWaveOpen] = useState(true);
   const [q, setQ] = useState("");
   const [fetched, setFetched] = useState<{ q: string; rows: Search[] } | null>(null);
   const [now, setNow] = useState(() => Date.parse(initial.server_now));
@@ -356,6 +358,25 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     setData((d) => ({ ...d, entries: d.entries.filter((x) => x.entry_id !== e.entry_id) }));
   };
 
+  /** 고른 대기자를 한꺼번에 제외 — 대기자는 아래 카드에 없으므로 웨이브 목록에서 뺀다 */
+  const removeSelected = async () => {
+    const rows = data.entries.filter((e) => entryState(e) === "waiting" && selected.includes(e.entry_id));
+    if (!rows.length) return;
+    if (
+      !window.confirm(
+        t("pft.race.staffRemoveSelectedConfirm", { n: rows.length, names: rows.map((e) => e.name).join(", ") }),
+      )
+    )
+      return;
+    for (const e of rows) {
+      const j = (await call("pft_race_staff_remove", { p_race: raceId, p_entry: e.entry_id })) as { ok?: boolean } | null;
+      // 하나라도 실패하면 거기서 멈춘다 — 오류는 call 이 띄운다
+      if (!j?.ok) break;
+      setSelected((s) => s.filter((id) => id !== e.entry_id));
+      setData((d) => ({ ...d, entries: d.entries.filter((x) => x.entry_id !== e.entry_id) }));
+    }
+  };
+
   const setRaceStatus = async (next: "open" | "closed") => {
     if (next === "closed" && !window.confirm(t("pft.race.closeConfirm"))) return;
     const j = (await call("pft_race_set_status", { p_race: raceId, p_status: next })) as { ok?: boolean } | null;
@@ -387,6 +408,10 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
         )?.wave ?? null)
       : null;
   const stationLabel = (i: number) => (cps[i] ? checkpointLabel(t, cps[i]) : "");
+  const waveShown = waveOpen && waiting.length > 0;
+  // 아래 카드는 출발한 사람만 — 대기자는 위 웨이브 출발에서 다룬다(중복 없이 카드가 짧아진다).
+  // 종료된 레이스는 웨이브 영역이 없으므로 모두 보여 준다(미출발은 미완주로 표시).
+  const shownEntries = closed ? entries : entries.filter((e) => entryState(e) !== "waiting");
 
   return (
     <div className="flex flex-col gap-4">
@@ -518,11 +543,32 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
 
         {/* 웨이브 출발 — 두 단. 왼쪽 = 고른 조·선택된 사람·출발, 오른쪽 = 대기자 고르기·조 배정 */}
         <section className="rounded-2xl border border-line bg-card p-4 sm:p-5">
-          <p className="text-sm font-bold">{t("pft.race.staffWave")}</p>
-          <p className="mt-1 text-xs text-muted">{t("pft.race.staffWaveDesc")}</p>
-          {waiting.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">{t("pft.race.staffNoWaiting")}</p>
-          ) : (
+          {/* 머리 줄 = 요약 + 접기/펼치기. 접어 두면 이 한 줄만 남는다 */}
+          <button
+            type="button"
+            onClick={() => setWaveOpen((o) => !o)}
+            disabled={waiting.length === 0}
+            aria-expanded={waveShown}
+            className="flex w-full items-center gap-3 text-left disabled:cursor-default"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">{t("pft.race.staffWave")}</span>
+              <span className="mt-0.5 block text-xs text-muted">
+                {waiting.length
+                  ? t("pft.race.waveSummary", { waiting: waiting.length, selected: selected.length })
+                  : t("pft.race.staffNoWaiting")}
+              </span>
+            </span>
+            {waiting.length > 0 && (
+              <span className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold">
+                {t(waveShown ? "pft.race.waveCollapse" : "pft.race.waveExpand")}
+                <span aria-hidden>{waveShown ? "▲" : "▼"}</span>
+              </span>
+            )}
+          </button>
+          {waveShown && (
+            <>
+            <p className="mt-2 text-xs text-muted">{t("pft.race.staffWaveDesc")}</p>
             <div className="mt-3 grid items-start gap-4 md:grid-cols-2">
               {/* 왼쪽 단 — 선택된 웨이브 */}
               <div className="flex flex-col gap-3">
@@ -611,39 +657,43 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                   >
                     {t("pft.race.staffClear")}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => void removeSelected()}
+                    disabled={busy || !selected.length}
+                    className="ml-auto h-8 rounded-lg border border-line-soft px-3 font-semibold text-muted hover:border-danger-line-strong hover:text-danger disabled:opacity-40"
+                  >
+                    {t("pft.race.staffRemoveSelected")}
+                  </button>
                 </div>
-                <ul className="mt-2 flex max-h-72 flex-col gap-1 overflow-y-auto">
+                {/* 대기자 — 이름 칩 격자. 누르면 선택/해제. 높이 상한을 넘으면 이 안에서만 스크롤 */}
+                <ul className="mt-2 grid max-h-56 grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3 md:grid-cols-2 xl:grid-cols-3">
                   {waiting.map((e) => {
                     const on = selected.includes(e.entry_id);
                     return (
                       <li key={e.entry_id}>
-                        <label
-                          className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 ${
-                            on ? "border-accent bg-highlight" : "border-line-soft bg-inset"
+                        <button
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() =>
+                            setSelected((s) => (on ? s.filter((id) => id !== e.entry_id) : [...s, e.entry_id]))
+                          }
+                          className={`flex h-10 w-full items-center gap-1.5 rounded-lg border px-2.5 text-left text-sm font-semibold ${
+                            on ? "border-accent bg-highlight text-accent" : "border-line-soft bg-inset hover:border-muted/60"
                           }`}
                         >
-                          <input
-                            type="checkbox"
-                            checked={on}
-                            onChange={(ev) =>
-                              setSelected((s) =>
-                                ev.target.checked ? [...s, e.entry_id] : s.filter((id) => id !== e.entry_id),
-                              )
-                            }
-                            className="h-5 w-5 accent-accent"
-                          />
-                          <span className="min-w-0 flex-1 truncate text-sm font-semibold">{e.name}</span>
+                          <span className="min-w-0 flex-1 truncate">{e.name}</span>
                           {e.wave != null && (
-                            <span className="shrink-0 rounded bg-highlight px-1.5 py-0.5 text-[10px] font-extrabold text-accent">
-                              {t("pft.race.waveN", { n: e.wave })}
+                            <span className="shrink-0 rounded bg-highlight px-1 py-0.5 text-[10px] font-extrabold text-accent">
+                              {e.wave}
                             </span>
                           )}
                           {e.scaled && (
-                            <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
+                            <span className="shrink-0 rounded bg-line px-1 py-0.5 text-[10px] font-bold uppercase text-muted">
                               {t("pft.scaledTag")}
                             </span>
                           )}
-                        </label>
+                        </button>
                       </li>
                     );
                   })}
@@ -678,6 +728,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                 </p>
               </div>
             </div>
+            </>
           )}
         </section>
       </div>
@@ -685,15 +736,20 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
 
       {/* 참가자 카드 */}
       <section>
-        <p className="text-sm font-bold">{t("pft.race.staffAthletes", { n: entries.length })}</p>
+        <p className="text-sm font-bold">
+          {t("pft.race.staffAthletes", { n: shownEntries.length })}
+          {!closed && waiting.length > 0 && (
+            <span className="ml-1.5 text-xs font-normal text-muted">{t("pft.race.waitingInWave", { n: waiting.length })}</span>
+          )}
+        </p>
         {!closed && <p className="mt-0.5 text-xs text-muted">{t("pft.race.staffHint")}</p>}
-        {entries.length === 0 ? (
+        {shownEntries.length === 0 ? (
           <p className="mt-2 rounded-2xl border border-line bg-card px-4 py-8 text-center text-sm text-muted">
-            {t("pft.race.noEntries")}
+            {t(entries.length === 0 ? "pft.race.noEntries" : "pft.race.noneStarted")}
           </p>
         ) : (
           <ul className="mt-2 grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {entries.map((e) => {
+            {shownEntries.map((e) => {
               const state = entryState(e);
               const mine = isClient ? (pending[e.entry_id] ?? []) : [];
               const splits = [...e.splits, ...mine];
@@ -816,19 +872,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-sm text-muted" role="status">
                       {t("pft.race.staffPending", { n: mine.length })}
                     </p>
-                  )}
-                  {state === "waiting" && !closed && (
-                    <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-muted">
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(e.entry_id)}
-                        onChange={(ev) =>
-                          setSelected((s) => (ev.target.checked ? [...s, e.entry_id] : s.filter((id) => id !== e.entry_id)))
-                        }
-                        className="h-5 w-5 accent-accent"
-                      />
-                      {t("pft.race.staffWave")}
-                    </label>
                   )}
 
                   {closed ? (
