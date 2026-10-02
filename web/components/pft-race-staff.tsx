@@ -50,6 +50,9 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const [selected, setSelected] = useState<string[]>([]);
   /** 웨이브 출발 영역 펼침 — 스태프가 직접 누를 때만 바뀐다(자동으로 접지 않는다: 운영 피드백 2026-10-02) */
   const [waveOpen, setWaveOpen] = useState(true);
+  /** 일시정지한 선수 → 멈춘 순간의 화면 시계(ms). **화면 표시만** 멈춘다 — 기록 시간은 서버 기준으로
+   *  계속 흐르고, 재개하면 실제 경과로 돌아온다. 이 기기에만 해당(실수 탭 방지용, 2026-10-02) */
+  const [paused, setPaused] = useState<Record<string, number>>({});
   const [q, setQ] = useState("");
   const [fetched, setFetched] = useState<{ q: string; rows: Search[] } | null>(null);
   const [now, setNow] = useState(() => Date.parse(initial.server_now));
@@ -788,6 +791,14 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
               const dnf = quit || (closed && state !== "finished");
               const elapsed = e.started_at && !closed && !quit ? Math.max(0, now - Date.parse(e.started_at)) : 0;
               const total = e.total_ms ?? (done ? splits[splits.length - 1] : null);
+              const isPaused = paused[e.entry_id] != null && state === "running" && !done && !closed;
+              const togglePause = () =>
+                setPaused((p) => {
+                  const next = { ...p };
+                  if (isPaused) delete next[e.entry_id];
+                  else next[e.entry_id] = elapsed;
+                  return next;
+                });
               return (
                 <li
                   key={e.entry_id}
@@ -817,18 +828,18 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                           : state === "finished"
                             ? t("pft.race.finished")
                             : state === "running"
-                              ? t("pft.race.running")
+                              ? t(isPaused ? "pft.race.pausedLabel" : "pft.race.running")
                               : t("pft.race.waiting")}
                         {mine.length > 0 && ` · ${t("pft.race.staffPending", { n: mine.length })}`}
                       </p>
                     </div>
-                    <p className={`tabular text-3xl font-black leading-none ${!dnf && state === "running" && !done ? "text-accent" : dnf ? "text-muted" : ""}`}>
+                    <p className={`tabular text-3xl font-black leading-none ${isPaused ? "text-muted" : !dnf && state === "running" && !done ? "text-accent" : dnf ? "text-muted" : ""}`}>
                       {state === "finished"
                         ? formatMs(total)
                         : dnf
                           ? "—"
                           : state === "running"
-                            ? fmtClock(elapsed)
+                            ? fmtClock(isPaused ? paused[e.entry_id] : elapsed)
                             : "0:00.0"}
                     </p>
                   </div>
@@ -880,7 +891,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     </div>
                   )}
 
-                  {state === "running" && !done && !closed && (
+                  {isPaused && (
+                    <p className="mt-3 rounded-2xl border border-line-strong bg-inset px-3 py-4 text-center text-sm font-semibold text-muted" role="status">
+                      {t("pft.race.pausedNote")}
+                    </p>
+                  )}
+                  {state === "running" && !done && !closed && !isPaused && (
                     <button
                       type="button"
                       onClick={() => tap(e)}
@@ -908,11 +924,37 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     </p>
                   ) : (
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {/* 일시정지 — 진행 중인 선수만. 화면 시계·버튼만 멈춘다(기록 시간은 계속) */}
+                    {state === "running" && !done && (
+                      <button
+                        type="button"
+                        onClick={togglePause}
+                        aria-pressed={isPaused}
+                        className={`flex h-9 items-center rounded-lg px-3 text-xs font-bold ${
+                          isPaused
+                            ? "bg-accent text-background hover:brightness-110"
+                            : "border border-line-strong bg-control hover:border-muted/60"
+                        }`}
+                      >
+                        {isPaused ? (
+                          `▶ ${t("pft.race.resume")}`
+                        ) : (
+                          <span className="flex items-center gap-1.5">
+                            {/* 일시정지 기호 — ⏸ 글자는 일부 글꼴에서 네모로 깨져서 막대 두 개로 그린다 */}
+                            <span aria-hidden className="flex gap-[3px]">
+                              <span className="h-3 w-[3px] rounded-sm bg-current" />
+                              <span className="h-3 w-[3px] rounded-sm bg-current" />
+                            </span>
+                            {t("pft.race.pause")}
+                          </span>
+                        )}
+                      </button>
+                    )}
                     {(state === "running" || state === "finished") && (
                       <button
                         type="button"
                         onClick={() => undo(e)}
-                        disabled={busy || closed || (!splits.length && state !== "finished")}
+                        disabled={busy || closed || isPaused || (!splits.length && state !== "finished")}
                         className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-muted/60 disabled:opacity-40"
                       >
                         ↶ {t(state === "finished" ? "pft.race.undoFinish" : "pft.mUndo")}
@@ -922,7 +964,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       <button
                         type="button"
                         onClick={() => reset(e)}
-                        disabled={busy || closed || mine.length > 0}
+                        disabled={busy || closed || isPaused || mine.length > 0}
                         className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-danger-line-strong hover:text-danger disabled:opacity-40"
                       >
                         {t("pft.mReset")}
@@ -933,7 +975,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       <button
                         type="button"
                         onClick={() => setDnf(e, !quit)}
-                        disabled={busy || closed}
+                        disabled={busy || closed || isPaused}
                         className={`h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40 ${
                           quit
                             ? "border-line-strong bg-control hover:border-muted/60"
@@ -946,7 +988,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     <button
                       type="button"
                       onClick={() => remove(e)}
-                      disabled={busy || closed}
+                      disabled={busy || closed || isPaused}
                       className="ml-auto h-9 rounded-lg border border-line-soft px-3 text-xs font-semibold text-muted hover:border-danger-line-strong hover:text-danger disabled:opacity-40"
                     >
                       {t("pft.race.staffRemove")}
