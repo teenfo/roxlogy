@@ -31,11 +31,11 @@ import {
 type Pending = Record<string, number[]>;
 type Search = { user_id: string; name: string; joined: boolean };
 
-/** 조마다 다른 색 — 무작위처럼 흩어지되 조 번호로 정해진다(새로고침·다른 기기에서도 같은 조는 같은 색).
- *  황금각(137.5°)씩 색상을 돌려 이웃 조끼리 겹치지 않게 하고, 1조는 레이스 옐로에서 시작한다. */
+/** 조마다 다른 파스텔 색 — 무작위처럼 흩어지되 조 번호로 정해진다(새로고침·다른 기기에서도 같은 조는 같은 색).
+ *  황금각(137.5°)씩 색상을 돌려 이웃 조끼리 겹치지 않게 하고, 1조는 옐로 계열에서 시작한다. */
 function waveColor(wave: number, alpha = 1): string {
   const hue = (48 + (wave - 1) * 137.508) % 360;
-  return `hsl(${hue.toFixed(1)} 85% 60% / ${alpha})`;
+  return `hsl(${hue.toFixed(1)} 70% 80% / ${alpha})`;
 }
 
 export function PftRaceStaff({ initial }: { initial: BoardData }) {

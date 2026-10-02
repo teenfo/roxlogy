@@ -1,6 +1,6 @@
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 import { PFT_COLORS, PFT_STATIONS } from "@/lib/pft";
-import { CHART_COLORS, STATIONS } from "@/lib/hyrox";
+import { CHART_COLORS, SIM_STATION_COLORS, STATIONS } from "@/lib/hyrox";
 
 /**
  * 레이스 계측 종목 — 한 레이스가 몇 구간을 어떤 순서로 찍는지 (마이그레이션 114).
@@ -57,7 +57,13 @@ export function checkpointsFor(format: RaceFormat | null | undefined, n: number 
           lap,
           roxSide: kind === "roxzone" && n === 32 ? (rox === 1 ? "in" : "out") : undefined,
           stationKey: kind === "station" ? st.key : undefined,
-          color: kind === "run" ? CHART_COLORS.run : kind === "station" ? CHART_COLORS.station : CHART_COLORS.roxzone,
+          // 스테이션은 종목마다 다른 색(SIM_STATION_COLORS), 런·록스존은 공통 색
+          color:
+            kind === "run"
+              ? CHART_COLORS.run
+              : kind === "station"
+                ? (SIM_STATION_COLORS[st.key] ?? CHART_COLORS.station)
+                : CHART_COLORS.roxzone,
         });
       }
     }

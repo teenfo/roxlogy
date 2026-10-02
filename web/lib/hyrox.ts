@@ -27,6 +27,22 @@ export const STATIONS: StationDef[] = [
 ];
 
 /**
+ * 레이스 계측(타임체크) 화면의 스테이션별 색 — 탭 버튼·진행 막대·라이브보드에서 지금 어느
+ * 스테이션인지 색만으로 알아보게 한다(2026-10-02). 파스텔톤, 런(#7dd3fc 하늘)·록스존(회색)과
+ * 겹치지 않는 색상만 쓴다. 세션 분석 차트는 CHART_COLORS 그대로(스테이션 한 색).
+ */
+export const SIM_STATION_COLORS: Record<string, string> = {
+  ski: "#f6d365", // 옐로
+  sledpush: "#f8a978", // 오렌지
+  sledpull: "#f4978e", // 코랄
+  burpee: "#f7a1c4", // 핑크
+  row: "#c9a7f5", // 라벤더
+  farmers: "#95e0b0", // 민트
+  lunges: "#c5e384", // 라임
+  wallballs: "#a5b4fc", // 페리윙클
+};
+
+/**
  * 차트 시리즈 색 — dataviz 검증 통과 조합 (다크 서피스 #1E1E1E 기준).
  * 스테이션은 브랜드 옐로(#FFD500)의 차트 톤 스텝. 록스존은 잔여
  * 카테고리라 뉴트럴 그레이 + 직접 라벨/갭으로 식별한다.
