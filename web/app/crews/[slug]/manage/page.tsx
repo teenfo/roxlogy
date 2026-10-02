@@ -122,7 +122,7 @@ export default async function CrewManagePage({
     supabase
       .from("crews")
       .select(
-        "id, slug, name, tagline, description, location, links, logo_url, cover_url, join_policy, is_public",
+        "id, slug, name, tagline, description, location, links, logo_url, cover_url, join_policy, is_public, absence_warn_days",
       )
       .eq("slug", slug)
       .maybeSingle(),
@@ -382,6 +382,7 @@ export default async function CrewManagePage({
               myUserId={user.id}
               members={members}
               tiers={tiers}
+              warnDays={row.absence_warn_days ?? 30}
             />
           </section>
 

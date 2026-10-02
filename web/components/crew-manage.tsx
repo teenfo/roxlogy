@@ -757,6 +757,7 @@ export function CrewMemberManage({
   myUserId,
   members,
   tiers,
+  warnDays,
 }: {
   slug: string;
   crewId: string;
@@ -764,10 +765,14 @@ export function CrewMemberManage({
   myUserId: string;
   members: ManageMember[];
   tiers: CrewTier[];
+  /** 장기 미출석 경고 기준 일수 — 크루별(crews.absence_warn_days, 1~365) */
+  warnDays: number;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
+  const [warn, setWarn] = useState(warnDays);
+  const [warnDraft, setWarnDraft] = useState(String(warnDays));
   const [err, setErr] = useState<string | null>(null);
   /** null = 전체. 'staff' | tier_id | 'none'(등급 없음) */
   const [filter, setFilter] = useState<string | null>(null);
@@ -788,6 +793,26 @@ export function CrewMemberManage({
   }
 
   const supabase = () => createClient();
+
+  /** 경고 기준 일수 저장 — 칸을 벗어나거나 Enter 에서. 범위 밖이면 저장 전 값으로 되돌린다 */
+  async function saveWarn() {
+    const n = Number(warnDraft);
+    if (!Number.isInteger(n) || n < 1 || n > 365) {
+      setWarnDraft(String(warn));
+      return setErr(t("crew.warnDaysRange"));
+    }
+    if (n === warn) return;
+    setBusy("warn");
+    setErr(null);
+    const { error } = await supabase().from("crews").update({ absence_warn_days: n }).eq("id", crewId);
+    setBusy(null);
+    if (error) {
+      setWarnDraft(String(warn));
+      return setErr(error.message);
+    }
+    setWarn(n);
+    router.refresh();
+  }
   const approve = (u: string) =>
     run(`a${u}`, () =>
       supabase().from("crew_members").update({ status: "active" }).eq("crew_id", crewId).eq("user_id", u),
@@ -1018,7 +1043,30 @@ export function CrewMemberManage({
               );
             })}
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            {/* 장기 미출석 경고 기준 — "최종 출석" 칸이 이 일수 이상이면 빨갛게 */}
+            <label
+              className="flex h-[34px] shrink-0 items-center gap-1.5 text-[12px] text-muted"
+              title={t("crew.warnDaysHint")}
+            >
+              {t("crew.warnDaysLabel")}
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={365}
+                value={warnDraft}
+                disabled={busy != null}
+                onChange={(e) => setWarnDraft(e.target.value)}
+                onBlur={() => void saveWarn()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                }}
+                aria-label={t("crew.warnDaysLabel")}
+                className="tabular h-[30px] w-[52px] rounded-md border border-line-strong bg-page px-1.5 text-center text-[13px] font-bold text-foreground outline-none focus:border-accent"
+              />
+              {t("crew.warnDaysUnit")}
+            </label>
             <input
               value={query}
               onChange={(e) => {
@@ -1161,7 +1209,7 @@ export function CrewMemberManage({
                     ))}
                 </select>
 
-                {/* 최종 출석일 · 오늘까지 지난 일수. 30일 넘게 안 나온 회원은 눈에 띄게 */}
+                {/* 최종 출석일 · 오늘까지 지난 일수. 경고 기준(warn)일 이상 안 나온 회원은 눈에 띄게 */}
                 <span
                   className="tabular flex flex-col text-[12px] leading-tight sm:items-end"
                   title={t("crew.colLastAttend")}
@@ -1171,7 +1219,7 @@ export function CrewMemberManage({
                       <span className="font-semibold">{m.last_attended_label}</span>
                       <span
                         className={
-                          (m.days_since ?? 0) >= 30 ? "font-bold text-danger" : "text-[#888]"
+                          (m.days_since ?? 0) >= warn ? "font-bold text-danger" : "text-[#888]"
                         }
                       >
                         {m.days_since === 0
