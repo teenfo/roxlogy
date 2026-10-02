@@ -49,7 +49,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  /** 웨이브 출발 영역 펼침 — 레이스 중엔 접어 두고 아래 카드에 집중한다. 대기자가 없으면 저절로 접힌다 */
+  /** 웨이브 출발 영역 펼침 — 스태프가 직접 누를 때만 바뀐다(자동으로 접지 않는다: 운영 피드백 2026-10-02) */
   const [waveOpen, setWaveOpen] = useState(true);
   const [q, setQ] = useState("");
   const [fetched, setFetched] = useState<{ q: string; rows: Search[] } | null>(null);
@@ -408,7 +408,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
         )?.wave ?? null)
       : null;
   const stationLabel = (i: number) => (cps[i] ? checkpointLabel(t, cps[i]) : "");
-  const waveShown = waveOpen && waiting.length > 0;
+  const waveShown = waveOpen;
   // 아래 카드는 출발한 사람만 — 대기자는 위 웨이브 출발에서 다룬다(중복 없이 카드가 짧아진다).
   // 종료된 레이스는 웨이브 영역이 없으므로 모두 보여 준다(미출발은 미완주로 표시).
   const shownEntries = closed ? entries : entries.filter((e) => entryState(e) !== "waiting");
@@ -547,26 +547,26 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           <button
             type="button"
             onClick={() => setWaveOpen((o) => !o)}
-            disabled={waiting.length === 0}
             aria-expanded={waveShown}
-            className="flex w-full items-center gap-3 text-left disabled:cursor-default"
+            className="flex w-full items-center gap-3 text-left"
           >
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold">{t("pft.race.staffWave")}</span>
               <span className="mt-0.5 block text-xs text-muted">
-                {waiting.length
-                  ? t("pft.race.waveSummary", { waiting: waiting.length, selected: selected.length })
-                  : t("pft.race.staffNoWaiting")}
+                {t("pft.race.waveSummary", { waiting: waiting.length, selected: selected.length })}
               </span>
             </span>
-            {waiting.length > 0 && (
-              <span className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold">
-                {t(waveShown ? "pft.race.waveCollapse" : "pft.race.waveExpand")}
-                <span aria-hidden>{waveShown ? "▲" : "▼"}</span>
-              </span>
-            )}
+            <span className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold">
+              {t(waveShown ? "pft.race.waveCollapse" : "pft.race.waveExpand")}
+              <span aria-hidden>{waveShown ? "▲" : "▼"}</span>
+            </span>
           </button>
-          {waveShown && (
+          {waveShown && waiting.length === 0 && (
+            <p className="mt-3 rounded-xl bg-inset px-3 py-4 text-center text-sm text-muted">
+              {t("pft.race.staffNoWaiting")}
+            </p>
+          )}
+          {waveShown && waiting.length > 0 && (
             <>
             <p className="mt-2 text-xs text-muted">{t("pft.race.staffWaveDesc")}</p>
             <div className="mt-3 grid items-start gap-4 md:grid-cols-2">
