@@ -274,6 +274,24 @@ export function CrewTierManage({
     router.refresh();
   }
 
+  // 등급 순서 = 회원 목록 정렬 순서(등급 > 이름). 활성 등급 순서를 바꾸고 보관 등급은 뒤에 붙인다.
+  async function move(tier: CrewTier, dir: -1 | 1) {
+    const ids = active.map((x) => x.id);
+    const i = ids.indexOf(tier.id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    setBusy(tier.id);
+    setErr(null);
+    const { error } = await createClient().rpc("reorder_crew_tiers", {
+      p_crew: crewId,
+      p_ids: [...ids, ...archived.map((x) => x.id)],
+    });
+    setBusy(null);
+    if (error) setErr(duesErrText(t, error.message));
+    else router.refresh();
+  }
+
   // 기본 등급은 하나뿐이라 단일 인덱스가 강제한다 — 먼저 내리고 올린다.
   async function makeDefault(tier: CrewTier) {
     const cur = tiers.find((x) => x.is_default);
@@ -371,7 +389,7 @@ export function CrewTierManage({
           <span />
         </div>
 
-        {active.map((x) => {
+        {active.map((x, i) => {
           const v = d.valueOf(x);
           const n = counts[x.id] ?? 0;
           return (
@@ -399,6 +417,27 @@ export function CrewTierManage({
                   disabled={busy != null}
                   onChange={(e) => d.set(x.id, { name: e.target.value }, x)}
                 />
+                {/* 순서 — 회원 목록이 이 순서(등급 > 이름)로 정렬된다 */}
+                <span className="flex shrink-0 flex-col">
+                  <button
+                    type="button"
+                    aria-label={t("crew.tierMoveUp", { name: x.name })}
+                    disabled={busy != null || i === 0}
+                    onClick={() => void move(x, -1)}
+                    className="flex h-4 w-6 items-center justify-center text-[10px] leading-none text-muted hover:text-foreground disabled:opacity-25"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t("crew.tierMoveDown", { name: x.name })}
+                    disabled={busy != null || i === active.length - 1}
+                    onClick={() => void move(x, 1)}
+                    className="flex h-4 w-6 items-center justify-center text-[10px] leading-none text-muted hover:text-foreground disabled:opacity-25"
+                  >
+                    ▼
+                  </button>
+                </span>
               </span>
 
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 pl-[38px] lg:contents">
