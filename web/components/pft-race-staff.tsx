@@ -412,6 +412,8 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const waveShown = waveOpen;
   // 조가 정해진 대기자는 칩 목록에서 빠지고 아래 그리드의 웨이브 카드로 간다
   const unassigned = waiting.filter((e) => e.wave == null);
+  // 새 웨이브 번호 — 지금까지 쓴 가장 큰 조 + 1 (출발·완주한 조 포함, 번호를 다시 쓰지 않는다)
+  const nextWave = entries.reduce((m, e) => Math.max(m, e.wave ?? 0), 0) + 1;
   // 조 컨테이너 — 조가 정해진 선수는 대기·진행·완주 모두 자기 조 안에 기록 카드로 남는다(2026-10-02 시안).
   // 종료된 레이스는 조 없이 전원 한 그리드.
   const waveSections = closed
@@ -880,27 +882,22 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     );
                   })}
                 </ul>
-                {/* 선택 → 조 배정. 조를 먼저 짜 두고 순서대로 내보내기 위한 것 */}
+                {/* 선택 → 새 웨이브. 번호는 지금까지 쓴 가장 큰 조 + 1 로 자동 — 끝난 조 번호를 다시 쓰지 않아
+                    선수가 섞이지 않고, 6조를 넘어도 그대로 이어진다(서버 상한 50, 2026-10-02) */}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <span className="mr-1 text-xs font-semibold text-muted">
-                    {t("pft.race.waveAssignTo")}
-                  </span>
-                  {[1, 2, 3, 4, 5, 6].map((w) => (
-                    <button
-                      key={w}
-                      type="button"
-                      onClick={() => assignWave(w)}
-                      disabled={busy || closed || !selected.length}
-                      className="tabular h-9 w-9 rounded-lg border border-line-strong bg-control text-sm font-extrabold disabled:opacity-40"
-                    >
-                      {w}
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => assignWave(nextWave)}
+                    disabled={busy || closed || !selected.length || nextWave > 50}
+                    className="h-10 rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
+                  >
+                    {t("pft.race.waveNew", { n: nextWave })}
+                  </button>
                   <button
                     type="button"
                     onClick={() => assignWave(null)}
                     disabled={busy || closed || !selected.length}
-                    className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold text-muted disabled:opacity-40"
+                    className="h-10 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold text-muted disabled:opacity-40"
                   >
                     {t("pft.race.waveNone")}
                   </button>
@@ -955,22 +952,25 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      {/* 이 조 대기자 전체 선택/해제 — 다른 조의 선택은 건드리지 않는다 */}
+                      {/* 이 조 대기자 전체 선택 / 전체 해제 — 다른 조의 선택은 건드리지 않는다 */}
                       <button
                         type="button"
-                        onClick={() =>
-                          setSelected((s) =>
-                            allOn ? s.filter((id) => !waitIds.includes(id)) : [...new Set([...s, ...waitIds])],
-                          )
-                        }
-                        disabled={busy || waitIds.length === 0}
-                        aria-pressed={allOn}
+                        onClick={() => setSelected((s) => [...new Set([...s, ...waitIds])])}
+                        disabled={busy || waitIds.length === 0 || allOn}
                         className="h-14 shrink-0 rounded-2xl border-2 border-line-accent bg-highlight px-5 text-base font-black text-accent hover:brightness-125 disabled:opacity-40"
                       >
-                        {waitIds.length === 0
-                          ? t("pft.race.waveAllStarted")
-                          : t(allOn ? "pft.race.waveDeselect" : "pft.race.waveSelect")}
+                        {waitIds.length === 0 ? t("pft.race.waveAllStarted") : t("pft.race.waveSelect")}
                       </button>
+                      {waitIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSelected((s) => s.filter((id) => !waitIds.includes(id)))}
+                          disabled={busy || waveSel.length === 0}
+                          className="h-14 shrink-0 rounded-2xl border-2 border-line-strong bg-control px-5 text-base font-bold text-muted hover:text-foreground disabled:opacity-40"
+                        >
+                          {t("pft.race.waveClearAll")}
+                        </button>
+                      )}
                       {/* 이 조에서 고른 사람만 출발 — 이미 출발한 같은 조 선수의 기록은 그대로 흐른다 */}
                       {waitIds.length > 0 && (
                         <button
