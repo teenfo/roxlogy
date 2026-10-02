@@ -274,6 +274,7 @@ const ko: Record<DictKey, string> = {
   "pft.race.waveCardCount": "대기 {n}명",
   "pft.race.waveSelect": "웨이브 선택",
   "pft.race.waveSelected": "선택됨",
+  "pft.race.waveAllStarted": "모두 출발",
   "pft.race.allAssigned": "미배정 대기자가 없습니다. 조가 정해진 선수는 아래 웨이브 카드에 있습니다.",
   "pft.race.pause": "일시정지",
   "pft.race.resume": "재개",

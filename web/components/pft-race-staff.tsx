@@ -412,10 +412,242 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const waveShown = waveOpen;
   // 조가 정해진 대기자는 칩 목록에서 빠지고 아래 그리드의 웨이브 카드로 간다
   const unassigned = waiting.filter((e) => e.wave == null);
-  const waveCards = closed ? [] : waveGroups.filter((g) => g.wave != null);
-  // 아래 카드는 출발한 사람만 — 대기자는 위 웨이브 출발에서 다룬다(중복 없이 카드가 짧아진다).
+  // 조 컨테이너 — 조가 정해진 선수는 대기·진행·완주 모두 자기 조 안에 기록 카드로 남는다(2026-10-02 시안).
+  // 종료된 레이스는 조 없이 전원 한 그리드.
+  const waveSections = closed
+    ? []
+    : [...new Set(entries.filter((e) => e.wave != null).map((e) => e.wave as number))]
+        .sort((x, y) => x - y)
+        .map((w) => ({
+          wave: w,
+          rows: entries.filter((e) => e.wave === w),
+          waitingRows: entries.filter((e) => e.wave === w && entryState(e) === "waiting"),
+        }));
   // 종료된 레이스는 웨이브 영역이 없으므로 모두 보여 준다(미출발은 미완주로 표시).
-  const shownEntries = closed ? entries : entries.filter((e) => entryState(e) !== "waiting");
+  // 조 없는 선수 중 출발한 사람 — 조 컨테이너 아래 일반 그리드. 출발 전 미배정은 위 칩 목록에 있다
+  const looseEntries = closed ? entries : entries.filter((e) => e.wave == null && entryState(e) !== "waiting");
+  const cardCount = waveSections.reduce((n, g) => n + g.rows.length, 0) + looseEntries.length;
+
+  /** 선수 기록 카드 한 장 — 조 컨테이너 안과 조 없는 그리드가 같이 쓴다 */
+  /** compact = 조 컨테이너 안(시안: 한 줄 4장) — 글자·버튼을 줄인다 */
+  const renderCard = (e: RaceEntry, compact = false) => {
+              const state = entryState(e);
+              const mine = isClient ? (pending[e.entry_id] ?? []) : [];
+              const splits = [...e.splits, ...mine];
+              const current = splits.length;
+              const done = state === "finished" || current >= cps.length;
+              // 명시적 중도포기(101) 또는 종료된 레이스의 미완주 — 어느 쪽이든 경과가 흐르면 안 된다
+              const quit = state === "dnf";
+              const dnf = quit || (closed && state !== "finished");
+              const elapsed = e.started_at && !closed && !quit ? Math.max(0, now - Date.parse(e.started_at)) : 0;
+              const total = e.total_ms ?? (done ? splits[splits.length - 1] : null);
+              const isPaused = paused[e.entry_id] != null && state === "running" && !done && !closed;
+              const togglePause = () =>
+                setPaused((p) => {
+                  const next = { ...p };
+                  if (isPaused) delete next[e.entry_id];
+                  else next[e.entry_id] = elapsed;
+                  return next;
+                });
+              return (
+                <li
+                  key={e.entry_id}
+                  className={`rounded-2xl border p-4 ${
+                    dnf
+                      ? "border-line-soft bg-card opacity-80"
+                      : state === "running"
+                        ? "border-line-accent bg-highlight"
+                        : state === "finished"
+                          ? "border-line bg-card"
+                          : "border-line-soft bg-card opacity-80"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-2">
+                        <span className={`truncate font-extrabold ${compact ? "text-sm" : "text-lg"}`}>{e.name}</span>
+                        {e.scaled && (
+                          <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
+                            {t("pft.scaledTag")}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted">
+                        {dnf
+                          ? t("pft.race.dnf")
+                          : state === "finished"
+                            ? t("pft.race.finished")
+                            : state === "running"
+                              ? t(isPaused ? "pft.race.pausedLabel" : "pft.race.running")
+                              : t("pft.race.waiting")}
+                        {mine.length > 0 && ` · ${t("pft.race.staffPending", { n: mine.length })}`}
+                      </p>
+                    </div>
+                    <p className={`tabular font-black leading-none ${compact ? "text-xl" : "text-3xl"} ${isPaused ? "text-muted" : !dnf && state === "running" && !done ? "text-accent" : dnf ? "text-muted" : ""}`}>
+                      {state === "finished"
+                        ? formatMs(total)
+                        : dnf
+                          ? "—"
+                          : state === "running"
+                            ? fmtClock(isPaused ? paused[e.entry_id] : elapsed)
+                            : "0:00.0"}
+                    </p>
+                  </div>
+
+                  {/* 구간 진행 — PFT 는 6칸에 구간 시간까지, 시뮬(16~32칸)은 가는 막대 + 직전 구간 */}
+                  {cps.length <= 6 ? (
+                    <div className="mt-3 grid grid-cols-6 gap-1" aria-label={t("pft.race.progressLabel", { done: splits.length })}>
+                      {cps.map((cp, i) => {
+                        const fin = i < splits.length;
+                        const cur = state === "running" && !done && i === current;
+                        const ms = fin ? splits[i] - (i === 0 ? 0 : splits[i - 1]) : null;
+                        return (
+                          <span key={cp.key} className="flex flex-col items-center gap-1">
+                            <span
+                              className={`h-2 w-full rounded-full ${cur ? "motion-safe:animate-pulse" : ""}`}
+                              style={{ background: fin || cur ? cp.color : "var(--line)" }}
+                            />
+                            <span className="tabular text-[10px] text-muted">{ms != null ? formatMs(ms) : ""}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mt-3" aria-label={t("race.progress", { done: Math.min(splits.length, cps.length), total: cps.length })}>
+                      <div className="flex gap-[2px]">
+                        {cps.map((cp, i) => {
+                          const fin = i < splits.length;
+                          const cur = state === "running" && !done && i === current;
+                          return (
+                            <span
+                              key={cp.key}
+                              className={`h-2 flex-1 rounded-sm ${cur ? "motion-safe:animate-pulse" : ""}`}
+                              style={{ background: fin || cur ? cp.color : "var(--line)" }}
+                            />
+                          );
+                        })}
+                      </div>
+                      <p className="tabular mt-1 flex justify-between text-[11px] text-muted">
+                        <span>
+                          {Math.min(splits.length, cps.length)}/{cps.length}
+                        </span>
+                        {splits.length > 0 && (
+                          <span>
+                            {stationLabel(Math.min(splits.length, cps.length) - 1)} ·{" "}
+                            {formatMs(splits[splits.length - 1] - (splits.length > 1 ? splits[splits.length - 2] : 0))}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
+                  {isPaused && (
+                    <p className="mt-3 rounded-2xl border border-line-strong bg-inset px-3 py-4 text-center text-sm font-semibold text-muted" role="status">
+                      {t("pft.race.pausedNote")}
+                    </p>
+                  )}
+                  {state === "running" && !done && !closed && !isPaused && (
+                    <button
+                      type="button"
+                      onClick={() => tap(e)}
+                      disabled={closed}
+                      // 버튼 색 = 지금 찍을 종목의 색. 6칸 바의 현재 칸과 같은 색이라
+                      // 어느 종목을 찍는 중인지 색만으로 알아본다.
+                      style={{ background: cps[current]?.color }}
+                      className={`mt-3 flex w-full flex-col items-center justify-center text-[#141414] hover:brightness-110 active:brightness-95 disabled:opacity-40 ${compact ? "h-12 rounded-xl" : "h-16 rounded-2xl"}`}
+                    >
+                      <span className="text-[11px] font-bold opacity-80">
+                        {isSim ? t("race.tapHint", { n: current + 1, total: cps.length }) : t("pft.race.tapHint", { n: current + 1 })}
+                      </span>
+                      <span className={`font-black ${compact ? "text-sm" : "text-xl"}`}>{t("pft.race.staffTap", { station: stationLabel(current) })} ✓</span>
+                    </button>
+                  )}
+                  {state === "running" && done && (
+                    <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-sm text-muted" role="status">
+                      {t("pft.race.staffPending", { n: mine.length })}
+                    </p>
+                  )}
+
+                  {closed ? (
+                    <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-xs text-muted">
+                      {t("pft.race.closedLocked")}
+                    </p>
+                  ) : (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {/* 일시정지 — 진행 중인 선수만. 화면 시계·버튼만 멈춘다(기록 시간은 계속) */}
+                    {state === "running" && !done && (
+                      <button
+                        type="button"
+                        onClick={togglePause}
+                        aria-pressed={isPaused}
+                        className={`flex items-center rounded-lg font-bold ${compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs"} ${
+                          isPaused
+                            ? "bg-accent text-background hover:brightness-110"
+                            : "border border-line-strong bg-control hover:border-muted/60"
+                        }`}
+                      >
+                        {isPaused ? (
+                          `▶ ${t("pft.race.resume")}`
+                        ) : (
+                          <span className="flex items-center gap-1.5">
+                            {/* 일시정지 기호 — ⏸ 글자는 일부 글꼴에서 네모로 깨져서 막대 두 개로 그린다 */}
+                            <span aria-hidden className="flex gap-[3px]">
+                              <span className="h-3 w-[3px] rounded-sm bg-current" />
+                              <span className="h-3 w-[3px] rounded-sm bg-current" />
+                            </span>
+                            {t("pft.race.pause")}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                    {(state === "running" || state === "finished") && (
+                      <button
+                        type="button"
+                        onClick={() => undo(e)}
+                        disabled={busy || closed || isPaused || (!splits.length && state !== "finished")}
+                        className={`${compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs"} rounded-lg border border-line-strong bg-control font-semibold hover:border-muted/60 disabled:opacity-40`}
+                      >
+                        ↶ {t(state === "finished" ? "pft.race.undoFinish" : "pft.mUndo")}
+                      </button>
+                    )}
+                    {(state === "running" || quit) && (
+                      <button
+                        type="button"
+                        onClick={() => reset(e)}
+                        disabled={busy || closed || isPaused || mine.length > 0}
+                        className={`${compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs"} rounded-lg border border-line-strong bg-control font-semibold hover:border-danger-line-strong hover:text-danger disabled:opacity-40`}
+                      >
+                        {t("pft.mReset")}
+                      </button>
+                    )}
+                    {/* 중도포기 — 출발한 사람만. 누르면 시계가 멈추고 보드에서도 빠진다 */}
+                    {(state === "running" || quit) && (
+                      <button
+                        type="button"
+                        onClick={() => setDnf(e, !quit)}
+                        disabled={busy || closed || isPaused}
+                        className={`${compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs"} rounded-lg border font-semibold disabled:opacity-40 ${
+                          quit
+                            ? "border-line-strong bg-control hover:border-muted/60"
+                            : "border-danger-line-strong bg-control text-danger hover:brightness-125"
+                        }`}
+                      >
+                        {quit ? t("pft.race.dnfUndo") : t("pft.race.dnfMark")}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => remove(e)}
+                      disabled={busy || closed || isPaused}
+                      className={`ml-auto ${compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs"} rounded-lg border border-line-soft font-semibold text-muted hover:border-danger-line-strong hover:text-danger disabled:opacity-40`}
+                    >
+                      {t("pft.race.staffRemove")}
+                    </button>
+                  </div>
+                  )}
+                </li>
+              );
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -709,296 +941,62 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       {/* 참가자 카드 */}
       <section>
         <p className="text-sm font-bold">
-          {t("pft.race.staffAthletes", { n: shownEntries.length })}
+          {t("pft.race.staffAthletes", { n: cardCount })}
           {!closed && unassigned.length > 0 && (
             <span className="ml-1.5 text-xs font-normal text-muted">{t("pft.race.waitingInWave", { n: unassigned.length })}</span>
           )}
         </p>
         {!closed && <p className="mt-0.5 text-xs text-muted">{t("pft.race.staffHint")}</p>}
-        {shownEntries.length === 0 && waveCards.length === 0 ? (
+        {cardCount === 0 ? (
           <p className="mt-2 rounded-2xl border border-line bg-card px-4 py-8 text-center text-sm text-muted">
             {t(entries.length === 0 ? "pft.race.noEntries" : "pft.race.noneStarted")}
           </p>
         ) : (
-          <ul className="mt-2 grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {/* 웨이브 그룹 카드 — 조가 정해진 대기자. "웨이브 선택"으로 조 전체를 고르고 위 출발 버튼으로 내보낸다.
-                이름을 하나씩 눌러 일부만 고를 수도 있다(조 바꾸기·미지정은 위 조 배정 버튼) */}
-            {waveCards.map((g) => {
+          <div className="mt-2 flex flex-col gap-4">
+            {/* 조 컨테이너 — 머리(조 번호·대기 인원·웨이브 선택) + 그 조 선수의 기록 카드 */}
+            {waveSections.map((g) => {
               const on = picked === g.wave;
               return (
-                <li
+                <section
                   key={`wave-${g.wave}`}
-                  className={`rounded-2xl border p-4 ${on ? "border-accent bg-highlight" : "border-line-accent bg-card"}`}
+                  aria-label={t("pft.race.waveN", { n: g.wave })}
+                  className={`rounded-3xl border-2 p-4 sm:p-6 ${on ? "border-accent bg-highlight" : "border-line-accent bg-card"}`}
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-lg font-extrabold text-accent">{t("pft.race.waveN", { n: g.wave! })}</p>
-                      <p className="text-xs text-muted">{t("pft.race.waveCardCount", { n: g.rows.length })}</p>
+                      <p className="text-3xl font-black leading-none text-accent sm:text-4xl">
+                        {t("pft.race.waveN", { n: g.wave })}
+                      </p>
+                      <p className="mt-2 text-sm text-muted">{t("pft.race.waveCardCount", { n: g.waitingRows.length })}</p>
                     </div>
                     <button
                       type="button"
                       // 누르면 **선택만** 한다 — 출발은 위 큰 버튼으로. 한 번 더 확인하고
                       // 내보내야 오출발이 나지 않는다(2026-09-13 운영 피드백).
-                      onClick={() => setSelected(g.rows.map((e) => e.entry_id))}
-                      disabled={busy}
+                      onClick={() => setSelected(g.waitingRows.map((e) => e.entry_id))}
+                      disabled={busy || g.waitingRows.length === 0}
                       aria-pressed={on}
-                      className={`h-10 shrink-0 rounded-lg px-4 text-sm font-extrabold disabled:opacity-40 ${
+                      className={`h-14 shrink-0 rounded-2xl border-2 px-6 text-lg font-black disabled:opacity-40 ${
                         on
-                          ? "bg-accent text-background"
-                          : "border border-line-accent bg-highlight text-accent hover:brightness-125"
+                          ? "border-accent bg-accent text-background"
+                          : "border-line-accent bg-highlight text-accent hover:brightness-125"
                       }`}
                     >
-                      {t(on ? "pft.race.waveSelected" : "pft.race.waveSelect")}
+                      {g.waitingRows.length === 0
+                        ? t("pft.race.waveAllStarted")
+                        : t(on ? "pft.race.waveSelected" : "pft.race.waveSelect")}
                     </button>
                   </div>
-                  <ul className="mt-3 flex flex-wrap gap-1.5">
-                    {g.rows.map((e) => {
-                      const sel = selected.includes(e.entry_id);
-                      return (
-                        <li key={e.entry_id}>
-                          <button
-                            type="button"
-                            aria-pressed={sel}
-                            onClick={() =>
-                              setSelected((s) => (sel ? s.filter((id) => id !== e.entry_id) : [...s, e.entry_id]))
-                            }
-                            className={`flex h-8 items-center gap-1 rounded-full border px-3 text-xs font-bold ${
-                              sel ? "border-accent bg-accent/20 text-accent" : "border-line-soft bg-inset text-foreground"
-                            }`}
-                          >
-                            {e.name}
-                            {e.scaled && (
-                              <span className="rounded bg-line px-1 text-[9px] font-bold uppercase text-muted">
-                                {t("pft.scaledTag")}
-                              </span>
-                            )}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </li>
+                  <ul className="mt-4 grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-4">{g.rows.map((e) => renderCard(e, true))}</ul>
+                </section>
               );
             })}
-            {shownEntries.map((e) => {
-              const state = entryState(e);
-              const mine = isClient ? (pending[e.entry_id] ?? []) : [];
-              const splits = [...e.splits, ...mine];
-              const current = splits.length;
-              const done = state === "finished" || current >= cps.length;
-              // 명시적 중도포기(101) 또는 종료된 레이스의 미완주 — 어느 쪽이든 경과가 흐르면 안 된다
-              const quit = state === "dnf";
-              const dnf = quit || (closed && state !== "finished");
-              const elapsed = e.started_at && !closed && !quit ? Math.max(0, now - Date.parse(e.started_at)) : 0;
-              const total = e.total_ms ?? (done ? splits[splits.length - 1] : null);
-              const isPaused = paused[e.entry_id] != null && state === "running" && !done && !closed;
-              const togglePause = () =>
-                setPaused((p) => {
-                  const next = { ...p };
-                  if (isPaused) delete next[e.entry_id];
-                  else next[e.entry_id] = elapsed;
-                  return next;
-                });
-              return (
-                <li
-                  key={e.entry_id}
-                  className={`rounded-2xl border p-4 ${
-                    dnf
-                      ? "border-line-soft bg-card opacity-80"
-                      : state === "running"
-                        ? "border-line-accent bg-highlight"
-                        : state === "finished"
-                          ? "border-line bg-card"
-                          : "border-line-soft bg-card opacity-80"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-2">
-                        <span className="truncate text-lg font-extrabold">{e.name}</span>
-                        {e.scaled && (
-                          <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
-                            {t("pft.scaledTag")}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted">
-                        {dnf
-                          ? t("pft.race.dnf")
-                          : state === "finished"
-                            ? t("pft.race.finished")
-                            : state === "running"
-                              ? t(isPaused ? "pft.race.pausedLabel" : "pft.race.running")
-                              : t("pft.race.waiting")}
-                        {mine.length > 0 && ` · ${t("pft.race.staffPending", { n: mine.length })}`}
-                      </p>
-                    </div>
-                    <p className={`tabular text-3xl font-black leading-none ${isPaused ? "text-muted" : !dnf && state === "running" && !done ? "text-accent" : dnf ? "text-muted" : ""}`}>
-                      {state === "finished"
-                        ? formatMs(total)
-                        : dnf
-                          ? "—"
-                          : state === "running"
-                            ? fmtClock(isPaused ? paused[e.entry_id] : elapsed)
-                            : "0:00.0"}
-                    </p>
-                  </div>
-
-                  {/* 구간 진행 — PFT 는 6칸에 구간 시간까지, 시뮬(16~32칸)은 가는 막대 + 직전 구간 */}
-                  {cps.length <= 6 ? (
-                    <div className="mt-3 grid grid-cols-6 gap-1" aria-label={t("pft.race.progressLabel", { done: splits.length })}>
-                      {cps.map((cp, i) => {
-                        const fin = i < splits.length;
-                        const cur = state === "running" && !done && i === current;
-                        const ms = fin ? splits[i] - (i === 0 ? 0 : splits[i - 1]) : null;
-                        return (
-                          <span key={cp.key} className="flex flex-col items-center gap-1">
-                            <span
-                              className={`h-2 w-full rounded-full ${cur ? "motion-safe:animate-pulse" : ""}`}
-                              style={{ background: fin || cur ? cp.color : "var(--line)" }}
-                            />
-                            <span className="tabular text-[10px] text-muted">{ms != null ? formatMs(ms) : ""}</span>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="mt-3" aria-label={t("race.progress", { done: Math.min(splits.length, cps.length), total: cps.length })}>
-                      <div className="flex gap-[2px]">
-                        {cps.map((cp, i) => {
-                          const fin = i < splits.length;
-                          const cur = state === "running" && !done && i === current;
-                          return (
-                            <span
-                              key={cp.key}
-                              className={`h-2 flex-1 rounded-sm ${cur ? "motion-safe:animate-pulse" : ""}`}
-                              style={{ background: fin || cur ? cp.color : "var(--line)" }}
-                            />
-                          );
-                        })}
-                      </div>
-                      <p className="tabular mt-1 flex justify-between text-[11px] text-muted">
-                        <span>
-                          {Math.min(splits.length, cps.length)}/{cps.length}
-                        </span>
-                        {splits.length > 0 && (
-                          <span>
-                            {stationLabel(Math.min(splits.length, cps.length) - 1)} ·{" "}
-                            {formatMs(splits[splits.length - 1] - (splits.length > 1 ? splits[splits.length - 2] : 0))}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  )}
-
-                  {isPaused && (
-                    <p className="mt-3 rounded-2xl border border-line-strong bg-inset px-3 py-4 text-center text-sm font-semibold text-muted" role="status">
-                      {t("pft.race.pausedNote")}
-                    </p>
-                  )}
-                  {state === "running" && !done && !closed && !isPaused && (
-                    <button
-                      type="button"
-                      onClick={() => tap(e)}
-                      disabled={closed}
-                      // 버튼 색 = 지금 찍을 종목의 색. 6칸 바의 현재 칸과 같은 색이라
-                      // 어느 종목을 찍는 중인지 색만으로 알아본다.
-                      style={{ background: cps[current]?.color }}
-                      className="mt-3 flex h-16 w-full flex-col items-center justify-center rounded-2xl text-[#141414] hover:brightness-110 active:brightness-95 disabled:opacity-40"
-                    >
-                      <span className="text-[11px] font-bold opacity-80">
-                        {isSim ? t("race.tapHint", { n: current + 1, total: cps.length }) : t("pft.race.tapHint", { n: current + 1 })}
-                      </span>
-                      <span className="text-xl font-black">{t("pft.race.staffTap", { station: stationLabel(current) })} ✓</span>
-                    </button>
-                  )}
-                  {state === "running" && done && (
-                    <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-sm text-muted" role="status">
-                      {t("pft.race.staffPending", { n: mine.length })}
-                    </p>
-                  )}
-
-                  {closed ? (
-                    <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-xs text-muted">
-                      {t("pft.race.closedLocked")}
-                    </p>
-                  ) : (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {/* 일시정지 — 진행 중인 선수만. 화면 시계·버튼만 멈춘다(기록 시간은 계속) */}
-                    {state === "running" && !done && (
-                      <button
-                        type="button"
-                        onClick={togglePause}
-                        aria-pressed={isPaused}
-                        className={`flex h-9 items-center rounded-lg px-3 text-xs font-bold ${
-                          isPaused
-                            ? "bg-accent text-background hover:brightness-110"
-                            : "border border-line-strong bg-control hover:border-muted/60"
-                        }`}
-                      >
-                        {isPaused ? (
-                          `▶ ${t("pft.race.resume")}`
-                        ) : (
-                          <span className="flex items-center gap-1.5">
-                            {/* 일시정지 기호 — ⏸ 글자는 일부 글꼴에서 네모로 깨져서 막대 두 개로 그린다 */}
-                            <span aria-hidden className="flex gap-[3px]">
-                              <span className="h-3 w-[3px] rounded-sm bg-current" />
-                              <span className="h-3 w-[3px] rounded-sm bg-current" />
-                            </span>
-                            {t("pft.race.pause")}
-                          </span>
-                        )}
-                      </button>
-                    )}
-                    {(state === "running" || state === "finished") && (
-                      <button
-                        type="button"
-                        onClick={() => undo(e)}
-                        disabled={busy || closed || isPaused || (!splits.length && state !== "finished")}
-                        className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-muted/60 disabled:opacity-40"
-                      >
-                        ↶ {t(state === "finished" ? "pft.race.undoFinish" : "pft.mUndo")}
-                      </button>
-                    )}
-                    {(state === "running" || quit) && (
-                      <button
-                        type="button"
-                        onClick={() => reset(e)}
-                        disabled={busy || closed || isPaused || mine.length > 0}
-                        className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold hover:border-danger-line-strong hover:text-danger disabled:opacity-40"
-                      >
-                        {t("pft.mReset")}
-                      </button>
-                    )}
-                    {/* 중도포기 — 출발한 사람만. 누르면 시계가 멈추고 보드에서도 빠진다 */}
-                    {(state === "running" || quit) && (
-                      <button
-                        type="button"
-                        onClick={() => setDnf(e, !quit)}
-                        disabled={busy || closed || isPaused}
-                        className={`h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40 ${
-                          quit
-                            ? "border-line-strong bg-control hover:border-muted/60"
-                            : "border-danger-line-strong bg-control text-danger hover:brightness-125"
-                        }`}
-                      >
-                        {quit ? t("pft.race.dnfUndo") : t("pft.race.dnfMark")}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => remove(e)}
-                      disabled={busy || closed || isPaused}
-                      className="ml-auto h-9 rounded-lg border border-line-soft px-3 text-xs font-semibold text-muted hover:border-danger-line-strong hover:text-danger disabled:opacity-40"
-                    >
-                      {t("pft.race.staffRemove")}
-                    </button>
-                  </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+            {looseEntries.length > 0 && (
+              <ul className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {looseEntries.map((e) => renderCard(e))}
+              </ul>
+            )}
+          </div>
         )}
       </section>
     </div>

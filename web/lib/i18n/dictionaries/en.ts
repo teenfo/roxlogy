@@ -275,6 +275,7 @@ const en = {
   "pft.race.waveCardCount": "{n} waiting",
   "pft.race.waveSelect": "Select wave",
   "pft.race.waveSelected": "Selected",
+  "pft.race.waveAllStarted": "All started",
   "pft.race.allAssigned": "Everyone waiting has a wave — see the wave cards below.",
   "pft.race.pause": "Pause",
   "pft.race.resume": "Resume",

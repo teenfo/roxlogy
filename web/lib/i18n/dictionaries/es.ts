@@ -274,6 +274,7 @@ const es: Record<DictKey, string> = {
   "pft.race.waveCardCount": "{n} en espera",
   "pft.race.waveSelect": "Elegir tanda",
   "pft.race.waveSelected": "Elegida",
+  "pft.race.waveAllStarted": "Todos salieron",
   "pft.race.allAssigned": "Todos los que esperan tienen tanda: mira las tarjetas de tanda abajo.",
   "pft.race.pause": "Pausar",
   "pft.race.resume": "Reanudar",
