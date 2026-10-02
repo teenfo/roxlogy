@@ -36,6 +36,9 @@ export type RaceEntry = {
   wave: number | null;
   /** 중도포기 시각. null = 포기 아님 (마이그레이션 101) */
   dnf_at: string | null;
+  /** 일시정지 — 멈춘 시각(멈춰 있을 때만)과 지금까지 멈춰 있던 합(ms) (마이그레이션 124, 옛 응답엔 없다) */
+  paused_at?: string | null;
+  paused_ms?: number | null;
 };
 
 export type BoardData = { race: RaceInfo; server_now: string; entries: RaceEntry[] };
@@ -54,6 +57,9 @@ export type MyEntry = {
   status: RaceStatus;
   /** hyrox_sim 완주로 만든 내 세션 (마이그레이션 114) */
   session_id?: string | null;
+  /** 일시정지 (마이그레이션 124) */
+  paused_at?: string | null;
+  paused_ms?: number | null;
 };
 
 export type EntryState = "waiting" | "running" | "finished" | "dnf";
@@ -101,7 +107,17 @@ export function entryState(
 export function elapsedOf(e: RaceEntry, nowMs: number): number | null {
   if (e.finished_at) return e.total_ms;
   if (!e.started_at) return null;
-  return Math.max(0, nowMs - Date.parse(e.started_at));
+  return Math.max(0, nowMs - Date.parse(e.started_at) - pausedMsAt(e, nowMs));
+}
+
+/** 그 시각까지 멈춰 있던 시간(ms) = 누적 + (지금 멈춰 있으면 멈춘 뒤 흐른 시간).
+ *  경과 = now − started_at − 이 값. 스태프·선수·보드가 모두 이 규칙으로 센다(마이그레이션 124).
+ *  @param nowMs 서버 시각 기준(보정된) 현재 */
+export function pausedMsAt(
+  e: { paused_at?: string | null; paused_ms?: number | null },
+  nowMs: number,
+): number {
+  return (e.paused_ms ?? 0) + (e.paused_at ? Math.max(0, nowMs - Date.parse(e.paused_at)) : 0);
 }
 
 export type RankedEntry = RaceEntry & {

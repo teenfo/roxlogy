@@ -8,7 +8,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { checkpointsFor, raceBase } from "@/lib/race-format";
 import { RaceSimMeasureView } from "@/components/race-sim-measure-view";
 import { PftMeasureView, type PftBest } from "@/components/pft-measure-view";
-import type { MyEntry, RaceInfo } from "@/lib/pft-race";
+import { pausedMsAt, type MyEntry, type RaceInfo } from "@/lib/pft-race";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 
 /**
@@ -74,6 +74,8 @@ export function PftRaceRunner({
   const flushingRef = useRef(false);
   // 서버 시각 − 폰 시각. effect 에서 채운다(렌더 중 Date.now() 호출 금지)
   const offsetRef = useRef(0);
+  // 같은 값을 렌더에서 쓰려고 state 로도 둔다(렌더 중 ref 읽기 금지) — 일시정지 시간 계산용
+  const [offset, setOffset] = useState(0);
 
   const joined = !!entry;
   const finished = !!entry?.finished_at;
@@ -87,8 +89,13 @@ export function PftRaceRunner({
   // 코드는 "아직 참가하지 않은 사람"에게만 필요하다 — 이미 참가했으면 다시 보여 주지 않는다.
   // (운영진은 불러 줘야 하므로 계속 보인다. 코드 없는 레이스는 아무에게도 보이지 않는다.)
   const showCode = joinOpen && (!joined || canManage);
-  // 뷰에 주는 시작 시각 — 서버가 시작을 알 때만 (스태프가 초기화하면 다시 대기)
-  const startedAt = joined && entry?.started_at && local.startedLocal != null ? local.startedLocal : null;
+  // 운영진이 멈춘 시간(ms) — 서버 시각을 이 폰 시계로 옮겨 센다(마이그레이션 124). 멈춰 있으면 계속 늘어서
+  // 아래 시작 시각이 함께 밀리고, 화면 시계는 멈춘 값에 머문다.
+  const pausedAt = (at: number, off: number) => (entry ? pausedMsAt(entry, at + off) : 0);
+  const paused = !!entry?.paused_at && running && !done;
+  // 뷰에 주는 시작 시각 — 서버가 시작을 알 때만 (스태프가 초기화하면 다시 대기). 멈춘 시간만큼 뒤로 민다
+  const startedAt =
+    joined && entry?.started_at && local.startedLocal != null ? local.startedLocal + pausedAt(now, offset) : null;
 
   const persist = (v: { startedLocal: number | null; pending: number[] }) => {
     setLocal(v);
@@ -132,6 +139,7 @@ export function PftRaceRunner({
 
   useEffect(() => {
     offsetRef.current = Date.parse(serverNow) - Date.now();
+    setOffset(offsetRef.current);
   }, [serverNow]);
 
   // 다른 기기(스태프 타이밍·파트너 폰)에서 찍은 변화와 레이스 종료를 따라간다.
@@ -242,10 +250,11 @@ export function PftRaceRunner({
 
   const tap = () => {
     if (!running || done) return;
+    if (entry?.paused_at) return setErr(t("pft.race.err.entry_paused"));
     const at = Date.now();
     if (at - lastTapRef.current < 1200) return; // 겹쳐 누름 방지
     lastTapRef.current = at;
-    const ms = at - (local.startedLocal ?? at);
+    const ms = at - (local.startedLocal ?? at) - pausedAt(at, offsetRef.current);
     const last = splits[splits.length - 1] ?? 0;
     if (ms <= last) return;
     persist({ ...local, pending: [...local.pending, ms] });
@@ -315,7 +324,15 @@ export function PftRaceRunner({
     <RaceSimMeasureView
       cps={cps}
       title={race.title}
-      description={!joined ? t("pft.race.joinDesc") : running && !done ? t("pft.race.partnerHint") : undefined}
+      description={
+        !joined
+          ? t("pft.race.joinDesc")
+          : paused
+            ? t("pft.race.pausedByStaff")
+            : running && !done
+              ? t("pft.race.partnerHint")
+              : undefined
+      }
       startedAt={quit ? null : startedAt}
       splits={splits}
       now={now}
@@ -496,7 +513,15 @@ export function PftRaceRunner({
       defaultAge={defaultAge}
       best={best}
       title={race.title}
-      description={!joined ? t("pft.race.joinDesc") : running && !done ? t("pft.race.partnerHint") : undefined}
+      description={
+        !joined
+          ? t("pft.race.joinDesc")
+          : paused
+            ? t("pft.race.pausedByStaff")
+            : running && !done
+              ? t("pft.race.partnerHint")
+              : undefined
+      }
       startedAt={quit ? null : startedAt}
       splits={splits}
       now={now}

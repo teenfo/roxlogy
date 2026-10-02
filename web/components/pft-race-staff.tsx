@@ -12,10 +12,10 @@ import {
   clockNow,
   entryState,
   fmtClock,
-  groupByWave,
   type BoardData,
   type MyEntry,
   type RaceEntry,
+  pausedMsAt,
 } from "@/lib/pft-race";
 
 /**
@@ -50,9 +50,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const [selected, setSelected] = useState<string[]>([]);
   /** 웨이브 출발 영역 펼침 — 스태프가 직접 누를 때만 바뀐다(자동으로 접지 않는다: 운영 피드백 2026-10-02) */
   const [waveOpen, setWaveOpen] = useState(true);
-  /** 일시정지한 선수 → 멈춘 순간의 화면 시계(ms). **화면 표시만** 멈춘다 — 기록 시간은 서버 기준으로
-   *  계속 흐르고, 재개하면 실제 경과로 돌아온다. 이 기기에만 해당(실수 탭 방지용, 2026-10-02) */
-  const [paused, setPaused] = useState<Record<string, number>>({});
   const [q, setQ] = useState("");
   const [fetched, setFetched] = useState<{ q: string; rows: Search[] } | null>(null);
   const [now, setNow] = useState(() => Date.parse(initial.server_now));
@@ -96,7 +93,16 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       ...d,
       entries: d.entries.map((e) =>
         e.entry_id === j.entry_id
-          ? { ...e, started_at: j.started_at, splits: j.splits, finished_at: j.finished_at, total_ms: j.total_ms, scaled: j.scaled }
+          ? {
+              ...e,
+              started_at: j.started_at,
+              splits: j.splits,
+              finished_at: j.finished_at,
+              total_ms: j.total_ms,
+              scaled: j.scaled,
+              paused_at: j.paused_at ?? null,
+              paused_ms: j.paused_ms ?? 0,
+            }
           : e,
       ),
     }));
@@ -280,13 +286,18 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       | null;
     if (!j?.ok) return;
     if (j.server_now) offsetRef.current = Date.parse(j.server_now) - clockNow();
-    setSelected([]);
+    // 출발시킨 사람만 선택에서 뺀다 — 다른 조에서 골라 둔 선택은 그대로 둔다
+    setSelected((s) => s.filter((id) => !ids.includes(id)));
     setNotice(t("pft.race.staffStarted", { n: j.started ?? 0 }));
     window.setTimeout(() => setNotice(null), 2500);
     await refetchNow();
   };
 
-  const startWave = () => startEntries(selected);
+  /** 일시정지/재개 — 서버가 실제로 시간을 멈춘다(마이그레이션 124). 응답으로 카드를 바로 맞춘다 */
+  const setPause = async (e: RaceEntry, on: boolean) => {
+    const j = (await call("pft_race_staff_pause", { p_race: raceId, p_entry: e.entry_id, p_on: on })) as MyEntry | null;
+    if (j?.entry_id) mergeEntry(j);
+  };
 
   /** 중도포기 표시·해제. 서버가 출발 전·완주자·종료된 레이스를 막는다. */
   const setDnf = async (e: RaceEntry, on: boolean) => {
@@ -320,13 +331,14 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   };
 
   const tap = (e: RaceEntry) => {
-    if (closed || !e.started_at || e.finished_at) return;
+    if (closed || !e.started_at || e.finished_at || e.paused_at) return;
     const at = clockNow();
     if (at - (lastTapRef.current[e.entry_id] ?? 0) < 1200) return; // 겹쳐 누름 방지
     lastTapRef.current[e.entry_id] = at;
     const mine = pending[e.entry_id] ?? [];
     if (e.splits.length + mine.length >= PENDING_LIMIT) return;
-    const ms = at + offsetRef.current - Date.parse(e.started_at);
+    // 멈춰 있던 시간은 빼고 센다(마이그레이션 124)
+    const ms = at + offsetRef.current - Date.parse(e.started_at) - pausedMsAt(e, at + offsetRef.current);
     const last = mine[mine.length - 1] ?? e.splits[e.splits.length - 1] ?? 0;
     if (ms <= last) return;
     persist({ ...pendingRef.current, [e.entry_id]: [...mine, ms] });
@@ -396,18 +408,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   // 스태프가 누가 어디 있었는지를 놓친다. 상태는 색·라벨로만 나타낸다.
   const entries = data.entries;
   const waiting = entries.filter((e) => entryState(e) === "waiting");
-  // 아직 출발하지 않은 사람만 조로 묶는다 — 출발한 사람은 조를 바꿀 수 없다(서버도 막는다)
-  const waveGroups = groupByWave(waiting);
-  // 선택이 어느 조와 정확히 일치하는지 — 그 조 버튼을 눌린 상태로 보여 준다
-  const picked =
-    selected.length > 0
-      ? (waveGroups.find(
-          (g) =>
-            g.wave != null &&
-            g.rows.length === selected.length &&
-            g.rows.every((e) => selected.includes(e.entry_id)),
-        )?.wave ?? null)
-      : null;
   const stationLabel = (i: number) => (cps[i] ? checkpointLabel(t, cps[i]) : "");
   const waveShown = waveOpen;
   // 조가 정해진 대기자는 칩 목록에서 빠지고 아래 그리드의 웨이브 카드로 간다
@@ -439,16 +439,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
               // 명시적 중도포기(101) 또는 종료된 레이스의 미완주 — 어느 쪽이든 경과가 흐르면 안 된다
               const quit = state === "dnf";
               const dnf = quit || (closed && state !== "finished");
-              const elapsed = e.started_at && !closed && !quit ? Math.max(0, now - Date.parse(e.started_at)) : 0;
+              const elapsed =
+                e.started_at && !closed && !quit ? Math.max(0, now - Date.parse(e.started_at) - pausedMsAt(e, now)) : 0;
               const total = e.total_ms ?? (done ? splits[splits.length - 1] : null);
-              const isPaused = paused[e.entry_id] != null && state === "running" && !done && !closed;
-              const togglePause = () =>
-                setPaused((p) => {
-                  const next = { ...p };
-                  if (isPaused) delete next[e.entry_id];
-                  else next[e.entry_id] = elapsed;
-                  return next;
-                });
+              // 서버가 멈춘 선수 — 시계가 멈춰 있고(경과에서 정지 시간을 뺀다) 기록·조작이 잠긴다
+              const isPaused = !!e.paused_at && state === "running" && !done && !closed;
+              const togglePause = () => void setPause(e, !isPaused);
               return (
                 <li
                   key={e.entry_id}
@@ -489,7 +485,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         : dnf
                           ? "—"
                           : state === "running"
-                            ? fmtClock(isPaused ? paused[e.entry_id] : elapsed)
+                            ? fmtClock(elapsed)
                             : "0:00.0"}
                     </p>
                   </div>
@@ -568,6 +564,21 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     </p>
                   )}
 
+                  {/* 출발 선택 — 같은 조에서도 따로 내보낼 수 있게(조 카드의 출발 버튼이 고른 사람만 출발) */}
+                  {state === "waiting" && !closed && (
+                    <label className="mt-3 flex cursor-pointer items-center gap-2 rounded-xl border border-line-soft bg-inset px-3 py-2 text-sm font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(e.entry_id)}
+                        onChange={(ev) =>
+                          setSelected((s) => (ev.target.checked ? [...s, e.entry_id] : s.filter((id) => id !== e.entry_id)))
+                        }
+                        className="h-5 w-5 accent-accent"
+                      />
+                      {t("pft.race.pickToStart")}
+                    </label>
+                  )}
+
                   {closed ? (
                     <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-xs text-muted">
                       {t("pft.race.closedLocked")}
@@ -579,6 +590,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       <button
                         type="button"
                         onClick={togglePause}
+                        disabled={busy}
                         aria-pressed={isPaused}
                         className={`flex items-center rounded-lg font-bold ${compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs"} ${
                           isPaused
@@ -805,43 +817,9 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           {waveShown && waiting.length > 0 && (
             <>
             <p className="mt-2 text-xs text-muted">{t("pft.race.staffWaveDesc")}</p>
-            <div className="mt-3 grid items-start gap-4 md:grid-cols-2">
-              {/* 왼쪽 단 — 선택된 웨이브 */}
-              <div className="flex flex-col gap-3">
-                {/* 지금 선택된 사람 — 출발 전에 눈으로 한 번 더 확인 */}
-                <div className="rounded-xl border border-line-soft bg-inset p-3">
-                  <p className="text-xs font-bold text-muted">
-                    {t("pft.race.staffSelectedN", { n: selected.length })}
-                  </p>
-                  {selected.length > 0 ? (
-                    <ul className="mt-2 flex flex-wrap gap-1.5">
-                      {waiting
-                        .filter((e) => selected.includes(e.entry_id))
-                        .map((e) => (
-                          <li
-                            key={e.entry_id}
-                            className="rounded-full bg-highlight px-2.5 py-1 text-xs font-bold text-accent"
-                          >
-                            {e.name}
-                          </li>
-                        ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-xs text-muted">{t("pft.race.staffSelectedNone")}</p>
-                  )}
-                </div>
+            {/* 조 배정 — 출발은 조가 정해진 선수만, 아래 조 카드의 출발 버튼으로(조 없이 출발 불가, 2026-10-02) */}
+            <div className="mt-3">
 
-                <button
-                  type="button"
-                  onClick={startWave}
-                  disabled={busy || closed || !selected.length}
-                  className="h-16 w-full rounded-2xl bg-accent text-xl font-black text-background hover:brightness-110 disabled:opacity-40"
-                >
-                  {t("pft.race.staffStart", { n: selected.length })}
-                </button>
-              </div>
-
-              {/* 오른쪽 단 — 대기자 고르기 · 조 배정 */}
               <div className="flex flex-col">
                 <div className="flex flex-wrap gap-2 text-xs">
                   <button
@@ -876,7 +854,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     {t("pft.race.allAssigned")}
                   </p>
                 )}
-                <ul className="mt-2 grid max-h-56 grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3 md:grid-cols-2 xl:grid-cols-3">
+                <ul className="mt-2 grid max-h-56 grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                   {unassigned.map((e) => {
                     const on = selected.includes(e.entry_id);
                     return (
@@ -955,7 +933,11 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           <div className="mt-2 flex flex-col gap-4">
             {/* 조 컨테이너 — 머리(조 번호·대기 인원·웨이브 선택) + 그 조 선수의 기록 카드 */}
             {waveSections.map((g) => {
-              const on = picked === g.wave;
+              const waitIds = g.waitingRows.map((e) => e.entry_id);
+              // 이 조에서 골라 둔 대기자 — 이 조의 출발 버튼은 이들만 내보낸다(다른 조 선택은 그대로)
+              const waveSel = waitIds.filter((id) => selected.includes(id));
+              const allOn = waitIds.length > 0 && waveSel.length === waitIds.length;
+              const on = waveSel.length > 0;
               return (
                 <section
                   key={`wave-${g.wave}`}
@@ -967,25 +949,40 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       <p className="text-3xl font-black leading-none text-accent sm:text-4xl">
                         {t("pft.race.waveN", { n: g.wave })}
                       </p>
-                      <p className="mt-2 text-sm text-muted">{t("pft.race.waveCardCount", { n: g.waitingRows.length })}</p>
+                      <p className="mt-2 text-sm text-muted">
+                        {t("pft.race.waveCardCount", { n: g.waitingRows.length })}
+                        {waveSel.length > 0 && ` · ${t("pft.race.waveSelectedN", { n: waveSel.length })}`}
+                      </p>
                     </div>
-                    <button
-                      type="button"
-                      // 누르면 **선택만** 한다 — 출발은 위 큰 버튼으로. 한 번 더 확인하고
-                      // 내보내야 오출발이 나지 않는다(2026-09-13 운영 피드백).
-                      onClick={() => setSelected(g.waitingRows.map((e) => e.entry_id))}
-                      disabled={busy || g.waitingRows.length === 0}
-                      aria-pressed={on}
-                      className={`h-14 shrink-0 rounded-2xl border-2 px-6 text-lg font-black disabled:opacity-40 ${
-                        on
-                          ? "border-accent bg-accent text-background"
-                          : "border-line-accent bg-highlight text-accent hover:brightness-125"
-                      }`}
-                    >
-                      {g.waitingRows.length === 0
-                        ? t("pft.race.waveAllStarted")
-                        : t(on ? "pft.race.waveSelected" : "pft.race.waveSelect")}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* 이 조 대기자 전체 선택/해제 — 다른 조의 선택은 건드리지 않는다 */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelected((s) =>
+                            allOn ? s.filter((id) => !waitIds.includes(id)) : [...new Set([...s, ...waitIds])],
+                          )
+                        }
+                        disabled={busy || waitIds.length === 0}
+                        aria-pressed={allOn}
+                        className="h-14 shrink-0 rounded-2xl border-2 border-line-accent bg-highlight px-5 text-base font-black text-accent hover:brightness-125 disabled:opacity-40"
+                      >
+                        {waitIds.length === 0
+                          ? t("pft.race.waveAllStarted")
+                          : t(allOn ? "pft.race.waveDeselect" : "pft.race.waveSelect")}
+                      </button>
+                      {/* 이 조에서 고른 사람만 출발 — 이미 출발한 같은 조 선수의 기록은 그대로 흐른다 */}
+                      {waitIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => void startEntries(waveSel)}
+                          disabled={busy || waveSel.length === 0}
+                          className="h-14 shrink-0 rounded-2xl bg-accent px-6 text-lg font-black text-background hover:brightness-110 disabled:opacity-40"
+                        >
+                          {t("pft.race.waveStartN", { n: waveSel.length })}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <ul className="mt-4 grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-4">{g.rows.map((e) => renderCard(e, true))}</ul>
                 </section>
