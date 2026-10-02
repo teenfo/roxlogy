@@ -813,7 +813,14 @@ export function CrewMemberManage({
     setBusy("bulk");
     setErr(null);
     const client = createClient();
+    // 크루장은 정회원 등급으로만 — 비정회원 등급 일괄 지정에서는 건너뛰고 끝에 알린다
+    const target = tiers.find((x) => x.id === bulkTier);
+    let skippedOwner = false;
     for (const u of sel) {
+      if (!target?.is_full_member && members.find((m) => m.user_id === u)?.role === "owner") {
+        skippedOwner = true;
+        continue;
+      }
       const { error } = await client.rpc("set_crew_tier", {
         p_slug: slug,
         p_user: u,
@@ -827,6 +834,7 @@ export function CrewMemberManage({
     setBusy(null);
     setSel(new Set());
     setBulkTier("");
+    if (skippedOwner) setErr(t("crew.errTierOwnerFullOnly"));
     router.refresh();
   }
 
@@ -1120,11 +1128,12 @@ export function CrewMemberManage({
               </div>
 
               <div className="mt-2 flex items-center gap-3 pl-[26px] sm:mt-0 sm:contents">
-                {/* 등급 지정 — 등급이 role(정회원/일반회원)까지 맞춘다. 리더는 등급 밖이다. */}
+                {/* 등급 지정 — 등급이 role(정회원/일반회원)까지 맞춘다. 운영진의 role 은 그대로다.
+                    크루장은 정회원 등급 안에서만 고른다(DB set_crew_tier 도 같은 규칙으로 막는다). */}
                 <select
                   value={m.tier_id ?? ""}
                   aria-label={t("crew.colTier")}
-                  disabled={busy != null || m.role === "owner"}
+                  disabled={busy != null}
                   onChange={(e) => setTier(m.user_id, e.target.value)}
                   className={`h-[30px] min-w-0 rounded-md border border-line-strong bg-page px-2 text-xs font-bold outline-none focus:border-accent disabled:opacity-50 ${tierTextClass(
                     m.tier_color,
@@ -1132,7 +1141,11 @@ export function CrewMemberManage({
                 >
                   {!m.tier_id && <option value="">—</option>}
                   {tiers
-                    .filter((x) => !x.archived_at || x.id === m.tier_id)
+                    .filter(
+                      (x) =>
+                        x.id === m.tier_id ||
+                        (!x.archived_at && (m.role !== "owner" || x.is_full_member)),
+                    )
                     .map((x) => (
                       <option key={x.id} value={x.id}>
                         {x.name}

@@ -22,6 +22,7 @@ const KEYS: Record<string, DictKey> = {
   tier_not_staff: "crew.errTierNotStaff",
   tier_is_default: "crew.errTierDefault",
   tier_wrong_crew: "crew.errTierWrongCrew",
+  tier_owner_full_only: "crew.errTierOwnerFullOnly",
 };
 
 export function duesErrText(t: TFn, message: string): string {

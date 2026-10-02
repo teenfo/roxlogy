@@ -712,6 +712,7 @@ const en = {
   "crew.errTierNotStaff": "Only crew staff can manage tiers.",
   "crew.errTierDefault": "The default tier cannot be deleted.",
   "crew.errTierWrongCrew": "That tier belongs to another crew.",
+  "crew.errTierOwnerFullOnly": "The crew leader can only be moved to a full-member tier.",
   "crew.errDuesNotStaff": "Only crew staff can confirm a payment.",
   "crew.errDuesPeriod": "The period must be in YYYY-MM format.",
   "crew.errDuesAmount": "The amount must be greater than 0.",

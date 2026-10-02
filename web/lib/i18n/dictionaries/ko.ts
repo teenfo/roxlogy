@@ -710,6 +710,7 @@ const ko: Record<DictKey, string> = {
   "crew.errTierNotStaff": "운영진만 등급을 관리할 수 있습니다.",
   "crew.errTierDefault": "기본 등급은 삭제할 수 없습니다.",
   "crew.errTierWrongCrew": "이 크루의 등급이 아닙니다.",
+  "crew.errTierOwnerFullOnly": "크루장은 정회원 등급으로만 바꿀 수 있습니다.",
   "crew.errDuesNotStaff": "운영진만 납부를 확정할 수 있습니다.",
   "crew.errDuesPeriod": "기간은 YYYY-MM 형식이어야 합니다.",
   "crew.errDuesAmount": "금액은 0보다 커야 합니다.",

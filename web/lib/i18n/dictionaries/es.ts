@@ -710,6 +710,7 @@ const es: Record<DictKey, string> = {
   "crew.errTierNotStaff": "Solo el staff puede gestionar los niveles.",
   "crew.errTierDefault": "El nivel predeterminado no se puede eliminar.",
   "crew.errTierWrongCrew": "Ese nivel pertenece a otro crew.",
+  "crew.errTierOwnerFullOnly": "El líder del crew solo puede pasar a un nivel de miembro completo.",
   "crew.errDuesNotStaff": "Solo el staff del crew puede confirmar un pago.",
   "crew.errDuesPeriod": "El periodo debe tener formato AAAA-MM.",
   "crew.errDuesAmount": "El importe debe ser mayor que 0.",

@@ -1127,7 +1127,7 @@ const handler = createMcpHandler(
       {
         title: "크루원 등급 지정 (운영진)",
         description:
-          "크루원의 등급을 바꾼다. tier 는 list_crew_tiers 의 이름 그대로. 등급이 곧 요금표라 다음 회비 대사부터 새 요금이 적용된다. 실행 전 사용자에게 확인받아라.",
+          "크루원의 등급을 바꾼다. tier 는 list_crew_tiers 의 이름 그대로. 등급이 곧 요금표라 다음 회비 대사부터 새 요금이 적용된다. 크루장은 정회원 등급으로만 바꿀 수 있다(아니면 error: tier_owner_full_only + 고를 수 있는 등급 available). 실행 전 사용자에게 확인받아라.",
         inputSchema: z.object({
           slug: z.string(),
           user_id: z.string().uuid(),
