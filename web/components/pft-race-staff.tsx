@@ -382,15 +382,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     if (j) mergeEntry(j);
   };
 
-  const remove = async (e: RaceEntry) => {
-    if (!window.confirm(t("pft.race.staffRemoveConfirm", { name: e.name }))) return;
-    persist({ ...pendingRef.current, [e.entry_id]: [] });
-    const j = (await call("pft_race_staff_remove", { p_race: raceId, p_entry: e.entry_id })) as { ok?: boolean } | null;
-    if (!j?.ok) return;
-    setSelected((s) => s.filter((id) => id !== e.entry_id));
-    setData((d) => ({ ...d, entries: d.entries.filter((x) => x.entry_id !== e.entry_id) }));
-  };
-
   /** 고른 대기자를 한꺼번에 제외 — 대기자는 아래 카드에 없으므로 웨이브 목록에서 뺀다 */
   const removeSelected = async () => {
     const rows = data.entries.filter((e) => entryState(e) === "waiting" && selected.includes(e.entry_id));
@@ -630,7 +621,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     <p className="mt-3 rounded-xl bg-inset px-3 py-2 text-center text-xs text-muted">
                       {t("pft.race.closedLocked")}
                     </p>
-                  ) : (
+                  ) : state === "waiting" ? null : (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {/* 일시정지 — 진행 중인 선수만. 화면 시계·버튼만 멈춘다(기록 시간은 계속) */}
                     {state === "running" && !done && (
@@ -694,14 +685,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         {quit ? t("pft.race.dnfUndo") : t("pft.race.dnfMark")}
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => remove(e)}
-                      disabled={busy || closed || isPaused}
-                      className={`ml-auto ${compact ? "h-8 px-2 text-[11px]" : "h-9 px-3 text-xs"} rounded-lg border border-line-soft font-semibold text-muted hover:border-danger-line-strong hover:text-danger disabled:opacity-40`}
-                    >
-                      {t("pft.race.staffRemove")}
-                    </button>
                   </div>
                   )}
                 </li>
