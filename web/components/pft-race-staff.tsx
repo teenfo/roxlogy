@@ -31,6 +31,13 @@ import {
 type Pending = Record<string, number[]>;
 type Search = { user_id: string; name: string; joined: boolean };
 
+/** 조마다 다른 색 — 무작위처럼 흩어지되 조 번호로 정해진다(새로고침·다른 기기에서도 같은 조는 같은 색).
+ *  황금각(137.5°)씩 색상을 돌려 이웃 조끼리 겹치지 않게 하고, 1조는 레이스 옐로에서 시작한다. */
+function waveColor(wave: number, alpha = 1): string {
+  const hue = (48 + (wave - 1) * 137.508) % 360;
+  return `hsl(${hue.toFixed(1)} 85% 60% / ${alpha})`;
+}
+
 export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -50,6 +57,8 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const [selected, setSelected] = useState<string[]>([]);
   /** 웨이브 출발 영역 펼침 — 스태프가 직접 누를 때만 바뀐다(자동으로 접지 않는다: 운영 피드백 2026-10-02) */
   const [waveOpen, setWaveOpen] = useState(true);
+  /** 선택한 대기자를 넣을 조 — "new" = 다음 번호로 새로 만든다(기본) */
+  const [target, setTarget] = useState<"new" | number>("new");
   const [q, setQ] = useState("");
   const [fetched, setFetched] = useState<{ q: string; rows: Search[] } | null>(null);
   const [now, setNow] = useState(() => Date.parse(initial.server_now));
@@ -311,6 +320,16 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     await refetchNow();
   };
 
+  /** 선수 한 명을 조에서 뺀다(출발 전만 — 서버도 출발한 사람은 건너뛴다) */
+  const unassignOne = async (e: RaceEntry) => {
+    const j = (await call("pft_race_set_wave", { p_race: raceId, p_entries: [e.entry_id], p_wave: null })) as
+      | { ok?: boolean }
+      | null;
+    if (!j?.ok) return;
+    setSelected((s) => s.filter((id) => id !== e.entry_id));
+    await refetchNow();
+  };
+
   /** 선택한 사람을 조에 넣는다(wave=null 이면 배정 해제). 이미 출발한 사람은 서버가 건너뛴다. */
   const assignWave = async (wave: number | null) => {
     if (!selected.length) return;
@@ -414,14 +433,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const unassigned = waiting.filter((e) => e.wave == null);
   // 새 웨이브 번호 — 지금까지 쓴 가장 큰 조 + 1 (출발·완주한 조 포함, 번호를 다시 쓰지 않는다)
   const nextWave = entries.reduce((m, e) => Math.max(m, e.wave ?? 0), 0) + 1;
-  // 넣을 수 있는 기존 조 — 대기 중이거나 달리는 중인 선수가 남아 있는 조
-  const openWaves = [
-    ...new Set(
-      entries
-        .filter((e) => e.wave != null && (entryState(e) === "waiting" || entryState(e) === "running"))
-        .map((e) => e.wave as number),
-    ),
-  ].sort((x, y) => x - y);
+  // 만들어진 조 — 선택 상자의 "신규" 아래 항목
+  const createdWaves = [...new Set(entries.filter((e) => e.wave != null).map((e) => e.wave as number))].sort(
+    (x, y) => x - y,
+  );
+  // 고른 조가 사라졌으면(빼기 등) 신규로 본다
+  const targetWave = target !== "new" && createdWaves.includes(target) ? target : nextWave;
   // 조 컨테이너 — 조가 정해진 선수는 대기·진행·완주 모두 자기 조 안에 기록 카드로 남는다(2026-10-02 시안).
   // 종료된 레이스는 조 없이 전원 한 그리드.
   const waveSections = closed
@@ -587,6 +604,17 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       />
                       {t("pft.race.pickToStart")}
                     </label>
+                  )}
+                  {/* 조에서 빼기 — 출발 전 선수만(출발하면 조를 바꿀 수 없다). 빠지면 위 미배정 칩으로 돌아간다 */}
+                  {state === "waiting" && !closed && e.wave != null && (
+                    <button
+                      type="button"
+                      onClick={() => void unassignOne(e)}
+                      disabled={busy}
+                      className="mt-2 h-8 w-full rounded-lg border border-line-soft text-xs font-semibold text-muted hover:border-muted/60 hover:text-foreground disabled:opacity-40"
+                    >
+                      {t("pft.race.waveUnassign")}
+                    </button>
                   )}
 
                   {closed ? (
@@ -893,40 +921,35 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                 {/* 선택 → 새 웨이브. 번호는 지금까지 쓴 가장 큰 조 + 1 로 자동 — 끝난 조 번호를 다시 쓰지 않아
                     선수가 섞이지 않고, 6조를 넘어도 그대로 이어진다(서버 상한 50, 2026-10-02) */}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {/* 넣을 조 — 기본은 신규(다음 번호), 아래로 만들어진 조 */}
+                  <select
+                    value={target}
+                    onChange={(ev) => setTarget(ev.target.value === "new" ? "new" : Number(ev.target.value))}
+                    disabled={busy || closed}
+                    aria-label={t("pft.race.waveTarget")}
+                    className="h-10 rounded-lg border border-line-strong bg-control px-2 text-sm font-semibold disabled:opacity-40"
+                  >
+                    <option value="new">{t("pft.race.waveTargetNew", { n: nextWave })}</option>
+                    {createdWaves.map((w) => (
+                      <option key={w} value={w}>
+                        {t("pft.race.waveN", { n: w })}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
-                    onClick={() => assignWave(nextWave)}
-                    disabled={busy || closed || !selected.length || nextWave > 50}
+                    onClick={() => {
+                      void assignWave(targetWave);
+                      setTarget("new");
+                    }}
+                    disabled={busy || closed || !selected.length || targetWave > 50}
                     className="h-10 rounded-lg bg-accent px-4 text-sm font-extrabold text-background hover:brightness-110 disabled:opacity-40"
                   >
-                    {t("pft.race.waveNew", { n: nextWave })}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => assignWave(null)}
-                    disabled={busy || closed || !selected.length}
-                    className="h-10 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold text-muted disabled:opacity-40"
-                  >
-                    {t("pft.race.waveNone")}
+                    {target === "new"
+                      ? t("pft.race.waveNew", { n: nextWave })
+                      : t("pft.race.waveAddTo", { n: targetWave })}
                   </button>
                 </div>
-                {/* 기존 조에 넣기 — 아직 대기·진행 중인 선수가 있는 조만(다 끝난 조에 넣으면 끝난 선수와 섞인다) */}
-                {openWaves.length > 0 && (
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span className="mr-1 text-xs font-semibold text-muted">{t("pft.race.waveAddExisting")}</span>
-                    {openWaves.map((w) => (
-                      <button
-                        key={w}
-                        type="button"
-                        onClick={() => assignWave(w)}
-                        disabled={busy || closed || !selected.length}
-                        className="tabular h-9 min-w-9 rounded-lg border border-line-accent bg-highlight px-2.5 text-sm font-extrabold text-accent disabled:opacity-40"
-                      >
-                        {t("pft.race.waveN", { n: w })}
-                      </button>
-                    ))}
-                  </div>
-                )}
                 <p className="mt-1.5 text-xs text-muted [word-break:keep-all]">
                   {t("pft.race.waveHint")}
                 </p>
@@ -964,11 +987,15 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                 <section
                   key={`wave-${g.wave}`}
                   aria-label={t("pft.race.waveN", { n: g.wave })}
-                  className={`rounded-3xl border-2 p-4 sm:p-6 ${on ? "border-accent bg-highlight" : "border-line-accent bg-card"}`}
+                  className="rounded-3xl border-2 p-4 sm:p-6"
+                  style={{
+                    borderColor: on ? waveColor(g.wave) : waveColor(g.wave, 0.45),
+                    background: on ? waveColor(g.wave, 0.1) : waveColor(g.wave, 0.04),
+                  }}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-3xl font-black leading-none text-accent sm:text-4xl">
+                      <p className="text-3xl font-black leading-none sm:text-4xl" style={{ color: waveColor(g.wave) }}>
                         {t("pft.race.waveN", { n: g.wave })}
                       </p>
                       <p className="mt-2 text-sm text-muted">
@@ -982,7 +1009,8 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         type="button"
                         onClick={() => setSelected((s) => [...new Set([...s, ...waitIds])])}
                         disabled={busy || waitIds.length === 0 || allOn}
-                        className="h-14 shrink-0 rounded-2xl border-2 border-line-accent bg-highlight px-5 text-base font-black text-accent hover:brightness-125 disabled:opacity-40"
+                        style={{ borderColor: waveColor(g.wave, 0.6), color: waveColor(g.wave), background: waveColor(g.wave, 0.08) }}
+                        className="h-14 shrink-0 rounded-2xl border-2 px-5 text-base font-black hover:brightness-125 disabled:opacity-40"
                       >
                         {waitIds.length === 0 ? t("pft.race.waveAllStarted") : t("pft.race.waveSelect")}
                       </button>
@@ -1002,7 +1030,8 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                           type="button"
                           onClick={() => void startEntries(waveSel)}
                           disabled={busy || waveSel.length === 0}
-                          className="h-14 shrink-0 rounded-2xl bg-accent px-6 text-lg font-black text-background hover:brightness-110 disabled:opacity-40"
+                          style={{ background: waveColor(g.wave) }}
+                          className="h-14 shrink-0 rounded-2xl px-6 text-lg font-black text-[#141414] hover:brightness-110 disabled:opacity-40"
                         >
                           {t("pft.race.waveStartN", { n: waveSel.length })}
                         </button>
