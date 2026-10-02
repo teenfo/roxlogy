@@ -484,6 +484,15 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                           ? "border-line bg-card"
                           : "border-line-soft bg-card opacity-80"
                   }`}
+                  // 조 카드 안에서는 그 조 색으로 칠한다 — 진행 중이 가장 진하고, 대기·완주는 옅게, 포기는 더 옅게
+                  style={
+                    compact && e.wave != null
+                      ? {
+                          background: waveColor(e.wave, dnf ? 0.04 : state === "running" ? 0.16 : 0.08),
+                          borderColor: waveColor(e.wave, state === "running" && !dnf ? 0.7 : 0.3),
+                        }
+                      : undefined
+                  }
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
