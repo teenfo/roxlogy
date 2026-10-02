@@ -65,18 +65,31 @@ export async function RaceListScreen({ format }: { format: RaceFormat }) {
       .limit(200),
     supabase.from("profiles").select("birth_year, is_admin").eq("id", user!.id).maybeSingle(),
     // 레이스를 만들 수 있는 건 관리자·크루 운영진뿐이다(허브와 같은 판정).
+    // 운영진인 크루 id 는 아래에서 그 크루의 레이스를 목록에 넣는 데도 쓴다.
     supabase
       .from("crew_members")
-      .select("id")
+      .select("crew_id")
       .eq("user_id", user!.id)
       .eq("status", "active")
       .in("role", ["owner", "coach"])
-      .limit(1),
+      .limit(50),
   ]);
+
+  // 운영진인 크루의 레이스 — 남이 만들었고 내가 참가하지 않았어도 진행·관리를 맡으니 목록에 보여야 한다
+  // (pft_race_can_manage 와 같은 판정). 운영진일 때만 한 번 더 읽는다.
+  const staffCrewIds = ((staffRows ?? []) as { crew_id: string }[]).map((r) => r.crew_id);
+  const { data: crewRaceRows, error: crewErr } = staffCrewIds.length
+    ? await supabase
+        .from("pft_races")
+        .select("id, code, title, status, created_at, join_open, format, checkpoints, crews ( name )")
+        .in("crew_id", staffCrewIds)
+        .order("created_at", { ascending: false })
+        .limit(200)
+    : { data: [], error: null };
 
   // supabase-js 는 실패해도 throw 하지 않는다 — 확인 없이 빈 목록을 그리면
   // "레이스가 없다"로 읽혀서 사용자가 기록을 잃었다고 오해한다.
-  const loadErr = entryErr ?? createdErr;
+  const loadErr = entryErr ?? createdErr ?? crewErr;
   const age = me?.birth_year != null ? new Date().getFullYear() - Number(me.birth_year) : null;
   const canCreateRace = !!me?.is_admin || (staffRows ?? []).length > 0;
 
@@ -113,7 +126,8 @@ export async function RaceListScreen({ format }: { format: RaceFormat }) {
       scaled: e.scaled,
     });
   }
-  for (const r of (createdRows ?? []) as unknown as RaceRow[]) {
+  // created = 내가 관리할 수 있는 레이스(만든 것 + 운영진인 크루의 것) — 운영 배지·스태프 링크
+  for (const r of [...(createdRows ?? []), ...(crewRaceRows ?? [])] as unknown as RaceRow[]) {
     const prev = byId.get(r.id);
     if (prev) prev.created = true;
     else byId.set(r.id, { ...base(r), created: true });

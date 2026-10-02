@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RaceFormatChip } from "@/components/race-format-chip";
 import { raceBase } from "@/lib/race-format";
@@ -22,6 +23,9 @@ export type JoinableRace = {
   /** 종목·구간 수 (마이그레이션 114 — 옛 응답엔 없다) */
   format?: string;
   checkpoints?: number;
+  /** 코드 참가가 켜져 있는가 — 꺼진 내 크루 레이스도 목록엔 보이되(운영진이 추가) 참가 버튼은 없다.
+   *  마이그레이션 123 전 응답엔 없다(그때는 켜진 것만 왔다) */
+  join_open?: boolean;
 };
 
 const INPUT =
@@ -104,6 +108,18 @@ export function PftRacePick({
                     {` · ${t("pft.race.pickEntries", { n: r.entries })}`}
                   </span>
                 </span>
+                {r.join_open === false && !r.joined ? (
+                  // 코드 참가가 꺼진 레이스 — 운영진이 참가자를 추가한다. 레이스 화면(보드·안내)만 열어 준다
+                  <span className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+                    <span className="text-xs text-muted">{t("pft.race.staffAddedOnly")}</span>
+                    <Link
+                      href={`${raceBase(r.format ?? "pft")}/${r.code}`}
+                      className="flex h-10 shrink-0 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+                    >
+                      {t("pft.race.linkOpen")}
+                    </Link>
+                  </span>
+                ) : (
                 <button
                   type="button"
                   onClick={() => joinByCode(r.code, r.format)}
@@ -120,6 +136,7 @@ export function PftRacePick({
                       ? t("pft.race.linkMine")
                       : t("pft.race.pickJoin")}
                 </button>
+                )}
               </li>
             ))}
           </ul>
