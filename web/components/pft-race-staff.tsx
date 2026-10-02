@@ -13,7 +13,6 @@ import {
   entryState,
   fmtClock,
   groupByWave,
-  hasWaves,
   type BoardData,
   type MyEntry,
   type RaceEntry,
@@ -396,7 +395,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const waiting = entries.filter((e) => entryState(e) === "waiting");
   // 아직 출발하지 않은 사람만 조로 묶는다 — 출발한 사람은 조를 바꿀 수 없다(서버도 막는다)
   const waveGroups = groupByWave(waiting);
-  const grouped = hasWaves(waiting);
   // 선택이 어느 조와 정확히 일치하는지 — 그 조 버튼을 눌린 상태로 보여 준다
   const picked =
     selected.length > 0
@@ -409,6 +407,9 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       : null;
   const stationLabel = (i: number) => (cps[i] ? checkpointLabel(t, cps[i]) : "");
   const waveShown = waveOpen;
+  // 조가 정해진 대기자는 칩 목록에서 빠지고 아래 그리드의 웨이브 카드로 간다
+  const unassigned = waiting.filter((e) => e.wave == null);
+  const waveCards = closed ? [] : waveGroups.filter((g) => g.wave != null);
   // 아래 카드는 출발한 사람만 — 대기자는 위 웨이브 출발에서 다룬다(중복 없이 카드가 짧아진다).
   // 종료된 레이스는 웨이브 영역이 없으므로 모두 보여 준다(미출발은 미완주로 표시).
   const shownEntries = closed ? entries : entries.filter((e) => entryState(e) !== "waiting");
@@ -572,40 +573,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
             <div className="mt-3 grid items-start gap-4 md:grid-cols-2">
               {/* 왼쪽 단 — 선택된 웨이브 */}
               <div className="flex flex-col gap-3">
-                {/* 조별 출발 — 조가 하나라도 배정돼 있을 때만. 누르면 그 조의 대기자가 선택된다 */}
-                {grouped && (
-                  <div className="flex flex-col gap-2">
-                    {waveGroups
-                      .filter((g) => g.wave != null)
-                      .map((g) => (
-                        <button
-                          key={g.wave}
-                          type="button"
-                          // 누르면 **선택만** 한다 — 출발은 아래 큰 버튼으로. 한 번 더 확인하고
-                          // 내보내야 오출발이 나지 않는다(2026-09-13 운영 피드백).
-                          onClick={() => setSelected(g.rows.map((e) => e.entry_id))}
-                          disabled={busy || closed}
-                          className={`flex h-14 items-center justify-between gap-3 rounded-xl border px-4 text-left font-extrabold transition disabled:opacity-40 ${
-                            picked === g.wave
-                              ? "border-accent bg-accent text-background"
-                              : "border-line-accent bg-highlight text-accent hover:brightness-125"
-                          }`}
-                        >
-                          <span className="shrink-0 text-base">
-                            {t("pft.race.waveSelectGroup", { wave: g.wave!, n: g.rows.length })}
-                          </span>
-                          <span
-                            className={`min-w-0 truncate text-xs font-semibold ${
-                              picked === g.wave ? "text-background/70" : "text-muted"
-                            }`}
-                          >
-                            {g.rows.map((e) => e.name).join(", ")}
-                          </span>
-                        </button>
-                      ))}
-                  </div>
-                )}
-
                 {/* 지금 선택된 사람 — 출발 전에 눈으로 한 번 더 확인 */}
                 <div className="rounded-xl border border-line-soft bg-inset p-3">
                   <p className="text-xs font-bold text-muted">
@@ -644,8 +611,9 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                 <div className="flex flex-wrap gap-2 text-xs">
                   <button
                     type="button"
-                    onClick={() => setSelected(waiting.map((e) => e.entry_id))}
-                    className="h-8 rounded-lg border border-line-strong bg-control px-3 font-semibold"
+                    onClick={() => setSelected(unassigned.map((e) => e.entry_id))}
+                    disabled={!unassigned.length}
+                    className="h-8 rounded-lg border border-line-strong bg-control px-3 font-semibold disabled:opacity-40"
                   >
                     {t("pft.race.staffSelectAll")}
                   </button>
@@ -666,9 +634,15 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     {t("pft.race.staffRemoveSelected")}
                   </button>
                 </div>
-                {/* 대기자 — 이름 칩 격자. 누르면 선택/해제. 높이 상한을 넘으면 이 안에서만 스크롤 */}
+                {/* 조 미배정 대기자 — 이름 칩 격자. 누르면 선택/해제. 높이 상한을 넘으면 이 안에서만 스크롤.
+                    조를 정하면 칩은 사라지고 아래 그리드에 웨이브 카드로 놓인다 */}
+                {unassigned.length === 0 && (
+                  <p className="mt-2 rounded-lg bg-inset px-3 py-3 text-center text-xs text-muted">
+                    {t("pft.race.allAssigned")}
+                  </p>
+                )}
                 <ul className="mt-2 grid max-h-56 grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3 md:grid-cols-2 xl:grid-cols-3">
-                  {waiting.map((e) => {
+                  {unassigned.map((e) => {
                     const on = selected.includes(e.entry_id);
                     return (
                       <li key={e.entry_id}>
@@ -683,11 +657,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                           }`}
                         >
                           <span className="min-w-0 flex-1 truncate">{e.name}</span>
-                          {e.wave != null && (
-                            <span className="shrink-0 rounded bg-highlight px-1 py-0.5 text-[10px] font-extrabold text-accent">
-                              {e.wave}
-                            </span>
-                          )}
                           {e.scaled && (
                             <span className="shrink-0 rounded bg-line px-1 py-0.5 text-[10px] font-bold uppercase text-muted">
                               {t("pft.scaledTag")}
@@ -738,17 +707,76 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       <section>
         <p className="text-sm font-bold">
           {t("pft.race.staffAthletes", { n: shownEntries.length })}
-          {!closed && waiting.length > 0 && (
-            <span className="ml-1.5 text-xs font-normal text-muted">{t("pft.race.waitingInWave", { n: waiting.length })}</span>
+          {!closed && unassigned.length > 0 && (
+            <span className="ml-1.5 text-xs font-normal text-muted">{t("pft.race.waitingInWave", { n: unassigned.length })}</span>
           )}
         </p>
         {!closed && <p className="mt-0.5 text-xs text-muted">{t("pft.race.staffHint")}</p>}
-        {shownEntries.length === 0 ? (
+        {shownEntries.length === 0 && waveCards.length === 0 ? (
           <p className="mt-2 rounded-2xl border border-line bg-card px-4 py-8 text-center text-sm text-muted">
             {t(entries.length === 0 ? "pft.race.noEntries" : "pft.race.noneStarted")}
           </p>
         ) : (
           <ul className="mt-2 grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {/* 웨이브 그룹 카드 — 조가 정해진 대기자. "웨이브 선택"으로 조 전체를 고르고 위 출발 버튼으로 내보낸다.
+                이름을 하나씩 눌러 일부만 고를 수도 있다(조 바꾸기·미지정은 위 조 배정 버튼) */}
+            {waveCards.map((g) => {
+              const on = picked === g.wave;
+              return (
+                <li
+                  key={`wave-${g.wave}`}
+                  className={`rounded-2xl border p-4 ${on ? "border-accent bg-highlight" : "border-line-accent bg-card"}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-lg font-extrabold text-accent">{t("pft.race.waveN", { n: g.wave! })}</p>
+                      <p className="text-xs text-muted">{t("pft.race.waveCardCount", { n: g.rows.length })}</p>
+                    </div>
+                    <button
+                      type="button"
+                      // 누르면 **선택만** 한다 — 출발은 위 큰 버튼으로. 한 번 더 확인하고
+                      // 내보내야 오출발이 나지 않는다(2026-09-13 운영 피드백).
+                      onClick={() => setSelected(g.rows.map((e) => e.entry_id))}
+                      disabled={busy}
+                      aria-pressed={on}
+                      className={`h-10 shrink-0 rounded-lg px-4 text-sm font-extrabold disabled:opacity-40 ${
+                        on
+                          ? "bg-accent text-background"
+                          : "border border-line-accent bg-highlight text-accent hover:brightness-125"
+                      }`}
+                    >
+                      {t(on ? "pft.race.waveSelected" : "pft.race.waveSelect")}
+                    </button>
+                  </div>
+                  <ul className="mt-3 flex flex-wrap gap-1.5">
+                    {g.rows.map((e) => {
+                      const sel = selected.includes(e.entry_id);
+                      return (
+                        <li key={e.entry_id}>
+                          <button
+                            type="button"
+                            aria-pressed={sel}
+                            onClick={() =>
+                              setSelected((s) => (sel ? s.filter((id) => id !== e.entry_id) : [...s, e.entry_id]))
+                            }
+                            className={`flex h-8 items-center gap-1 rounded-full border px-3 text-xs font-bold ${
+                              sel ? "border-accent bg-accent/20 text-accent" : "border-line-soft bg-inset text-foreground"
+                            }`}
+                          >
+                            {e.name}
+                            {e.scaled && (
+                              <span className="rounded bg-line px-1 text-[9px] font-bold uppercase text-muted">
+                                {t("pft.scaledTag")}
+                              </span>
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              );
+            })}
             {shownEntries.map((e) => {
               const state = entryState(e);
               const mine = isClient ? (pending[e.entry_id] ?? []) : [];
