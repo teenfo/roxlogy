@@ -474,22 +474,26 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       {closed && <p className="text-xs text-danger">{t("pft.race.closedNote")}</p>}
 
       {!closed && (
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* 참가자 추가 */}
+      <div className="flex flex-col gap-4">
+        {/* 참가자 추가 — 맨 위 한 줄. 넓은 화면에서는 제목과 검색칸을 한 줄에 둔다(빈 여백 없이) */}
         <section className="rounded-2xl border border-line bg-card p-4 sm:p-5">
-          <p className="text-sm font-bold">{t("pft.race.staffAdd")}</p>
-          <p className="mt-1 text-xs text-muted">{t("pft.race.staffAddDesc")}</p>
-          <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t("pft.race.staffSearchPh")}
-            aria-label={t("pft.race.staffSearchPh")}
-            disabled={closed}
-            className="mt-3 h-11 w-full rounded-lg border border-line-strong bg-control px-3 text-sm disabled:opacity-40"
-          />
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-5">
+            <div className="min-w-0 md:flex-1">
+              <p className="text-sm font-bold">{t("pft.race.staffAdd")}</p>
+              <p className="mt-1 text-xs text-muted">{t("pft.race.staffAddDesc")}</p>
+            </div>
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t("pft.race.staffSearchPh")}
+              aria-label={t("pft.race.staffSearchPh")}
+              disabled={closed}
+              className="h-11 w-full rounded-lg border border-line-strong bg-control px-3 text-sm disabled:opacity-40 md:w-[340px] md:shrink-0"
+            />
+          </div>
           {results && (
-            <ul className="mt-2 flex max-h-64 flex-col gap-1 overflow-y-auto">
+            <ul className="mt-3 grid max-h-64 gap-1 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
               {results.length === 0 && <li className="px-1 py-2 text-xs text-muted">{t("pft.race.staffNoResult")}</li>}
               {results.map((r) => (
                 <li key={r.user_id} className="flex items-center gap-2 rounded-lg bg-inset px-3 py-2">
@@ -512,139 +516,168 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           )}
         </section>
 
-        {/* 웨이브 출발 */}
+        {/* 웨이브 출발 — 두 단. 왼쪽 = 고른 조·선택된 사람·출발, 오른쪽 = 대기자 고르기·조 배정 */}
         <section className="rounded-2xl border border-line bg-card p-4 sm:p-5">
           <p className="text-sm font-bold">{t("pft.race.staffWave")}</p>
           <p className="mt-1 text-xs text-muted">{t("pft.race.staffWaveDesc")}</p>
           {waiting.length === 0 ? (
             <p className="mt-3 text-sm text-muted">{t("pft.race.staffNoWaiting")}</p>
           ) : (
-            <>
-              {/* 조별 출발 — 조가 하나라도 배정돼 있을 때만. 누르면 그 조의 대기자가 함께 출발한다 */}
-              {grouped && (
-                <div className="mt-3 flex flex-col gap-2">
-                  {waveGroups
-                    .filter((g) => g.wave != null)
-                    .map((g) => (
-                      <button
-                        key={g.wave}
-                        type="button"
-                        // 누르면 **선택만** 한다 — 출발은 아래 큰 버튼으로. 한 번 더 확인하고
-                        // 내보내야 오출발이 나지 않는다(2026-09-13 운영 피드백).
-                        onClick={() => setSelected(g.rows.map((e) => e.entry_id))}
-                        disabled={busy || closed}
-                        className={`flex h-14 items-center justify-between gap-3 rounded-xl border px-4 text-left font-extrabold transition disabled:opacity-40 ${
-                          picked === g.wave
-                            ? "border-accent bg-accent text-background"
-                            : "border-line-accent bg-highlight text-accent hover:brightness-125"
-                        }`}
-                      >
-                        <span className="text-base">
-                          {t("pft.race.waveSelectGroup", { wave: g.wave!, n: g.rows.length })}
-                        </span>
-                        <span
-                          className={`min-w-0 truncate text-xs font-semibold ${
-                            picked === g.wave ? "text-background/70" : "text-muted"
+            <div className="mt-3 grid items-start gap-4 md:grid-cols-2">
+              {/* 왼쪽 단 — 선택된 웨이브 */}
+              <div className="flex flex-col gap-3">
+                {/* 조별 출발 — 조가 하나라도 배정돼 있을 때만. 누르면 그 조의 대기자가 선택된다 */}
+                {grouped && (
+                  <div className="flex flex-col gap-2">
+                    {waveGroups
+                      .filter((g) => g.wave != null)
+                      .map((g) => (
+                        <button
+                          key={g.wave}
+                          type="button"
+                          // 누르면 **선택만** 한다 — 출발은 아래 큰 버튼으로. 한 번 더 확인하고
+                          // 내보내야 오출발이 나지 않는다(2026-09-13 운영 피드백).
+                          onClick={() => setSelected(g.rows.map((e) => e.entry_id))}
+                          disabled={busy || closed}
+                          className={`flex h-14 items-center justify-between gap-3 rounded-xl border px-4 text-left font-extrabold transition disabled:opacity-40 ${
+                            picked === g.wave
+                              ? "border-accent bg-accent text-background"
+                              : "border-line-accent bg-highlight text-accent hover:brightness-125"
                           }`}
                         >
-                          {g.rows.map((e) => e.name).join(", ")}
-                        </span>
-                      </button>
-                    ))}
+                          <span className="shrink-0 text-base">
+                            {t("pft.race.waveSelectGroup", { wave: g.wave!, n: g.rows.length })}
+                          </span>
+                          <span
+                            className={`min-w-0 truncate text-xs font-semibold ${
+                              picked === g.wave ? "text-background/70" : "text-muted"
+                            }`}
+                          >
+                            {g.rows.map((e) => e.name).join(", ")}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                )}
+
+                {/* 지금 선택된 사람 — 출발 전에 눈으로 한 번 더 확인 */}
+                <div className="rounded-xl border border-line-soft bg-inset p-3">
+                  <p className="text-xs font-bold text-muted">
+                    {t("pft.race.staffSelectedN", { n: selected.length })}
+                  </p>
+                  {selected.length > 0 ? (
+                    <ul className="mt-2 flex flex-wrap gap-1.5">
+                      {waiting
+                        .filter((e) => selected.includes(e.entry_id))
+                        .map((e) => (
+                          <li
+                            key={e.entry_id}
+                            className="rounded-full bg-highlight px-2.5 py-1 text-xs font-bold text-accent"
+                          >
+                            {e.name}
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted">{t("pft.race.staffSelectedNone")}</p>
+                  )}
                 </div>
-              )}
 
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <button
                   type="button"
-                  onClick={() => setSelected(waiting.map((e) => e.entry_id))}
-                  className="h-8 rounded-lg border border-line-strong bg-control px-3 font-semibold"
-                >
-                  {t("pft.race.staffSelectAll")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelected([])}
-                  disabled={!selected.length}
-                  className="h-8 rounded-lg border border-line-strong bg-control px-3 font-semibold disabled:opacity-40"
-                >
-                  {t("pft.race.staffClear")}
-                </button>
-              </div>
-              <ul className="mt-2 flex max-h-56 flex-col gap-1 overflow-y-auto">
-                {waiting.map((e) => {
-                  const on = selected.includes(e.entry_id);
-                  return (
-                    <li key={e.entry_id}>
-                      <label
-                        className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 ${
-                          on ? "border-accent bg-highlight" : "border-line-soft bg-inset"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={on}
-                          onChange={(ev) =>
-                            setSelected((s) =>
-                              ev.target.checked ? [...s, e.entry_id] : s.filter((id) => id !== e.entry_id),
-                            )
-                          }
-                          className="h-5 w-5 accent-accent"
-                        />
-                        <span className="min-w-0 flex-1 truncate text-sm font-semibold">{e.name}</span>
-                        {e.wave != null && (
-                          <span className="shrink-0 rounded bg-highlight px-1.5 py-0.5 text-[10px] font-extrabold text-accent">
-                            {t("pft.race.waveN", { n: e.wave })}
-                          </span>
-                        )}
-                        {e.scaled && (
-                          <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
-                            {t("pft.scaledTag")}
-                          </span>
-                        )}
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-              {/* 선택 → 조 배정. 조를 먼저 짜 두고 순서대로 내보내기 위한 것 */}
-              <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-xs font-semibold text-muted">
-                  {t("pft.race.waveAssignTo")}
-                </span>
-                {[1, 2, 3, 4, 5, 6].map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => assignWave(w)}
-                    disabled={busy || closed || !selected.length}
-                    className="tabular h-9 w-9 rounded-lg border border-line-strong bg-control text-sm font-extrabold disabled:opacity-40"
-                  >
-                    {w}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => assignWave(null)}
+                  onClick={startWave}
                   disabled={busy || closed || !selected.length}
-                  className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold text-muted disabled:opacity-40"
+                  className="h-16 w-full rounded-2xl bg-accent text-xl font-black text-background hover:brightness-110 disabled:opacity-40"
                 >
-                  {t("pft.race.waveNone")}
+                  {t("pft.race.staffStart", { n: selected.length })}
                 </button>
               </div>
-              <p className="mt-1.5 text-xs text-muted [word-break:keep-all]">
-                {t("pft.race.waveHint")}
-              </p>
 
-              <button
-                type="button"
-                onClick={startWave}
-                disabled={busy || closed || !selected.length}
-                className="mt-3 h-16 w-full rounded-2xl bg-accent text-xl font-black text-background hover:brightness-110 disabled:opacity-40"
-              >
-                {t("pft.race.staffStart", { n: selected.length })}
-              </button>
-            </>
+              {/* 오른쪽 단 — 대기자 고르기 · 조 배정 */}
+              <div className="flex flex-col">
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSelected(waiting.map((e) => e.entry_id))}
+                    className="h-8 rounded-lg border border-line-strong bg-control px-3 font-semibold"
+                  >
+                    {t("pft.race.staffSelectAll")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelected([])}
+                    disabled={!selected.length}
+                    className="h-8 rounded-lg border border-line-strong bg-control px-3 font-semibold disabled:opacity-40"
+                  >
+                    {t("pft.race.staffClear")}
+                  </button>
+                </div>
+                <ul className="mt-2 flex max-h-72 flex-col gap-1 overflow-y-auto">
+                  {waiting.map((e) => {
+                    const on = selected.includes(e.entry_id);
+                    return (
+                      <li key={e.entry_id}>
+                        <label
+                          className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 ${
+                            on ? "border-accent bg-highlight" : "border-line-soft bg-inset"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={(ev) =>
+                              setSelected((s) =>
+                                ev.target.checked ? [...s, e.entry_id] : s.filter((id) => id !== e.entry_id),
+                              )
+                            }
+                            className="h-5 w-5 accent-accent"
+                          />
+                          <span className="min-w-0 flex-1 truncate text-sm font-semibold">{e.name}</span>
+                          {e.wave != null && (
+                            <span className="shrink-0 rounded bg-highlight px-1.5 py-0.5 text-[10px] font-extrabold text-accent">
+                              {t("pft.race.waveN", { n: e.wave })}
+                            </span>
+                          )}
+                          {e.scaled && (
+                            <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
+                              {t("pft.scaledTag")}
+                            </span>
+                          )}
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {/* 선택 → 조 배정. 조를 먼저 짜 두고 순서대로 내보내기 위한 것 */}
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span className="mr-1 text-xs font-semibold text-muted">
+                    {t("pft.race.waveAssignTo")}
+                  </span>
+                  {[1, 2, 3, 4, 5, 6].map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => assignWave(w)}
+                      disabled={busy || closed || !selected.length}
+                      className="tabular h-9 w-9 rounded-lg border border-line-strong bg-control text-sm font-extrabold disabled:opacity-40"
+                    >
+                      {w}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => assignWave(null)}
+                    disabled={busy || closed || !selected.length}
+                    className="h-9 rounded-lg border border-line-strong bg-control px-3 text-xs font-semibold text-muted disabled:opacity-40"
+                  >
+                    {t("pft.race.waveNone")}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-muted [word-break:keep-all]">
+                  {t("pft.race.waveHint")}
+                </p>
+              </div>
+            </div>
           )}
         </section>
       </div>
