@@ -692,6 +692,9 @@ export type ManageMember = {
   /** 무료 행사 포함 전체 출석 / 유료 모임만 */
   attend_count: number;
   attend_paid_count: number;
+  /** 최종 출석일(사용자 시간대로 서버에서 만든 글자)과 오늘까지 지난 일수 — 출석이 없으면 없음 */
+  last_attended_label?: string;
+  days_since?: number;
 };
 
 /** 한 페이지에 20명. 크루가 100명을 넘어가면 한 화면에 다 깔 수 없다. */
@@ -915,6 +918,8 @@ export function CrewMemberManage({
       t("crew.csvRole"),
       t("crew.colAttend"),
       t("crew.csvAttendAll"),
+      t("crew.colLastAttend"),
+      t("crew.csvDaysSince"),
     ];
     downloadCsv(
       `${slug}-members.csv`,
@@ -926,13 +931,15 @@ export function CrewMemberManage({
         roleLabel(m.role),
         m.attend_paid_count,
         m.attend_count,
+        m.last_attended_label ?? "",
+        m.days_since ?? "",
       ]),
     );
   }
 
   const CARD = "overflow-hidden rounded-[14px] border border-line bg-card";
   const cols =
-    "sm:grid sm:grid-cols-[20px_minmax(0,1.6fr)_110px_90px_44px] sm:items-center sm:gap-3";
+    "sm:grid sm:grid-cols-[20px_minmax(0,1.6fr)_110px_112px_90px_44px] sm:items-center sm:gap-3";
   const check = "h-4 w-4 shrink-0 cursor-pointer accent-accent";
 
   return (
@@ -1083,6 +1090,7 @@ export function CrewMemberManage({
           />
           <span>{t("crew.colMember")}</span>
           <span>{t("crew.colTier")}</span>
+          <span className="text-right">{t("crew.colLastAttend")}</span>
           <span className="text-right">{t("crew.colAttend")}</span>
           <span />
         </div>
@@ -1152,6 +1160,29 @@ export function CrewMemberManage({
                       </option>
                     ))}
                 </select>
+
+                {/* 최종 출석일 · 오늘까지 지난 일수. 30일 넘게 안 나온 회원은 눈에 띄게 */}
+                <span
+                  className="tabular flex flex-col text-[12px] leading-tight sm:items-end"
+                  title={t("crew.colLastAttend")}
+                >
+                  {m.last_attended_label ? (
+                    <>
+                      <span className="font-semibold">{m.last_attended_label}</span>
+                      <span
+                        className={
+                          (m.days_since ?? 0) >= 30 ? "font-bold text-danger" : "text-[#888]"
+                        }
+                      >
+                        {m.days_since === 0
+                          ? t("crew.lastAttendToday")
+                          : t("crew.lastAttendDays", { n: m.days_since ?? 0 })}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-[#666]">{t("crew.lastAttendNone")}</span>
+                  )}
+                </span>
 
                 {/* 출석 = 유료 모임 / 무료 포함 전체 */}
                 <span

@@ -4,7 +4,7 @@ import { getCrew } from "@/lib/crew";
 import { getCachedUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n";
-import { todayISOIn } from "@/lib/format";
+import { formatDateShortYear, todayISOIn } from "@/lib/format";
 import { tierBarClass } from "@/lib/crew-role";
 
 import {
@@ -97,7 +97,7 @@ export default async function CrewManagePage({
       ? "dues"
       : "info";
 
-  const [crew, user, { t, tz }] = await Promise.all([
+  const [crew, user, { t, tag, tz }] = await Promise.all([
     getCrew(slug),
     getCachedUser(),
     getT(),
@@ -117,6 +117,7 @@ export default async function CrewManagePage({
     { data: attachedRows },
     { data: progRows },
     { data: duesRows },
+    lastAttendRes,
   ] = await Promise.all([
     supabase
       .from("crews")
@@ -161,10 +162,30 @@ export default async function CrewManagePage({
           .order("sort_order")
           .order("created_at")
       : Promise.resolve({ data: null }),
+    // 멤버 탭: 회원별 최종 출석일·경과 일수(마이그레이션 121)
+    tab === "members"
+      ? supabase.rpc("crew_manage_last_attend", { p_slug: slug })
+      : Promise.resolve({ data: null, error: null }),
   ]);
   if (!row) notFound();
 
-  const members = (roster ?? []) as ManageMember[];
+  // 최종 출석을 못 읽어도 명단은 그대로 보여 준다(그 칸만 비운다)
+  if (lastAttendRes.error) console.error("crew_manage_last_attend", lastAttendRes.error.message);
+  const lastAttend = new Map(
+    ((lastAttendRes.data ?? []) as { user_id: string; last_attended_at: string; days_since: number }[]).map(
+      (r) => [r.user_id, r],
+    ),
+  );
+  const members = ((roster ?? []) as ManageMember[]).map((m) => {
+    const la = lastAttend.get(m.user_id);
+    return la
+      ? {
+          ...m,
+          last_attended_label: formatDateShortYear(la.last_attended_at, tag, tz),
+          days_since: la.days_since,
+        }
+      : m;
+  });
   const tiers = (tierRows ?? []) as CrewTier[];
   const pendingCount = members.filter((m) => m.status === "pending").length;
   /** 등급별 활동 회원 수 — 명단에서 세면 추가 조회가 없다(stats.tiers 는 이름만 있어
