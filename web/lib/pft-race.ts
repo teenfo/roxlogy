@@ -41,7 +41,13 @@ export type RaceEntry = {
   paused_ms?: number | null;
 };
 
-export type BoardData = { race: RaceInfo; server_now: string; entries: RaceEntry[] };
+export type BoardData = {
+  race: RaceInfo;
+  server_now: string;
+  entries: RaceEntry[];
+  /** 조별 설명 (마이그레이션 126) — 옛 응답에는 없다 */
+  waves?: { wave: number; note: string }[];
+};
 
 /** 내 엔트리 (pft_race_* RPC 반환) */
 export type MyEntry = {

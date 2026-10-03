@@ -59,6 +59,9 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   const [waveOpen, setWaveOpen] = useState(true);
   /** 선택한 대기자를 넣을 조 — "new" = 다음 번호로 새로 만든다(기본) */
   const [target, setTarget] = useState<"new" | number>("new");
+  /** 고치는 중인 조 설명 — 폴링이 data 를 갈아끼워도 입력 중인 글은 여기 남는다 */
+  const [noteEdit, setNoteEdit] = useState<{ wave: number; text: string } | null>(null);
+  const noteDoneRef = useRef(false);
   const [q, setQ] = useState("");
   const [fetched, setFetched] = useState<{ q: string; rows: Search[] } | null>(null);
   const [now, setNow] = useState(() => Date.parse(initial.server_now));
@@ -318,6 +321,30 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     })) as { entry_id?: string; error?: string } | null;
     if (!j?.entry_id) return;
     await refetchNow();
+  };
+
+  const waveNotes = new Map((data.waves ?? []).map((w) => [w.wave, w.note]));
+
+  const editNote = (wave: number) => {
+    noteDoneRef.current = false;
+    setNoteEdit({ wave, text: waveNotes.get(wave) ?? "" });
+  };
+
+  /** 조 설명 저장 — 비우면 지운다(마이그레이션 126). Enter·포커스 이탈이 겹쳐도 한 번만 보낸다 */
+  const saveNote = async (wave: number, text: string) => {
+    if (noteDoneRef.current) return;
+    noteDoneRef.current = true;
+    setNoteEdit(null);
+    const next = text.trim();
+    if (next === (waveNotes.get(wave) ?? "")) return;
+    const j = await call("pft_race_set_wave_note", { p_race: raceId, p_wave: wave, p_note: next });
+    if (!j) return;
+    setData((d) => ({
+      ...d,
+      waves: [...(d.waves ?? []).filter((w) => w.wave !== wave), ...(next ? [{ wave, note: next }] : [])].sort(
+        (a, b) => a.wave - b.wave,
+      ),
+    }));
   };
 
   /** 선수 한 명을 조에서 뺀다(출발 전만 — 서버도 출발한 사람은 건너뛴다) */
@@ -986,7 +1013,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                   }}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1 basis-60">
                       <p className="text-3xl font-black leading-none sm:text-4xl" style={{ color: waveColor(g.wave) }}>
                         {t("pft.race.waveN", { n: g.wave })}
                       </p>
@@ -994,6 +1021,45 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                         {t("pft.race.waveCardCount", { n: g.waitingRows.length })}
                         {waveSel.length > 0 && ` · ${t("pft.race.waveSelectedN", { n: waveSel.length })}`}
                       </p>
+                      {/* 조 설명(선택) — 누르면 그 자리에서 고친다. Enter·포커스 이탈 = 저장, Esc = 취소 */}
+                      {noteEdit?.wave === g.wave ? (
+                        <input
+                          autoFocus
+                          maxLength={120}
+                          value={noteEdit.text}
+                          onChange={(ev) => setNoteEdit({ wave: g.wave, text: ev.target.value })}
+                          onKeyDown={(ev) => {
+                            if (ev.key === "Enter") void saveNote(g.wave, noteEdit.text);
+                            if (ev.key === "Escape") {
+                              noteDoneRef.current = true;
+                              setNoteEdit(null);
+                            }
+                          }}
+                          onBlur={() => void saveNote(g.wave, noteEdit.text)}
+                          placeholder={t("pft.race.waveNotePh")}
+                          aria-label={t("pft.race.waveNoteLabel", { n: g.wave })}
+                          className="mt-2 h-10 w-full max-w-md rounded-xl border-2 border-line-strong bg-control px-3 text-sm text-foreground"
+                        />
+                      ) : waveNotes.get(g.wave) ? (
+                        <button
+                          type="button"
+                          onClick={() => editNote(g.wave)}
+                          disabled={busy}
+                          title={t("pft.race.waveNoteEdit")}
+                          className="mt-2 block max-w-full break-words text-left text-base font-semibold text-foreground hover:underline"
+                        >
+                          {waveNotes.get(g.wave)}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => editNote(g.wave)}
+                          disabled={busy}
+                          className="mt-1 text-sm text-muted opacity-70 hover:text-foreground hover:opacity-100"
+                        >
+                          ＋ {t("pft.race.waveNoteAdd")}
+                        </button>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {/* 이 조 대기자 전체 선택 / 전체 해제 — 다른 조의 선택은 건드리지 않는다 */}
