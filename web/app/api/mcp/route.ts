@@ -1598,11 +1598,11 @@ const handler = createMcpHandler(
       {
         title: "시뮬 scaled 기준",
         description:
-          "하이록스 시뮬 레이스의 scaled 기준 — scaled 로 표시된 선수가 종목별로 어떻게 바꿔 뛰는지(운영진만, 시뮬만: invalid_format). " +
+          "하이록스 시뮬 레이스의 scaled 기준 — 기준이 있으면 레이스 전체가 scaled 다: 참가자 전원이 이 값으로 뛰고, 완주 세션 메모에 기준이 남고 리더보드에서 빠진다(운영진만, 시뮬만: invalid_format). 선수별 scaled 표시는 쓰지 않는다. " +
           "spec 은 바꾼 종목만: ski·sledpush·sledpull·burpee·row·farmers·lunges·wallballs 각각 {amount: 거리 m(월볼은 횟수) 1~5000 정수, weight: kg 0~300(sledpush·sledpull·farmers·lunges·wallballs 만)}. " +
           "정규 기준은 ski 1000m, sledpush 50m, sledpull 50m, burpee 80m, row 1000m, farmers 200m, lunges 100m, wallballs 100회. " +
           "spec 을 비우면({}) 기준을 지운다. 통째로 바꾸는 것이라 유지할 종목도 다시 넣어라. 이미 완주한 scaled 선수의 세션 메모(수정 내용 한 줄)도 다시 쓰인다. " +
-          "응답 summary 는 한 줄 요약. 레이스를 만든 직후 기준을 정하려면 create_timing_race 다음에 이것을 불러라. 실행 전 사용자에게 확인받아라.",
+          "기준을 비우면 이미 완주한 세션도 리더보드에 다시 포함된다. 응답 summary 는 한 줄 요약. 레이스를 만든 직후 기준을 정하려면 create_timing_race 다음에 이것을 불러라. 실행 전 사용자에게 확인받아라.",
         inputSchema: z.object({
           code,
           spec: z.object({
@@ -1690,7 +1690,7 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.8.0" },
+    serverInfo: { name: "roxlogy", version: "3.8.1" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초

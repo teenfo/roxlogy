@@ -431,19 +431,7 @@ export function PftRaceRunner({
               {closed && <p className="mt-2 text-xs text-muted">{t("pft.race.closedNote")}</p>}
             </div>
           )}
-          {/* 시뮬 — 출발은 운영진이 조 단위로 하므로 완주 전까지 언제든 고친다. 수정 기록은 리더보드에 오르지 않는다 */}
-          {joined && !done && !closed && (
-            <label className="flex items-center gap-2 text-sm text-muted">
-              <input
-                type="checkbox"
-                checked={scaled}
-                disabled={busy}
-                onChange={(e) => void toggleScaled(e.target.checked)}
-                className="accent-accent"
-              />
-              {t("race.simScaled")}
-            </label>
-          )}
+          {/* 시뮬은 scaled 가 레이스 단위다(기준이 있으면 참가자 전원) — 선수별 체크를 두지 않는다 (2026-10-04) */}
           {joined && closed && !done && <p className="text-xs text-danger">{t("pft.race.closedNote")}</p>}
         </>
       }

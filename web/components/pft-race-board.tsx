@@ -195,11 +195,10 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                 style={{ background: SIM_STATION_COLORS[st.key] ?? CHART_COLORS.station }}
               >
                 <p className="text-[11px] font-bold tracking-[0.06em] opacity-70">{i + 1}</p>
-                <p className="mt-0.5 line-clamp-2 break-keep text-[13px] font-extrabold leading-tight">{t(`station.${st.key}` as DictKey)}</p>
-                {scaleSpec?.[st.key] && (
-                  /* scaled 기준 — 이 종목을 바꿔 뛰는 선수(scaled)의 거리·횟수·무게 */
-                  <p className="mt-1 rounded-md bg-black/10 px-1.5 py-0.5 text-[11px] font-bold leading-tight">
-                    <span className="block text-[10px] uppercase tracking-[0.06em] opacity-70">{t("race.scale.cardTag")}</span>
+                {scaleSpec?.[st.key] ? (
+                  /* scaled 레이스 — 정규 기준 대신 이 레이스의 값만 (참가자 전원이 이 기준으로 뛴다) */
+                  <p className="mt-0.5 break-keep text-[13px] font-extrabold leading-tight">
+                    <span className="line-clamp-2">{t(`race.scale.st.${st.key}` as DictKey)}</span>
                     {/* 값 단위로만 줄을 바꾼다(좁은 카드에서 "75 reps" 가 쪼개지지 않게) */}
                     <span className="flex flex-wrap justify-center gap-x-1">
                       {scaledStationText(t, st.key, scaleSpec)
@@ -211,6 +210,8 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                         ))}
                     </span>
                   </p>
+                ) : (
+                  <p className="mt-0.5 line-clamp-2 break-keep text-[13px] font-extrabold leading-tight">{t(`station.${st.key}` as DictKey)}</p>
                 )}
               </li>
             ))}

@@ -12,6 +12,7 @@ import {
   checkpointsFor,
   raceBase,
   scaledSpecFromInputs,
+  scaledSpecSummary,
   scaledSpecToInputs,
   scaledSpecValid,
 } from "@/lib/race-format";
@@ -702,8 +703,9 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       {t("pft.race.waveUnassign")}
                     </button>
                   )}
-                  {/* 볼륨·동작 수정 — 시뮬은 수정 기록이 리더보드에 오르지 않는다. PFT 는 완주 뒤 배지가 확정돼 바꾸지 않는다 */}
-                  {!closed && !dnf && (isSim || state !== "finished") && (
+                  {/* 볼륨·동작 수정 — PFT 만. 시뮬은 scaled 가 레이스 단위(기준이 있으면 전원)라 선수별 체크가 없다.
+                      PFT 는 완주 뒤 배지가 확정돼 바꾸지 않는다 */}
+                  {!isSim && !closed && !dnf && state !== "finished" && (
                     <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs font-semibold text-muted">
                       <input
                         type="checkbox"
@@ -796,7 +798,24 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-accent">{t("pft.race.staff")}</p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{data.race.title}</h1>
+          <h1 className="mt-1 flex items-center gap-2 text-2xl font-extrabold tracking-tight">
+            <span className="min-w-0">{data.race.title}</span>
+            {/* scaled 레이스 표시 — 기준이 있으면 참가자 전원이 그 기준으로 뛴다. 마우스를 올리면 기준 요약 */}
+            {isSim && data.race.scaled_spec && (
+              <span
+                role="img"
+                aria-label={`${t("race.scale.raceIcon")}: ${scaledSpecSummary(t, data.race.scaled_spec)}`}
+                title={`${t("race.scale.raceIcon")} · ${scaledSpecSummary(t, data.race.scaled_spec)}`}
+                className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full border border-line-accent bg-highlight px-2 text-xs font-extrabold text-accent"
+              >
+                <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3h10M5 7h6M7 11h2" />
+                  <path d="M8 13.5v-1" />
+                </svg>
+                {t("race.scale.cardTag")}
+              </span>
+            )}
+          </h1>
           {data.race.description && (
             <p className="mt-1 whitespace-pre-line text-sm text-foreground/80">{data.race.description}</p>
           )}
