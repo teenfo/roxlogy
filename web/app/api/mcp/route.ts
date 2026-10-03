@@ -198,11 +198,11 @@ const handler = createMcpHandler(
         description:
           "크루의 일정 — 모임, 크루원 대회 참가(결과 기록 포함), 크루 훈련 프로그램. 기본 오늘부터 30일(from/to 는 KST 날짜). " +
           "모임마다 전체 정보를 준다: id·title·kind(wod/race_sim/run/strength/social/race)·description·starts_at·ends_at·location·capacity·" +
-          "members_only(정회원 전용)·comments_allowed·free(무료 행사 — 회차비 없음)·closed(종료)·coach·created_by·created_at·updated_at, " +
+          "members_only(정회원 전용)·comments_allowed·free(무료 행사 — 회차비 없음)·closed(종료)·cancelled·cancelled_at(취소)·coach·created_by·created_at·updated_at, " +
           "workout(연결된 운동: title·type·structure), race_event(연결된 대회: name·city·country·start_date·end_date), " +
           "응답 수 going·maybe·declined·waitlisted·checked_in(출석), my_rsvp(내 응답·출석), comments(댓글 수), polls·open_polls(투표 수). " +
           "크루원이 조회하면 rsvps(응답자 명단: user_id·name·status·checked_in·tier, 참석→대기→미정→불참 순)도 온다 — 비회원은 null. " +
-          "취소된 모임은 빠진다. member_races 에는 user_id, crew_programs 에는 program_id 가 있다.",
+          "취소된 모임도 cancelled=true 로 함께 온다. member_races 에는 user_id, crew_programs 에는 program_id 가 있다.",
         inputSchema: z.object({
           slug: z.string(),
           from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -1299,7 +1299,7 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.5.1" },
+    serverInfo: { name: "roxlogy", version: "3.5.2" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
