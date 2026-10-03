@@ -12,7 +12,6 @@ import {
   checkpointsFor,
   raceBase,
   scaledSpecFromInputs,
-  scaledSpecSummary,
   scaledSpecToInputs,
   scaledSpecValid,
 } from "@/lib/race-format";
@@ -502,7 +501,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   // 진행에 따라 다시 정렬하면 종목을 찍을 때마다 카드가 자리를 옮겨서,
   // 스태프가 누가 어디 있었는지를 놓친다. 상태는 색·라벨로만 나타낸다.
   const entries = data.entries;
-  const scaleSummary = scaledSpecSummary(t, data.race.scaled_spec);
   // 구간 수는 아무도 출발하지 않은 진행 중 레이스에서만 바꾼다(서버도 race_started 로 막는다)
   const cpLocked = closed || entries.some((e) => entryState(e) !== "waiting");
   const waiting = entries.filter((e) => entryState(e) === "waiting");
@@ -583,11 +581,6 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                           </span>
                         )}
                       </p>
-                      {e.scaled && isSim && scaleSummary && (
-                        <p className="text-[11px] text-muted" title={t("race.scale.label")}>
-                          {scaleSummary}
-                        </p>
-                      )}
                       <p className="text-xs font-bold uppercase tracking-wider text-muted">
                         {dnf
                           ? t("pft.race.dnf")

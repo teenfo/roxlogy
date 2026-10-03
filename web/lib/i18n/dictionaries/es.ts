@@ -285,6 +285,7 @@ const es: Record<DictKey, string> = {
   "pft.race.waveStartN": "▶ Salir {n}",
   "pft.race.waveDeselect": "Quitar selección",
   "pft.race.waveClearAll": "Quitar todo",
+  "race.scale.cardTag": "Adaptado",
   "race.scale.heading": "Estándar adaptado (opcional)",
   "race.scale.hint": "Lo que hacen los atletas marcados como adaptados. Rellena solo las estaciones que cambian — en blanco es el estándar (gris).",
   "race.scale.distance": "Distancia (m)",

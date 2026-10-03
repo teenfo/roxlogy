@@ -8,7 +8,7 @@ import { PftBoardTopBar } from "@/components/pft-board-topbar";
 import { formatMs } from "@/lib/format";
 import { PFT_COLORS, PFT_CUTOFFS, PFT_STATIONS, badgeClass, badgeDictKey } from "@/lib/pft";
 import { CHART_COLORS, SIM_STATION_COLORS, STATIONS } from "@/lib/hyrox";
-import { checkpointLabel, checkpointsFor, formatLabel, raceBase, raceHome, scaledSpecSummary, type Checkpoint } from "@/lib/race-format";
+import { checkpointLabel, checkpointsFor, formatLabel, raceBase, raceHome, scaledStationText, type Checkpoint } from "@/lib/race-format";
 import {
   avatarColor,
   entryState,
@@ -131,9 +131,8 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   const pageRows = finished.slice((page % pages) * PAGE_SIZE, (page % pages) * PAGE_SIZE + PAGE_SIZE);
 
   const stationLabel = (i: number) => (cps[i] ? checkpointLabel(t, cps[i]) : "");
-  // 시뮬 scaled 기준 한 줄 — scaled 완주자 줄에 붙인다(마이그레이션 135)
-  const scaleSummary = isSim ? scaledSpecSummary(t, data.race.scaled_spec) : "";
-  const scaledLine = scaleSummary ? `${t("pft.scaledTag")} · ${scaleSummary}` : t("pft.scaledTag");
+  // 시뮬 scaled 기준 — 선수 줄이 아니라 상단 종목 카드에 종목별로 보여 준다(사용자 지정 2026-10-03)
+  const scaleSpec = isSim ? data.race.scaled_spec ?? null : null;
   const dateLine = (() => {
     const d = new Date(data.race.created_at);
     return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
@@ -177,6 +176,22 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               >
                 <p className="text-[11px] font-bold tracking-[0.06em] opacity-70">{i + 1}</p>
                 <p className="mt-0.5 line-clamp-2 break-keep text-[13px] font-extrabold leading-tight">{t(`station.${st.key}` as DictKey)}</p>
+                {scaleSpec?.[st.key] && (
+                  /* scaled 기준 — 이 종목을 바꿔 뛰는 선수(scaled)의 거리·횟수·무게 */
+                  <p className="mt-1 rounded-md bg-black/10 px-1.5 py-0.5 text-[11px] font-bold leading-tight">
+                    <span className="block text-[10px] uppercase tracking-[0.06em] opacity-70">{t("race.scale.cardTag")}</span>
+                    {/* 값 단위로만 줄을 바꾼다(좁은 카드에서 "75 reps" 가 쪼개지지 않게) */}
+                    <span className="flex flex-wrap justify-center gap-x-1">
+                      {scaledStationText(t, st.key, scaleSpec)
+                        .split(" · ")
+                        .map((part) => (
+                          <span key={part} className="whitespace-nowrap">
+                            {part}
+                          </span>
+                        ))}
+                    </span>
+                  </p>
+                )}
               </li>
             ))}
           </ol>
@@ -347,7 +362,6 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                           {r.scaled && (
                             <span
                               className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted"
-                              title={scaleSummary || undefined}
                             >
                               {t("pft.scaledTag")}
                             </span>
@@ -355,7 +369,6 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                         </span>
                         <span className="tabular text-base font-extrabold">{formatMs(r.total_ms ?? 0)}</span>
                       </div>
-                      {r.scaled && scaleSummary && <p className="truncate text-xs text-muted">{scaledLine}</p>}
                       <SplitStrip splits={r.splits} cps={cps} stationLabel={stationLabel} />
                     </li>
                   ))
@@ -517,7 +530,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                         )}
                         <span className="truncate">
                           {r.scaled
-                            ? scaledLine
+                            ? t("pft.scaledTag")
                             : r.finished_at
                               ? t("pft.race.finishedAt", { time: fmtWallClock(new Date(r.finished_at), false) })
                               : ""}

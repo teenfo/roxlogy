@@ -285,6 +285,7 @@ const ko: Record<DictKey, string> = {
   "pft.race.waveStartN": "▶ {n}명 출발",
   "pft.race.waveDeselect": "선택 해제",
   "pft.race.waveClearAll": "전체 해제",
+  "race.scale.cardTag": "Scaled",
   "race.scale.heading": "Scaled 기준 (선택)",
   "race.scale.hint": "scaled 로 표시된 선수가 따르는 종목별 기준이에요. 바꾼 종목만 채우세요 — 빈 칸은 정규 기준(회색 글씨)과 같아요.",
   "race.scale.distance": "거리(m)",

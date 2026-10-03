@@ -180,3 +180,14 @@ export function scaledSpecSummary(t: TFn, spec: ScaledSpec | null | undefined): 
     })
     .join(" · ");
 }
+
+/** 한 종목의 scaled 값만 — "25m · 102kg" / "75 reps · 4kg" (보드 종목 카드용) */
+export function scaledStationText(t: TFn, key: string, spec: ScaledSpec | null | undefined): string {
+  const v = spec?.[key];
+  const f = SIM_SCALE_FIELDS.find((x) => x.key === key);
+  if (!v || !f) return "";
+  const parts: string[] = [];
+  if (v.amount != null) parts.push(f.unit === "reps" ? t("race.scale.repsN", { n: v.amount }) : `${v.amount}m`);
+  if (v.weight != null) parts.push(`${v.weight}kg`);
+  return parts.join(" · ");
+}

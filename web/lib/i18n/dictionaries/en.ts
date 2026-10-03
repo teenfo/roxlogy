@@ -286,6 +286,7 @@ const en = {
   "pft.race.waveStartN": "▶ Start {n}",
   "pft.race.waveDeselect": "Deselect",
   "pft.race.waveClearAll": "Clear all",
+  "race.scale.cardTag": "Scaled",
   "race.scale.heading": "Scaled standard (optional)",
   "race.scale.hint": "What athletes marked as scaled do instead. Fill only the stations you change — blanks mean the standard (grey).",
   "race.scale.distance": "Distance (m)",
