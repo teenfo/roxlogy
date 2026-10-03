@@ -1173,52 +1173,54 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0 flex-1 basis-60">
-                      <p className="text-3xl font-black leading-none sm:text-4xl" style={{ color: waveColor(g.wave) }}>
-                        {t("pft.race.waveN", { n: g.wave })}
-                      </p>
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <p className="shrink-0 text-3xl font-black leading-none sm:text-4xl" style={{ color: waveColor(g.wave) }}>
+                          {t("pft.race.waveN", { n: g.wave })}
+                        </p>
+                        {/* 조 설명(선택) — 조 이름 옆(글자 크기는 그대로). 누르면 그 자리에서 고친다. Enter·포커스 이탈 = 저장, Esc = 취소 */}
+                        {noteEdit?.wave === g.wave ? (
+                          <input
+                            autoFocus
+                            maxLength={120}
+                            value={noteEdit.text}
+                            onChange={(ev) => setNoteEdit({ wave: g.wave, text: ev.target.value })}
+                            onKeyDown={(ev) => {
+                              if (ev.key === "Enter") void saveNote(g.wave, noteEdit.text);
+                              if (ev.key === "Escape") {
+                                noteDoneRef.current = true;
+                                setNoteEdit(null);
+                              }
+                            }}
+                            onBlur={() => void saveNote(g.wave, noteEdit.text)}
+                            placeholder={t("pft.race.waveNotePh")}
+                            aria-label={t("pft.race.waveNoteLabel", { n: g.wave })}
+                            className="h-10 w-full min-w-0 max-w-md flex-1 basis-48 self-center rounded-xl border-2 border-line-strong bg-control px-3 text-sm text-foreground"
+                          />
+                        ) : waveNotes.get(g.wave) ? (
+                          <button
+                            type="button"
+                            onClick={() => editNote(g.wave)}
+                            disabled={busy}
+                            title={t("pft.race.waveNoteEdit")}
+                            className="min-w-0 max-w-full break-words text-left text-base font-semibold text-foreground hover:underline"
+                          >
+                            {waveNotes.get(g.wave)}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => editNote(g.wave)}
+                            disabled={busy}
+                            className="text-sm text-muted opacity-70 hover:text-foreground hover:opacity-100"
+                          >
+                            ＋ {t("pft.race.waveNoteAdd")}
+                          </button>
+                        )}
+                      </div>
                       <p className="mt-2 text-sm text-muted">
                         {t("pft.race.waveCardCount", { n: g.waitingRows.length })}
                         {waveSel.length > 0 && ` · ${t("pft.race.waveSelectedN", { n: waveSel.length })}`}
                       </p>
-                      {/* 조 설명(선택) — 누르면 그 자리에서 고친다. Enter·포커스 이탈 = 저장, Esc = 취소 */}
-                      {noteEdit?.wave === g.wave ? (
-                        <input
-                          autoFocus
-                          maxLength={120}
-                          value={noteEdit.text}
-                          onChange={(ev) => setNoteEdit({ wave: g.wave, text: ev.target.value })}
-                          onKeyDown={(ev) => {
-                            if (ev.key === "Enter") void saveNote(g.wave, noteEdit.text);
-                            if (ev.key === "Escape") {
-                              noteDoneRef.current = true;
-                              setNoteEdit(null);
-                            }
-                          }}
-                          onBlur={() => void saveNote(g.wave, noteEdit.text)}
-                          placeholder={t("pft.race.waveNotePh")}
-                          aria-label={t("pft.race.waveNoteLabel", { n: g.wave })}
-                          className="mt-2 h-10 w-full max-w-md rounded-xl border-2 border-line-strong bg-control px-3 text-sm text-foreground"
-                        />
-                      ) : waveNotes.get(g.wave) ? (
-                        <button
-                          type="button"
-                          onClick={() => editNote(g.wave)}
-                          disabled={busy}
-                          title={t("pft.race.waveNoteEdit")}
-                          className="mt-2 block max-w-full break-words text-left text-base font-semibold text-foreground hover:underline"
-                        >
-                          {waveNotes.get(g.wave)}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => editNote(g.wave)}
-                          disabled={busy}
-                          className="mt-1 text-sm text-muted opacity-70 hover:text-foreground hover:opacity-100"
-                        >
-                          ＋ {t("pft.race.waveNoteAdd")}
-                        </button>
-                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {/* 이 조 대기자 전체 선택 / 전체 해제 — 다른 조의 선택은 건드리지 않는다 */}
