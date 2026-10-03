@@ -1083,6 +1083,31 @@ const handler = createMcpHandler(
     );
 
     server.registerTool(
+      "set_member_rsvp",
+      {
+        title: "크루원 참석 여부 지정 (운영진)",
+        description:
+          "운영진이 크루원의 모임 참석 여부를 대신 지정한다 (going=참석, maybe=미정, declined=불참). user_ids 로 여러 명(최대 100)을 한 번에 같은 상태로 지정한다. user_id 는 list_crew_members, 모임 id 는 get_crew_schedule 에서 얻는다. 본인 응답과 같은 규칙: 취소된 모임 불가, 정회원 전용 모임에 준회원은 참석·미정 불가(error: members_only), 크루원이 아니면 error: not_a_member — 결과는 사람별로 results 에 온다. 정원이 찬 모임은 참석 지정이 status=waitlisted(대기)가 되고, 참석자를 불참으로 바꾸면 대기자가 자동 승격된다. 종료된 모임도 운영진은 바꿀 수 있다. 출석 체크(check_in_member)와는 별개다. 실행 전 누구를 어떤 상태로 지정하는지 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          slug: z.string(),
+          event_id: z.string().uuid(),
+          user_ids: z.array(z.string().uuid()).min(1).max(100),
+          status: z.enum(["going", "maybe", "declined"]),
+        }),
+      },
+      async ({ slug, event_id, user_ids, status }, ctx) =>
+        out(
+          await writeRpc("mcp_set_member_rsvp", {
+            p_token: tok(ctx),
+            p_slug: slug,
+            p_event: event_id,
+            p_user_ids: user_ids,
+            p_status: status,
+          }),
+        ),
+    );
+
+    server.registerTool(
       "set_meetup_flags",
       {
         title: "모임 상태 변경 (운영진)",
@@ -1268,7 +1293,7 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.4.0" },
+    serverInfo: { name: "roxlogy", version: "3.5.0" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
@@ -1296,7 +1321,7 @@ const handler = createMcpHandler(
       '응답이 {"error":"not_found_or_invalid_token"} 이면 토큰이 잘못됐거나 접근 권한이 없는 것이다 — 빈 목록([])과 구분된다. ' +
       '토큰은 기본 읽기 전용이다 — 쓰기 도구는 사용자가 Roxlogy 설정(프로필 > 내 AI 연결)에서 "변경 허용"을 켠 토큰에서만 동작하고, 아니면 {"error":"read_only_token"} 이 온다. 그때는 재시도하지 말고 사용자에게 설정을 켜 달라고 안내한다. ' +
       "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
-      "쓰기 도구(회계 기록·통장 반영·기초 잔액·월 마감·모임 등록/수정/상태변경·공지·승인·등급 지정·출석 체크·" +
+      "쓰기 도구(회계 기록·통장 반영·기초 잔액·월 마감·모임 등록/수정/상태변경·크루원 참석 여부 지정·공지·승인·등급 지정·출석 체크·" +
       "회비 확정/맞추기/면제·프로그램 생성/수정/일차 수정/시작/중지·크루 연결·PFT 기록·운동 등록 요청·" +
       "투표 만들기/투표/마감/삭제)는 " +
       "실행 전 반드시 사용자에게 내용을 확인받는다. " +
