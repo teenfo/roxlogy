@@ -8,7 +8,7 @@ import { PftBoardTopBar } from "@/components/pft-board-topbar";
 import { formatMs } from "@/lib/format";
 import { PFT_COLORS, PFT_CUTOFFS, PFT_STATIONS, badgeClass, badgeDictKey } from "@/lib/pft";
 import { CHART_COLORS, SIM_STATION_COLORS, STATIONS } from "@/lib/hyrox";
-import { checkpointLabel, checkpointsFor, formatLabel, raceBase, raceHome, type Checkpoint } from "@/lib/race-format";
+import { checkpointLabel, checkpointsFor, formatLabel, raceBase, raceHome, scaledSpecSummary, type Checkpoint } from "@/lib/race-format";
 import {
   avatarColor,
   entryState,
@@ -131,6 +131,9 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   const pageRows = finished.slice((page % pages) * PAGE_SIZE, (page % pages) * PAGE_SIZE + PAGE_SIZE);
 
   const stationLabel = (i: number) => (cps[i] ? checkpointLabel(t, cps[i]) : "");
+  // 시뮬 scaled 기준 한 줄 — scaled 완주자 줄에 붙인다(마이그레이션 135)
+  const scaleSummary = isSim ? scaledSpecSummary(t, data.race.scaled_spec) : "";
+  const scaledLine = scaleSummary ? `${t("pft.scaledTag")} · ${scaleSummary}` : t("pft.scaledTag");
   const dateLine = (() => {
     const d = new Date(data.race.created_at);
     return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
@@ -342,13 +345,17 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                           <Avatar name={r.name} size={26} />
                           <span className="min-w-0 truncate text-[15px] font-bold">{r.name}</span>
                           {r.scaled && (
-                            <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
+                            <span
+                              className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted"
+                              title={scaleSummary || undefined}
+                            >
                               {t("pft.scaledTag")}
                             </span>
                           )}
                         </span>
                         <span className="tabular text-base font-extrabold">{formatMs(r.total_ms ?? 0)}</span>
                       </div>
+                      {r.scaled && scaleSummary && <p className="truncate text-xs text-muted">{scaledLine}</p>}
                       <SplitStrip splits={r.splits} cps={cps} stationLabel={stationLabel} />
                     </li>
                   ))
@@ -510,7 +517,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                         )}
                         <span className="truncate">
                           {r.scaled
-                            ? t("pft.scaledTag")
+                            ? scaledLine
                             : r.finished_at
                               ? t("pft.race.finishedAt", { time: fmtWallClock(new Date(r.finished_at), false) })
                               : ""}

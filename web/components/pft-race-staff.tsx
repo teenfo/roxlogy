@@ -6,7 +6,17 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs } from "@/lib/format";
-import { SIM_CHECKPOINTS, checkpointLabel, checkpointsFor, raceBase } from "@/lib/race-format";
+import {
+  SIM_CHECKPOINTS,
+  checkpointLabel,
+  checkpointsFor,
+  raceBase,
+  scaledSpecFromInputs,
+  scaledSpecSummary,
+  scaledSpecToInputs,
+  scaledSpecValid,
+} from "@/lib/race-format";
+import { ScaledSpecFields, type ScaledInputs } from "@/components/scaled-spec-fields";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 import {
   clockNow,
@@ -68,6 +78,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     description: string;
     checkpoints: number;
     joinOpen: boolean;
+    scale: ScaledInputs;
   } | null>(null);
   const [q, setQ] = useState("");
   const [fetched, setFetched] = useState<{ q: string; rows: Search[] } | null>(null);
@@ -444,6 +455,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   /** 레이스 정보 저장 — 제목·설명·구간 수(pft_race_update) + 코드 참가(pft_race_set_join_open) */
   const saveEdit = async () => {
     if (!edit) return;
+    if (isSim && !scaledSpecValid(edit.scale)) return setErr(t("pft.race.err.invalid_scaled_spec"));
     const cur = data.race;
     const j = (await call("pft_race_update", {
       p_race: raceId,
@@ -453,6 +465,14 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       p_checkpoints: isSim && edit.checkpoints !== (cur.checkpoints ?? 16) ? edit.checkpoints : null,
     })) as { ok?: boolean } | null;
     if (!j?.ok) return;
+    // scaled 기준(시뮬) — 바뀐 경우에만 저장. 이미 완주한 scaled 선수의 세션 메모도 서버가 다시 쓴다
+    if (isSim) {
+      const next = scaledSpecFromInputs(edit.scale);
+      if (JSON.stringify(next) !== JSON.stringify(cur.scaled_spec ?? null)) {
+        const k = (await call("pft_race_set_scaled_spec", { p_race: raceId, p_spec: next })) as { ok?: boolean } | null;
+        if (!k?.ok) return;
+      }
+    }
     if (edit.joinOpen !== cur.join_open) {
       const k = (await call("pft_race_set_join_open", { p_race: raceId, p_open: edit.joinOpen })) as {
         ok?: boolean;
@@ -482,6 +502,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   // 진행에 따라 다시 정렬하면 종목을 찍을 때마다 카드가 자리를 옮겨서,
   // 스태프가 누가 어디 있었는지를 놓친다. 상태는 색·라벨로만 나타낸다.
   const entries = data.entries;
+  const scaleSummary = scaledSpecSummary(t, data.race.scaled_spec);
   // 구간 수는 아무도 출발하지 않은 진행 중 레이스에서만 바꾼다(서버도 race_started 로 막는다)
   const cpLocked = closed || entries.some((e) => entryState(e) !== "waiting");
   const waiting = entries.filter((e) => entryState(e) === "waiting");
@@ -562,6 +583,11 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                           </span>
                         )}
                       </p>
+                      {e.scaled && isSim && scaleSummary && (
+                        <p className="text-[11px] text-muted" title={t("race.scale.label")}>
+                          {scaleSummary}
+                        </p>
+                      )}
                       <p className="text-xs font-bold uppercase tracking-wider text-muted">
                         {dnf
                           ? t("pft.race.dnf")
@@ -836,6 +862,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                       description: data.race.description ?? "",
                       checkpoints: data.race.checkpoints ?? 16,
                       joinOpen: data.race.join_open,
+                      scale: scaledSpecToInputs(data.race.scaled_spec),
                     },
               )
             }
@@ -922,6 +949,7 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
               {cpLocked && <p className="text-xs text-muted">{t("pft.race.cpLocked")}</p>}
             </fieldset>
           )}
+          {isSim && <ScaledSpecFields value={edit.scale} onChange={(scale) => setEdit({ ...edit, scale })} />}
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

@@ -1413,7 +1413,7 @@ const handler = createMcpHandler(
       {
         title: "타임체크 레이스 상세",
         description:
-          "레이스 하나의 전체 상태 — race(제목·설명·종목·구간 수·상태·코드 참가), can_manage, next_wave(새 조 번호), " +
+          "레이스 하나의 전체 상태 — race(제목·설명·종목·구간 수·상태·코드 참가·scaled_spec(시뮬 scaled 기준: 종목별 amount·weight)), can_manage, next_wave(새 조 번호), " +
           "waves[{wave, note(조 설명), members, waiting(아직 출발 전)}], " +
           "entries[{entry_id, user_id, name, state(waiting/running/paused/finished/dnf), wave, started_at, splits_done, splits_ms(구간 누적 ms), total_ms, finished_at, dnf_at, paused_at, paused_ms, scaled}]. " +
           "시간은 ms. 조 배정·출발 전에 이것으로 현재 상태를 확인하라.",
@@ -1587,6 +1587,40 @@ const handler = createMcpHandler(
         ),
     );
 
+    const scaleItem = z
+      .object({
+        amount: z.number().int().min(1).max(5000).optional(),
+        weight: z.number().min(0).max(300).optional(),
+      })
+      .optional();
+    server.registerTool(
+      "set_timing_race_scaled_spec",
+      {
+        title: "시뮬 scaled 기준",
+        description:
+          "하이록스 시뮬 레이스의 scaled 기준 — scaled 로 표시된 선수가 종목별로 어떻게 바꿔 뛰는지(운영진만, 시뮬만: invalid_format). " +
+          "spec 은 바꾼 종목만: ski·sledpush·sledpull·burpee·row·farmers·lunges·wallballs 각각 {amount: 거리 m(월볼은 횟수) 1~5000 정수, weight: kg 0~300(sledpush·sledpull·farmers·lunges·wallballs 만)}. " +
+          "정규 기준은 ski 1000m, sledpush 50m, sledpull 50m, burpee 80m, row 1000m, farmers 200m, lunges 100m, wallballs 100회. " +
+          "spec 을 비우면({}) 기준을 지운다. 통째로 바꾸는 것이라 유지할 종목도 다시 넣어라. 이미 완주한 scaled 선수의 세션 메모(수정 내용 한 줄)도 다시 쓰인다. " +
+          "응답 summary 는 한 줄 요약. 레이스를 만든 직후 기준을 정하려면 create_timing_race 다음에 이것을 불러라. 실행 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          code,
+          spec: z.object({
+            ski: scaleItem,
+            sledpush: scaleItem,
+            sledpull: scaleItem,
+            burpee: scaleItem,
+            row: scaleItem,
+            farmers: scaleItem,
+            lunges: scaleItem,
+            wallballs: scaleItem,
+          }),
+        }),
+      },
+      async ({ code: c, spec }, ctx) =>
+        out(await writeRpc("mcp_timing_race_scaled_spec", { p_token: tok(ctx), p_code: c, p_spec: spec })),
+    );
+
     server.registerTool(
       "set_timing_race_wave_note",
       {
@@ -1656,7 +1690,7 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.7.1" },
+    serverInfo: { name: "roxlogy", version: "3.8.0" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
@@ -1712,7 +1746,7 @@ const handler = createMcpHandler(
       "수정·빼기·마감·삭제는 만든 사람·운영진만 할 수 있다. " +
       "타임체크 레이스(PFT 레이스·하이록스 시뮬)는 *_timing_race* 도구로 다룬다 — list_races/get_race 는 HYROX 공식 대회 기록이라 다르다. " +
       "레이스는 6자 code 로, 선수는 user_id 로 가리킨다. 흐름: create_timing_race → list_timing_race_candidates → add_timing_race_entries → " +
-      "set_timing_race_wave(조 배정) → start_timing_race(조 출발) → get_timing_race(진행 확인) → update_timing_race(status=closed 로 종료).",
+      "(시뮬 scaled 기준이 있으면 set_timing_race_scaled_spec) → set_timing_race_wave(조 배정) → start_timing_race(조 출발) → get_timing_race(진행 확인) → update_timing_race(status=closed 로 종료).",
   },
 );
 

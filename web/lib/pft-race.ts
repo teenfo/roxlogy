@@ -1,4 +1,4 @@
-import type { RaceFormat } from "@/lib/race-format";
+import type { RaceFormat, ScaledSpec } from "@/lib/race-format";
 
 /** PFT 레이스 보드 — 보드·참가 화면이 공유하는 타입과 순위 계산.
  *  시각 규칙: 스플릿은 참가자 폰이 잰 "시작 이후 누적 ms". 진행 중 경과는 서버 started_at
@@ -22,6 +22,8 @@ export type RaceInfo = {
   checkpoints?: number;
   /** 레이스 설명(선택, 마이그레이션 132) — 옛 응답엔 없다 */
   description?: string | null;
+  /** 시뮬 scaled 기준 — 종목별 바꾼 거리·횟수·무게(마이그레이션 135) */
+  scaled_spec?: ScaledSpec | null;
 };
 
 export type RaceEntry = {

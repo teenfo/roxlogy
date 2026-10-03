@@ -5,7 +5,16 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
-import { SIM_CHECKPOINTS, raceBase, type RaceFormat, type SimCheckpoints } from "@/lib/race-format";
+import {
+  SIM_CHECKPOINTS,
+  raceBase,
+  scaledSpecFromInputs,
+  scaledSpecToInputs,
+  scaledSpecValid,
+  type RaceFormat,
+  type SimCheckpoints,
+} from "@/lib/race-format";
+import { ScaledSpecFields, type ScaledInputs } from "@/components/scaled-spec-fields";
 
 const input =
   "h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm outline-none focus:border-accent";
@@ -28,11 +37,14 @@ export function PftRaceCreateForm({
   // 종목 — PFT(6구간) 또는 하이록스 시뮬(체크포인트 16/24/32, 마이그레이션 114)
   const [format, setFormat] = useState<RaceFormat>(fixedFormat ?? "pft");
   const [checkpoints, setCheckpoints] = useState<SimCheckpoints>(16);
+  // 시뮬 scaled 기준(선택) — 바꾼 종목만 채운다(마이그레이션 135)
+  const [scaleInputs, setScaleInputs] = useState<ScaledInputs>(() => scaledSpecToInputs(null));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (format === "hyrox_sim" && !scaledSpecValid(scaleInputs)) return setErr(t("pft.race.err.invalid_scaled_spec"));
     setBusy(true);
     setErr(null);
     const supabase = createClient();
@@ -43,10 +55,28 @@ export function PftRaceCreateForm({
       p_format: format,
       p_checkpoints: format === "hyrox_sim" ? checkpoints : null,
     });
+    if (error) {
+      setBusy(false);
+      return setErr(error.message);
+    }
+    const j = data as { ok?: boolean; id?: string; code?: string; error?: string };
+    if (!j.ok || !j.code) {
+      setBusy(false);
+      return setErr(t(`pft.race.err.${j.error ?? "unknown"}` as DictKey));
+    }
+    // scaled 기준은 만든 뒤 따로 저장한다. 실패해도 레이스는 이미 있으니 스태프 화면의 "레이스 수정"에서 다시 넣으면 된다
+    const spec = format === "hyrox_sim" ? scaledSpecFromInputs(scaleInputs) : null;
+    if (spec && j.id) {
+      const { data: sd, error: se } = await supabase.rpc("pft_race_set_scaled_spec", { p_race: j.id, p_spec: spec });
+      const sj = sd as { error?: string } | null;
+      if (se || sj?.error) {
+        setBusy(false);
+        setErr(t("race.scale.saveFailedAfterCreate"));
+        router.push(`${raceBase(format)}/${j.code}/staff`);
+        return;
+      }
+    }
     setBusy(false);
-    if (error) return setErr(error.message);
-    const j = data as { ok?: boolean; code?: string; error?: string };
-    if (!j.ok || !j.code) return setErr(t(`pft.race.err.${j.error ?? "unknown"}` as DictKey));
     router.push(`${raceBase(format)}/${j.code}`);
   }
 
@@ -121,6 +151,7 @@ export function PftRaceCreateForm({
           <p className="text-xs text-muted">{t("race.cpModeNote")}</p>
         </fieldset>
       )}
+      {format === "hyrox_sim" && <ScaledSpecFields value={scaleInputs} onChange={setScaleInputs} />}
       <label className="flex flex-col gap-1 text-xs text-muted">
         {t("pft.race.fldCrew")}
         <select className={input} value={crew} onChange={(e) => setCrew(e.target.value)}>
