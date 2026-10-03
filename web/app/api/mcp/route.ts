@@ -1377,9 +1377,285 @@ const handler = createMcpHandler(
           }),
         ),
     );
+
+    // ── 타임체크 레이스 (PFT 레이스 · 하이록스 시뮬, 2026-10-03) ──
+    // 웹 RPC(pft_race_*)를 토큰 사용자로 그대로 부른다 — 권한·규칙이 웹과 같다(마이그레이션 132).
+    // 레이스는 6자 코드(code)로 가리키고, 선수는 user_id 로 가리킨다.
+    const code = z.string().regex(/^[A-Za-z0-9]{6}$/, "6자 레이스 코드");
+    const wave = z.number().int().min(1).max(50);
+
+    server.registerTool(
+      "list_timing_races",
+      {
+        title: "타임체크 레이스 목록",
+        description:
+          "PFT 레이스·하이록스 시뮬 레이스 목록 — 내가 만들었거나 운영하는 크루의 레이스, 참가한 레이스, 내 크루의 진행 중 레이스(최근 50). " +
+          "slug 로 크루를 거르고, include_closed=true 면 종료된 것도. 각 항목: id, code(6자 — 다른 레이스 도구는 이 code 를 쓴다), title, description, " +
+          "format(pft=PFT 6구간 / hyrox_sim=하이록스 시뮬), checkpoints(구간 수), status(open/closed), join_open(참가 코드로 스스로 참가 허용), " +
+          "crew, crew_slug, can_manage(운영 가능), joined, entries·waiting·started·finished(인원).",
+        inputSchema: z.object({
+          slug: z.string().optional(),
+          include_closed: z.boolean().optional(),
+        }),
+      },
+      async ({ slug, include_closed }, ctx) =>
+        out(
+          await rpc("mcp_timing_races", {
+            p_token: tok(ctx),
+            p_slug: slug ?? null,
+            p_include_closed: include_closed ?? false,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "get_timing_race",
+      {
+        title: "타임체크 레이스 상세",
+        description:
+          "레이스 하나의 전체 상태 — race(제목·설명·종목·구간 수·상태·코드 참가), can_manage, next_wave(새 조 번호), " +
+          "waves[{wave, note(조 설명), members, waiting(아직 출발 전)}], " +
+          "entries[{entry_id, user_id, name, state(waiting/running/paused/finished/dnf), wave, started_at, splits_done, splits_ms(구간 누적 ms), total_ms, finished_at, dnf_at, paused_at, paused_ms, scaled}]. " +
+          "시간은 ms. 조 배정·출발 전에 이것으로 현재 상태를 확인하라.",
+        inputSchema: z.object({ code }),
+      },
+      async ({ code: c }, ctx) =>
+        out(await rpc("mcp_timing_race_get", { p_token: tok(ctx), p_code: c })),
+    );
+
+    server.registerTool(
+      "create_timing_race",
+      {
+        title: "타임체크 레이스 만들기",
+        description:
+          "레이스를 만든다. 크루 운영진은 slug 로 그 크루 레이스를, 전체 관리자는 크루 없이도 만들 수 있다(error: not_allowed). " +
+          "format: hyrox_sim(하이록스 시뮬, 기본 — checkpoints 16/24/32, 기본 16) 또는 pft(PFT 6구간 고정). 종목은 만든 뒤 바꿀 수 없다. " +
+          "join_open=true(기본)면 참가 코드로 스스로 참가, false 면 운영진이 add_timing_race_entries 로 넣는다. description 은 선택(500자). " +
+          "응답은 get_timing_race 와 같은 모양이고 race.code 가 참가 코드다. 만들기 전 사용자에게 내용을 확인받아라.",
+        inputSchema: z.object({
+          title: z.string().min(1).max(80),
+          slug: z.string().optional(),
+          format: z.enum(["hyrox_sim", "pft"]).optional(),
+          checkpoints: z.union([z.literal(16), z.literal(24), z.literal(32)]).optional(),
+          join_open: z.boolean().optional(),
+          description: z.string().max(500).optional(),
+        }),
+      },
+      async (a, ctx) =>
+        out(
+          await writeRpc("mcp_timing_race_create", {
+            p_token: tok(ctx),
+            p_title: a.title,
+            p_slug: a.slug ?? null,
+            p_format: a.format ?? "hyrox_sim",
+            p_checkpoints: a.checkpoints ?? null,
+            p_join_open: a.join_open ?? true,
+            p_description: a.description ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "update_timing_race",
+      {
+        title: "타임체크 레이스 수정",
+        description:
+          "레이스를 고친다(레이스 운영진만 — not_allowed). 준 항목만 바뀌고, 하나라도 실패하면 전부 적용되지 않는다. " +
+          "title(80자), description(500자 — 빈 문자열이거나 clear_description=true 면 지움), " +
+          "checkpoints(시뮬만 16/24/32 — 아무도 출발하지 않은 진행 중 레이스에서만: race_started / race_closed), " +
+          "join_open(참가 코드 허용), status(closed=종료 — 종료하면 기록·배정이 잠긴다 / open=다시 열기). 종목(format)은 바꿀 수 없다. " +
+          "실행 전 바꿀 내용을 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          code,
+          title: z.string().min(1).max(80).optional(),
+          description: z.string().max(500).optional(),
+          clear_description: z.boolean().optional(),
+          checkpoints: z.union([z.literal(16), z.literal(24), z.literal(32)]).optional(),
+          join_open: z.boolean().optional(),
+          status: z.enum(["open", "closed"]).optional(),
+        }),
+      },
+      async (a, ctx) =>
+        out(
+          await writeRpc("mcp_timing_race_update", {
+            p_token: tok(ctx),
+            p_code: a.code,
+            p_title: a.title ?? null,
+            p_description: a.description ?? null,
+            p_clear_description: a.clear_description ?? false,
+            p_checkpoints: a.checkpoints ?? null,
+            p_join_open: a.join_open ?? null,
+            p_status: a.status ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "delete_timing_race",
+      {
+        title: "타임체크 레이스 삭제",
+        description:
+          "레이스를 완전히 지운다 — 참가자·조·기록 보드가 함께 사라지고 되돌릴 수 없다(선수 개인의 PFT 결과·세션 기록은 남는다). " +
+          "레이스 운영진만. 실수 방지로 confirm_code 에 레이스 코드를 한 번 더 넣어야 한다(error: confirm_code_mismatch). " +
+          "끝난 레이스를 보관만 하려면 지우지 말고 update_timing_race 의 status=closed 를 써라. 실행 전 반드시 사용자에게 확인받아라.",
+        inputSchema: z.object({ code, confirm_code: z.string() }),
+      },
+      async ({ code: c, confirm_code }, ctx) =>
+        out(
+          await writeRpc("mcp_timing_race_delete", {
+            p_token: tok(ctx),
+            p_code: c,
+            p_confirm_code: confirm_code,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "list_timing_race_candidates",
+      {
+        title: "타임체크 레이스 참가자 후보",
+        description:
+          "레이스에 넣을 수 있는 사람 — 크루 레이스면 그 크루 활동 회원 전체(q 로 이름 거르기), 크루 없는 레이스면 q 가 필요하다. " +
+          "각 항목: user_id, name, joined(이미 참가), wave, state. 운영진만.",
+        inputSchema: z.object({ code, q: z.string().max(40).optional() }),
+      },
+      async ({ code: c, q }, ctx) =>
+        out(await rpc("mcp_timing_race_members", { p_token: tok(ctx), p_code: c, p_q: q ?? null })),
+    );
+
+    server.registerTool(
+      "add_timing_race_entries",
+      {
+        title: "타임체크 레이스 참가자 추가",
+        description:
+          "선수를 레이스에 넣는다(최대 100명, 운영진만). 크루 레이스는 그 크루 활동 회원만(error: not_a_member). 이미 참가한 사람은 그대로 둔다. " +
+          "결과는 사람별 results. 종료된 레이스는 race_closed. 실행 전 누구를 넣는지 사용자에게 확인받아라.",
+        inputSchema: z.object({ code, user_ids: z.array(z.string().uuid()).min(1).max(100) }),
+      },
+      async ({ code: c, user_ids }, ctx) =>
+        out(await writeRpc("mcp_timing_race_add", { p_token: tok(ctx), p_code: c, p_user_ids: user_ids })),
+    );
+
+    server.registerTool(
+      "remove_timing_race_entries",
+      {
+        title: "타임체크 레이스 참가자 빼기",
+        description:
+          "선수를 레이스에서 뺀다(운영진만). 기본은 출발 전 선수만 — 출발·완주한 선수는 already_started 로 건너뛴다. " +
+          "include_started=true 면 출발·완주한 선수도 빼고, 그 선수의 이 레이스 기록(결과·세션)도 함께 지워진다. 실행 전 반드시 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          code,
+          user_ids: z.array(z.string().uuid()).min(1).max(100),
+          include_started: z.boolean().optional(),
+        }),
+      },
+      async ({ code: c, user_ids, include_started }, ctx) =>
+        out(
+          await writeRpc("mcp_timing_race_remove", {
+            p_token: tok(ctx),
+            p_code: c,
+            p_user_ids: user_ids,
+            p_include_started: include_started ?? false,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "set_timing_race_wave",
+      {
+        title: "출발 조(웨이브) 배정 / 해제",
+        description:
+          "선수들을 출발 조에 넣는다(wave 1~50) 또는 조에서 뺀다(wave 생략 = 해제). 새 조는 get_timing_race 의 next_wave 번호를 쓰면 된다. " +
+          "이미 출발한 선수는 바뀌지 않는다(skipped_started), 참가하지 않은 사람은 not_joined. note 를 주면 그 조 설명(120자)도 함께 적는다. " +
+          "하이록스 시뮬은 조가 있어야 출발할 수 있다. 운영진만. 실행 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          code,
+          user_ids: z.array(z.string().uuid()).min(1).max(100),
+          wave: wave.optional(),
+          note: z.string().max(120).optional(),
+        }),
+      },
+      async ({ code: c, user_ids, wave: w, note }, ctx) =>
+        out(
+          await writeRpc("mcp_timing_race_set_wave", {
+            p_token: tok(ctx),
+            p_code: c,
+            p_user_ids: user_ids,
+            p_wave: w ?? null,
+            p_note: note ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "set_timing_race_wave_note",
+      {
+        title: "출발 조 설명",
+        description: "출발 조의 설명을 적는다(120자, 예: '10:30 출발 · 남자 오픈'). 빈 문자열이면 지운다. 운영진만.",
+        inputSchema: z.object({ code, wave, note: z.string().max(120) }),
+      },
+      async ({ code: c, wave: w, note }, ctx) =>
+        out(
+          await writeRpc("mcp_timing_race_wave_note", {
+            p_token: tok(ctx),
+            p_code: c,
+            p_wave: w,
+            p_note: note,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "start_timing_race",
+      {
+        title: "타임체크 출발",
+        description:
+          "선수 시계를 지금(서버 시각) 출발시킨다. wave 를 주면 그 조의 출발 전 선수 전부, user_ids 를 주면 그 사람들만(둘 다면 그 조 안의 그 사람들). " +
+          "이미 출발한 선수와 다른 조는 영향받지 않는다. 하이록스 시뮬은 조가 없는 선수를 출발시키지 않는다(skipped_no_wave). " +
+          "출발 시각이 곧 기록 기준이므로 반드시 사용자가 '지금 출발'을 확인한 뒤에 실행하라.",
+        inputSchema: z.object({
+          code,
+          wave: wave.optional(),
+          user_ids: z.array(z.string().uuid()).max(100).optional(),
+        }),
+      },
+      async ({ code: c, wave: w, user_ids }, ctx) =>
+        out(
+          await writeRpc("mcp_timing_race_start", {
+            p_token: tok(ctx),
+            p_code: c,
+            p_wave: w ?? null,
+            p_user_ids: user_ids ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "control_timing_race_entry",
+      {
+        title: "타임체크 선수 조작",
+        description:
+          "선수 한 명의 시계를 조작한다(운영진만). action: pause(일시정지 — 시간이 실제로 멈춘다), resume(재개), " +
+          "dnf(중도포기 표시), undo_dnf(중도포기 해제), reset(기록을 지우고 출발 전으로 — 되돌릴 수 없다). 실행 전 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          code,
+          user_id: z.string().uuid(),
+          action: z.enum(["pause", "resume", "dnf", "undo_dnf", "reset"]),
+        }),
+      },
+      async ({ code: c, user_id, action }, ctx) =>
+        out(
+          await writeRpc("mcp_timing_race_entry", {
+            p_token: tok(ctx),
+            p_code: c,
+            p_user_id: user_id,
+            p_action: action,
+          }),
+        ),
+    );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.6.0" },
+    serverInfo: { name: "roxlogy", version: "3.7.0" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
@@ -1409,7 +1685,7 @@ const handler = createMcpHandler(
       "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
       "쓰기 도구(회계 기록·통장 반영·기초 잔액·월 마감·모임 등록/수정/상태변경·크루원 참석 여부 지정·공지·승인·등급 지정·출석 체크·" +
       "회비 확정/맞추기/면제·프로그램 생성/수정/일차 수정/시작/중지·크루 연결·PFT 기록·운동 등록 요청·" +
-      "투표 만들기/수정/선택지 빼기/투표/마감/삭제)는 " +
+      "투표 만들기/수정/선택지 빼기/투표/마감/삭제·타임체크 레이스 만들기/수정/삭제/참가자/조/출발/선수 조작)는 " +
       "실행 전 반드시 사용자에게 내용을 확인받는다. " +
       "훈련 계획 문서를 받으면 create_program 으로 일차별 등록 후 " +
       "start_program 으로 내 일정에 시작하거나 attach_crew_program 으로 크루 " +
@@ -1432,7 +1708,10 @@ const handler = createMcpHandler(
       "만들고, 투표는 크루원이 한다. list_crew_polls 로 진행 중인 투표와 option id 를 먼저 확인한다. " +
       "결과를 자세히 볼 때(득표율·누가 무엇을 골랐는지·아직 안 한 사람)는 get_crew_poll, " +
       "고칠 때는 update_crew_poll(질문·마감·복수 선택·선택지 이름·추가) / remove_crew_poll_options(선택지 빼기 — 그 표도 사라짐) 를 쓴다. " +
-      "수정·빼기·마감·삭제는 만든 사람·운영진만 할 수 있다.",
+      "수정·빼기·마감·삭제는 만든 사람·운영진만 할 수 있다. " +
+      "타임체크 레이스(PFT 레이스·하이록스 시뮬)는 *_timing_race* 도구로 다룬다 — list_races/get_race 는 HYROX 공식 대회 기록이라 다르다. " +
+      "레이스는 6자 code 로, 선수는 user_id 로 가리킨다. 흐름: create_timing_race → list_timing_race_candidates → add_timing_race_entries → " +
+      "set_timing_race_wave(조 배정) → start_timing_race(조 출발) → get_timing_race(진행 확인) → update_timing_race(status=closed 로 종료).",
   },
 );
 

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/components/i18n-provider";
 import { formatMs } from "@/lib/format";
-import { checkpointLabel, checkpointsFor, raceBase } from "@/lib/race-format";
+import { SIM_CHECKPOINTS, checkpointLabel, checkpointsFor, raceBase } from "@/lib/race-format";
 import type { DictKey } from "@/lib/i18n/dictionaries/en";
 import {
   clockNow,
@@ -62,6 +62,13 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   /** 고치는 중인 조 설명 — 폴링이 data 를 갈아끼워도 입력 중인 글은 여기 남는다 */
   const [noteEdit, setNoteEdit] = useState<{ wave: number; text: string } | null>(null);
   const noteDoneRef = useRef(false);
+  /** 레이스 정보 수정 패널 — 열 때 지금 값으로 채운다 */
+  const [edit, setEdit] = useState<{
+    title: string;
+    description: string;
+    checkpoints: number;
+    joinOpen: boolean;
+  } | null>(null);
   const [q, setQ] = useState("");
   const [fetched, setFetched] = useState<{ q: string; rows: Search[] } | null>(null);
   const [now, setNow] = useState(() => Date.parse(initial.server_now));
@@ -428,6 +435,31 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     }
   };
 
+  /** 레이스 정보 저장 — 제목·설명·구간 수(pft_race_update) + 코드 참가(pft_race_set_join_open) */
+  const saveEdit = async () => {
+    if (!edit) return;
+    const cur = data.race;
+    const j = (await call("pft_race_update", {
+      p_race: raceId,
+      p_title: edit.title,
+      p_description: edit.description,
+      p_clear_description: false,
+      p_checkpoints: isSim && edit.checkpoints !== (cur.checkpoints ?? 16) ? edit.checkpoints : null,
+    })) as { ok?: boolean } | null;
+    if (!j?.ok) return;
+    if (edit.joinOpen !== cur.join_open) {
+      const k = (await call("pft_race_set_join_open", { p_race: raceId, p_open: edit.joinOpen })) as {
+        ok?: boolean;
+      } | null;
+      if (!k?.ok) return;
+    }
+    setEdit(null);
+    setNotice(t("pft.race.editSaved"));
+    window.setTimeout(() => setNotice(null), 2500);
+    await refetchNow();
+    router.refresh();
+  };
+
   const setRaceStatus = async (next: "open" | "closed") => {
     if (next === "closed" && !window.confirm(t("pft.race.closeConfirm"))) return;
     const j = (await call("pft_race_set_status", { p_race: raceId, p_status: next })) as { ok?: boolean } | null;
@@ -444,6 +476,8 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
   // 진행에 따라 다시 정렬하면 종목을 찍을 때마다 카드가 자리를 옮겨서,
   // 스태프가 누가 어디 있었는지를 놓친다. 상태는 색·라벨로만 나타낸다.
   const entries = data.entries;
+  // 구간 수는 아무도 출발하지 않은 진행 중 레이스에서만 바꾼다(서버도 race_started 로 막는다)
+  const cpLocked = closed || entries.some((e) => entryState(e) !== "waiting");
   const waiting = entries.filter((e) => entryState(e) === "waiting");
   const stationLabel = (i: number) => (cps[i] ? checkpointLabel(t, cps[i]) : "");
   const waveShown = waveOpen;
@@ -724,9 +758,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-accent">{t("pft.race.staff")}</p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{race.title}</h1>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{data.race.title}</h1>
+          {data.race.description && (
+            <p className="mt-1 whitespace-pre-line text-sm text-foreground/80">{data.race.description}</p>
+          )}
           <p className="mt-1 text-sm text-muted">
-            {race.join_open ? (
+            {data.race.join_open ? (
               <>
                 {t("pft.race.code")}{" "}
                 <span className="font-mono font-bold tracking-[0.2em] text-foreground">{race.code}</span>
@@ -769,6 +806,25 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           >
             {t("pft.race.staffRunner")}
           </Link>
+          <button
+            type="button"
+            onClick={() =>
+              setEdit((v) =>
+                v
+                  ? null
+                  : {
+                      title: data.race.title,
+                      description: data.race.description ?? "",
+                      checkpoints: data.race.checkpoints ?? 16,
+                      joinOpen: data.race.join_open,
+                    },
+              )
+            }
+            aria-expanded={!!edit}
+            className="flex h-10 items-center rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold hover:border-muted/60"
+          >
+            {t("pft.race.edit")}
+          </button>
           {closed ? (
             <button
               type="button"
@@ -790,6 +846,90 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
           )}
         </div>
       </div>
+
+      {edit && (
+        <form
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            void saveEdit();
+          }}
+          className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4 sm:p-5"
+        >
+          <h2 className="text-base font-extrabold">{t("pft.race.editHeading")}</h2>
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            {t("pft.race.fldTitle")}
+            <input
+              className="h-11 w-full rounded-lg border border-line-strong bg-page px-3 text-sm text-foreground outline-none focus:border-accent"
+              value={edit.title}
+              onChange={(ev) => setEdit({ ...edit, title: ev.target.value })}
+              maxLength={80}
+              required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            {t("pft.race.fldDescription")}
+            <textarea
+              className="min-h-24 w-full rounded-lg border border-line-strong bg-page px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              value={edit.description}
+              onChange={(ev) => setEdit({ ...edit, description: ev.target.value })}
+              maxLength={500}
+              placeholder={t("pft.race.descriptionPh")}
+            />
+            <span className="self-end">{edit.description.length}/500</span>
+          </label>
+          {isSim && (
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1 text-xs text-muted">{t("race.fldCheckpoints")}</legend>
+              <div className="flex flex-wrap gap-2">
+                {SIM_CHECKPOINTS.map((n) => (
+                  <label
+                    key={n}
+                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-bold ${
+                      edit.checkpoints === n ? "border-accent bg-highlight" : "border-line-soft bg-inset"
+                    } ${cpLocked ? "cursor-not-allowed opacity-50" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="edit-checkpoints"
+                      className="h-4 w-4 accent-accent"
+                      checked={edit.checkpoints === n}
+                      disabled={cpLocked}
+                      onChange={() => setEdit({ ...edit, checkpoints: n })}
+                    />
+                    {t("race.cpMode", { n })}
+                  </label>
+                ))}
+              </div>
+              {cpLocked && <p className="text-xs text-muted">{t("pft.race.cpLocked")}</p>}
+            </fieldset>
+          )}
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-accent"
+              checked={edit.joinOpen}
+              onChange={(ev) => setEdit({ ...edit, joinOpen: ev.target.checked })}
+            />
+            {t("pft.race.editJoinOpen")}
+          </label>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setEdit(null)}
+              className="h-10 rounded-lg border border-line-strong bg-control px-4 text-sm font-semibold"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={busy || !edit.title.trim()}
+              className="h-10 rounded-lg bg-accent px-5 text-sm font-bold text-background hover:brightness-110 disabled:opacity-40"
+            >
+              {busy ? t("common.saving") : t("common.save")}
+            </button>
+          </div>
+        </form>
+      )}
 
       {err && (
         <p role="alert" className="text-sm text-danger">

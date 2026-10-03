@@ -20,6 +20,8 @@ export type RaceInfo = {
   format?: RaceFormat;
   /** 선수당 구간 수 (pft 6, hyrox_sim 16/24/32) */
   checkpoints?: number;
+  /** 레이스 설명(선택, 마이그레이션 132) — 옛 응답엔 없다 */
+  description?: string | null;
 };
 
 export type RaceEntry = {

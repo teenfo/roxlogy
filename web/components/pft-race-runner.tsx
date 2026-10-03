@@ -336,7 +336,7 @@ export function PftRaceRunner({
             ? t("pft.race.pausedByStaff")
             : running && !done
               ? t("pft.race.partnerHint")
-              : undefined
+              : race.description || undefined
       }
       startedAt={quit ? null : startedAt}
       splits={splits}
@@ -525,7 +525,7 @@ export function PftRaceRunner({
             ? t("pft.race.pausedByStaff")
             : running && !done
               ? t("pft.race.partnerHint")
-              : undefined
+              : race.description || undefined
       }
       startedAt={quit ? null : startedAt}
       splits={splits}
