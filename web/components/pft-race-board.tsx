@@ -7,7 +7,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { PftBoardTopBar } from "@/components/pft-board-topbar";
 import { formatMs } from "@/lib/format";
 import { PFT_COLORS, PFT_CUTOFFS, PFT_STATIONS, badgeClass, badgeDictKey } from "@/lib/pft";
-import { STATIONS } from "@/lib/hyrox";
+import { CHART_COLORS, SIM_STATION_COLORS, STATIONS } from "@/lib/hyrox";
 import { checkpointLabel, checkpointsFor, formatLabel, raceBase, raceHome, type Checkpoint } from "@/lib/race-format";
 import {
   avatarColor,
@@ -160,7 +160,8 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
 
         {/* 종목 카드 — 제목과 지표 사이 빈 자리를 채운다. 순서·이름·수행 목표만 담고
             규격(경사·중량 등)은 참가자 본인 화면이 맡는다 — 보드 상단에 넣을 자리가 없다.
-            배경색은 아래 스플릿 바와 같은 색이라 "지금 노란 구간"이 눈으로 이어진다. */}
+            배경색은 아래 스플릿 바와 같은 스테이션 색(SIM_STATION_COLORS / PFT_COLORS)이라
+            진행 바의 칸과 눈으로 이어진다. */}
         {isSim ? (
           /* 하이록스 시뮬 — 8 스테이션 순서. 런 1km 은 스테이션 사이마다 들어간다 */
           <ol className="grid min-w-[240px] flex-1 grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
@@ -168,7 +169,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
               <li
                 key={st.key}
                 className="min-w-0 rounded-xl border border-black/10 px-3 py-2.5 text-center text-[#141414]"
-                style={{ background: "#e0c53a" }}
+                style={{ background: SIM_STATION_COLORS[st.key] ?? CHART_COLORS.station }}
               >
                 <p className="text-[11px] font-bold tracking-[0.06em] opacity-70">{i + 1}</p>
                 <p className="mt-0.5 line-clamp-2 break-keep text-[13px] font-extrabold leading-tight">{t(`station.${st.key}` as DictKey)}</p>
