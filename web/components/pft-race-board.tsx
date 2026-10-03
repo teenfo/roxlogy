@@ -216,21 +216,30 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             ))}
           </ol>
         ) : (
-        <ol className="grid min-w-[240px] flex-1 grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+        <ol className="grid min-w-[240px] flex-1 grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+            {/* 6칸 한 줄은 카드 폭이 넉넉한 xl 부터 — 그보다 좁으면 3×2 로 숫자가 잘리지 않게 */}
             {PFT_STATIONS.map((st, i) => (
               <li
                 key={st.key}
                 // 지표 카드(Stat)와 같은 치수 — 상단이 한 줄로 읽히려면 높이가 맞아야 한다
-                className="min-w-0 rounded-xl border border-black/10 px-4 py-3 text-center text-[#141414]"
+                className="min-w-0 rounded-xl border border-black/10 px-2 py-3 text-center text-[#141414]"
                 style={{ background: PFT_COLORS[st.key] }}
                 title={t(st.detail as DictKey) || undefined}
               >
-                <p className="truncate text-[11px] font-bold tracking-[0.06em] opacity-70">
+                {/* 이름은 두 줄까지(잘라 "Burpee br…" 로 만들지 않는다), 수량은 숫자만 크게·단위는 작게 —
+                    카드가 좁아도 "100 reps" 가 "100…" 로 잘리지 않게 (2026-10-04) */}
+                <p className="line-clamp-2 break-keep text-[11px] font-bold leading-tight tracking-[0.04em] opacity-70">
                   {i + 1}. {stationLabel(i)}
                 </p>
-                <p className="tabular mt-1 truncate text-[28px] font-extrabold leading-[1.1]">
-                  {t(st.amount as DictKey)}
-                </p>
+                {(() => {
+                  const m = /^(\d+)\s*(.*)$/.exec(t(st.amount as DictKey));
+                  return (
+                    <p className="tabular mt-1 whitespace-nowrap font-extrabold leading-[1.1]">
+                      <span className="text-2xl 2xl:text-[28px]">{m ? m[1] : t(st.amount as DictKey)}</span>
+                      {m?.[2] && <span className="ml-0.5 text-sm">{m[2]}</span>}
+                    </p>
+                  );
+                })()}
               </li>
             ))}
           </ol>
