@@ -953,6 +953,86 @@ const handler = createMcpHandler(
     );
 
     server.registerTool(
+      "get_crew_poll",
+      {
+        title: "크루 투표 결과 상세",
+        description:
+          "투표 하나의 결과를 자세히 본다. list_crew_polls 의 항목(question·multiple·anonymous·closes_at·closed·voters·my_votes·options·can_manage·can_vote·created_by_name·created_at)에 더해 " +
+          "target(붙은 모임/게시글: type·id·title), total_votes(표 총수 — 복수 선택이면 참여 인원보다 많을 수 있다), " +
+          "results[{id,label,votes,percent,leading}](percent = 참여 인원 대비 %, 복수 선택이면 합이 100을 넘을 수 있다; leading = 최다 득표, 동률이면 여럿), " +
+          "ballots[{user_id,name,options(고른 선택지 이름),voted_at}](사람별 선택 — 익명 투표면 null), " +
+          "non_voters[{user_id,name}](아직 투표하지 않은 크루원 — 만든 사람·운영진에게만, 익명 투표면 null; 정회원 전용 대상이면 정회원만 센다). " +
+          "볼 수 없는 투표면 not_found_or_invalid_token. poll_id 는 list_crew_polls 에서 얻는다.",
+        inputSchema: z.object({ poll_id: z.string().uuid() }),
+      },
+      async ({ poll_id }, ctx) =>
+        out(await rpc("mcp_poll_get", { p_token: tok(ctx), p_poll: poll_id })),
+    );
+
+    server.registerTool(
+      "update_crew_poll",
+      {
+        title: "크루 투표 수정",
+        description:
+          "투표를 고친다. 만든 사람·운영진만(error: not_allowed). 준 항목만 바뀐다: " +
+          "question(1~200자), closes_at(새 마감 시각 ISO 8601, 미래만 — error: invalid_deadline) 또는 clear_closes_at=true(마감 시각 없애기 → 수동 마감), " +
+          "multiple(복수 선택 허용 여부 — 이미 두 개 이상 고른 사람이 있으면 단일로 못 바꾼다: multiple_votes_exist), " +
+          "rename_options[{id,label}](선택지 이름 고치기 — 표가 하나도 없는 선택지만: option_has_votes, 다른 선택지와 같은 이름 불가: duplicate_option), " +
+          "add_options(선택지 추가 — 빈 칸·같은 이름은 정리, 합계 10개까지: too_many_options). " +
+          "익명 여부는 바꿀 수 없다. 마감·다시 열기는 close_crew_poll, 선택지 빼기는 remove_crew_poll_options. " +
+          "한 번의 호출은 전부 적용되거나 하나도 적용되지 않는다. 실행 전 바꿀 내용을 사용자에게 확인받아라.",
+        inputSchema: z.object({
+          poll_id: z.string().uuid(),
+          question: z.string().min(1).max(200).optional(),
+          closes_at: z.string().datetime({ offset: true }).optional(),
+          clear_closes_at: z.boolean().optional(),
+          multiple: z.boolean().optional(),
+          rename_options: z
+            .array(z.object({ id: z.string().uuid(), label: z.string().min(1).max(80) }))
+            .max(10)
+            .optional(),
+          add_options: z.array(z.string().min(1).max(80)).max(10).optional(),
+        }),
+      },
+      async ({ poll_id, question, closes_at, clear_closes_at, multiple, rename_options, add_options }, ctx) =>
+        out(
+          await writeRpc("mcp_poll_update", {
+            p_token: tok(ctx),
+            p_poll: poll_id,
+            p_question: question ?? null,
+            p_closes_at: closes_at ?? null,
+            p_clear_closes: clear_closes_at ?? false,
+            p_multiple: multiple ?? null,
+            p_add: add_options ?? null,
+            p_rename: rename_options ?? null,
+          }),
+        ),
+    );
+
+    server.registerTool(
+      "remove_crew_poll_options",
+      {
+        title: "크루 투표 선택지 빼기",
+        description:
+          "투표에서 선택지를 뺀다. 만든 사람·운영진만(error: not_allowed). 남는 선택지가 2개 이상이어야 한다(too_few_options). " +
+          "뺀 선택지에 들어간 표도 함께 지워지고 되돌릴 수 없다 — 응답의 votes_removed 가 사라진 표 수. " +
+          "실행 전 get_crew_poll 로 그 선택지의 득표를 보여 주고 사용자에게 반드시 확인받아라.",
+        inputSchema: z.object({
+          poll_id: z.string().uuid(),
+          option_ids: z.array(z.string().uuid()).min(1).max(9),
+        }),
+      },
+      async ({ poll_id, option_ids }, ctx) =>
+        out(
+          await writeRpc("mcp_poll_remove_options", {
+            p_token: tok(ctx),
+            p_poll: poll_id,
+            p_options: option_ids,
+          }),
+        ),
+    );
+
+    server.registerTool(
       "get_crew_board",
       {
         title: "크루 게시판",
@@ -1299,7 +1379,7 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.5.2" },
+    serverInfo: { name: "roxlogy", version: "3.6.0" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
@@ -1329,7 +1409,7 @@ const handler = createMcpHandler(
       "(운영진) 표시 도구는 크루 리더·부리더 토큰만 동작한다. " +
       "쓰기 도구(회계 기록·통장 반영·기초 잔액·월 마감·모임 등록/수정/상태변경·크루원 참석 여부 지정·공지·승인·등급 지정·출석 체크·" +
       "회비 확정/맞추기/면제·프로그램 생성/수정/일차 수정/시작/중지·크루 연결·PFT 기록·운동 등록 요청·" +
-      "투표 만들기/투표/마감/삭제)는 " +
+      "투표 만들기/수정/선택지 빼기/투표/마감/삭제)는 " +
       "실행 전 반드시 사용자에게 내용을 확인받는다. " +
       "훈련 계획 문서를 받으면 create_program 으로 일차별 등록 후 " +
       "start_program 으로 내 일정에 시작하거나 attach_crew_program 으로 크루 " +
@@ -1349,7 +1429,10 @@ const handler = createMcpHandler(
       "청구도 장부도 잠기고(error: dues_month_closed / ledger_month_closed), " +
       "통장 반영일만 열려 있다. 마감은 reopen 으로 풀 수 있다. " +
       "투표는 크루 모임 또는 게시글에 붙는다 — 모임 투표는 운영진, 게시글 투표는 글쓴이·운영진이 " +
-      "만들고, 투표는 크루원이 한다. list_crew_polls 로 진행 중인 투표와 option id 를 먼저 확인한다.",
+      "만들고, 투표는 크루원이 한다. list_crew_polls 로 진행 중인 투표와 option id 를 먼저 확인한다. " +
+      "결과를 자세히 볼 때(득표율·누가 무엇을 골랐는지·아직 안 한 사람)는 get_crew_poll, " +
+      "고칠 때는 update_crew_poll(질문·마감·복수 선택·선택지 이름·추가) / remove_crew_poll_options(선택지 빼기 — 그 표도 사라짐) 를 쓴다. " +
+      "수정·빼기·마감·삭제는 만든 사람·운영진만 할 수 있다.",
   },
 );
 
