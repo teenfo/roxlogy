@@ -138,8 +138,14 @@ export type RankedEntry = RaceEntry & {
   current: number | null;
 };
 
-/** 순위: 완주(총시간↑) → 진행 중(더 앞선 종목, 같으면 경과↑) → 대기(참가 순). */
-export function rankEntries(entries: RaceEntry[], nowMs: number, checkpoints = 6): RankedEntry[] {
+/** 순위: 완주(총시간↑) → 진행 중(더 앞선 종목, 같으면 경과↑) → 대기(참가 순).
+ *  unrankScaled 면 수정(scaled) 완주자는 순위 없이(rank 0) 완주자 맨 뒤에 둔다 — 시뮬 레이스 규칙. */
+export function rankEntries(
+  entries: RaceEntry[],
+  nowMs: number,
+  checkpoints = 6,
+  unrankScaled = false,
+): RankedEntry[] {
   const rows = entries.map((e) => {
     const state = entryState(e);
     return {
@@ -154,7 +160,10 @@ export function rankEntries(entries: RaceEntry[], nowMs: number, checkpoints = 6
   const order: Record<EntryState, number> = { finished: 0, running: 1, waiting: 2, dnf: 3 };
   rows.sort((a, b) => {
     if (order[a.state] !== order[b.state]) return order[a.state] - order[b.state];
-    if (a.state === "finished") return (a.total_ms ?? 0) - (b.total_ms ?? 0);
+    if (a.state === "finished") {
+      if (unrankScaled && !!a.scaled !== !!b.scaled) return a.scaled ? 1 : -1;
+      return (a.total_ms ?? 0) - (b.total_ms ?? 0);
+    }
     if (a.state === "running") {
       if (a.splits.length !== b.splits.length) return b.splits.length - a.splits.length;
       return (a.elapsed ?? 0) - (b.elapsed ?? 0);
@@ -164,6 +173,7 @@ export function rankEntries(entries: RaceEntry[], nowMs: number, checkpoints = 6
   let rank = 0;
   for (const r of rows) {
     if (r.state === "waiting") continue;
+    if (unrankScaled && r.state === "finished" && r.scaled) continue;
     rank += 1;
     r.rank = rank;
   }

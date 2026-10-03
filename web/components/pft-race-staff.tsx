@@ -354,6 +354,12 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
     }));
   };
 
+  /** 볼륨·동작 수정(scaled) 표시 — 시뮬은 완주 뒤에도 운영진이 바꿀 수 있다(리더보드 제외가 따라간다) */
+  const setScaledFor = async (e: RaceEntry, on: boolean) => {
+    const j = (await call("pft_race_set_scaled", { p_race: raceId, p_entry: e.entry_id, p_scaled: on })) as MyEntry | null;
+    if (j?.entry_id) mergeEntry(j);
+  };
+
   /** 선수 한 명을 조에서 뺀다(출발 전만 — 서버도 출발한 사람은 건너뛴다) */
   const unassignOne = async (e: RaceEntry) => {
     const j = (await call("pft_race_set_wave", { p_race: raceId, p_entries: [e.entry_id], p_wave: null })) as
@@ -676,6 +682,19 @@ export function PftRaceStaff({ initial }: { initial: BoardData }) {
                     >
                       {t("pft.race.waveUnassign")}
                     </button>
+                  )}
+                  {/* 볼륨·동작 수정 — 시뮬은 수정 기록이 리더보드에 오르지 않는다. PFT 는 완주 뒤 배지가 확정돼 바꾸지 않는다 */}
+                  {!closed && !dnf && (isSim || state !== "finished") && (
+                    <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs font-semibold text-muted">
+                      <input
+                        type="checkbox"
+                        checked={!!e.scaled}
+                        disabled={busy}
+                        onChange={(ev) => void setScaledFor(e, ev.target.checked)}
+                        className="h-4 w-4 accent-accent"
+                      />
+                      {t("pft.race.scaledToggle")}
+                    </label>
                   )}
 
                   {closed ? (

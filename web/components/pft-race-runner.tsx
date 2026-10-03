@@ -242,6 +242,14 @@ export function PftRaceRunner({
     setEntry(mine as MyEntry);
   };
 
+  /** 볼륨·동작 수정(scaled) — 바로 서버에 저장한다(운영진이 출발시켜도 남도록). 실패하면 되돌린다 */
+  const toggleScaled = async (on: boolean) => {
+    setScaled(on);
+    const j = (await call("pft_race_set_scaled", { p_race: race.id, p_entry: null, p_scaled: on })) as MyEntry | null;
+    if (!j?.entry_id) return setScaled(!on);
+    setEntry(j);
+  };
+
   const start = async () => {
     const at = Date.now();
     const j = (await call("pft_race_start", { p_race: race.id, p_scaled: scaled })) as MyEntry | null;
@@ -423,15 +431,17 @@ export function PftRaceRunner({
               {closed && <p className="mt-2 text-xs text-muted">{t("pft.race.closedNote")}</p>}
             </div>
           )}
-          {joined && startedAt == null && !isSim && (
+          {/* 시뮬 — 출발은 운영진이 조 단위로 하므로 완주 전까지 언제든 고친다. 수정 기록은 리더보드에 오르지 않는다 */}
+          {joined && !done && !closed && (
             <label className="flex items-center gap-2 text-sm text-muted">
               <input
                 type="checkbox"
                 checked={scaled}
-                onChange={(e) => setScaled(e.target.checked)}
+                disabled={busy}
+                onChange={(e) => void toggleScaled(e.target.checked)}
                 className="accent-accent"
               />
-              {t("pft.fScaled")}
+              {t("race.simScaled")}
             </label>
           )}
           {joined && closed && !done && <p className="text-xs text-danger">{t("pft.race.closedNote")}</p>}
@@ -617,7 +627,7 @@ export function PftRaceRunner({
               <input
                 type="checkbox"
                 checked={scaled}
-                onChange={(e) => setScaled(e.target.checked)}
+                onChange={(e) => void toggleScaled(e.target.checked)}
                 className="accent-accent"
               />
               {t("pft.fScaled")}

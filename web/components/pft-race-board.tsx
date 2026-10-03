@@ -95,7 +95,8 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   // 구간 목록 — PFT 6, 하이록스 시뮬 16/24/32 (마이그레이션 114)
   const cps = checkpointsFor(data.race.format, data.race.checkpoints);
   const isSim = data.race.format === "hyrox_sim";
-  const rows = rankEntries(data.entries, now, cps.length);
+  // 시뮬 레이스는 수정(scaled) 완주를 순위에서 뺀다(맨 뒤, 순위 없음 — 사용자 지정 2026-10-03)
+  const rows = rankEntries(data.entries, now, cps.length, isSim);
   const running = rows.filter((r) => r.state === "running");
   const finished = rows.filter((r) => r.state === "finished");
   const waiting = rows.filter((r) => r.state === "waiting");
@@ -103,7 +104,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
   const dnfRows = rows.filter(
     (r) => r.state === "dnf" || (data.race.status === "closed" && r.state !== "finished"),
   );
-  const leader = finished[0] ?? null;
+  const leader = finished.find((r) => r.rank > 0) ?? null;
   const closed = data.race.status === "closed";
   // 이미 참가한 사람에게는 코드를 다시 묻지 않는다 — 코드 블록 대신 내 측정 화면으로 안내
   const joinedMe = meId != null && data.entries.some((e) => e.user_id === meId);
@@ -336,10 +337,15 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                   finished.map((r) => (
                     <li key={r.entry_id} className="flex flex-col gap-2 rounded-lg bg-inset px-3 py-2.5">
                       <div className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2.5">
-                        <span className="tabular text-sm font-extrabold text-muted">{r.rank}</span>
+                        <span className="tabular text-sm font-extrabold text-muted">{r.rank || "—"}</span>
                         <span className="flex min-w-0 items-center gap-2">
                           <Avatar name={r.name} size={26} />
                           <span className="min-w-0 truncate text-[15px] font-bold">{r.name}</span>
+                          {r.scaled && (
+                            <span className="rounded bg-line px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
+                              {t("pft.scaledTag")}
+                            </span>
+                          )}
                         </span>
                         <span className="tabular text-base font-extrabold">{formatMs(r.total_ms ?? 0)}</span>
                       </div>
@@ -471,12 +477,12 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                     className={`tabular flex h-10 w-10 items-center justify-center rounded-full border text-[17px] font-extrabold ${
                       r.rank === 1
                         ? "border-accent bg-accent text-background"
-                        : r.rank <= 3
+                        : r.rank > 0 && r.rank <= 3
                           ? "border-line-accent bg-highlight text-accent"
                           : "border-[#333] text-muted"
                     }`}
                   >
-                    {r.rank}
+                    {r.rank || "—"}
                   </span>
                   <span className="flex min-w-0 items-center gap-3">
                     <span className="hidden sm:inline-flex">
@@ -526,7 +532,11 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
                       {formatMs(r.total_ms)}
                     </span>
                     <span className="tabular mt-0.5 block text-xs text-[#777]">
-                      {r.rank === 1 ? t("pft.race.leader") : `+${fmtClock(gap)}`}
+                      {r.rank === 1
+                        ? t("pft.race.leader")
+                        : r.rank === 0
+                          ? t("pft.race.scaledUnranked")
+                          : `+${fmtClock(gap)}`}
                     </span>
                   </span>
                 </li>
@@ -692,6 +702,9 @@ function LiveRow({
   const curElapsed = elapsed - (cur === 0 ? 0 : r.splits[cur - 1]);
   const progress = closed ? null : segmentProgress(r, curElapsed, leaderSplits);
   const fresh = !closed && !!r.started_at && now - Date.parse(r.started_at) < 30_000;
+  // 현재 스테이션 표시는 그 구간 색으로(진행 바의 현재 칸·상단 종목 카드와 같은 색)
+  const curColor = cps[cur]?.color;
+  const curPill = closed || !curColor ? undefined : { background: `${curColor}26`, color: curColor };
   return (
     <div
       className={`grid grid-cols-[44px_minmax(0,1fr)] items-center gap-3.5 rounded-[14px] border bg-page px-4 py-3.5 md:grid-cols-[56px_minmax(0,1fr)_auto] md:gap-[18px] md:px-[18px] motion-safe:animate-[rowin_.3s_ease-out] ${
@@ -707,8 +720,9 @@ function LiveRow({
           )}
           <span
             className={`hidden h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-extrabold md:inline-flex ${
-              closed ? "bg-line text-muted" : "bg-highlight text-accent"
+              closed ? "bg-line text-muted" : ""
             }`}
+            style={curPill}
           >
             {closed ? t("pft.race.dnf") : `${cur + 1}/${cps.length} ${stationLabel(cur)}`}
           </span>
@@ -718,8 +732,9 @@ function LiveRow({
         </div>
         <span
           className={`inline-flex h-6 w-fit items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-extrabold md:hidden ${
-            closed ? "bg-line text-muted" : "bg-highlight text-accent"
+            closed ? "bg-line text-muted" : ""
           }`}
+          style={curPill}
         >
           {closed ? t("pft.race.dnf") : `${cur + 1}/${cps.length} ${stationLabel(cur)}`}
         </span>
@@ -741,7 +756,9 @@ function LiveRow({
             </div>
             <div className="tabular flex justify-between text-xs">
               <span className="truncate text-[#777]">{stationLabel(cur)}</span>
-              <span className={`font-bold ${closed ? "text-[#555]" : "text-accent"}`}>{closed ? "—" : fmtClock(curElapsed)}</span>
+              <span className={`font-bold ${closed ? "text-[#555]" : ""}`} style={closed ? undefined : { color: curColor }}>
+                {closed ? "—" : fmtClock(curElapsed)}
+              </span>
             </div>
           </div>
         ) : (
@@ -763,7 +780,10 @@ function LiveRow({
                 </div>
                 <div className="tabular flex justify-between text-xs">
                   <span className="truncate text-[#777]">{stationLabel(i)}</span>
-                  <span className={`font-bold ${done ? "text-[#c9c9c9]" : isCur && !closed ? "text-accent" : "text-[#555]"}`}>
+                  <span
+                    className={`font-bold ${done ? "text-[#c9c9c9]" : isCur && !closed ? "" : "text-[#555]"}`}
+                    style={isCur && !closed && !done ? { color: cp.color } : undefined}
+                  >
                     {done && ms != null ? formatMs(ms) : isCur && !closed ? fmtClock(curElapsed) : "—"}
                   </span>
                 </div>

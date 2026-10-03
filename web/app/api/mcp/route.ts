@@ -1636,11 +1636,12 @@ const handler = createMcpHandler(
         title: "타임체크 선수 조작",
         description:
           "선수 한 명의 시계를 조작한다(운영진만). action: pause(일시정지 — 시간이 실제로 멈춘다), resume(재개), " +
-          "dnf(중도포기 표시), undo_dnf(중도포기 해제), reset(기록을 지우고 출발 전으로 — 되돌릴 수 없다). 실행 전 사용자에게 확인받아라.",
+          "dnf(중도포기 표시), undo_dnf(중도포기 해제), reset(기록을 지우고 출발 전으로 — 되돌릴 수 없다), " +
+          "scaled / unscaled(볼륨·동작 수정 표시 — 하이록스 시뮬은 수정 기록이 리더보드·보드 순위에서 빠지고, 완주 뒤에도 운영진이 바꿀 수 있다. PFT 는 완주 전까지만). 실행 전 사용자에게 확인받아라.",
         inputSchema: z.object({
           code,
           user_id: z.string().uuid(),
-          action: z.enum(["pause", "resume", "dnf", "undo_dnf", "reset"]),
+          action: z.enum(["pause", "resume", "dnf", "undo_dnf", "reset", "scaled", "unscaled"]),
         }),
       },
       async ({ code: c, user_id, action }, ctx) =>
@@ -1655,7 +1656,7 @@ const handler = createMcpHandler(
     );
   },
   {
-    serverInfo: { name: "roxlogy", version: "3.7.0" },
+    serverInfo: { name: "roxlogy", version: "3.7.1" },
     // 이 서버는 도구만 등록한다 — resource·prompt·서버발 알림이 하나도 없다.
     // 기본값(1024)이면 클라이언트의 구독 요청에 SSE 스트림을 열어 주는데, 보낼
     // 게 없으니 그 스트림은 아무 일도 안 하면서 함수를 붙잡고 있다가 300초
