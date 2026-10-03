@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { fmtWallClock } from "@/lib/pft-race";
 
@@ -12,8 +12,9 @@ function subscribeFullscreen(onChange: () => void) {
   return () => document.removeEventListener("fullscreenchange", onChange);
 }
 
-/** 공개 보드 상단 바 — 로고 + 전체화면 + LIVE 점(펄스) + 현재 시각(1초). 종료된 레이스는 "종료". */
-export function PftBoardTopBar({ closed }: { closed: boolean }) {
+/** 공개 보드 상단 바 — 로고 + (가운데: 레이스 지표) + 전체화면 + LIVE 점(펄스) + 현재 시각(1초).
+ *  종료된 레이스는 "종료". 가운데 칸은 좁은 화면에서 아랫줄로 내려간다. */
+export function PftBoardTopBar({ closed, center }: { closed: boolean; center?: ReactNode }) {
   const { t } = useI18n();
   const [clock, setClock] = useState<string | null>(null);
   // 전체화면 상태·지원 여부는 브라우저만 아는 값이라 useSyncExternalStore 로 읽는다.
@@ -46,11 +47,14 @@ export function PftBoardTopBar({ closed }: { closed: boolean }) {
     }
   };
   return (
-    <div className="flex h-14 items-center justify-between border-b border-line-soft px-4 md:px-7">
+    <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line-soft px-4 py-2 md:px-7">
       <Link href="/" className="flex items-center gap-2.5 text-base font-extrabold tracking-[0.08em]">
         <Image src="/roxlogy-mark.svg" alt="" width={28} height={28} priority />
         ROXLOGY
       </Link>
+      {center && (
+        <div className="order-last flex w-full justify-center lg:order-none lg:w-auto lg:flex-1">{center}</div>
+      )}
       <div className="flex items-center gap-3.5 text-[13px] text-muted">
         {canFull && (
           <button

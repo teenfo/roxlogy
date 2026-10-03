@@ -141,7 +141,27 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
 
   return (
     <>
-      <PftBoardTopBar closed={closed} />
+      {/* 지표(참가·측정 중·완주·최고 기록)는 상단 바 가운데로 — 레이스 카드에는 제목·종목만 (2026-10-04 현장 피드백) */}
+      <PftBoardTopBar
+        closed={closed}
+        center={
+          <div className="flex flex-wrap items-center justify-center gap-2" role="status">
+            <Stat label={t("pft.race.stats.total")} value={String(rows.length)} />
+            <Stat
+              // 종료되면 "측정 중"이 아니라 미완주 수를 보여 준다 — 하단 명단과 같은 값이어야 한다
+              label={closed ? t("pft.race.dnf") : t("pft.race.stats.running")}
+              value={String(closed ? dnfRows.length : running.length)}
+              tone={closed ? undefined : "accent"}
+            />
+            <Stat label={t("pft.race.stats.finished")} value={String(finished.length)} tone="success" />
+            <Stat
+              label={t("pft.race.stats.best")}
+              value={leader?.total_ms != null ? formatMs(leader.total_ms) : "–:––"}
+              wide
+            />
+          </div>
+        }
+      />
       <div className="flex w-full flex-1 flex-col gap-5 px-4 py-4 md:px-7 md:py-6">
       {/* 1. 레이스 종합 카드 */}
       <section className="flex flex-wrap items-center gap-6 rounded-2xl border border-line-mid bg-card px-5 py-5 md:px-[26px]">
@@ -216,24 +236,10 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
           </ol>
         )}
 
+        {(showCode || joinedMe || !data.race.join_open) && (
         <div className="flex flex-wrap items-center gap-3.5">
-          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4" role="status">
-            <Stat label={t("pft.race.stats.total")} value={String(rows.length)} />
-            <Stat
-              // 종료되면 "측정 중"이 아니라 미완주 수를 보여 준다 — 하단 명단과 같은 값이어야 한다
-              label={closed ? t("pft.race.dnf") : t("pft.race.stats.running")}
-              value={String(closed ? dnfRows.length : running.length)}
-              tone={closed ? undefined : "accent"}
-            />
-            <Stat label={t("pft.race.stats.finished")} value={String(finished.length)} tone="success" />
-            <Stat
-              label={t("pft.race.stats.best")}
-              value={leader?.total_ms != null ? formatMs(leader.total_ms) : "–:––"}
-              wide
-            />
-          </div>
           {showCode && (
-            <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
+            <div className="flex flex-col items-center gap-1.5">
               <span className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.codeLabel")}</span>
               <span className="flex h-[52px] items-center rounded-xl border border-line-strong bg-page px-5 font-mono text-2xl font-extrabold tracking-[0.32em]">
                 {data.race.code}
@@ -242,7 +248,7 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             </div>
           )}
           {joinedMe && (
-            <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
+            <div className="flex flex-col items-center gap-1.5">
               <span className="text-[11px] font-bold tracking-[0.06em] text-[#777]">{t("pft.race.youAreIn")}</span>
               <Link
                 href={raceHref}
@@ -253,11 +259,12 @@ export function PftRaceBoard({ initial, meId = null }: { initial: BoardData; meI
             </div>
           )}
           {!data.race.join_open && !joinedMe && (
-            <div className="flex flex-col items-center gap-1.5 md:border-l md:border-line-mid md:pl-3.5">
+            <div className="flex flex-col items-center gap-1.5">
               <span className="max-w-[180px] text-center text-[11px] text-[#777]">{t("pft.race.staffAddedOnly")}</span>
             </div>
           )}
         </div>
+        )}
 
       </section>
 
@@ -613,19 +620,20 @@ function Stat({
   wide?: boolean;
 }) {
   return (
+    // 상단 바용 가로형 — 라벨 옆에 값. 바 높이(56px) 안에 들어가게 납작하게
     <div
-      className={`rounded-xl border px-4 py-3 text-center ${wide ? "min-w-[110px]" : "min-w-[88px]"} ${
+      className={`flex items-baseline gap-2 rounded-lg border px-3 py-1.5 ${wide ? "min-w-[120px]" : "min-w-[88px]"} ${
         tone === "accent" ? "border-line-accent bg-highlight" : "border-line bg-page"
       }`}
     >
-      <p className={`text-[11px] font-bold tracking-[0.06em] ${tone === "accent" ? "text-[#c9b34a]" : "text-[#777]"}`}>{label}</p>
-      <p
-        className={`tabular mt-1 text-[28px] font-extrabold leading-[1.1] ${
+      <span className={`text-[11px] font-bold tracking-[0.06em] ${tone === "accent" ? "text-[#c9b34a]" : "text-[#777]"}`}>{label}</span>
+      <span
+        className={`tabular ml-auto text-2xl font-extrabold leading-none ${
           tone === "accent" ? "text-accent" : tone === "success" ? "text-success" : ""
         }`}
       >
         {value}
-      </p>
+      </span>
     </div>
   );
 }
